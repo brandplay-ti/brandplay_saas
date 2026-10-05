@@ -1,0 +1,1831 @@
+table|ai_conversations|true
+table|ai_messages|true
+table|ai_suggestions|true
+table|asset_allocations|true
+table|asset_photos|true
+table|assets|true
+table|backend_error_logs|true
+table|brandtrack_brands|true
+table|brandtrack_detections|true
+table|brandtrack_event_brands|true
+table|brandtrack_events|true
+table|brandtrack_media|true
+table|contract_assets|true
+table|contract_churn_risk|true
+table|contract_clause_templates|true
+table|contract_clauses|true
+table|contracts|true
+table|crm_tasks|true
+table|deliveries|true
+table|delivery_approval_log|true
+table|delivery_attachments|true
+table|error_reports|true
+table|installments|true
+table|lead_scores|true
+table|market_benchmarks|true
+table|notification_preferences|true
+table|notifications|true
+table|opportunities|true
+table|opportunity_activities|true
+table|opportunity_audit_logs|true
+table|opportunity_comment_attachments|true
+table|opportunity_comments|true
+table|opportunity_contacts|true
+table|organization_invites|true
+table|organization_members|true
+table|organizations|true
+table|pipeline_funnels|true
+table|pipeline_stage_slas|true
+table|profiles|true
+table|property_checklist_items|true
+table|property_events|true
+table|property_leads|true
+table|property_media|true
+table|proposal_items|true
+table|proposal_versions|true
+table|proposals|true
+table|sellout_reports|true
+table|sponsor_audit_logs|true
+table|sponsor_brands|true
+table|sponsor_brandtrack_profiles|true
+table|sponsor_contacts|true
+table|sponsor_contract_profiles|true
+table|sponsor_crm_profiles|true
+table|sponsor_delivery_profiles|true
+table|sponsor_documents|true
+table|sponsor_executive_summaries|true
+table|sponsor_finance_profiles|true
+table|sponsor_interactions|true
+table|sponsor_invites|true
+table|sponsor_portal_access|true
+table|sponsor_portal_profiles|true
+table|sponsor_proposal_profiles|true
+table|sponsors|true
+table|sponsorship_tiers|true
+table|sports_properties|true
+table|team_audit_log|true
+table|tier_assets|true
+table|tier_sales|true
+table|user_dashboard_preferences|true
+table|user_roles|true
+table|user_stage_probabilities|true
+column|ai_conversations.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|ai_conversations.id|uuid(uuid)|NO|gen_random_uuid()
+column|ai_conversations.last_message_at|timestamp with time zone(timestamptz)|NO|now()
+column|ai_conversations.organization_id|uuid(uuid)|YES|
+column|ai_conversations.title|text(text)|NO|'Nova conversa'
+column|ai_conversations.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|ai_conversations.user_id|uuid(uuid)|NO|
+column|ai_messages.content|text(text)|YES|
+column|ai_messages.conversation_id|uuid(uuid)|NO|
+column|ai_messages.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|ai_messages.id|uuid(uuid)|NO|gen_random_uuid()
+column|ai_messages.metadata|jsonb(jsonb)|NO|'{}'
+column|ai_messages.role|text(text)|NO|
+column|ai_messages.tool_call_id|text(text)|YES|
+column|ai_messages.tool_calls|jsonb(jsonb)|YES|
+column|ai_messages.tool_name|text(text)|YES|
+column|ai_suggestions.action_url|text(text)|YES|
+column|ai_suggestions.category|text(text)|NO|
+column|ai_suggestions.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|ai_suggestions.description|text(text)|YES|
+column|ai_suggestions.expires_at|timestamp with time zone(timestamptz)|YES|
+column|ai_suggestions.id|uuid(uuid)|NO|gen_random_uuid()
+column|ai_suggestions.metadata|jsonb(jsonb)|NO|'{}'
+column|ai_suggestions.organization_id|uuid(uuid)|YES|
+column|ai_suggestions.priority|text(text)|NO|'media'
+column|ai_suggestions.related_entity_id|uuid(uuid)|YES|
+column|ai_suggestions.related_entity_type|text(text)|YES|
+column|ai_suggestions.status|text(text)|NO|'nova'
+column|ai_suggestions.title|text(text)|NO|
+column|ai_suggestions.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|ai_suggestions.user_id|uuid(uuid)|NO|
+column|asset_allocations.asset_id|uuid(uuid)|NO|
+column|asset_allocations.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|asset_allocations.id|uuid(uuid)|NO|gen_random_uuid()
+column|asset_allocations.organization_id|uuid(uuid)|YES|
+column|asset_allocations.property_id|uuid(uuid)|NO|
+column|asset_photos.asset_id|uuid(uuid)|NO|
+column|asset_photos.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|asset_photos.id|uuid(uuid)|NO|gen_random_uuid()
+column|asset_photos.is_cover|boolean(bool)|NO|false
+column|asset_photos.organization_id|uuid(uuid)|YES|
+column|asset_photos.position|integer(int4)|NO|0
+column|asset_photos.storage_path|text(text)|NO|
+column|assets.category|text(text)|NO|
+column|assets.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|assets.exclusive_sponsor_id|uuid(uuid)|YES|
+column|assets.exclusivity_terms|ARRAY(_text)|NO|'{}'[]
+column|assets.id|uuid(uuid)|NO|gen_random_uuid()
+column|assets.is_exclusive|boolean(bool)|NO|false
+column|assets.name|text(text)|NO|
+column|assets.notes|text(text)|YES|
+column|assets.organization_id|uuid(uuid)|YES|
+column|assets.owner_id|uuid(uuid)|NO|
+column|assets.quantity|integer(int4)|NO|1
+column|assets.status|text(text)|NO|'ativo'
+column|assets.unit_value|numeric(numeric)|NO|0
+column|assets.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|backend_error_logs.action|text(text)|NO|
+column|backend_error_logs.attempted_row_keys|ARRAY(_text)|NO|'{}'[]
+column|backend_error_logs.client_file|text(text)|YES|
+column|backend_error_logs.client_line|integer(int4)|YES|
+column|backend_error_logs.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|backend_error_logs.error_code|text(text)|YES|
+column|backend_error_logs.error_details|text(text)|YES|
+column|backend_error_logs.error_hint|text(text)|YES|
+column|backend_error_logs.error_message|text(text)|YES|
+column|backend_error_logs.id|uuid(uuid)|NO|gen_random_uuid()
+column|backend_error_logs.matching_policies|jsonb(jsonb)|NO|'[]'
+column|backend_error_logs.metadata|jsonb(jsonb)|NO|'{}'
+column|backend_error_logs.organization_id|uuid(uuid)|YES|
+column|backend_error_logs.table_name|text(text)|NO|
+column|backend_error_logs.user_email|text(text)|YES|
+column|backend_error_logs.user_id|uuid(uuid)|NO|
+column|brandtrack_brands.color|text(text)|YES|'#3b82f6'
+column|brandtrack_brands.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|brandtrack_brands.id|uuid(uuid)|NO|gen_random_uuid()
+column|brandtrack_brands.logo_path|text(text)|YES|
+column|brandtrack_brands.name|text(text)|NO|
+column|brandtrack_brands.organization_id|uuid(uuid)|YES|
+column|brandtrack_brands.owner_id|uuid(uuid)|NO|
+column|brandtrack_brands.sponsor_id|uuid(uuid)|YES|
+column|brandtrack_brands.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|brandtrack_detections.bes_score|numeric(numeric)|NO|0
+column|brandtrack_detections.brand_id|uuid(uuid)|YES|
+column|brandtrack_detections.brand_name|text(text)|NO|
+column|brandtrack_detections.confidence|numeric(numeric)|NO|0
+column|brandtrack_detections.corrected_brand_name|text(text)|YES|
+column|brandtrack_detections.corrected_exposure_type|text(text)|YES|
+column|brandtrack_detections.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|brandtrack_detections.duration|numeric(numeric)|NO|0
+column|brandtrack_detections.end_time|numeric(numeric)|NO|0
+column|brandtrack_detections.evidence_path|text(text)|YES|
+column|brandtrack_detections.exposure_type|text(text)|NO|'outro'
+column|brandtrack_detections.height|numeric(numeric)|YES|
+column|brandtrack_detections.id|uuid(uuid)|NO|gen_random_uuid()
+column|brandtrack_detections.media_id|uuid(uuid)|NO|
+column|brandtrack_detections.organization_id|uuid(uuid)|YES|
+column|brandtrack_detections.owner_id|uuid(uuid)|NO|
+column|brandtrack_detections.position_x|numeric(numeric)|YES|
+column|brandtrack_detections.position_y|numeric(numeric)|YES|
+column|brandtrack_detections.review_notes|text(text)|YES|
+column|brandtrack_detections.review_status|text(text)|NO|'pendente'
+column|brandtrack_detections.reviewed_at|timestamp with time zone(timestamptz)|YES|
+column|brandtrack_detections.reviewed_by|uuid(uuid)|YES|
+column|brandtrack_detections.screen_percentage|numeric(numeric)|NO|0
+column|brandtrack_detections.start_time|numeric(numeric)|NO|0
+column|brandtrack_detections.width|numeric(numeric)|YES|
+column|brandtrack_event_brands.aliases|ARRAY(_text)|NO|'{}'[]
+column|brandtrack_event_brands.brand_id|uuid(uuid)|YES|
+column|brandtrack_event_brands.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|brandtrack_event_brands.display_name|text(text)|NO|
+column|brandtrack_event_brands.event_id|uuid(uuid)|NO|
+column|brandtrack_event_brands.id|uuid(uuid)|NO|gen_random_uuid()
+column|brandtrack_event_brands.is_active|boolean(bool)|NO|true
+column|brandtrack_event_brands.organization_id|uuid(uuid)|YES|
+column|brandtrack_event_brands.owner_id|uuid(uuid)|NO|
+column|brandtrack_event_brands.priority|integer(int4)|NO|1
+column|brandtrack_event_brands.sponsor_id|uuid(uuid)|YES|
+column|brandtrack_event_brands.sponsor_status|text(text)|NO|'patrocinador'
+column|brandtrack_event_brands.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|brandtrack_events.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|brandtrack_events.description|text(text)|YES|
+column|brandtrack_events.event_date|date(date)|YES|
+column|brandtrack_events.id|uuid(uuid)|NO|gen_random_uuid()
+column|brandtrack_events.name|text(text)|NO|
+column|brandtrack_events.organization_id|uuid(uuid)|YES|
+column|brandtrack_events.owner_id|uuid(uuid)|NO|
+column|brandtrack_events.property_id|uuid(uuid)|YES|
+column|brandtrack_events.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|brandtrack_media.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|brandtrack_media.duration_seconds|numeric(numeric)|YES|
+column|brandtrack_media.error_message|text(text)|YES|
+column|brandtrack_media.event_id|uuid(uuid)|YES|
+column|brandtrack_media.external_url|text(text)|YES|
+column|brandtrack_media.file_size|bigint(int8)|YES|
+column|brandtrack_media.id|uuid(uuid)|NO|gen_random_uuid()
+column|brandtrack_media.media_type|text(text)|NO|
+column|brandtrack_media.organization_id|uuid(uuid)|YES|
+column|brandtrack_media.owner_id|uuid(uuid)|NO|
+column|brandtrack_media.processed_at|timestamp with time zone(timestamptz)|YES|
+column|brandtrack_media.progress|integer(int4)|NO|0
+column|brandtrack_media.source_platform|text(text)|YES|
+column|brandtrack_media.status|text(text)|NO|'queued'
+column|brandtrack_media.storage_path|text(text)|YES|
+column|brandtrack_media.thumbnail_path|text(text)|YES|
+column|brandtrack_media.title|text(text)|NO|
+column|brandtrack_media.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|contract_assets.asset_id|uuid(uuid)|YES|
+column|contract_assets.contract_id|uuid(uuid)|NO|
+column|contract_assets.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|contract_assets.id|uuid(uuid)|NO|gen_random_uuid()
+column|contract_assets.name|text(text)|NO|
+column|contract_assets.notes|text(text)|YES|
+column|contract_assets.organization_id|uuid(uuid)|YES|
+column|contract_assets.quantity|integer(int4)|NO|1
+column|contract_assets.unit_value|numeric(numeric)|NO|0
+column|contract_churn_risk.contract_id|uuid(uuid)|NO|
+column|contract_churn_risk.generated_at|timestamp with time zone(timestamptz)|NO|now()
+column|contract_churn_risk.model|text(text)|YES|
+column|contract_churn_risk.organization_id|uuid(uuid)|YES|
+column|contract_churn_risk.owner_id|uuid(uuid)|NO|
+column|contract_churn_risk.recommendation|text(text)|YES|
+column|contract_churn_risk.risk_level|text(text)|NO|
+column|contract_churn_risk.risk_score|integer(int4)|NO|0
+column|contract_churn_risk.signals|jsonb(jsonb)|NO|'[]'
+column|contract_clause_templates.content|text(text)|YES|
+column|contract_clause_templates.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|contract_clause_templates.id|uuid(uuid)|NO|gen_random_uuid()
+column|contract_clause_templates.organization_id|uuid(uuid)|NO|
+column|contract_clause_templates.position|integer(int4)|NO|0
+column|contract_clause_templates.title|text(text)|NO|
+column|contract_clause_templates.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|contract_clauses.content|text(text)|YES|
+column|contract_clauses.contract_id|uuid(uuid)|NO|
+column|contract_clauses.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|contract_clauses.id|uuid(uuid)|NO|gen_random_uuid()
+column|contract_clauses.organization_id|uuid(uuid)|YES|
+column|contract_clauses.position|integer(int4)|NO|0
+column|contract_clauses.title|text(text)|NO|
+column|contracts.ai_summary|text(text)|YES|
+column|contracts.brand|text(text)|NO|
+column|contracts.contract_number|text(text)|YES|
+column|contracts.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|contracts.custom_due_dates|ARRAY(_date)|NO|'{}'[]
+column|contracts.due_day|integer(int4)|YES|
+column|contracts.due_days|integer(int4)|YES|
+column|contracts.end_date|date(date)|YES|
+column|contracts.file_name|text(text)|YES|
+column|contracts.file_path|text(text)|YES|
+column|contracts.flat_value|numeric(numeric)|NO|0
+column|contracts.id|uuid(uuid)|NO|gen_random_uuid()
+column|contracts.installments|integer(int4)|NO|1
+column|contracts.notes|text(text)|YES|
+column|contracts.opportunity_id|uuid(uuid)|YES|
+column|contracts.organization_id|uuid(uuid)|YES|
+column|contracts.owner_id|uuid(uuid)|NO|
+column|contracts.payment_method|USER-DEFINED(payment_method)|NO|'a_vista'
+column|contracts.property_id|uuid(uuid)|YES|
+column|contracts.signatories|text(text)|YES|
+column|contracts.sponsor_id|uuid(uuid)|YES|
+column|contracts.start_date|date(date)|YES|
+column|contracts.status|USER-DEFINED(contract_status)|NO|'rascunho'
+column|contracts.title|text(text)|NO|
+column|contracts.total_value|numeric(numeric)|NO|0
+column|contracts.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|contracts.use_flat_value|boolean(bool)|NO|false
+column|crm_tasks.assignee_id|uuid(uuid)|YES|
+column|crm_tasks.completed_at|timestamp with time zone(timestamptz)|YES|
+column|crm_tasks.completed_by|uuid(uuid)|YES|
+column|crm_tasks.completion_notes|text(text)|YES|
+column|crm_tasks.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|crm_tasks.created_by|uuid(uuid)|YES|
+column|crm_tasks.description|text(text)|YES|
+column|crm_tasks.due_date|date(date)|YES|
+column|crm_tasks.id|uuid(uuid)|NO|gen_random_uuid()
+column|crm_tasks.opportunity_id|uuid(uuid)|YES|
+column|crm_tasks.organization_id|uuid(uuid)|NO|
+column|crm_tasks.priority|text(text)|NO|'media'
+column|crm_tasks.source|USER-DEFINED(crm_audit_source)|NO|'manual'
+column|crm_tasks.sponsor_brand_id|uuid(uuid)|YES|
+column|crm_tasks.sponsor_id|uuid(uuid)|NO|
+column|crm_tasks.status|text(text)|NO|'aberta'
+column|crm_tasks.task_type|text(text)|NO|'followup'
+column|crm_tasks.title|text(text)|NO|
+column|crm_tasks.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|deliveries.approval|USER-DEFINED(delivery_approval)|NO|'pendente'
+column|deliveries.approval_comment|text(text)|YES|
+column|deliveries.asset_type|text(text)|YES|
+column|deliveries.brand|text(text)|NO|
+column|deliveries.contract_id|uuid(uuid)|YES|
+column|deliveries.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|deliveries.delivered_at|date(date)|YES|
+column|deliveries.description|text(text)|YES|
+column|deliveries.due_date|date(date)|YES|
+column|deliveries.evidence_geo|jsonb(jsonb)|YES|
+column|deliveries.evidence_taken_at|timestamp with time zone(timestamptz)|YES|
+column|deliveries.evidence_taken_by|uuid(uuid)|YES|
+column|deliveries.evidence_url|text(text)|YES|
+column|deliveries.id|uuid(uuid)|NO|gen_random_uuid()
+column|deliveries.notes|text(text)|YES|
+column|deliveries.opportunity_id|uuid(uuid)|YES|
+column|deliveries.organization_id|uuid(uuid)|YES|
+column|deliveries.owner_id|uuid(uuid)|NO|
+column|deliveries.position|integer(int4)|NO|0
+column|deliveries.property_id|uuid(uuid)|YES|
+column|deliveries.quantity|integer(int4)|NO|1
+column|deliveries.sponsor_id|uuid(uuid)|YES|
+column|deliveries.status|USER-DEFINED(delivery_status)|NO|'pendente'
+column|deliveries.title|text(text)|NO|
+column|deliveries.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|delivery_approval_log.comment|text(text)|YES|
+column|delivery_approval_log.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|delivery_approval_log.decided_by|uuid(uuid)|NO|
+column|delivery_approval_log.decided_by_role|text(text)|NO|
+column|delivery_approval_log.decision|USER-DEFINED(delivery_approval)|NO|
+column|delivery_approval_log.delivery_id|uuid(uuid)|NO|
+column|delivery_approval_log.id|uuid(uuid)|NO|gen_random_uuid()
+column|delivery_approval_log.organization_id|uuid(uuid)|YES|
+column|delivery_attachments.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|delivery_attachments.delivery_id|uuid(uuid)|NO|
+column|delivery_attachments.file_name|text(text)|YES|
+column|delivery_attachments.geo|jsonb(jsonb)|YES|
+column|delivery_attachments.id|uuid(uuid)|NO|gen_random_uuid()
+column|delivery_attachments.kind|text(text)|NO|'image'
+column|delivery_attachments.mime_type|text(text)|YES|
+column|delivery_attachments.organization_id|uuid(uuid)|YES|
+column|delivery_attachments.owner_id|uuid(uuid)|NO|
+column|delivery_attachments.position|integer(int4)|NO|0
+column|delivery_attachments.size_bytes|bigint(int8)|YES|
+column|delivery_attachments.storage_path|text(text)|NO|
+column|delivery_attachments.taken_at|timestamp with time zone(timestamptz)|YES|
+column|delivery_attachments.uploaded_by|uuid(uuid)|NO|
+column|error_reports.component_stack|text(text)|YES|
+column|error_reports.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|error_reports.id|uuid(uuid)|NO|gen_random_uuid()
+column|error_reports.message|text(text)|NO|
+column|error_reports.metadata|jsonb(jsonb)|NO|'{}'
+column|error_reports.organization_id|uuid(uuid)|YES|
+column|error_reports.route|text(text)|YES|
+column|error_reports.severity|text(text)|NO|'error'
+column|error_reports.source|text(text)|NO|'frontend'
+column|error_reports.stack|text(text)|YES|
+column|error_reports.user_agent|text(text)|YES|
+column|error_reports.user_email|text(text)|YES|
+column|error_reports.user_id|uuid(uuid)|YES|
+column|installments.amount|numeric(numeric)|NO|0
+column|installments.contract_id|uuid(uuid)|NO|
+column|installments.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|installments.due_date|date(date)|NO|
+column|installments.id|uuid(uuid)|NO|gen_random_uuid()
+column|installments.installment_number|integer(int4)|NO|
+column|installments.notes|text(text)|YES|
+column|installments.organization_id|uuid(uuid)|YES|
+column|installments.owner_id|uuid(uuid)|NO|
+column|installments.paid_amount|numeric(numeric)|YES|
+column|installments.paid_at|date(date)|YES|
+column|installments.payment_method|USER-DEFINED(payment_method)|YES|
+column|installments.sponsor_id|uuid(uuid)|YES|
+column|installments.status|USER-DEFINED(installment_status)|NO|'pendente'
+column|installments.total_installments|integer(int4)|NO|1
+column|installments.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|lead_scores.approach_argument|text(text)|YES|
+column|lead_scores.classification|text(text)|NO|'morno'
+column|lead_scores.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|lead_scores.fit_audience|integer(int4)|YES|
+column|lead_scores.fit_history|integer(int4)|YES|
+column|lead_scores.fit_segment|integer(int4)|YES|
+column|lead_scores.id|uuid(uuid)|NO|gen_random_uuid()
+column|lead_scores.model|text(text)|YES|
+column|lead_scores.organization_id|uuid(uuid)|YES|
+column|lead_scores.owner_id|uuid(uuid)|NO|
+column|lead_scores.property_id|uuid(uuid)|YES|
+column|lead_scores.reasons|jsonb(jsonb)|NO|'[]'
+column|lead_scores.score|integer(int4)|NO|0
+column|lead_scores.target_id|uuid(uuid)|NO|
+column|lead_scores.target_type|text(text)|NO|
+column|lead_scores.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|market_benchmarks.generated_at|timestamp with time zone(timestamptz)|NO|now()
+column|market_benchmarks.id|uuid(uuid)|NO|gen_random_uuid()
+column|market_benchmarks.market_avg_ticket|numeric(numeric)|NO|0
+column|market_benchmarks.market_max|numeric(numeric)|YES|
+column|market_benchmarks.market_min|numeric(numeric)|YES|
+column|market_benchmarks.model|text(text)|YES|
+column|market_benchmarks.notes|text(text)|YES|
+column|market_benchmarks.organization_id|uuid(uuid)|NO|
+column|market_benchmarks.segment|text(text)|NO|
+column|notification_preferences.categories|jsonb(jsonb)|NO|'{"churn_risk": true, "delivery_late": true, "installment_due": true, "opportunity_stale": true, "proposal_expiring": true, "installment_overdue": true}'
+column|notification_preferences.email_enabled|boolean(bool)|NO|true
+column|notification_preferences.inapp_enabled|boolean(bool)|NO|true
+column|notification_preferences.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|notification_preferences.user_id|uuid(uuid)|NO|
+column|notifications.action_url|text(text)|YES|
+column|notifications.category|text(text)|NO|
+column|notifications.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|notifications.dedupe_key|text(text)|YES|
+column|notifications.description|text(text)|YES|
+column|notifications.email_sent_at|timestamp with time zone(timestamptz)|YES|
+column|notifications.id|uuid(uuid)|NO|gen_random_uuid()
+column|notifications.metadata|jsonb(jsonb)|NO|'{}'
+column|notifications.organization_id|uuid(uuid)|YES|
+column|notifications.priority|text(text)|NO|'media'
+column|notifications.read_at|timestamp with time zone(timestamptz)|YES|
+column|notifications.related_entity_id|uuid(uuid)|YES|
+column|notifications.related_entity_type|text(text)|YES|
+column|notifications.title|text(text)|NO|
+column|notifications.user_id|uuid(uuid)|NO|
+column|opportunities.assignee_id|uuid(uuid)|YES|
+column|opportunities.brand|text(text)|NO|
+column|opportunities.converted_contract_id|uuid(uuid)|YES|
+column|opportunities.converted_proposal_id|uuid(uuid)|YES|
+column|opportunities.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|opportunities.expected_close_date|date(date)|YES|
+column|opportunities.id|uuid(uuid)|NO|gen_random_uuid()
+column|opportunities.last_stage_change_at|timestamp with time zone(timestamptz)|NO|now()
+column|opportunities.lost_comment|text(text)|YES|
+column|opportunities.lost_competitor|text(text)|YES|
+column|opportunities.lost_reason|text(text)|YES|
+column|opportunities.lost_value|numeric(numeric)|YES|
+column|opportunities.notes|text(text)|YES|
+column|opportunities.organization_id|uuid(uuid)|YES|
+column|opportunities.owner_id|uuid(uuid)|NO|
+column|opportunities.pipeline_funnel_id|uuid(uuid)|YES|
+column|opportunities.position|integer(int4)|NO|0
+column|opportunities.property_id|uuid(uuid)|YES|
+column|opportunities.sponsor_id|uuid(uuid)|YES|
+column|opportunities.stage|USER-DEFINED(opportunity_stage)|NO|'prospect'
+column|opportunities.tier_id|uuid(uuid)|YES|
+column|opportunities.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|opportunities.value|numeric(numeric)|NO|0
+column|opportunity_activities.activity_type|text(text)|NO|'nota'
+column|opportunity_activities.completed_at|timestamp with time zone(timestamptz)|YES|
+column|opportunity_activities.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|opportunity_activities.description|text(text)|YES|
+column|opportunity_activities.due_date|timestamp with time zone(timestamptz)|YES|
+column|opportunity_activities.id|uuid(uuid)|NO|gen_random_uuid()
+column|opportunity_activities.opportunity_id|uuid(uuid)|NO|
+column|opportunity_activities.organization_id|uuid(uuid)|YES|
+column|opportunity_activities.owner_id|uuid(uuid)|NO|
+column|opportunity_activities.status|text(text)|NO|'pendente'
+column|opportunity_activities.title|text(text)|NO|
+column|opportunity_activities.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|opportunity_audit_logs.actor_id|uuid(uuid)|YES|
+column|opportunity_audit_logs.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|opportunity_audit_logs.event_type|text(text)|NO|
+column|opportunity_audit_logs.from_stage|USER-DEFINED(opportunity_stage)|YES|
+column|opportunity_audit_logs.id|uuid(uuid)|NO|gen_random_uuid()
+column|opportunity_audit_logs.metadata|jsonb(jsonb)|NO|'{}'
+column|opportunity_audit_logs.new_value|numeric(numeric)|YES|
+column|opportunity_audit_logs.old_value|numeric(numeric)|YES|
+column|opportunity_audit_logs.opportunity_id|uuid(uuid)|NO|
+column|opportunity_audit_logs.organization_id|uuid(uuid)|NO|
+column|opportunity_audit_logs.to_stage|USER-DEFINED(opportunity_stage)|YES|
+column|opportunity_comment_attachments.comment_id|uuid(uuid)|NO|
+column|opportunity_comment_attachments.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|opportunity_comment_attachments.file_name|text(text)|NO|
+column|opportunity_comment_attachments.id|uuid(uuid)|NO|gen_random_uuid()
+column|opportunity_comment_attachments.mime_type|text(text)|YES|
+column|opportunity_comment_attachments.opportunity_id|uuid(uuid)|NO|
+column|opportunity_comment_attachments.organization_id|uuid(uuid)|NO|
+column|opportunity_comment_attachments.size_bytes|bigint(int8)|YES|
+column|opportunity_comment_attachments.storage_path|text(text)|NO|
+column|opportunity_comment_attachments.uploaded_by|uuid(uuid)|NO|
+column|opportunity_comments.author_id|uuid(uuid)|NO|
+column|opportunity_comments.content|text(text)|NO|
+column|opportunity_comments.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|opportunity_comments.id|uuid(uuid)|NO|gen_random_uuid()
+column|opportunity_comments.kind|text(text)|NO|'comentario'
+column|opportunity_comments.mentions|ARRAY(_uuid)|NO|'{}'[]
+column|opportunity_comments.opportunity_id|uuid(uuid)|NO|
+column|opportunity_comments.organization_id|uuid(uuid)|NO|
+column|opportunity_comments.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|opportunity_contacts.contact_type|text(text)|NO|'geral'
+column|opportunity_contacts.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|opportunity_contacts.created_by|uuid(uuid)|YES|
+column|opportunity_contacts.email|text(text)|YES|
+column|opportunity_contacts.id|uuid(uuid)|NO|gen_random_uuid()
+column|opportunity_contacts.is_primary|boolean(bool)|NO|false
+column|opportunity_contacts.name|text(text)|NO|
+column|opportunity_contacts.notes|text(text)|YES|
+column|opportunity_contacts.opportunity_id|uuid(uuid)|NO|
+column|opportunity_contacts.organization_id|uuid(uuid)|YES|
+column|opportunity_contacts.phone|text(text)|YES|
+column|opportunity_contacts.role|text(text)|YES|
+column|opportunity_contacts.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|organization_invites.accepted_at|timestamp with time zone(timestamptz)|YES|
+column|organization_invites.accepted_user_id|uuid(uuid)|YES|
+column|organization_invites.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|organization_invites.email|text(text)|NO|
+column|organization_invites.expires_at|timestamp with time zone(timestamptz)|NO|(now() + '14 days')
+column|organization_invites.id|uuid(uuid)|NO|gen_random_uuid()
+column|organization_invites.invited_by|uuid(uuid)|NO|
+column|organization_invites.organization_id|uuid(uuid)|NO|
+column|organization_invites.role|USER-DEFINED(org_role)|NO|'comercial'
+column|organization_invites.status|text(text)|NO|'pendente'
+column|organization_invites.token|text(text)|NO|encode(gen_random_bytes(24), 'hex')
+column|organization_members.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|organization_members.id|uuid(uuid)|NO|gen_random_uuid()
+column|organization_members.organization_id|uuid(uuid)|NO|
+column|organization_members.role|USER-DEFINED(org_role)|NO|'comercial'
+column|organization_members.status|text(text)|NO|'ativo'
+column|organization_members.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|organization_members.user_id|uuid(uuid)|NO|
+column|organizations.address_city|text(text)|YES|
+column|organizations.address_complement|text(text)|YES|
+column|organizations.address_neighborhood|text(text)|YES|
+column|organizations.address_number|text(text)|YES|
+column|organizations.address_state|text(text)|YES|
+column|organizations.address_street|text(text)|YES|
+column|organizations.cnpj|text(text)|YES|
+column|organizations.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|organizations.currency|text(text)|NO|'BRL'
+column|organizations.email|text(text)|YES|
+column|organizations.id|uuid(uuid)|NO|gen_random_uuid()
+column|organizations.legal_name|text(text)|YES|
+column|organizations.legal_representative|text(text)|YES|
+column|organizations.locale|text(text)|NO|'pt-BR'
+column|organizations.logo_path|text(text)|YES|
+column|organizations.name|text(text)|NO|
+column|organizations.owner_id|uuid(uuid)|NO|
+column|organizations.phone|text(text)|YES|
+column|organizations.state_registration|text(text)|YES|
+column|organizations.timezone|text(text)|NO|'America/Sao_Paulo'
+column|organizations.trade_name|text(text)|YES|
+column|organizations.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|organizations.website|text(text)|YES|
+column|organizations.zip_code|text(text)|YES|
+column|pipeline_funnels.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|pipeline_funnels.description|text(text)|YES|
+column|pipeline_funnels.id|uuid(uuid)|NO|gen_random_uuid()
+column|pipeline_funnels.is_active|boolean(bool)|NO|true
+column|pipeline_funnels.is_default|boolean(bool)|NO|false
+column|pipeline_funnels.name|text(text)|NO|
+column|pipeline_funnels.organization_id|uuid(uuid)|NO|
+column|pipeline_funnels.position|integer(int4)|NO|0
+column|pipeline_funnels.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|pipeline_stage_slas.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|pipeline_stage_slas.id|uuid(uuid)|NO|gen_random_uuid()
+column|pipeline_stage_slas.is_active|boolean(bool)|NO|true
+column|pipeline_stage_slas.organization_id|uuid(uuid)|NO|
+column|pipeline_stage_slas.pipeline_funnel_id|uuid(uuid)|YES|
+column|pipeline_stage_slas.sla_days|integer(int4)|YES|
+column|pipeline_stage_slas.stage|USER-DEFINED(opportunity_stage)|NO|
+column|pipeline_stage_slas.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|profiles.avatar_url|text(text)|YES|
+column|profiles.company|text(text)|YES|
+column|profiles.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|profiles.full_name|text(text)|YES|
+column|profiles.id|uuid(uuid)|NO|
+column|profiles.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|property_checklist_items.assignee|text(text)|YES|
+column|property_checklist_items.completed_at|timestamp with time zone(timestamptz)|YES|
+column|property_checklist_items.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|property_checklist_items.delivery_id|uuid(uuid)|YES|
+column|property_checklist_items.description|text(text)|YES|
+column|property_checklist_items.due_date|date(date)|YES|
+column|property_checklist_items.event_id|uuid(uuid)|YES|
+column|property_checklist_items.evidence_geo|jsonb(jsonb)|YES|
+column|property_checklist_items.evidence_path|text(text)|YES|
+column|property_checklist_items.evidence_taken_at|timestamp with time zone(timestamptz)|YES|
+column|property_checklist_items.evidence_taken_by|uuid(uuid)|YES|
+column|property_checklist_items.id|uuid(uuid)|NO|gen_random_uuid()
+column|property_checklist_items.opportunity_id|uuid(uuid)|YES|
+column|property_checklist_items.organization_id|uuid(uuid)|YES|
+column|property_checklist_items.owner_id|uuid(uuid)|NO|
+column|property_checklist_items.position|integer(int4)|NO|0
+column|property_checklist_items.property_id|uuid(uuid)|NO|
+column|property_checklist_items.sponsor_id|uuid(uuid)|YES|
+column|property_checklist_items.status|text(text)|NO|'pendente'
+column|property_checklist_items.title|text(text)|NO|
+column|property_checklist_items.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|property_events.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|property_events.description|text(text)|YES|
+column|property_events.ends_at|timestamp with time zone(timestamptz)|YES|
+column|property_events.event_type|text(text)|NO|'jogo'
+column|property_events.id|uuid(uuid)|NO|gen_random_uuid()
+column|property_events.location|text(text)|YES|
+column|property_events.organization_id|uuid(uuid)|YES|
+column|property_events.owner_id|uuid(uuid)|NO|
+column|property_events.property_id|uuid(uuid)|NO|
+column|property_events.starts_at|timestamp with time zone(timestamptz)|NO|
+column|property_events.status|text(text)|NO|'agendado'
+column|property_events.title|text(text)|NO|
+column|property_events.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|property_leads.budget_range|text(text)|YES|
+column|property_leads.company|text(text)|YES|
+column|property_leads.contact_name|text(text)|NO|
+column|property_leads.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|property_leads.created_opportunity_id|uuid(uuid)|YES|
+column|property_leads.email|text(text)|NO|
+column|property_leads.id|uuid(uuid)|NO|gen_random_uuid()
+column|property_leads.message|text(text)|YES|
+column|property_leads.organization_id|uuid(uuid)|YES|
+column|property_leads.owner_id|uuid(uuid)|NO|
+column|property_leads.phone|text(text)|YES|
+column|property_leads.property_id|uuid(uuid)|NO|
+column|property_leads.status|text(text)|NO|'novo'
+column|property_leads.tier_id|uuid(uuid)|YES|
+column|property_media.caption|text(text)|YES|
+column|property_media.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|property_media.external_url|text(text)|YES|
+column|property_media.id|uuid(uuid)|NO|gen_random_uuid()
+column|property_media.is_cover|boolean(bool)|NO|false
+column|property_media.media_type|text(text)|NO|'photo'
+column|property_media.organization_id|uuid(uuid)|YES|
+column|property_media.owner_id|uuid(uuid)|NO|
+column|property_media.position|integer(int4)|NO|0
+column|property_media.property_id|uuid(uuid)|NO|
+column|property_media.storage_path|text(text)|YES|
+column|property_media.thumbnail_url|text(text)|YES|
+column|property_media.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|proposal_items.asset_id|uuid(uuid)|YES|
+column|proposal_items.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|proposal_items.description|text(text)|YES|
+column|proposal_items.id|uuid(uuid)|NO|gen_random_uuid()
+column|proposal_items.name|text(text)|NO|
+column|proposal_items.notes|text(text)|YES|
+column|proposal_items.organization_id|uuid(uuid)|YES|
+column|proposal_items.position|integer(int4)|NO|0
+column|proposal_items.proposal_id|uuid(uuid)|NO|
+column|proposal_items.quantity|integer(int4)|NO|1
+column|proposal_items.unit_value|numeric(numeric)|NO|0
+column|proposal_versions.channel|text(text)|NO|
+column|proposal_versions.content|text(text)|NO|
+column|proposal_versions.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|proposal_versions.id|uuid(uuid)|NO|gen_random_uuid()
+column|proposal_versions.metadata|jsonb(jsonb)|NO|'{}'
+column|proposal_versions.model|text(text)|YES|
+column|proposal_versions.organization_id|uuid(uuid)|YES|
+column|proposal_versions.owner_id|uuid(uuid)|NO|
+column|proposal_versions.proposal_id|uuid(uuid)|NO|
+column|proposal_versions.title|text(text)|YES|
+column|proposal_versions.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|proposals.brand|text(text)|YES|
+column|proposals.converted_contract_id|uuid(uuid)|YES|
+column|proposals.converted_opportunity_id|uuid(uuid)|YES|
+column|proposals.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|proposals.decided_at|timestamp with time zone(timestamptz)|YES|
+column|proposals.flat_value|numeric(numeric)|NO|0
+column|proposals.id|uuid(uuid)|NO|gen_random_uuid()
+column|proposals.message|text(text)|YES|
+column|proposals.organization_id|uuid(uuid)|YES|
+column|proposals.owner_id|uuid(uuid)|NO|
+column|proposals.pdf_path|text(text)|YES|
+column|proposals.property_id|uuid(uuid)|YES|
+column|proposals.proposal_number|text(text)|YES|
+column|proposals.rejection_notes|text(text)|YES|
+column|proposals.rejection_reason|text(text)|YES|
+column|proposals.sent_at|timestamp with time zone(timestamptz)|YES|
+column|proposals.sponsor_id|uuid(uuid)|YES|
+column|proposals.status|USER-DEFINED(proposal_status)|NO|'rascunho'
+column|proposals.title|text(text)|NO|
+column|proposals.total_value|numeric(numeric)|NO|0
+column|proposals.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|proposals.use_flat_value|boolean(bool)|NO|false
+column|proposals.valid_until|date(date)|YES|
+column|sellout_reports.content|text(text)|NO|
+column|sellout_reports.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|sellout_reports.event_id|uuid(uuid)|YES|
+column|sellout_reports.id|uuid(uuid)|NO|gen_random_uuid()
+column|sellout_reports.metrics|jsonb(jsonb)|NO|'{}'
+column|sellout_reports.model|text(text)|YES|
+column|sellout_reports.organization_id|uuid(uuid)|YES|
+column|sellout_reports.owner_id|uuid(uuid)|NO|
+column|sellout_reports.property_id|uuid(uuid)|YES|
+column|sellout_reports.title|text(text)|NO|
+column|sponsor_audit_logs.action|text(text)|NO|
+column|sponsor_audit_logs.actor_id|uuid(uuid)|YES|
+column|sponsor_audit_logs.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_audit_logs.entity_id|uuid(uuid)|YES|
+column|sponsor_audit_logs.entity_type|text(text)|NO|
+column|sponsor_audit_logs.id|uuid(uuid)|NO|gen_random_uuid()
+column|sponsor_audit_logs.new_value|jsonb(jsonb)|YES|
+column|sponsor_audit_logs.old_value|jsonb(jsonb)|YES|
+column|sponsor_audit_logs.organization_id|uuid(uuid)|NO|
+column|sponsor_audit_logs.source|USER-DEFINED(crm_audit_source)|NO|'manual'
+column|sponsor_audit_logs.sponsor_id|uuid(uuid)|YES|
+column|sponsor_brands.brandtrack_brand_id|uuid(uuid)|YES|
+column|sponsor_brands.category|text(text)|YES|
+column|sponsor_brands.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_brands.created_by|uuid(uuid)|YES|
+column|sponsor_brands.id|uuid(uuid)|NO|gen_random_uuid()
+column|sponsor_brands.is_active|boolean(bool)|NO|true
+column|sponsor_brands.logo_path|text(text)|YES|
+column|sponsor_brands.name|text(text)|NO|
+column|sponsor_brands.organization_id|uuid(uuid)|NO|
+column|sponsor_brands.sponsor_id|uuid(uuid)|NO|
+column|sponsor_brands.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_brands.website|text(text)|YES|
+column|sponsor_brandtrack_profiles.brand_colors|ARRAY(_text)|NO|'{}'[]
+column|sponsor_brandtrack_profiles.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_brandtrack_profiles.detection_aliases|ARRAY(_text)|NO|'{}'[]
+column|sponsor_brandtrack_profiles.id|uuid(uuid)|NO|gen_random_uuid()
+column|sponsor_brandtrack_profiles.notes|text(text)|YES|
+column|sponsor_brandtrack_profiles.organization_id|uuid(uuid)|NO|
+column|sponsor_brandtrack_profiles.owner_id|uuid(uuid)|NO|
+column|sponsor_brandtrack_profiles.sponsor_id|uuid(uuid)|NO|
+column|sponsor_brandtrack_profiles.tracking_settings|jsonb(jsonb)|NO|'{}'
+column|sponsor_brandtrack_profiles.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_contacts.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_contacts.email|text(text)|YES|
+column|sponsor_contacts.id|uuid(uuid)|NO|gen_random_uuid()
+column|sponsor_contacts.is_primary|boolean(bool)|NO|false
+column|sponsor_contacts.name|text(text)|NO|
+column|sponsor_contacts.organization_id|uuid(uuid)|YES|
+column|sponsor_contacts.phone|text(text)|YES|
+column|sponsor_contacts.role|text(text)|YES|
+column|sponsor_contacts.sponsor_id|uuid(uuid)|NO|
+column|sponsor_contract_profiles.billing_contact|text(text)|YES|
+column|sponsor_contract_profiles.contract_preferences|jsonb(jsonb)|NO|'{}'
+column|sponsor_contract_profiles.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_contract_profiles.id|uuid(uuid)|NO|gen_random_uuid()
+column|sponsor_contract_profiles.legal_name|text(text)|YES|
+column|sponsor_contract_profiles.notes|text(text)|YES|
+column|sponsor_contract_profiles.organization_id|uuid(uuid)|NO|
+column|sponsor_contract_profiles.owner_id|uuid(uuid)|NO|
+column|sponsor_contract_profiles.sponsor_id|uuid(uuid)|NO|
+column|sponsor_contract_profiles.tax_id|text(text)|YES|
+column|sponsor_contract_profiles.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_crm_profiles.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_crm_profiles.id|uuid(uuid)|NO|gen_random_uuid()
+column|sponsor_crm_profiles.last_contact_at|date(date)|YES|
+column|sponsor_crm_profiles.notes|text(text)|YES|
+column|sponsor_crm_profiles.organization_id|uuid(uuid)|NO|
+column|sponsor_crm_profiles.owner_id|uuid(uuid)|NO|
+column|sponsor_crm_profiles.score|USER-DEFINED(sponsor_score)|NO|'morno'
+column|sponsor_crm_profiles.segment|text(text)|YES|
+column|sponsor_crm_profiles.sponsor_id|uuid(uuid)|NO|
+column|sponsor_crm_profiles.tags|ARRAY(_text)|NO|'{}'[]
+column|sponsor_crm_profiles.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_delivery_profiles.approval_contact|text(text)|YES|
+column|sponsor_delivery_profiles.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_delivery_profiles.evidence_preferences|jsonb(jsonb)|NO|'{}'
+column|sponsor_delivery_profiles.id|uuid(uuid)|NO|gen_random_uuid()
+column|sponsor_delivery_profiles.notes|text(text)|YES|
+column|sponsor_delivery_profiles.organization_id|uuid(uuid)|NO|
+column|sponsor_delivery_profiles.owner_id|uuid(uuid)|NO|
+column|sponsor_delivery_profiles.sponsor_id|uuid(uuid)|NO|
+column|sponsor_delivery_profiles.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_documents.ai_enabled|boolean(bool)|NO|true
+column|sponsor_documents.ai_summary|text(text)|YES|
+column|sponsor_documents.category|text(text)|NO|'outro'
+column|sponsor_documents.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_documents.description|text(text)|YES|
+column|sponsor_documents.file_name|text(text)|NO|
+column|sponsor_documents.file_path|text(text)|NO|
+column|sponsor_documents.file_size|bigint(int8)|YES|
+column|sponsor_documents.file_type|text(text)|YES|
+column|sponsor_documents.id|uuid(uuid)|NO|gen_random_uuid()
+column|sponsor_documents.journey_stage|text(text)|YES|
+column|sponsor_documents.organization_id|uuid(uuid)|NO|
+column|sponsor_documents.sponsor_id|uuid(uuid)|NO|
+column|sponsor_documents.title|text(text)|NO|
+column|sponsor_documents.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_documents.uploaded_by|uuid(uuid)|YES|
+column|sponsor_executive_summaries.generated_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_executive_summaries.highlights|jsonb(jsonb)|NO|'[]'
+column|sponsor_executive_summaries.model|text(text)|YES|
+column|sponsor_executive_summaries.organization_id|uuid(uuid)|YES|
+column|sponsor_executive_summaries.owner_id|uuid(uuid)|NO|
+column|sponsor_executive_summaries.sponsor_id|uuid(uuid)|NO|
+column|sponsor_executive_summaries.summary|text(text)|NO|
+column|sponsor_finance_profiles.billing_email|text(text)|YES|
+column|sponsor_finance_profiles.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_finance_profiles.id|uuid(uuid)|NO|gen_random_uuid()
+column|sponsor_finance_profiles.invoice_data|jsonb(jsonb)|NO|'{}'
+column|sponsor_finance_profiles.notes|text(text)|YES|
+column|sponsor_finance_profiles.organization_id|uuid(uuid)|NO|
+column|sponsor_finance_profiles.owner_id|uuid(uuid)|NO|
+column|sponsor_finance_profiles.payment_terms|text(text)|YES|
+column|sponsor_finance_profiles.sponsor_id|uuid(uuid)|NO|
+column|sponsor_finance_profiles.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_interactions.attachment_url|text(text)|YES|
+column|sponsor_interactions.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_interactions.created_by|uuid(uuid)|YES|
+column|sponsor_interactions.description|text(text)|YES|
+column|sponsor_interactions.id|uuid(uuid)|NO|gen_random_uuid()
+column|sponsor_interactions.metadata|jsonb(jsonb)|NO|'{}'
+column|sponsor_interactions.next_action|text(text)|YES|
+column|sponsor_interactions.next_action_at|timestamp with time zone(timestamptz)|YES|
+column|sponsor_interactions.next_action_done|boolean(bool)|NO|false
+column|sponsor_interactions.occurred_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_interactions.organization_id|uuid(uuid)|YES|
+column|sponsor_interactions.owner_id|uuid(uuid)|NO|
+column|sponsor_interactions.related_contract_id|uuid(uuid)|YES|
+column|sponsor_interactions.related_delivery_id|uuid(uuid)|YES|
+column|sponsor_interactions.related_installment_id|uuid(uuid)|YES|
+column|sponsor_interactions.related_opportunity_id|uuid(uuid)|YES|
+column|sponsor_interactions.related_proposal_id|uuid(uuid)|YES|
+column|sponsor_interactions.source|USER-DEFINED(sponsor_interaction_source)|NO|'manual'
+column|sponsor_interactions.sponsor_id|uuid(uuid)|NO|
+column|sponsor_interactions.title|text(text)|NO|
+column|sponsor_interactions.type|USER-DEFINED(sponsor_interaction_type)|NO|'nota'
+column|sponsor_interactions.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_invites.accepted_at|timestamp with time zone(timestamptz)|YES|
+column|sponsor_invites.accepted_user_id|uuid(uuid)|YES|
+column|sponsor_invites.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_invites.email|text(text)|NO|
+column|sponsor_invites.expires_at|timestamp with time zone(timestamptz)|NO|(now() + '14 days')
+column|sponsor_invites.id|uuid(uuid)|NO|gen_random_uuid()
+column|sponsor_invites.invited_by|uuid(uuid)|NO|
+column|sponsor_invites.organization_id|uuid(uuid)|YES|
+column|sponsor_invites.sponsor_id|uuid(uuid)|NO|
+column|sponsor_invites.status|text(text)|NO|'pendente'
+column|sponsor_invites.token|text(text)|NO|encode(gen_random_bytes(24), 'hex')
+column|sponsor_portal_access.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_portal_access.granted_by|uuid(uuid)|NO|
+column|sponsor_portal_access.id|uuid(uuid)|NO|gen_random_uuid()
+column|sponsor_portal_access.organization_id|uuid(uuid)|YES|
+column|sponsor_portal_access.sponsor_id|uuid(uuid)|NO|
+column|sponsor_portal_access.status|text(text)|NO|'ativo'
+column|sponsor_portal_access.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_portal_access.user_id|uuid(uuid)|NO|
+column|sponsor_portal_profiles.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_portal_profiles.id|uuid(uuid)|NO|gen_random_uuid()
+column|sponsor_portal_profiles.notes|text(text)|YES|
+column|sponsor_portal_profiles.organization_id|uuid(uuid)|NO|
+column|sponsor_portal_profiles.owner_id|uuid(uuid)|NO|
+column|sponsor_portal_profiles.portal_display_name|text(text)|YES|
+column|sponsor_portal_profiles.portal_settings|jsonb(jsonb)|NO|'{}'
+column|sponsor_portal_profiles.sponsor_id|uuid(uuid)|NO|
+column|sponsor_portal_profiles.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_proposal_profiles.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsor_proposal_profiles.id|uuid(uuid)|NO|gen_random_uuid()
+column|sponsor_proposal_profiles.notes|text(text)|YES|
+column|sponsor_proposal_profiles.organization_id|uuid(uuid)|NO|
+column|sponsor_proposal_profiles.owner_id|uuid(uuid)|NO|
+column|sponsor_proposal_profiles.preferred_contact_email|text(text)|YES|
+column|sponsor_proposal_profiles.preferred_contact_name|text(text)|YES|
+column|sponsor_proposal_profiles.proposal_preferences|jsonb(jsonb)|NO|'{}'
+column|sponsor_proposal_profiles.sponsor_id|uuid(uuid)|NO|
+column|sponsor_proposal_profiles.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsors.about|text(text)|YES|
+column|sponsors.account_owner_id|uuid(uuid)|YES|
+column|sponsors.address|text(text)|YES|
+column|sponsors.address_city|text(text)|YES|
+column|sponsors.address_state|text(text)|YES|
+column|sponsors.archive_reason|text(text)|YES|
+column|sponsors.archived_at|timestamp with time zone(timestamptz)|YES|
+column|sponsors.archived_by|uuid(uuid)|YES|
+column|sponsors.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsors.domain|text(text)|YES|
+column|sponsors.fans_count|bigint(int8)|YES|
+column|sponsors.final_location|text(text)|YES|
+column|sponsors.health|USER-DEFINED(sponsor_health)|NO|'nao_aplicavel'
+column|sponsors.id|uuid(uuid)|NO|gen_random_uuid()
+column|sponsors.key_notes|text(text)|YES|
+column|sponsors.last_contact_at|date(date)|YES|
+column|sponsors.legal_name|text(text)|YES|
+column|sponsors.lifecycle|USER-DEFINED(sponsor_lifecycle)|NO|'prospect'
+column|sponsors.locations|ARRAY(_text)|NO|'{}'[]
+column|sponsors.logo_path|text(text)|YES|
+column|sponsors.merged_into_sponsor_id|uuid(uuid)|YES|
+column|sponsors.name|text(text)|NO|
+column|sponsors.next_action|text(text)|YES|
+column|sponsors.next_action_at|timestamp with time zone(timestamptz)|YES|
+column|sponsors.notes|text(text)|YES|
+column|sponsors.organization_id|uuid(uuid)|YES|
+column|sponsors.owner_id|uuid(uuid)|NO|
+column|sponsors.participants_count|integer(int4)|YES|
+column|sponsors.priority|USER-DEFINED(sponsor_priority)|NO|'B'
+column|sponsors.prize_pool|numeric(numeric)|YES|
+column|sponsors.score|USER-DEFINED(sponsor_score)|NO|'morno'
+column|sponsors.segment|text(text)|YES|
+column|sponsors.social_links|jsonb(jsonb)|NO|'{}'
+column|sponsors.social_stats|jsonb(jsonb)|NO|'{}'
+column|sponsors.tags|ARRAY(_text)|NO|'{}'[]
+column|sponsors.tax_id|text(text)|YES|
+column|sponsors.teams_count|integer(int4)|YES|
+column|sponsors.trade_name|text(text)|YES|
+column|sponsors.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsors.website|text(text)|YES|
+column|sponsors.zip_code|text(text)|YES|
+column|sponsorship_tiers.benefits|text(text)|YES|
+column|sponsorship_tiers.color|text(text)|YES|'#64748b'
+column|sponsorship_tiers.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsorship_tiers.description|text(text)|YES|
+column|sponsorship_tiers.id|uuid(uuid)|NO|gen_random_uuid()
+column|sponsorship_tiers.level|text(text)|NO|'custom'
+column|sponsorship_tiers.name|text(text)|NO|
+column|sponsorship_tiers.organization_id|uuid(uuid)|YES|
+column|sponsorship_tiers.owner_id|uuid(uuid)|NO|
+column|sponsorship_tiers.position|integer(int4)|NO|0
+column|sponsorship_tiers.property_id|uuid(uuid)|NO|
+column|sponsorship_tiers.total_slots|integer(int4)|NO|1
+column|sponsorship_tiers.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|sponsorship_tiers.value|numeric(numeric)|NO|0
+column|sports_properties.about|text(text)|YES|
+column|sports_properties.audience_estimate|integer(int4)|YES|
+column|sports_properties.category|text(text)|NO|
+column|sports_properties.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|sports_properties.description|text(text)|YES|
+column|sports_properties.end_date|date(date)|YES|
+column|sports_properties.fans_count|numeric(numeric)|YES|
+column|sports_properties.final_location|text(text)|YES|
+column|sports_properties.id|uuid(uuid)|NO|gen_random_uuid()
+column|sports_properties.is_published|boolean(bool)|NO|false
+column|sports_properties.key_notes|text(text)|YES|
+column|sports_properties.locations|ARRAY(_text)|NO|'{}'[]
+column|sports_properties.name|text(text)|NO|
+column|sports_properties.organization_id|uuid(uuid)|YES|
+column|sports_properties.owner_id|uuid(uuid)|NO|
+column|sports_properties.parent_property_id|uuid(uuid)|YES|
+column|sports_properties.participants_count|numeric(numeric)|YES|
+column|sports_properties.prize_pool|numeric(numeric)|YES|
+column|sports_properties.public_about|text(text)|YES|
+column|sports_properties.public_cover_path|text(text)|YES|
+column|sports_properties.public_headline|text(text)|YES|
+column|sports_properties.public_slug|text(text)|YES|
+column|sports_properties.season_year|integer(int4)|YES|
+column|sports_properties.social_links|jsonb(jsonb)|NO|'{}'
+column|sports_properties.social_stats|jsonb(jsonb)|NO|'{}'
+column|sports_properties.start_date|date(date)|YES|
+column|sports_properties.status|text(text)|NO|'ativo'
+column|sports_properties.teams_count|numeric(numeric)|YES|
+column|sports_properties.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|team_audit_log.action|text(text)|NO|
+column|team_audit_log.actor_id|uuid(uuid)|NO|
+column|team_audit_log.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|team_audit_log.id|uuid(uuid)|NO|gen_random_uuid()
+column|team_audit_log.metadata|jsonb(jsonb)|NO|'{}'
+column|team_audit_log.new_role|USER-DEFINED(org_role)|YES|
+column|team_audit_log.old_role|USER-DEFINED(org_role)|YES|
+column|team_audit_log.organization_id|uuid(uuid)|NO|
+column|team_audit_log.target_email|text(text)|YES|
+column|team_audit_log.target_member_id|uuid(uuid)|YES|
+column|team_audit_log.target_user_id|uuid(uuid)|YES|
+column|tier_assets.asset_id|uuid(uuid)|NO|
+column|tier_assets.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|tier_assets.id|uuid(uuid)|NO|gen_random_uuid()
+column|tier_assets.organization_id|uuid(uuid)|YES|
+column|tier_assets.quantity|integer(int4)|NO|1
+column|tier_assets.tier_id|uuid(uuid)|NO|
+column|tier_sales.brand|text(text)|YES|
+column|tier_sales.contract_id|uuid(uuid)|YES|
+column|tier_sales.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|tier_sales.id|uuid(uuid)|NO|gen_random_uuid()
+column|tier_sales.notes|text(text)|YES|
+column|tier_sales.organization_id|uuid(uuid)|YES|
+column|tier_sales.owner_id|uuid(uuid)|NO|
+column|tier_sales.sold_at|timestamp with time zone(timestamptz)|NO|now()
+column|tier_sales.sponsor_id|uuid(uuid)|YES|
+column|tier_sales.status|text(text)|NO|'reservada'
+column|tier_sales.tier_id|uuid(uuid)|NO|
+column|user_dashboard_preferences.organization_id|uuid(uuid)|NO|
+column|user_dashboard_preferences.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|user_dashboard_preferences.user_id|uuid(uuid)|NO|
+column|user_dashboard_preferences.widgets|jsonb(jsonb)|NO|'[]'
+column|user_roles.created_at|timestamp with time zone(timestamptz)|NO|now()
+column|user_roles.id|uuid(uuid)|NO|gen_random_uuid()
+column|user_roles.role|USER-DEFINED(app_role)|NO|
+column|user_roles.user_id|uuid(uuid)|NO|
+column|user_stage_probabilities.organization_id|uuid(uuid)|NO|
+column|user_stage_probabilities.probability|integer(int4)|NO|0
+column|user_stage_probabilities.stage|USER-DEFINED(opportunity_stage)|NO|
+column|user_stage_probabilities.updated_at|timestamp with time zone(timestamptz)|NO|now()
+column|user_stage_probabilities.user_id|uuid(uuid)|NO|
+enum|app_role|admin,comercial,patrocinador
+enum|contract_status|rascunho,em_assinatura,ativo,vencendo,encerrado,cancelado
+enum|crm_audit_source|manual,automatico,ia
+enum|delivery_approval|pendente,aprovada,reprovada
+enum|delivery_status|pendente,em_producao,entregue,aprovada,atrasada
+enum|installment_status|pendente,pago,atrasado,cancelado
+enum|opportunity_stage|prospect,reuniao,proposta_enviada,negociacao,fechado,perdido
+enum|org_role|owner,admin,comercial,operacional,financeiro
+enum|payment_method|a_vista,parcelado,mensal,personalizado,quinzenal,bimestral,trimestral,semestral,anual
+enum|proposal_status|rascunho,enviada,aceita,recusada,expirada
+enum|sponsor_health|saudavel,atencao,risco,nao_aplicavel
+enum|sponsor_interaction_source|manual,auto
+enum|sponsor_interaction_type|reuniao,ligacao,email,whatsapp,nota,proposta,contrato,oportunidade,entrega,parcela,sistema
+enum|sponsor_lifecycle|prospect,em_abordagem,qualificado,em_negociacao,cliente_ativo,cliente_inativo,perdido,arquivado
+enum|sponsor_priority|A,B,C
+enum|sponsor_score|quente,morno,frio
+function|accept_sponsor_invite_by_token(p_token text)|boolean|definer|44bdd07ae4ecb713ef1bb1d60c12ef9f
+function|archive_sponsor(_sponsor_id uuid, _reason text)|void|definer|6131b4fd00944a2684147af1851f38e1
+function|can_access_contract_file(_user_id uuid, _path text)|boolean|definer|0b34b87b67c085613075d5b9087a229e
+function|can_access_module(_user_id uuid, _org_id uuid, _module text, _write boolean)|boolean|definer|d949a3fce1a5d1af86497bd979d4c1cc
+function|copy_opportunity_tier_to_proposal(_proposal_id uuid, _opportunity_id uuid)|void|definer|4f297b6cf0e8d06668bf7d6651dfc884
+function|copy_proposal_items_to_contract(_contract_id uuid, _proposal_id uuid)|void|definer|faa397926c94a65a460341879b357b77
+function|create_organization_with_owner(_owner_id uuid, _name text, _cnpj text)|uuid|definer|63537c86cd1487487cb980370790b323
+function|create_renewal_opportunity(_contract_id uuid)|uuid|definer|2f333d041220017d3ac9c87e3dbba49a
+function|debug_table_policies(_table_name text)|jsonb|definer|3632aae9b27d2b89e45088a684be117d
+function|enforce_delivery_attachment_limit()|trigger|definer|6ae152db67eade70daba5347ffa8c45b
+function|generate_contract_deliveries(_contract_id uuid)|void|definer|51e05a44efec400bc3c3d2078df59183
+function|generate_contract_installments(_contract_id uuid)|void|definer|91692bef74c594efb34e6ab1be3c8d78
+function|get_delivery_report_data(_opportunity_id uuid, _contract_id uuid)|jsonb|definer|1802a912797e139073ba87a8578f6abb
+function|get_organization_invite_by_token(p_token text)|TABLE(email text, status text, expires_at timestamp with time zone, organization_name text, role text)|definer|a66898a499edd2e5a752db9209c58717
+function|get_portal_sponsor_overview(_sponsor_id uuid)|jsonb|definer|8f1df69745f0a0b4a276bf78a38b74a1
+function|get_sponsor_invite_by_token(p_token text)|TABLE(email text, status text, expires_at timestamp with time zone, sponsor_name text)|definer|0610bce75d4dcb83157184aa2002797a
+function|get_user_org(_user_id uuid)|uuid|definer|467b43ab95599086214e272f8da947ca
+function|handle_checklist_completion()|trigger|definer|396fe4db993250e21bb9ba6929aa84b9
+function|handle_contract_deliveries()|trigger|definer|2cbd94c51ba71942a7d38abc5d845a68
+function|handle_contract_installments()|trigger|definer|0675976c46921a88c6b7c757641af90e
+function|handle_lead_to_opportunity()|trigger|definer|a4799bbd29d492bb88ee993517985a1b
+function|handle_new_organization()|trigger|definer|1f17b3ff53aa19b09b62d4d103d47bd1
+function|handle_new_user()|trigger|definer|ccf0ffc4926620798a7e284d770f8cd9
+function|handle_opportunity_stage_change()|trigger|definer|fe7d70ee62e7d7576bf13c72c9122b04
+function|handle_opportunity_won()|trigger|definer|3d5e9398e3ba13d32e4e226a77d1033b
+function|has_org_role(_user_id uuid, _org_id uuid, _roles org_role[])|boolean|definer|3d60347b51be7561c96b9d8312bbb98a
+function|has_role(_user_id uuid, _role app_role)|boolean|definer|e97c5bf866c24752de68015ea5b5ea53
+function|has_sponsor_access(_user_id uuid, _sponsor_id uuid)|boolean|definer|9d4a9d691a1a27767e876bd7691e2638
+function|is_asset_publicly_visible(_asset_id uuid)|boolean|definer|a15c2e74ce44826cdb0db7d40ac4b79e
+function|is_org_member(_user_id uuid, _org_id uuid)|boolean|definer|967325561f1ac2b0345e05cb3d59f49b
+function|is_property_published(_property_id uuid)|boolean|definer|71306e69cdd4e300e1975ac6fadcdc35
+function|log_sponsor_interaction(_sponsor_id uuid, _owner_id uuid, _type sponsor_interaction_type, _title text, _description text, _metadata jsonb, _opportunity_id uuid, _contract_id uuid, _proposal_id uuid, _delivery_id uuid, _installment_id uuid)|void|definer|5ab0de5e8270dfa273143338066624e0
+function|mark_overdue_installments(_owner uuid)|void|definer|f615efdcfed7c2fd56bbb3a232444942
+function|merge_sponsors(_target_id uuid, _duplicate_id uuid)|jsonb|definer|366d9bde5ac20a46a8763c34b9dba467
+function|notify_commercial_team_opportunity_lost()|trigger|definer|17a4acf30f0bd2f8efca36d589220e4f
+function|notify_opportunity_comment_mentions()|trigger|definer|99f912b580c933987228e0e93f39e90d
+function|set_org_from_property()|trigger|definer|964adece4dbd8312b2e737c891248a02
+function|set_org_from_proposal()|trigger|definer|e7e3dd5cea2da1af458e7afc0490d162
+function|set_org_from_sponsor()|trigger|definer|c4bc416550de695a422f4ec610598d25
+function|set_org_from_tier()|trigger|definer|9d41783df393dda71abdbb2a68ec7621
+function|set_org_from_user_membership()|trigger|definer|cd7b73fc659f839b59bfe26057573d47
+function|sync_opportunity_contact_to_sponsor(_contact_id uuid)|void|definer|b7d64da10fdecb1499039d21998c364a
+function|sync_opportunity_stage(_opportunity_id uuid, _target opportunity_stage)|void|definer|aab38aa2a327c67404ad02e0e79cdac0
+function|tg_contract_interaction()|trigger|definer|b95d994c41561b9c58c603bea28544a1
+function|tg_contract_sync_opportunity_stage()|trigger|definer|79140637d65511e28dfff012c25a2573
+function|tg_contract_sync_sponsor_lifecycle()|trigger|definer|3e706986df4ede526f474d49ee5ce53a
+function|tg_crm_task_effects()|trigger|definer|b3cd2194900466793abead6f028fb46b
+function|tg_crm_task_sync_next_action()|trigger|definer|a7f049228164b6de8c3cf1df9a49756a
+function|tg_delivery_interaction()|trigger|definer|f4c7d473b8da4558018d5fd55c0d67f4
+function|tg_delivery_sync_opportunity_stage()|trigger|definer|79140637d65511e28dfff012c25a2573
+function|tg_installment_interaction()|trigger|definer|dbcdf4c4ea3b873550a33ac32013601f
+function|tg_opportunity_audit_log()|trigger|definer|5645967f67e5366c462853f38dc0bcb8
+function|tg_opportunity_contact_sync()|trigger|definer|3278a27e3bf19c4058d0ee337001bc7c
+function|tg_opportunity_interaction()|trigger|definer|68d5a55dda696be9cee9018405e1ff95
+function|tg_opportunity_sponsor_sync_contacts()|trigger|definer|0099443c6502e4215cdb70c6f49f9a6b
+function|tg_proposal_interaction()|trigger|definer|25c5b29e7a7d95727b9803876860dc2f
+function|tg_proposal_sync_opportunity_stage()|trigger|definer|6c32fbe6cc0cd4f7b7600c501edd4481
+function|tg_set_asset_child_organization_id()|trigger|definer|706f5fedea9ee860886a971d6a4e3dcc
+function|tg_set_child_sponsor_id()|trigger|definer|4f00219cfb294c869b39d333dd5036a6
+function|tg_set_contract_child_organization_id()|trigger|definer|0a04df075f33284b128bb676e091ffb9
+function|tg_set_default_pipeline_funnel()|trigger|definer|59c634fb6a159b2d81f7b5f7ded37f2c
+function|tg_set_delivery_approval_organization_id()|trigger|definer|1f6f27a1abe9ee9596b36fc8147c9e13
+function|tg_set_opportunity_activity_organization_id()|trigger|definer|9562353e30c184a036392b1554ebde49
+function|tg_set_opportunity_contact_org()|trigger|definer|c467a2addd03b5d97c8626a241feb23b
+function|tg_set_org_from_membership_default()|trigger|definer|03e7086f8bad380edb0352a65fc1ef26
+function|tg_set_organization_id()|trigger|definer|be28a1b4a04e49f8b80a821973e0a28c
+function|tg_set_proposal_number()|trigger|definer|e8d14c485076df674ef9a2d4e25267b9
+function|tg_sponsor_audit()|trigger|definer|5e2c9c97e639a41de38610772520f751
+function|tg_sync_sponsor_last_contact()|trigger|definer|94f8b955884a72b34cad3653b4d912a2
+function|tg_update_sponsor_last_contact()|trigger|definer|29c06f9dc9d19cbc4c1cf327ae95a093
+function|tg_validate_opportunity_org_access()|trigger|definer|b821f2b63d55998a190062f9d5e2e0fe
+function|tg_validate_parent_organization()|trigger|definer|d2faf940940aa4a86197097fc583459c
+function|unarchive_sponsor(_sponsor_id uuid, _lifecycle sponsor_lifecycle)|void|definer|7c12ec0f2c9a0d19164e93d8f62f7480
+function|update_updated_at_column()|trigger|invoker|0ba6f773f96de69f495a97d9964f12ef
+function|user_sponsor_ids(_user_id uuid)|SETOF uuid|definer|0c4b979ec6afbb4c0445f472074731b4
+function|validate_opportunity_loss_fields()|trigger|invoker|6a0f0c186b17fd4df050a892aacaeb89
+function|validate_property_lead()|trigger|definer|0ea696a90d07e2abce66890fe6e40913
+trigger|auth.users.on_auth_user_created|handle_new_user
+trigger|public.ai_conversations.update_ai_conversations_updated_at|update_updated_at_column
+trigger|public.ai_suggestions.update_ai_suggestions_updated_at|update_updated_at_column
+trigger|public.asset_allocations.set_asset_allocations_organization_id|tg_set_asset_child_organization_id
+trigger|public.asset_photos.set_asset_photos_organization_id|tg_set_asset_child_organization_id
+trigger|public.assets.set_org_id|tg_set_organization_id
+trigger|public.assets.update_assets_updated_at|update_updated_at_column
+trigger|public.brandtrack_brands.trg_brandtrack_brands_org|tg_set_organization_id
+trigger|public.brandtrack_brands.trg_brandtrack_brands_updated|update_updated_at_column
+trigger|public.brandtrack_detections.trg_brandtrack_detections_org|tg_set_organization_id
+trigger|public.brandtrack_event_brands.trg_brandtrack_event_brands_org|tg_set_organization_id
+trigger|public.brandtrack_event_brands.trg_brandtrack_event_brands_updated|update_updated_at_column
+trigger|public.brandtrack_events.trg_brandtrack_events_org|tg_set_organization_id
+trigger|public.brandtrack_events.trg_brandtrack_events_updated|update_updated_at_column
+trigger|public.brandtrack_media.trg_brandtrack_media_org|tg_set_organization_id
+trigger|public.brandtrack_media.trg_brandtrack_media_updated|update_updated_at_column
+trigger|public.contract_assets.set_contract_assets_organization_id|tg_set_contract_child_organization_id
+trigger|public.contract_assets.validate_parent_org|tg_validate_parent_organization
+trigger|public.contract_churn_risk.set_org_churn|tg_set_organization_id
+trigger|public.contract_churn_risk.set_org_contract_churn_risk|tg_set_org_from_membership_default
+trigger|public.contract_clause_templates.update_contract_clause_templates_updated_at|update_updated_at_column
+trigger|public.contract_clauses.set_contract_clauses_organization_id|tg_set_contract_child_organization_id
+trigger|public.contract_clauses.validate_parent_org|tg_validate_parent_organization
+trigger|public.contracts.contract_sync_opportunity_stage|tg_contract_sync_opportunity_stage
+trigger|public.contracts.contracts_updated_at|update_updated_at_column
+trigger|public.contracts.set_org_id|tg_set_organization_id
+trigger|public.contracts.trg_contract_interaction|tg_contract_interaction
+trigger|public.contracts.trg_contract_sponsor_lifecycle|tg_contract_sync_sponsor_lifecycle
+trigger|public.contracts.trg_contracts_generate_deliveries|handle_contract_deliveries
+trigger|public.contracts.trg_contracts_generate_installments|handle_contract_installments
+trigger|public.crm_tasks.trg_crm_task_effects|tg_crm_task_effects
+trigger|public.crm_tasks.trg_crm_task_next_action|tg_crm_task_sync_next_action
+trigger|public.crm_tasks.trg_crm_tasks_org|set_org_from_sponsor
+trigger|public.crm_tasks.trg_crm_tasks_updated|update_updated_at_column
+trigger|public.deliveries.deliveries_updated_at|update_updated_at_column
+trigger|public.deliveries.delivery_sync_opportunity_stage|tg_delivery_sync_opportunity_stage
+trigger|public.deliveries.set_org_id|tg_set_organization_id
+trigger|public.deliveries.trg_deliveries_sponsor|tg_set_child_sponsor_id
+trigger|public.deliveries.trg_delivery_interaction|tg_delivery_interaction
+trigger|public.delivery_approval_log.set_delivery_approval_log_organization_id|tg_set_delivery_approval_organization_id
+trigger|public.delivery_attachments.trg_delivery_attachments_limit|enforce_delivery_attachment_limit
+trigger|public.delivery_attachments.trg_delivery_attachments_org|tg_set_organization_id
+trigger|public.delivery_attachments.validate_parent_org|tg_validate_parent_organization
+trigger|public.installments.set_org_id|tg_set_organization_id
+trigger|public.installments.trg_installment_interaction|tg_installment_interaction
+trigger|public.installments.trg_installments_sponsor|tg_set_child_sponsor_id
+trigger|public.installments.update_installments_updated_at|update_updated_at_column
+trigger|public.lead_scores.trg_lead_scores_org|tg_set_organization_id
+trigger|public.lead_scores.trg_lead_scores_updated|update_updated_at_column
+trigger|public.opportunities.notify_commercial_team_opportunity_lost|notify_commercial_team_opportunity_lost
+trigger|public.opportunities.set_default_pipeline_funnel|tg_set_default_pipeline_funnel
+trigger|public.opportunities.set_org_id|tg_set_organization_id
+trigger|public.opportunities.trg_opportunity_audit_log|tg_opportunity_audit_log
+trigger|public.opportunities.trg_opportunity_interaction|tg_opportunity_interaction
+trigger|public.opportunities.trg_opportunity_sponsor_sync_contacts|tg_opportunity_sponsor_sync_contacts
+trigger|public.opportunities.trg_opportunity_stage_change|handle_opportunity_stage_change
+trigger|public.opportunities.trg_opportunity_won|handle_opportunity_won
+trigger|public.opportunities.update_opportunities_updated_at|update_updated_at_column
+trigger|public.opportunities.validate_opportunity_loss_fields_trigger|validate_opportunity_loss_fields
+trigger|public.opportunities.validate_opportunity_org_access|tg_validate_opportunity_org_access
+trigger|public.opportunity_activities.set_opportunity_activities_organization_id|tg_set_opportunity_activity_organization_id
+trigger|public.opportunity_activities.trg_opportunity_activities_updated|update_updated_at_column
+trigger|public.opportunity_comment_attachments.validate_parent_org|tg_validate_parent_organization
+trigger|public.opportunity_comments.notify_opportunity_comment_mentions|notify_opportunity_comment_mentions
+trigger|public.opportunity_comments.update_opportunity_comments_updated_at|update_updated_at_column
+trigger|public.opportunity_contacts.trg_opportunity_contacts_set_org|tg_set_opportunity_contact_org
+trigger|public.opportunity_contacts.trg_opportunity_contacts_sync|tg_opportunity_contact_sync
+trigger|public.opportunity_contacts.trg_opportunity_contacts_updated_at|update_updated_at_column
+trigger|public.organizations.on_organization_created|handle_new_organization
+trigger|public.pipeline_funnels.update_pipeline_funnels_updated_at|update_updated_at_column
+trigger|public.pipeline_stage_slas.update_pipeline_stage_slas_updated_at|update_updated_at_column
+trigger|public.profiles.profiles_updated_at|update_updated_at_column
+trigger|public.property_checklist_items.trg_checklist_completion|handle_checklist_completion
+trigger|public.property_checklist_items.trg_property_checklist_items_org|set_org_from_property
+trigger|public.property_checklist_items.trg_property_checklist_updated_at|update_updated_at_column
+trigger|public.property_events.trg_property_events_org|set_org_from_property
+trigger|public.property_events.update_property_events_updated_at|update_updated_at_column
+trigger|public.property_leads.trg_lead_to_opportunity|handle_lead_to_opportunity
+trigger|public.property_leads.trg_property_leads_org|set_org_from_property
+trigger|public.property_leads.trg_validate_property_lead|validate_property_lead
+trigger|public.property_media.trg_property_media_org|set_org_from_property
+trigger|public.property_media.trg_property_media_updated_at|update_updated_at_column
+trigger|public.proposal_items.trg_proposal_items_org|set_org_from_proposal
+trigger|public.proposal_items.validate_parent_org|tg_validate_parent_organization
+trigger|public.proposal_versions.trg_proposal_versions_org|tg_set_organization_id
+trigger|public.proposal_versions.trg_proposal_versions_updated|update_updated_at_column
+trigger|public.proposals.proposal_sync_opportunity_stage|tg_proposal_sync_opportunity_stage
+trigger|public.proposals.set_org_id|tg_set_organization_id
+trigger|public.proposals.set_proposal_number|tg_set_proposal_number
+trigger|public.proposals.trg_proposal_interaction|tg_proposal_interaction
+trigger|public.proposals.update_proposals_updated_at|update_updated_at_column
+trigger|public.sellout_reports.set_org_sellout|tg_set_organization_id
+trigger|public.sellout_reports.set_org_sellout_reports|tg_set_org_from_membership_default
+trigger|public.sponsor_brands.trg_sponsor_brands_org|set_org_from_sponsor
+trigger|public.sponsor_brands.trg_sponsor_brands_updated|update_updated_at_column
+trigger|public.sponsor_brandtrack_profiles.update_sponsor_brandtrack_profiles_updated_at|update_updated_at_column
+trigger|public.sponsor_contacts.trg_sponsor_contacts_org|set_org_from_sponsor
+trigger|public.sponsor_contract_profiles.update_sponsor_contract_profiles_updated_at|update_updated_at_column
+trigger|public.sponsor_crm_profiles.update_sponsor_crm_profiles_updated_at|update_updated_at_column
+trigger|public.sponsor_delivery_profiles.update_sponsor_delivery_profiles_updated_at|update_updated_at_column
+trigger|public.sponsor_documents.update_sponsor_documents_updated_at|update_updated_at_column
+trigger|public.sponsor_executive_summaries.set_org_sponsor_exec_summaries|tg_set_org_from_membership_default
+trigger|public.sponsor_executive_summaries.set_org_summary|tg_set_organization_id
+trigger|public.sponsor_finance_profiles.update_sponsor_finance_profiles_updated_at|update_updated_at_column
+trigger|public.sponsor_interactions.trg_sponsor_interactions_org|set_org_from_sponsor
+trigger|public.sponsor_interactions.trg_sponsor_interactions_updated|update_updated_at_column
+trigger|public.sponsor_interactions.trg_sync_sponsor_last_contact|tg_sync_sponsor_last_contact
+trigger|public.sponsor_interactions.trg_update_sponsor_last_contact|tg_update_sponsor_last_contact
+trigger|public.sponsor_invites.trg_sponsor_invites_org|set_org_from_sponsor
+trigger|public.sponsor_portal_access.trg_sponsor_portal_access_org|set_org_from_sponsor
+trigger|public.sponsor_portal_access.trg_sponsor_portal_access_updated|update_updated_at_column
+trigger|public.sponsor_portal_profiles.update_sponsor_portal_profiles_updated_at|update_updated_at_column
+trigger|public.sponsor_proposal_profiles.update_sponsor_proposal_profiles_updated_at|update_updated_at_column
+trigger|public.sponsors.set_org_id|tg_set_organization_id
+trigger|public.sponsors.trg_sponsor_audit_ins|tg_sponsor_audit
+trigger|public.sponsors.trg_sponsor_audit_upd|tg_sponsor_audit
+trigger|public.sponsors.update_sponsors_updated_at|update_updated_at_column
+trigger|public.sponsorship_tiers.set_org_id|tg_set_organization_id
+trigger|public.sponsorship_tiers.update_sponsorship_tiers_updated_at|update_updated_at_column
+trigger|public.sports_properties.set_org_id|tg_set_organization_id
+trigger|public.sports_properties.sports_properties_updated_at|update_updated_at_column
+trigger|public.tier_assets.trg_tier_assets_org|set_org_from_tier
+trigger|public.tier_assets.validate_parent_org|tg_validate_parent_organization
+trigger|public.tier_sales.trg_tier_sales_org|set_org_from_tier
+trigger|public.user_dashboard_preferences.trg_user_dashboard_preferences_org|set_org_from_user_membership
+trigger|public.user_dashboard_preferences.update_user_dashboard_preferences_updated_at|update_updated_at_column
+trigger|public.user_stage_probabilities.trg_user_stage_probabilities_org|set_org_from_user_membership
+trigger|storage.objects.protect_objects_delete|protect_delete
+trigger|storage.objects.update_objects_updated_at|update_updated_at_column
+view|crm_unlinked_records|dfe139e717932c308fecb8f438173522
+policy|public.ai_conversations|ALL|Users manage own conversations
+policy|public.ai_messages|ALL|Users access own messages
+policy|public.ai_suggestions|ALL|Users manage own suggestions
+policy|public.asset_allocations|ALL|CRM or ops users manage asset allocations
+policy|public.asset_allocations|SELECT|Org members view asset allocations / Public can view asset_allocations of published
+policy|public.asset_photos|ALL|CRM or ops users manage asset photos
+policy|public.asset_photos|SELECT|Org members view asset photos / Public can view asset_photos of published
+policy|public.assets|DELETE|Privileged users delete assets
+policy|public.assets|INSERT|Privileged users manage assets
+policy|public.assets|SELECT|Org members view assets / Public can view assets of published properties
+policy|public.assets|UPDATE|Privileged users update assets
+policy|public.backend_error_logs|SELECT|Org admins view organization backend error logs / Users view own backend error logs
+policy|public.brandtrack_brands|DELETE|bt_brands_delete
+policy|public.brandtrack_brands|INSERT|bt_brands_insert
+policy|public.brandtrack_brands|SELECT|bt_brands_select
+policy|public.brandtrack_brands|UPDATE|bt_brands_update
+policy|public.brandtrack_detections|DELETE|bt_det_delete
+policy|public.brandtrack_detections|INSERT|bt_det_insert
+policy|public.brandtrack_detections|SELECT|bt_det_select
+policy|public.brandtrack_detections|UPDATE|bt_det_update
+policy|public.brandtrack_event_brands|DELETE|bt_event_brands_delete
+policy|public.brandtrack_event_brands|INSERT|bt_event_brands_insert
+policy|public.brandtrack_event_brands|SELECT|bt_event_brands_select
+policy|public.brandtrack_event_brands|UPDATE|bt_event_brands_update
+policy|public.brandtrack_events|DELETE|bt_events_delete
+policy|public.brandtrack_events|INSERT|bt_events_insert
+policy|public.brandtrack_events|SELECT|bt_events_select
+policy|public.brandtrack_events|UPDATE|bt_events_update
+policy|public.brandtrack_media|DELETE|bt_media_delete
+policy|public.brandtrack_media|INSERT|bt_media_insert
+policy|public.brandtrack_media|SELECT|bt_media_select
+policy|public.brandtrack_media|UPDATE|bt_media_update
+policy|public.contract_assets|ALL|CRM or finance users manage contract assets
+policy|public.contract_assets|SELECT|Org members view contract assets / Sponsor portal user views contract assets
+policy|public.contract_churn_risk|ALL|owners write churn
+policy|public.contract_churn_risk|SELECT|owners read churn
+policy|public.contract_clause_templates|DELETE|org members delete clause templates
+policy|public.contract_clause_templates|INSERT|org members insert clause templates
+policy|public.contract_clause_templates|SELECT|org members read clause templates
+policy|public.contract_clause_templates|UPDATE|org members update clause templates
+policy|public.contract_clauses|ALL|CRM or finance users manage contract clauses
+policy|public.contract_clauses|SELECT|Org members view contract clauses / Sponsor portal user views contract clauses
+policy|public.contracts|DELETE|Privileged users delete contracts
+policy|public.contracts|INSERT|Privileged users insert contracts
+policy|public.contracts|SELECT|Org members view contracts / Sponsor portal user views own contracts
+policy|public.contracts|UPDATE|Privileged users update contracts
+policy|public.crm_tasks|ALL|CRM users manage crm tasks
+policy|public.crm_tasks|SELECT|Org members view crm tasks
+policy|public.deliveries|DELETE|Ops users delete deliveries
+policy|public.deliveries|INSERT|Ops users insert deliveries
+policy|public.deliveries|SELECT|Org members view deliveries / Sponsor portal user views own deliveries
+policy|public.deliveries|UPDATE|Ops users update deliveries / Sponsor portal user updates approval
+policy|public.delivery_approval_log|INSERT|Authenticated insert approval log
+policy|public.delivery_approval_log|SELECT|Org members view approval log / Sponsor views own approval log
+policy|public.delivery_attachments|DELETE|delete delivery attachments
+policy|public.delivery_attachments|INSERT|insert delivery attachments
+policy|public.delivery_attachments|SELECT|view delivery attachments in org
+policy|public.delivery_attachments|UPDATE|update delivery attachments
+policy|public.error_reports|SELECT|Org admins view organization error reports / Users view own error reports
+policy|public.installments|DELETE|Finance users delete installments
+policy|public.installments|INSERT|Finance users insert installments
+policy|public.installments|SELECT|Org members view installments / Sponsor portal user views own installments
+policy|public.installments|UPDATE|Finance users update installments
+policy|public.lead_scores|DELETE|CRM users delete lead_scores
+policy|public.lead_scores|INSERT|CRM users insert lead_scores
+policy|public.lead_scores|SELECT|Org members view lead_scores
+policy|public.lead_scores|UPDATE|CRM users update lead_scores
+policy|public.market_benchmarks|ALL|Org members write benchmarks
+policy|public.market_benchmarks|SELECT|Org members read benchmarks
+policy|public.notification_preferences|ALL|Users manage own prefs
+policy|public.notifications|DELETE|Users delete own notifications
+policy|public.notifications|INSERT|Users insert own notifications
+policy|public.notifications|SELECT|Users view own notifications
+policy|public.notifications|UPDATE|Users update own notifications
+policy|public.opportunities|DELETE|CRM users delete opportunities
+policy|public.opportunities|INSERT|CRM users insert opportunities
+policy|public.opportunities|SELECT|Org members view opportunities
+policy|public.opportunities|UPDATE|CRM users update opportunities
+policy|public.opportunity_activities|DELETE|CRM users delete opportunity activities
+policy|public.opportunity_activities|INSERT|CRM users create opportunity activities
+policy|public.opportunity_activities|SELECT|Org members view opportunity activities
+policy|public.opportunity_activities|UPDATE|CRM users update opportunity activities
+policy|public.opportunity_audit_logs|INSERT|CRM users create opportunity audit logs
+policy|public.opportunity_audit_logs|SELECT|Org members view opportunity audit logs
+policy|public.opportunity_comment_attachments|DELETE|Uploaders delete opportunity comment attachments
+policy|public.opportunity_comment_attachments|INSERT|CRM users create opportunity comment attachments
+policy|public.opportunity_comment_attachments|SELECT|Org members view opportunity comment attachments
+policy|public.opportunity_comments|DELETE|Authors delete opportunity comments
+policy|public.opportunity_comments|INSERT|CRM users create opportunity comments
+policy|public.opportunity_comments|SELECT|Org members view opportunity comments
+policy|public.opportunity_comments|UPDATE|Authors update opportunity comments
+policy|public.opportunity_contacts|DELETE|org members delete opportunity contacts
+policy|public.opportunity_contacts|INSERT|org members insert opportunity contacts
+policy|public.opportunity_contacts|SELECT|org members read opportunity contacts
+policy|public.opportunity_contacts|UPDATE|org members update opportunity contacts
+policy|public.organization_invites|ALL|Owner/Admin manage invites
+policy|public.organization_members|ALL|Owner/Admin manage members
+policy|public.organization_members|SELECT|Members view org members
+policy|public.organizations|INSERT|Authenticated insert own organization
+policy|public.organizations|SELECT|Members view their organization
+policy|public.organizations|UPDATE|Owner/Admin update organization
+policy|public.pipeline_funnels|DELETE|Organization owners and admins can delete pipeline funnels
+policy|public.pipeline_funnels|INSERT|Organization owners and admins can create pipeline funnels
+policy|public.pipeline_funnels|SELECT|Organization members can view pipeline funnels
+policy|public.pipeline_funnels|UPDATE|Organization owners and admins can update pipeline funnels
+policy|public.pipeline_stage_slas|DELETE|Organization owners and admins can delete pipeline stage SLAs
+policy|public.pipeline_stage_slas|INSERT|Organization owners and admins can create pipeline stage SLAs
+policy|public.pipeline_stage_slas|SELECT|Organization members can view pipeline stage SLAs
+policy|public.pipeline_stage_slas|UPDATE|Organization owners and admins can update pipeline stage SLAs
+policy|public.profiles|INSERT|Usuário pode inserir seu próprio profile
+policy|public.profiles|SELECT|Profiles são visíveis para o próprio usuário / Users view profiles in their organizations
+policy|public.profiles|UPDATE|Usuário pode atualizar seu próprio profile
+policy|public.property_checklist_items|DELETE|Org admins delete checklist
+policy|public.property_checklist_items|INSERT|Ops users create checklist
+policy|public.property_checklist_items|SELECT|Org members view checklist
+policy|public.property_checklist_items|UPDATE|Ops users update checklist
+policy|public.property_events|DELETE|Org admins delete events
+policy|public.property_events|INSERT|Ops users create events
+policy|public.property_events|SELECT|Org members view events / Public can view events of published properties
+policy|public.property_events|UPDATE|Ops users update events
+policy|public.property_leads|DELETE|CRM users delete property leads
+policy|public.property_leads|INSERT|Anyone can submit lead to published property
+policy|public.property_leads|SELECT|Org members view property leads
+policy|public.property_leads|UPDATE|CRM users update property leads
+policy|public.property_media|DELETE|Org admins delete property media
+policy|public.property_media|INSERT|CRM or ops users create property media
+policy|public.property_media|SELECT|Org members view property media / Public can view media of published properties / Sponsor portal user views linked media
+policy|public.property_media|UPDATE|CRM or ops users update property media
+policy|public.proposal_items|DELETE|CRM users delete proposal items
+policy|public.proposal_items|INSERT|CRM users create proposal items
+policy|public.proposal_items|SELECT|Org members view proposal items
+policy|public.proposal_items|UPDATE|CRM users update proposal items
+policy|public.proposal_versions|DELETE|CRM users delete proposal_versions
+policy|public.proposal_versions|INSERT|CRM users insert proposal_versions
+policy|public.proposal_versions|SELECT|Org members view proposal_versions
+policy|public.proposal_versions|UPDATE|CRM users update proposal_versions
+policy|public.proposals|DELETE|CRM users delete proposals
+policy|public.proposals|INSERT|CRM users insert proposals
+policy|public.proposals|SELECT|Org members view proposals
+policy|public.proposals|UPDATE|CRM users update proposals
+policy|public.sellout_reports|ALL|owners write sellout
+policy|public.sellout_reports|SELECT|owners read sellout
+policy|public.sponsor_audit_logs|INSERT|Org members insert sponsor audit logs
+policy|public.sponsor_audit_logs|SELECT|Org members view sponsor audit logs
+policy|public.sponsor_brands|ALL|CRM users manage sponsor brands
+policy|public.sponsor_brands|SELECT|Org members view sponsor brands
+policy|public.sponsor_brandtrack_profiles|DELETE|Admins delete sponsor BrandTrack profiles
+policy|public.sponsor_brandtrack_profiles|INSERT|BrandTrack users create sponsor BrandTrack profiles
+policy|public.sponsor_brandtrack_profiles|SELECT|Org members view sponsor BrandTrack profiles
+policy|public.sponsor_brandtrack_profiles|UPDATE|BrandTrack users update sponsor BrandTrack profiles
+policy|public.sponsor_contacts|ALL|CRM users manage sponsor contacts
+policy|public.sponsor_contacts|SELECT|Org members view sponsor contacts
+policy|public.sponsor_contract_profiles|DELETE|Admins delete sponsor contract profiles
+policy|public.sponsor_contract_profiles|INSERT|CRM finance users create sponsor contract profiles
+policy|public.sponsor_contract_profiles|SELECT|Org members view sponsor contract profiles
+policy|public.sponsor_contract_profiles|UPDATE|CRM finance users update sponsor contract profiles
+policy|public.sponsor_crm_profiles|DELETE|Admins delete sponsor CRM profiles
+policy|public.sponsor_crm_profiles|INSERT|CRM users create sponsor CRM profiles
+policy|public.sponsor_crm_profiles|SELECT|Org members view sponsor CRM profiles
+policy|public.sponsor_crm_profiles|UPDATE|CRM users update sponsor CRM profiles
+policy|public.sponsor_delivery_profiles|DELETE|Admins delete sponsor delivery profiles
+policy|public.sponsor_delivery_profiles|INSERT|Ops CRM users create sponsor delivery profiles
+policy|public.sponsor_delivery_profiles|SELECT|Org members view sponsor delivery profiles
+policy|public.sponsor_delivery_profiles|UPDATE|Ops CRM users update sponsor delivery profiles
+policy|public.sponsor_documents|DELETE|sponsor_documents_delete
+policy|public.sponsor_documents|INSERT|sponsor_documents_insert
+policy|public.sponsor_documents|SELECT|sponsor_documents_select
+policy|public.sponsor_documents|UPDATE|sponsor_documents_update
+policy|public.sponsor_executive_summaries|ALL|owners write summaries
+policy|public.sponsor_executive_summaries|SELECT|owners read summaries
+policy|public.sponsor_finance_profiles|DELETE|Admins delete sponsor finance profiles
+policy|public.sponsor_finance_profiles|INSERT|Finance users create sponsor finance profiles
+policy|public.sponsor_finance_profiles|SELECT|Org members view sponsor finance profiles
+policy|public.sponsor_finance_profiles|UPDATE|Finance users update sponsor finance profiles
+policy|public.sponsor_interactions|ALL|CRM users manage sponsor interactions
+policy|public.sponsor_interactions|SELECT|Org members view sponsor interactions / Sponsor portal user views own interactions
+policy|public.sponsor_invites|ALL|CRM users manage sponsor invites
+policy|public.sponsor_portal_access|ALL|CRM users manage sponsor portal access
+policy|public.sponsor_portal_access|SELECT|Sponsor sees own access
+policy|public.sponsor_portal_profiles|DELETE|Admins delete sponsor portal profiles
+policy|public.sponsor_portal_profiles|INSERT|Admins create sponsor portal profiles
+policy|public.sponsor_portal_profiles|SELECT|Org members view sponsor portal profiles
+policy|public.sponsor_portal_profiles|UPDATE|Admins update sponsor portal profiles
+policy|public.sponsor_proposal_profiles|DELETE|Admins delete sponsor proposal profiles
+policy|public.sponsor_proposal_profiles|INSERT|CRM users create sponsor proposal profiles
+policy|public.sponsor_proposal_profiles|SELECT|Org members view sponsor proposal profiles
+policy|public.sponsor_proposal_profiles|UPDATE|CRM users update sponsor proposal profiles
+policy|public.sponsors|DELETE|CRM users delete sponsors
+policy|public.sponsors|INSERT|CRM users insert sponsors
+policy|public.sponsors|SELECT|Org members view sponsors / Sponsor portal user views own sponsor
+policy|public.sponsors|UPDATE|CRM users update sponsors
+policy|public.sponsorship_tiers|DELETE|CRM users manage tiers del
+policy|public.sponsorship_tiers|INSERT|CRM users manage tiers ins
+policy|public.sponsorship_tiers|SELECT|Org members view tiers / Public can view tiers of published properties
+policy|public.sponsorship_tiers|UPDATE|CRM users manage tiers upd
+policy|public.sports_properties|DELETE|Privileged users delete properties / Usuários deletam suas propriedades
+policy|public.sports_properties|INSERT|Privileged users insert properties / Usuários criam suas propriedades
+policy|public.sports_properties|SELECT|Org members view properties / Public can view published properties / Sponsor portal user views linked properties / Usuários veem propriedades próprias ou admins veem todas
+policy|public.sports_properties|UPDATE|Privileged users update properties / Usuários atualizam suas propriedades
+policy|public.team_audit_log|SELECT|Org admins can view audit log
+policy|public.tier_assets|ALL|CRM users manage tier assets / Manage assets of own tiers
+policy|public.tier_assets|SELECT|Org members view tier assets / Public can view tier_assets of published
+policy|public.tier_sales|ALL|CRM users manage tier sales
+policy|public.tier_sales|DELETE|Owners or admins delete tier sales
+policy|public.tier_sales|INSERT|Users create own tier sales
+policy|public.tier_sales|SELECT|Org members view tier sales / Owners or admins view tier sales / Public can view tier_sales of published
+policy|public.tier_sales|UPDATE|Owners or admins update tier sales
+policy|public.user_dashboard_preferences|DELETE|Users delete own dashboard prefs
+policy|public.user_dashboard_preferences|INSERT|Users insert own dashboard prefs
+policy|public.user_dashboard_preferences|SELECT|Users view own dashboard prefs
+policy|public.user_dashboard_preferences|UPDATE|Users update own dashboard prefs
+policy|public.user_roles|ALL|Admins gerenciam papéis
+policy|public.user_roles|SELECT|Usuários veem seus próprios papéis
+policy|public.user_stage_probabilities|DELETE|Users delete own probabilities
+policy|public.user_stage_probabilities|INSERT|Users insert own probabilities
+policy|public.user_stage_probabilities|SELECT|Users view own probabilities
+policy|public.user_stage_probabilities|UPDATE|Users update own probabilities
+policy|storage.objects|DELETE|Authenticated delete own property-media / Org admins delete org logo / Org members delete delivery evidence / Owner deletes sponsor interaction files / Uploaders delete opportunity comment files / Users delete own asset photos / Users delete own contract files / Users delete own proposal pdfs / Users delete own sponsor logos / bt_storage_delete_own / sponsor_docs_delete
+policy|storage.objects|INSERT|Authenticated upload property-media in own folder / CRM users upload opportunity comment files / Org members upload delivery evidence / Org members upload org logo / Owner uploads sponsor interaction files / Users upload own asset photos / Users upload own contract files / Users upload own proposal pdfs / Users upload own sponsor logos / bt_storage_insert_own / sponsor_docs_insert
+policy|storage.objects|SELECT|Asset photos readable by org or published assets / Org members read delivery evidence / Org members read opportunity comment files / Org members read property-media of their org / Owner views sponsor interaction files / Owners can read own property-media / Public can read org logos / Published property media can be read / Sponsor logos readable by org members / Users read own proposal pdfs / Users view own contract files / bt_storage_select_own / sponsor_docs_read
+policy|storage.objects|UPDATE|Authenticated update own property-media / Org admins update org logo / Org members update delivery evidence / Users update own asset photos / Users update own contract files / Users update own proposal pdfs / Users update own sponsor logos / bt_storage_update_own / sponsor_docs_update
+constraint|ai_conversations|p|PRIMARY KEY (id)
+constraint|ai_messages|c|CHECK ((role = ANY (ARRAY['system'::text, 'user'::text, 'assistant'::text, 'tool'::text])))
+constraint|ai_messages|f|FOREIGN KEY (conversation_id) REFERENCES ai_conversations(id) ON DELETE CASCADE
+constraint|ai_messages|p|PRIMARY KEY (id)
+constraint|ai_suggestions|c|CHECK ((priority = ANY (ARRAY['alta'::text, 'media'::text, 'baixa'::text])))
+constraint|ai_suggestions|c|CHECK ((status = ANY (ARRAY['nova'::text, 'vista'::text, 'feita'::text, 'descartada'::text])))
+constraint|ai_suggestions|p|PRIMARY KEY (id)
+constraint|asset_allocations|f|FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
+constraint|asset_allocations|f|FOREIGN KEY (property_id) REFERENCES sports_properties(id) ON DELETE CASCADE
+constraint|asset_allocations|p|PRIMARY KEY (id)
+constraint|asset_allocations|u|UNIQUE (asset_id, property_id)
+constraint|asset_photos|f|FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
+constraint|asset_photos|p|PRIMARY KEY (id)
+constraint|assets|f|FOREIGN KEY (exclusive_sponsor_id) REFERENCES sponsors(id) ON DELETE SET NULL
+constraint|assets|p|PRIMARY KEY (id)
+constraint|backend_error_logs|p|PRIMARY KEY (id)
+constraint|brandtrack_brands|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE SET NULL
+constraint|brandtrack_brands|p|PRIMARY KEY (id)
+constraint|brandtrack_detections|c|CHECK ((exposure_type = ANY (ARRAY['uniforme'::text, 'placa'::text, 'backdrop'::text, 'led'::text, 'transmissao'::text, 'outro'::text])))
+constraint|brandtrack_detections|f|FOREIGN KEY (brand_id) REFERENCES brandtrack_brands(id) ON DELETE SET NULL
+constraint|brandtrack_detections|f|FOREIGN KEY (media_id) REFERENCES brandtrack_media(id) ON DELETE CASCADE
+constraint|brandtrack_detections|p|PRIMARY KEY (id)
+constraint|brandtrack_event_brands|c|CHECK ((sponsor_status = ANY (ARRAY['patrocinador'::text, 'nao_patrocinador'::text, 'concorrente'::text, 'parceiro'::text, 'prospect'::text])))
+constraint|brandtrack_event_brands|f|FOREIGN KEY (brand_id) REFERENCES brandtrack_brands(id) ON DELETE SET NULL
+constraint|brandtrack_event_brands|f|FOREIGN KEY (event_id) REFERENCES brandtrack_events(id) ON DELETE CASCADE
+constraint|brandtrack_event_brands|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE SET NULL
+constraint|brandtrack_event_brands|p|PRIMARY KEY (id)
+constraint|brandtrack_events|f|FOREIGN KEY (property_id) REFERENCES sports_properties(id) ON DELETE SET NULL
+constraint|brandtrack_events|p|PRIMARY KEY (id)
+constraint|brandtrack_media|c|CHECK ((media_type = ANY (ARRAY['image'::text, 'video'::text, 'instagram'::text])))
+constraint|brandtrack_media|c|CHECK ((status = ANY (ARRAY['queued'::text, 'processing'::text, 'completed'::text, 'failed'::text])))
+constraint|brandtrack_media|f|FOREIGN KEY (event_id) REFERENCES brandtrack_events(id) ON DELETE SET NULL
+constraint|brandtrack_media|p|PRIMARY KEY (id)
+constraint|contract_assets|f|FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE SET NULL
+constraint|contract_assets|f|FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
+constraint|contract_assets|p|PRIMARY KEY (id)
+constraint|contract_churn_risk|c|CHECK ((risk_level = ANY (ARRAY['baixo'::text, 'medio'::text, 'alto'::text, 'critico'::text])))
+constraint|contract_churn_risk|f|FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
+constraint|contract_churn_risk|p|PRIMARY KEY (contract_id)
+constraint|contract_clause_templates|p|PRIMARY KEY (id)
+constraint|contract_clauses|f|FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
+constraint|contract_clauses|p|PRIMARY KEY (id)
+constraint|contracts|f|FOREIGN KEY (opportunity_id) REFERENCES opportunities(id) ON DELETE SET NULL
+constraint|contracts|f|FOREIGN KEY (property_id) REFERENCES sports_properties(id) ON DELETE SET NULL
+constraint|contracts|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE SET NULL
+constraint|contracts|p|PRIMARY KEY (id)
+constraint|crm_tasks|f|FOREIGN KEY (opportunity_id) REFERENCES opportunities(id) ON DELETE SET NULL
+constraint|crm_tasks|f|FOREIGN KEY (sponsor_brand_id) REFERENCES sponsor_brands(id) ON DELETE SET NULL
+constraint|crm_tasks|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE CASCADE
+constraint|crm_tasks|p|PRIMARY KEY (id)
+constraint|deliveries|f|FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE SET NULL
+constraint|deliveries|f|FOREIGN KEY (opportunity_id) REFERENCES opportunities(id) ON DELETE SET NULL
+constraint|deliveries|f|FOREIGN KEY (property_id) REFERENCES sports_properties(id) ON DELETE SET NULL
+constraint|deliveries|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id)
+constraint|deliveries|p|PRIMARY KEY (id)
+constraint|delivery_approval_log|c|CHECK ((decided_by_role = ANY (ARRAY['comercial'::text, 'patrocinador'::text])))
+constraint|delivery_approval_log|f|FOREIGN KEY (delivery_id) REFERENCES deliveries(id) ON DELETE CASCADE
+constraint|delivery_approval_log|p|PRIMARY KEY (id)
+constraint|delivery_attachments|f|FOREIGN KEY (delivery_id) REFERENCES deliveries(id) ON DELETE CASCADE
+constraint|delivery_attachments|p|PRIMARY KEY (id)
+constraint|error_reports|p|PRIMARY KEY (id)
+constraint|installments|f|FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
+constraint|installments|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id)
+constraint|installments|p|PRIMARY KEY (id)
+constraint|lead_scores|c|CHECK (((score >= 0) AND (score <= 100)))
+constraint|lead_scores|c|CHECK ((classification = ANY (ARRAY['quente'::text, 'morno'::text, 'frio'::text])))
+constraint|lead_scores|c|CHECK ((target_type = ANY (ARRAY['sponsor'::text, 'opportunity'::text])))
+constraint|lead_scores|f|FOREIGN KEY (property_id) REFERENCES sports_properties(id) ON DELETE SET NULL
+constraint|lead_scores|p|PRIMARY KEY (id)
+constraint|market_benchmarks|p|PRIMARY KEY (id)
+constraint|market_benchmarks|u|UNIQUE (organization_id, segment)
+constraint|notification_preferences|p|PRIMARY KEY (user_id)
+constraint|notifications|p|PRIMARY KEY (id)
+constraint|opportunities|f|FOREIGN KEY (converted_contract_id) REFERENCES contracts(id) ON DELETE SET NULL
+constraint|opportunities|f|FOREIGN KEY (converted_proposal_id) REFERENCES proposals(id) ON DELETE SET NULL
+constraint|opportunities|f|FOREIGN KEY (pipeline_funnel_id) REFERENCES pipeline_funnels(id) ON DELETE SET NULL
+constraint|opportunities|f|FOREIGN KEY (property_id) REFERENCES sports_properties(id) ON DELETE SET NULL
+constraint|opportunities|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE SET NULL
+constraint|opportunities|f|FOREIGN KEY (tier_id) REFERENCES sponsorship_tiers(id) ON DELETE SET NULL
+constraint|opportunities|p|PRIMARY KEY (id)
+constraint|opportunity_activities|f|FOREIGN KEY (opportunity_id) REFERENCES opportunities(id) ON DELETE CASCADE
+constraint|opportunity_activities|p|PRIMARY KEY (id)
+constraint|opportunity_audit_logs|p|PRIMARY KEY (id)
+constraint|opportunity_comment_attachments|p|PRIMARY KEY (id)
+constraint|opportunity_comments|p|PRIMARY KEY (id)
+constraint|opportunity_contacts|c|CHECK ((contact_type = ANY (ARRAY['geral'::text, 'contrato'::text, 'financeiro'::text])))
+constraint|opportunity_contacts|f|FOREIGN KEY (opportunity_id) REFERENCES opportunities(id) ON DELETE CASCADE
+constraint|opportunity_contacts|p|PRIMARY KEY (id)
+constraint|organization_invites|f|FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
+constraint|organization_invites|p|PRIMARY KEY (id)
+constraint|organization_members|f|FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
+constraint|organization_members|p|PRIMARY KEY (id)
+constraint|organization_members|u|UNIQUE (organization_id, user_id)
+constraint|organizations|p|PRIMARY KEY (id)
+constraint|pipeline_funnels|c|CHECK (((char_length(btrim(name)) >= 2) AND (char_length(btrim(name)) <= 80)))
+constraint|pipeline_funnels|f|FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
+constraint|pipeline_funnels|p|PRIMARY KEY (id)
+constraint|pipeline_stage_slas|c|CHECK (((sla_days IS NULL) OR (sla_days >= 0)))
+constraint|pipeline_stage_slas|f|FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
+constraint|pipeline_stage_slas|f|FOREIGN KEY (pipeline_funnel_id) REFERENCES pipeline_funnels(id) ON DELETE CASCADE
+constraint|pipeline_stage_slas|p|PRIMARY KEY (id)
+constraint|pipeline_stage_slas|u|UNIQUE (organization_id, pipeline_funnel_id, stage)
+constraint|profiles|f|FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
+constraint|profiles|p|PRIMARY KEY (id)
+constraint|property_checklist_items|f|FOREIGN KEY (delivery_id) REFERENCES deliveries(id) ON DELETE SET NULL
+constraint|property_checklist_items|f|FOREIGN KEY (event_id) REFERENCES property_events(id) ON DELETE SET NULL
+constraint|property_checklist_items|f|FOREIGN KEY (opportunity_id) REFERENCES opportunities(id) ON DELETE SET NULL
+constraint|property_checklist_items|f|FOREIGN KEY (property_id) REFERENCES sports_properties(id) ON DELETE CASCADE
+constraint|property_checklist_items|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE SET NULL
+constraint|property_checklist_items|p|PRIMARY KEY (id)
+constraint|property_events|f|FOREIGN KEY (property_id) REFERENCES sports_properties(id) ON DELETE CASCADE
+constraint|property_events|p|PRIMARY KEY (id)
+constraint|property_leads|f|FOREIGN KEY (created_opportunity_id) REFERENCES opportunities(id) ON DELETE SET NULL
+constraint|property_leads|f|FOREIGN KEY (property_id) REFERENCES sports_properties(id) ON DELETE CASCADE
+constraint|property_leads|f|FOREIGN KEY (tier_id) REFERENCES sponsorship_tiers(id) ON DELETE SET NULL
+constraint|property_leads|p|PRIMARY KEY (id)
+constraint|property_media|f|FOREIGN KEY (property_id) REFERENCES sports_properties(id) ON DELETE CASCADE
+constraint|property_media|p|PRIMARY KEY (id)
+constraint|proposal_items|f|FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE SET NULL
+constraint|proposal_items|f|FOREIGN KEY (proposal_id) REFERENCES proposals(id) ON DELETE CASCADE
+constraint|proposal_items|p|PRIMARY KEY (id)
+constraint|proposal_versions|c|CHECK ((channel = ANY (ARRAY['concept'::text, 'deck'::text, 'whatsapp'::text, 'email'::text])))
+constraint|proposal_versions|f|FOREIGN KEY (proposal_id) REFERENCES proposals(id) ON DELETE CASCADE
+constraint|proposal_versions|p|PRIMARY KEY (id)
+constraint|proposals|f|FOREIGN KEY (converted_contract_id) REFERENCES contracts(id) ON DELETE SET NULL
+constraint|proposals|f|FOREIGN KEY (converted_opportunity_id) REFERENCES opportunities(id) ON DELETE SET NULL
+constraint|proposals|f|FOREIGN KEY (property_id) REFERENCES sports_properties(id) ON DELETE SET NULL
+constraint|proposals|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE SET NULL
+constraint|proposals|p|PRIMARY KEY (id)
+constraint|sellout_reports|f|FOREIGN KEY (event_id) REFERENCES property_events(id) ON DELETE SET NULL
+constraint|sellout_reports|f|FOREIGN KEY (property_id) REFERENCES sports_properties(id) ON DELETE CASCADE
+constraint|sellout_reports|p|PRIMARY KEY (id)
+constraint|sponsor_audit_logs|p|PRIMARY KEY (id)
+constraint|sponsor_brands|f|FOREIGN KEY (brandtrack_brand_id) REFERENCES brandtrack_brands(id) ON DELETE SET NULL
+constraint|sponsor_brands|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE CASCADE
+constraint|sponsor_brands|p|PRIMARY KEY (id)
+constraint|sponsor_brands|u|UNIQUE (sponsor_id, name)
+constraint|sponsor_brandtrack_profiles|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE CASCADE
+constraint|sponsor_brandtrack_profiles|p|PRIMARY KEY (id)
+constraint|sponsor_brandtrack_profiles|u|UNIQUE (sponsor_id)
+constraint|sponsor_contacts|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE CASCADE
+constraint|sponsor_contacts|p|PRIMARY KEY (id)
+constraint|sponsor_contract_profiles|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE CASCADE
+constraint|sponsor_contract_profiles|p|PRIMARY KEY (id)
+constraint|sponsor_contract_profiles|u|UNIQUE (sponsor_id)
+constraint|sponsor_crm_profiles|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE CASCADE
+constraint|sponsor_crm_profiles|p|PRIMARY KEY (id)
+constraint|sponsor_crm_profiles|u|UNIQUE (sponsor_id)
+constraint|sponsor_delivery_profiles|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE CASCADE
+constraint|sponsor_delivery_profiles|p|PRIMARY KEY (id)
+constraint|sponsor_delivery_profiles|u|UNIQUE (sponsor_id)
+constraint|sponsor_documents|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE CASCADE
+constraint|sponsor_documents|p|PRIMARY KEY (id)
+constraint|sponsor_executive_summaries|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE CASCADE
+constraint|sponsor_executive_summaries|p|PRIMARY KEY (sponsor_id)
+constraint|sponsor_finance_profiles|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE CASCADE
+constraint|sponsor_finance_profiles|p|PRIMARY KEY (id)
+constraint|sponsor_finance_profiles|u|UNIQUE (sponsor_id)
+constraint|sponsor_interactions|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE CASCADE
+constraint|sponsor_interactions|p|PRIMARY KEY (id)
+constraint|sponsor_invites|c|CHECK ((status = ANY (ARRAY['pendente'::text, 'aceito'::text, 'expirado'::text, 'cancelado'::text])))
+constraint|sponsor_invites|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE CASCADE
+constraint|sponsor_invites|p|PRIMARY KEY (id)
+constraint|sponsor_invites|u|UNIQUE (token)
+constraint|sponsor_portal_access|c|CHECK ((status = ANY (ARRAY['convidado'::text, 'ativo'::text, 'bloqueado'::text])))
+constraint|sponsor_portal_access|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE CASCADE
+constraint|sponsor_portal_access|p|PRIMARY KEY (id)
+constraint|sponsor_portal_access|u|UNIQUE (user_id, sponsor_id)
+constraint|sponsor_portal_profiles|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE CASCADE
+constraint|sponsor_portal_profiles|p|PRIMARY KEY (id)
+constraint|sponsor_portal_profiles|u|UNIQUE (sponsor_id)
+constraint|sponsor_proposal_profiles|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE CASCADE
+constraint|sponsor_proposal_profiles|p|PRIMARY KEY (id)
+constraint|sponsor_proposal_profiles|u|UNIQUE (sponsor_id)
+constraint|sponsors|f|FOREIGN KEY (merged_into_sponsor_id) REFERENCES sponsors(id)
+constraint|sponsors|p|PRIMARY KEY (id)
+constraint|sponsorship_tiers|f|FOREIGN KEY (property_id) REFERENCES sports_properties(id) ON DELETE CASCADE
+constraint|sponsorship_tiers|p|PRIMARY KEY (id)
+constraint|sports_properties|f|FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
+constraint|sports_properties|f|FOREIGN KEY (parent_property_id) REFERENCES sports_properties(id) ON DELETE SET NULL
+constraint|sports_properties|p|PRIMARY KEY (id)
+constraint|sports_properties|u|UNIQUE (public_slug)
+constraint|team_audit_log|c|CHECK ((action = ANY (ARRAY['invite_sent'::text, 'invite_resent'::text, 'invite_revoked'::text, 'member_created'::text, 'role_changed'::text, 'member_revoked'::text, 'member_reactivated'::text])))
+constraint|team_audit_log|f|FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
+constraint|team_audit_log|p|PRIMARY KEY (id)
+constraint|tier_assets|f|FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
+constraint|tier_assets|f|FOREIGN KEY (tier_id) REFERENCES sponsorship_tiers(id) ON DELETE CASCADE
+constraint|tier_assets|p|PRIMARY KEY (id)
+constraint|tier_assets|u|UNIQUE (tier_id, asset_id)
+constraint|tier_sales|f|FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE SET NULL
+constraint|tier_sales|f|FOREIGN KEY (sponsor_id) REFERENCES sponsors(id) ON DELETE SET NULL
+constraint|tier_sales|f|FOREIGN KEY (tier_id) REFERENCES sponsorship_tiers(id) ON DELETE CASCADE
+constraint|tier_sales|p|PRIMARY KEY (id)
+constraint|user_dashboard_preferences|f|FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+constraint|user_dashboard_preferences|p|PRIMARY KEY (user_id, organization_id)
+constraint|user_roles|f|FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+constraint|user_roles|p|PRIMARY KEY (id)
+constraint|user_roles|u|UNIQUE (user_id, role)
+constraint|user_stage_probabilities|c|CHECK (((probability >= 0) AND (probability <= 100)))
+constraint|user_stage_probabilities|p|PRIMARY KEY (user_id, organization_id, stage)
+index|ai_conversations|CREATE INDEX ON public.ai_conversations USING btree (user_id, last_message_at DESC)
+index|ai_messages|CREATE INDEX ON public.ai_messages USING btree (conversation_id, created_at)
+index|ai_suggestions|CREATE INDEX ON public.ai_suggestions USING btree (user_id, status, priority)
+index|asset_allocations|CREATE INDEX ON public.asset_allocations USING btree (asset_id)
+index|asset_allocations|CREATE INDEX ON public.asset_allocations USING btree (organization_id)
+index|asset_allocations|CREATE INDEX ON public.asset_allocations USING btree (property_id)
+index|asset_photos|CREATE INDEX ON public.asset_photos USING btree (asset_id)
+index|asset_photos|CREATE INDEX ON public.asset_photos USING btree (organization_id)
+index|assets|CREATE INDEX ON public.assets USING btree (category)
+index|assets|CREATE INDEX ON public.assets USING btree (exclusive_sponsor_id)
+index|assets|CREATE INDEX ON public.assets USING btree (organization_id)
+index|assets|CREATE INDEX ON public.assets USING btree (owner_id)
+index|backend_error_logs|CREATE INDEX ON public.backend_error_logs USING btree (created_at DESC)
+index|backend_error_logs|CREATE INDEX ON public.backend_error_logs USING btree (organization_id, created_at DESC)
+index|backend_error_logs|CREATE INDEX ON public.backend_error_logs USING btree (table_name, action)
+index|backend_error_logs|CREATE INDEX ON public.backend_error_logs USING btree (user_id, created_at DESC)
+index|brandtrack_detections|CREATE INDEX ON public.brandtrack_detections USING btree (brand_id)
+index|brandtrack_detections|CREATE INDEX ON public.brandtrack_detections USING btree (media_id, start_time)
+index|brandtrack_detections|CREATE INDEX ON public.brandtrack_detections USING btree (media_id)
+index|brandtrack_detections|CREATE INDEX ON public.brandtrack_detections USING btree (organization_id)
+index|brandtrack_detections|CREATE INDEX ON public.brandtrack_detections USING btree (review_status)
+index|brandtrack_detections|CREATE INDEX ON public.brandtrack_detections USING btree (reviewed_by)
+index|brandtrack_event_brands|CREATE INDEX ON public.brandtrack_event_brands USING btree (brand_id)
+index|brandtrack_event_brands|CREATE INDEX ON public.brandtrack_event_brands USING btree (event_id)
+index|brandtrack_event_brands|CREATE INDEX ON public.brandtrack_event_brands USING btree (organization_id)
+index|brandtrack_event_brands|CREATE INDEX ON public.brandtrack_event_brands USING btree (sponsor_id)
+index|brandtrack_event_brands|CREATE UNIQUE INDEX ON public.brandtrack_event_brands USING btree (event_id, lower(display_name))
+index|brandtrack_media|CREATE INDEX ON public.brandtrack_media USING btree (event_id)
+index|brandtrack_media|CREATE INDEX ON public.brandtrack_media USING btree (organization_id)
+index|brandtrack_media|CREATE INDEX ON public.brandtrack_media USING btree (source_platform)
+index|contract_assets|CREATE INDEX ON public.contract_assets USING btree (organization_id)
+index|contract_clauses|CREATE INDEX ON public.contract_clauses USING btree (organization_id)
+index|contracts|CREATE INDEX ON public.contracts USING btree (organization_id, sponsor_id)
+index|contracts|CREATE INDEX ON public.contracts USING btree (organization_id)
+index|contracts|CREATE INDEX ON public.contracts USING btree (owner_id)
+index|contracts|CREATE INDEX ON public.contracts USING btree (status)
+index|crm_tasks|CREATE INDEX ON public.crm_tasks USING btree (organization_id, sponsor_id, status)
+index|crm_tasks|CREATE INDEX ON public.crm_tasks USING btree (organization_id, status, due_date)
+index|deliveries|CREATE INDEX ON public.deliveries USING btree (organization_id, sponsor_id)
+index|deliveries|CREATE INDEX ON public.deliveries USING btree (organization_id)
+index|deliveries|CREATE INDEX ON public.deliveries USING btree (owner_id)
+index|deliveries|CREATE INDEX ON public.deliveries USING btree (property_id)
+index|deliveries|CREATE INDEX ON public.deliveries USING btree (status)
+index|delivery_approval_log|CREATE INDEX ON public.delivery_approval_log USING btree (delivery_id)
+index|delivery_approval_log|CREATE INDEX ON public.delivery_approval_log USING btree (organization_id)
+index|delivery_attachments|CREATE INDEX ON public.delivery_attachments USING btree (delivery_id)
+index|delivery_attachments|CREATE INDEX ON public.delivery_attachments USING btree (organization_id)
+index|error_reports|CREATE INDEX ON public.error_reports USING btree (created_at DESC)
+index|error_reports|CREATE INDEX ON public.error_reports USING btree (organization_id, created_at DESC)
+index|error_reports|CREATE INDEX ON public.error_reports USING btree (severity)
+index|error_reports|CREATE INDEX ON public.error_reports USING btree (user_id, created_at DESC)
+index|installments|CREATE INDEX ON public.installments USING btree (contract_id)
+index|installments|CREATE INDEX ON public.installments USING btree (due_date)
+index|installments|CREATE INDEX ON public.installments USING btree (organization_id)
+index|installments|CREATE INDEX ON public.installments USING btree (owner_id)
+index|installments|CREATE INDEX ON public.installments USING btree (sponsor_id)
+index|installments|CREATE INDEX ON public.installments USING btree (status)
+index|lead_scores|CREATE INDEX ON public.lead_scores USING btree (organization_id, score DESC)
+index|lead_scores|CREATE INDEX ON public.lead_scores USING btree (target_type, target_id, property_id)
+index|notifications|CREATE INDEX ON public.notifications USING btree (user_id, read_at, created_at DESC)
+index|notifications|CREATE UNIQUE INDEX ON public.notifications USING btree (user_id, dedupe_key) WHERE (dedupe_key IS NOT NULL)
+index|opportunities|CREATE INDEX ON public.opportunities USING btree (organization_id, pipeline_funnel_id)
+index|opportunities|CREATE INDEX ON public.opportunities USING btree (organization_id, sponsor_id)
+index|opportunities|CREATE INDEX ON public.opportunities USING btree (organization_id)
+index|opportunities|CREATE INDEX ON public.opportunities USING btree (owner_id, stage, "position")
+index|opportunities|CREATE INDEX ON public.opportunities USING btree (property_id)
+index|opportunity_activities|CREATE INDEX ON public.opportunity_activities USING btree (due_date) WHERE (status = 'pendente'::text)
+index|opportunity_activities|CREATE INDEX ON public.opportunity_activities USING btree (opportunity_id)
+index|opportunity_activities|CREATE INDEX ON public.opportunity_activities USING btree (organization_id)
+index|opportunity_audit_logs|CREATE INDEX ON public.opportunity_audit_logs USING btree (opportunity_id, created_at DESC)
+index|opportunity_audit_logs|CREATE INDEX ON public.opportunity_audit_logs USING btree (organization_id)
+index|opportunity_comment_attachments|CREATE INDEX ON public.opportunity_comment_attachments USING btree (comment_id)
+index|opportunity_comments|CREATE INDEX ON public.opportunity_comments USING btree (opportunity_id, created_at DESC)
+index|opportunity_contacts|CREATE INDEX ON public.opportunity_contacts USING btree (opportunity_id)
+index|organizations|CREATE UNIQUE INDEX ON public.organizations USING btree (cnpj) WHERE (cnpj IS NOT NULL)
+index|pipeline_funnels|CREATE INDEX ON public.pipeline_funnels USING btree (organization_id, "position", name)
+index|pipeline_funnels|CREATE UNIQUE INDEX ON public.pipeline_funnels USING btree (organization_id) WHERE (is_default = true)
+index|pipeline_stage_slas|CREATE INDEX ON public.pipeline_stage_slas USING btree (organization_id, pipeline_funnel_id, stage)
+index|property_checklist_items|CREATE INDEX ON public.property_checklist_items USING btree (opportunity_id)
+index|property_checklist_items|CREATE INDEX ON public.property_checklist_items USING btree (organization_id)
+index|property_checklist_items|CREATE INDEX ON public.property_checklist_items USING btree (property_id, "position")
+index|property_checklist_items|CREATE INDEX ON public.property_checklist_items USING btree (sponsor_id)
+index|property_events|CREATE INDEX ON public.property_events USING btree (organization_id)
+index|property_events|CREATE INDEX ON public.property_events USING btree (property_id)
+index|property_events|CREATE INDEX ON public.property_events USING btree (starts_at)
+index|property_leads|CREATE INDEX ON public.property_leads USING btree (organization_id)
+index|property_media|CREATE INDEX ON public.property_media USING btree (organization_id)
+index|property_media|CREATE INDEX ON public.property_media USING btree (property_id, "position")
+index|proposal_items|CREATE INDEX ON public.proposal_items USING btree (organization_id)
+index|proposal_items|CREATE INDEX ON public.proposal_items USING btree (proposal_id)
+index|proposal_versions|CREATE INDEX ON public.proposal_versions USING btree (proposal_id, channel)
+index|proposals|CREATE INDEX ON public.proposals USING btree (organization_id)
+index|proposals|CREATE INDEX ON public.proposals USING btree (owner_id)
+index|proposals|CREATE INDEX ON public.proposals USING btree (sponsor_id)
+index|proposals|CREATE INDEX ON public.proposals USING btree (status)
+index|sponsor_audit_logs|CREATE INDEX ON public.sponsor_audit_logs USING btree (organization_id, sponsor_id, created_at DESC)
+index|sponsor_brands|CREATE INDEX ON public.sponsor_brands USING btree (organization_id, sponsor_id)
+index|sponsor_brandtrack_profiles|CREATE INDEX ON public.sponsor_brandtrack_profiles USING btree (organization_id, sponsor_id)
+index|sponsor_contacts|CREATE INDEX ON public.sponsor_contacts USING btree (organization_id)
+index|sponsor_contacts|CREATE INDEX ON public.sponsor_contacts USING btree (sponsor_id)
+index|sponsor_contract_profiles|CREATE INDEX ON public.sponsor_contract_profiles USING btree (organization_id, sponsor_id)
+index|sponsor_crm_profiles|CREATE INDEX ON public.sponsor_crm_profiles USING btree (organization_id, sponsor_id)
+index|sponsor_delivery_profiles|CREATE INDEX ON public.sponsor_delivery_profiles USING btree (organization_id, sponsor_id)
+index|sponsor_documents|CREATE INDEX ON public.sponsor_documents USING btree (organization_id, sponsor_id)
+index|sponsor_finance_profiles|CREATE INDEX ON public.sponsor_finance_profiles USING btree (organization_id, sponsor_id)
+index|sponsor_interactions|CREATE INDEX ON public.sponsor_interactions USING btree (organization_id)
+index|sponsor_interactions|CREATE INDEX ON public.sponsor_interactions USING btree (owner_id, next_action_at) WHERE ((next_action_at IS NOT NULL) AND (next_action_done = false))
+index|sponsor_interactions|CREATE INDEX ON public.sponsor_interactions USING btree (owner_id)
+index|sponsor_interactions|CREATE INDEX ON public.sponsor_interactions USING btree (sponsor_id, occurred_at DESC)
+index|sponsor_invites|CREATE INDEX ON public.sponsor_invites USING btree (email)
+index|sponsor_invites|CREATE INDEX ON public.sponsor_invites USING btree (organization_id)
+index|sponsor_invites|CREATE INDEX ON public.sponsor_invites USING btree (token)
+index|sponsor_portal_access|CREATE INDEX ON public.sponsor_portal_access USING btree (organization_id)
+index|sponsor_portal_access|CREATE INDEX ON public.sponsor_portal_access USING btree (sponsor_id)
+index|sponsor_portal_access|CREATE INDEX ON public.sponsor_portal_access USING btree (user_id)
+index|sponsor_portal_profiles|CREATE INDEX ON public.sponsor_portal_profiles USING btree (organization_id, sponsor_id)
+index|sponsor_proposal_profiles|CREATE INDEX ON public.sponsor_proposal_profiles USING btree (organization_id, sponsor_id)
+index|sponsors|CREATE INDEX ON public.sponsors USING btree (organization_id, archived_at)
+index|sponsors|CREATE INDEX ON public.sponsors USING btree (organization_id, lifecycle)
+index|sponsors|CREATE INDEX ON public.sponsors USING btree (organization_id)
+index|sponsors|CREATE INDEX ON public.sponsors USING btree (owner_id)
+index|sponsorship_tiers|CREATE INDEX ON public.sponsorship_tiers USING btree (organization_id)
+index|sponsorship_tiers|CREATE INDEX ON public.sponsorship_tiers USING btree (property_id)
+index|sports_properties|CREATE INDEX ON public.sports_properties USING btree (organization_id)
+index|sports_properties|CREATE INDEX ON public.sports_properties USING btree (parent_property_id)
+index|sports_properties|CREATE INDEX ON public.sports_properties USING btree (public_slug) WHERE (public_slug IS NOT NULL)
+index|team_audit_log|CREATE INDEX ON public.team_audit_log USING btree (organization_id, created_at DESC)
+index|tier_assets|CREATE INDEX ON public.tier_assets USING btree (organization_id)
+index|tier_assets|CREATE INDEX ON public.tier_assets USING btree (tier_id)
+index|tier_sales|CREATE INDEX ON public.tier_sales USING btree (organization_id)
+index|tier_sales|CREATE INDEX ON public.tier_sales USING btree (tier_id)
+index|user_dashboard_preferences|CREATE INDEX ON public.user_dashboard_preferences USING btree (organization_id)
+index|user_stage_probabilities|CREATE INDEX ON public.user_stage_probabilities USING btree (organization_id)
+bucket|asset-photos|true|
+bucket|brandtrack-media|false|
+bucket|contracts|false|
+bucket|delivery-evidence|false|
+bucket|opportunity-comments|false|
+bucket|org-logos|true|
+bucket|property-media|true|
+bucket|proposals|false|
+bucket|sponsor-interactions|false|
+bucket|sponsor-logos|true|
+grant|accept_sponsor_invite_by_token(p_token text)|anon,authenticated,service_role
+grant|archive_sponsor(_sponsor_id uuid, _reason text)|authenticated,service_role
+grant|can_access_contract_file(_user_id uuid, _path text)|anon,authenticated,service_role
+grant|can_access_module(_user_id uuid, _org_id uuid, _module text, _write boolean)|authenticated,service_role
+grant|copy_opportunity_tier_to_proposal(_proposal_id uuid, _opportunity_id uuid)|service_role
+grant|copy_proposal_items_to_contract(_contract_id uuid, _proposal_id uuid)|service_role
+grant|create_organization_with_owner(_owner_id uuid, _name text, _cnpj text)|service_role
+grant|create_renewal_opportunity(_contract_id uuid)|authenticated,service_role
+grant|debug_table_policies(_table_name text)|service_role
+grant|enforce_delivery_attachment_limit()|service_role
+grant|generate_contract_deliveries(_contract_id uuid)|service_role
+grant|generate_contract_installments(_contract_id uuid)|service_role
+grant|get_delivery_report_data(_opportunity_id uuid, _contract_id uuid)|service_role
+grant|get_organization_invite_by_token(p_token text)|anon,authenticated,service_role
+grant|get_portal_sponsor_overview(_sponsor_id uuid)|authenticated,service_role
+grant|get_sponsor_invite_by_token(p_token text)|anon,authenticated,service_role
+grant|get_user_org(_user_id uuid)|authenticated,service_role
+grant|handle_checklist_completion()|service_role
+grant|handle_contract_deliveries()|service_role
+grant|handle_contract_installments()|service_role
+grant|handle_lead_to_opportunity()|service_role
+grant|handle_new_organization()|service_role
+grant|handle_new_user()|service_role
+grant|handle_opportunity_stage_change()|service_role
+grant|handle_opportunity_won()|service_role
+grant|has_org_role(_user_id uuid, _org_id uuid, _roles org_role[])|authenticated,service_role
+grant|has_role(_user_id uuid, _role app_role)|authenticated,service_role
+grant|has_sponsor_access(_user_id uuid, _sponsor_id uuid)|authenticated,service_role
+grant|is_asset_publicly_visible(_asset_id uuid)|anon,authenticated,service_role
+grant|is_org_member(_user_id uuid, _org_id uuid)|authenticated,service_role
+grant|is_property_published(_property_id uuid)|anon,authenticated,service_role
+grant|log_sponsor_interaction(_sponsor_id uuid, _owner_id uuid, _type sponsor_interaction_type, _title text, _description text, _metadata jsonb, _opportunity_id uuid, _contract_id uuid, _proposal_id uuid, _delivery_id uuid, _installment_id uuid)|service_role
+grant|mark_overdue_installments(_owner uuid)|authenticated,service_role
+grant|merge_sponsors(_target_id uuid, _duplicate_id uuid)|authenticated,service_role
+grant|notify_commercial_team_opportunity_lost()|service_role
+grant|notify_opportunity_comment_mentions()|service_role
+grant|set_org_from_property()|service_role
+grant|set_org_from_proposal()|service_role
+grant|set_org_from_sponsor()|service_role
+grant|set_org_from_tier()|service_role
+grant|set_org_from_user_membership()|service_role
+grant|sync_opportunity_contact_to_sponsor(_contact_id uuid)|anon,authenticated,service_role
+grant|sync_opportunity_stage(_opportunity_id uuid, _target opportunity_stage)|anon,authenticated,service_role
+grant|tg_contract_interaction()|service_role
+grant|tg_contract_sync_opportunity_stage()|anon,authenticated,service_role
+grant|tg_contract_sync_sponsor_lifecycle()|anon,authenticated,service_role
+grant|tg_crm_task_effects()|anon,authenticated,service_role
+grant|tg_crm_task_sync_next_action()|anon,authenticated,service_role
+grant|tg_delivery_interaction()|service_role
+grant|tg_delivery_sync_opportunity_stage()|anon,authenticated,service_role
+grant|tg_installment_interaction()|service_role
+grant|tg_opportunity_audit_log()|service_role
+grant|tg_opportunity_contact_sync()|anon,authenticated,service_role
+grant|tg_opportunity_interaction()|service_role
+grant|tg_opportunity_sponsor_sync_contacts()|anon,authenticated,service_role
+grant|tg_proposal_interaction()|service_role
+grant|tg_proposal_sync_opportunity_stage()|anon,authenticated,service_role
+grant|tg_set_asset_child_organization_id()|service_role
+grant|tg_set_child_sponsor_id()|anon,authenticated,service_role
+grant|tg_set_contract_child_organization_id()|service_role
+grant|tg_set_default_pipeline_funnel()|service_role
+grant|tg_set_delivery_approval_organization_id()|service_role
+grant|tg_set_opportunity_activity_organization_id()|service_role
+grant|tg_set_opportunity_contact_org()|anon,authenticated,service_role
+grant|tg_set_org_from_membership_default()|anon,authenticated,service_role
+grant|tg_set_organization_id()|service_role
+grant|tg_set_proposal_number()|anon,authenticated,service_role
+grant|tg_sponsor_audit()|anon,authenticated,service_role
+grant|tg_sync_sponsor_last_contact()|anon,authenticated,service_role
+grant|tg_update_sponsor_last_contact()|service_role
+grant|tg_validate_opportunity_org_access()|service_role
+grant|tg_validate_parent_organization()|anon,authenticated,service_role
+grant|unarchive_sponsor(_sponsor_id uuid, _lifecycle sponsor_lifecycle)|authenticated,service_role
+grant|update_updated_at_column()|anon,authenticated,service_role
+grant|user_sponsor_ids(_user_id uuid)|authenticated,service_role
+grant|validate_opportunity_loss_fields()|anon,authenticated,service_role
+grant|validate_property_lead()|anon,authenticated,service_role
