@@ -28,18 +28,17 @@ const PORTAL_URL_ENV = Deno.env.get("PORTAL_URL");
 const escHtml = (s: unknown) =>
   String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
-// Only allow https URLs from the app's own origins (lovable.app, lovableproject.com, or PORTAL_URL_ENV host)
+// Only allow URLs from the app's own origin (PORTAL_URL_ENV host) or localhost for local dev.
 function safePortalUrl(candidate: string | undefined, reqOrigin: string | null): string {
   const fallback = PORTAL_URL_ENV || reqOrigin || "";
   if (!candidate) return fallback;
   try {
     const u = new URL(candidate);
-    if (u.protocol !== "https:") return fallback;
     const host = u.host.toLowerCase();
+    const isLocalhost = u.hostname === "localhost" || u.hostname === "127.0.0.1";
+    if (u.protocol !== "https:" && !isLocalhost) return fallback;
     const allowed =
-      host.endsWith(".lovable.app") ||
-      host.endsWith(".lovableproject.com") ||
-      host.endsWith(".lovable.dev") ||
+      isLocalhost ||
       (PORTAL_URL_ENV && host === new URL(PORTAL_URL_ENV).host) ||
       (reqOrigin && host === new URL(reqOrigin).host);
     if (!allowed) return fallback;

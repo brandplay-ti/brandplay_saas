@@ -1,4 +1,4 @@
-// Generate proposal draft from briefing using Lovable AI
+// Generate proposal draft from briefing using the Anthropic API
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -20,8 +20,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not configured");
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -99,49 +99,48 @@ Deno.serve(async (req) => {
       ctx.length ? `CONTEXTO:\n${ctx.join("\n\n")}` : null,
     ].filter(Boolean).join("\n\n");
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "claude-sonnet-5",
+        max_tokens: 4096,
+        system: SYSTEM_PROMPT,
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userPrompt },
         ],
         tools: [{
-          type: "function",
-          function: {
-            name: "create_proposal",
-            description: "Cria a proposta comercial",
-            parameters: {
-              type: "object",
-              properties: {
-                title: { type: "string" },
-                message: { type: "string" },
+          name: "create_proposal",
+          description: "Cria a proposta comercial",
+          input_schema: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              message: { type: "string" },
+              items: {
+                type: "array",
                 items: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      name: { type: "string" },
-                      description: { type: "string" },
-                      quantity: { type: "integer", minimum: 1 },
-                      unit_value: { type: "number", minimum: 0 },
-                    },
-                    required: ["name", "quantity", "unit_value"],
-                    additionalProperties: false,
+                  type: "object",
+                  properties: {
+                    name: { type: "string" },
+                    description: { type: "string" },
+                    quantity: { type: "integer", minimum: 1 },
+                    unit_value: { type: "number", minimum: 0 },
                   },
+                  required: ["name", "quantity", "unit_value"],
+                  additionalProperties: false,
                 },
               },
-              required: ["title", "message", "items"],
-              additionalProperties: false,
             },
+            required: ["title", "message", "items"],
+            additionalProperties: false,
           },
         }],
-        tool_choice: { type: "function", function: { name: "create_proposal" } },
+        tool_choice: { type: "tool", name: "create_proposal" },
       }),
     });
 
@@ -164,15 +163,14 @@ Deno.serve(async (req) => {
     }
 
     const aiJson = await aiResp.json();
-    const toolCall = aiJson.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall?.function?.arguments) {
+    const toolUse = aiJson.content?.find((b: any) => b.type === "tool_use");
+    if (!toolUse?.input) {
       return new Response(JSON.stringify({ error: "Resposta da IA inválida" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const parsed = JSON.parse(toolCall.function.arguments);
-    return new Response(JSON.stringify(parsed), {
+    return new Response(JSON.stringify(toolUse.input), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

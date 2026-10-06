@@ -6,141 +6,117 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-// === TOOL DEFINITIONS ===
+// === TOOL DEFINITIONS (Anthropic format: {name, description, input_schema}) ===
 const TOOLS = [
   {
-    type: "function",
-    function: {
-      name: "search_sponsors",
-      description:
-        "Busca patrocinadores do usuário. Filtros opcionais por nome, segmento, score (quente/morno/frio) ou dias sem contato.",
-      parameters: {
-        type: "object",
-        properties: {
-          query: { type: "string", description: "Texto livre (nome/segmento)" },
-          score: { type: "string", enum: ["quente", "morno", "frio"] },
-          days_without_contact: { type: "number" },
-          limit: { type: "number", default: 20 },
-        },
+    name: "search_sponsors",
+    description:
+      "Busca patrocinadores do usuário. Filtros opcionais por nome, segmento, score (quente/morno/frio) ou dias sem contato.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Texto livre (nome/segmento)" },
+        score: { type: "string", enum: ["quente", "morno", "frio"] },
+        days_without_contact: { type: "number" },
+        limit: { type: "number", default: 20 },
       },
     },
   },
   {
-    type: "function",
-    function: {
-      name: "search_opportunities",
-      description: "Busca oportunidades do pipeline. Filtros por estágio, marca, valor mínimo.",
-      parameters: {
-        type: "object",
-        properties: {
-          stage: {
-            type: "string",
-            enum: ["prospect", "reuniao", "proposta_enviada", "negociacao", "fechado", "perdido"],
-          },
-          brand: { type: "string" },
-          min_value: { type: "number" },
-          limit: { type: "number", default: 20 },
+    name: "search_opportunities",
+    description: "Busca oportunidades do pipeline. Filtros por estágio, marca, valor mínimo.",
+    input_schema: {
+      type: "object",
+      properties: {
+        stage: {
+          type: "string",
+          enum: ["prospect", "reuniao", "proposta_enviada", "negociacao", "fechado", "perdido"],
         },
+        brand: { type: "string" },
+        min_value: { type: "number" },
+        limit: { type: "number", default: 20 },
       },
     },
   },
   {
-    type: "function",
-    function: {
-      name: "search_contracts",
-      description: "Busca contratos. Filtros por status, marca, valor.",
-      parameters: {
-        type: "object",
-        properties: {
-          status: { type: "string" },
-          brand: { type: "string" },
-          limit: { type: "number", default: 20 },
-        },
+    name: "search_contracts",
+    description: "Busca contratos. Filtros por status, marca, valor.",
+    input_schema: {
+      type: "object",
+      properties: {
+        status: { type: "string" },
+        brand: { type: "string" },
+        limit: { type: "number", default: 20 },
       },
     },
   },
   {
-    type: "function",
-    function: {
-      name: "get_overdue_installments",
-      description: "Lista parcelas atrasadas ou com vencimento próximo.",
-      parameters: {
-        type: "object",
-        properties: {
-          days_ahead: { type: "number", default: 7, description: "Dias à frente para incluir vencimentos próximos" },
-        },
+    name: "get_overdue_installments",
+    description: "Lista parcelas atrasadas ou com vencimento próximo.",
+    input_schema: {
+      type: "object",
+      properties: {
+        days_ahead: { type: "number", default: 7, description: "Dias à frente para incluir vencimentos próximos" },
       },
     },
   },
   {
-    type: "function",
-    function: {
-      name: "get_pending_deliveries",
-      description: "Lista entregas pendentes ou atrasadas.",
-      parameters: {
-        type: "object",
-        properties: {
-          status: { type: "string", enum: ["pendente", "em_producao", "atrasada"] },
-          limit: { type: "number", default: 20 },
-        },
+    name: "get_pending_deliveries",
+    description: "Lista entregas pendentes ou atrasadas.",
+    input_schema: {
+      type: "object",
+      properties: {
+        status: { type: "string", enum: ["pendente", "em_producao", "atrasada"] },
+        limit: { type: "number", default: 20 },
       },
     },
   },
   {
-    type: "function",
-    function: {
-      name: "get_dashboard_metrics",
-      description:
-        "Retorna métricas agregadas: total de patrocinadores, oportunidades por estágio, valor do pipeline, receita do mês, contratos ativos.",
-      parameters: { type: "object", properties: {} },
+    name: "get_dashboard_metrics",
+    description:
+      "Retorna métricas agregadas: total de patrocinadores, oportunidades por estágio, valor do pipeline, receita do mês, contratos ativos.",
+    input_schema: { type: "object", properties: {} },
+  },
+  {
+    name: "create_sponsor_interaction",
+    description:
+      "Registra uma interação manual com um patrocinador (reunião, ligação, e-mail, whatsapp, nota).",
+    input_schema: {
+      type: "object",
+      properties: {
+        sponsor_id: { type: "string" },
+        type: {
+          type: "string",
+          enum: ["reuniao", "ligacao", "email", "whatsapp", "nota"],
+        },
+        title: { type: "string" },
+        description: { type: "string" },
+        next_action: { type: "string" },
+        next_action_at: { type: "string", description: "ISO date opcional" },
+      },
+      required: ["sponsor_id", "type", "title"],
     },
   },
   {
-    type: "function",
-    function: {
-      name: "create_sponsor_interaction",
-      description:
-        "Registra uma interação manual com um patrocinador (reunião, ligação, e-mail, whatsapp, nota).",
-      parameters: {
-        type: "object",
-        properties: {
-          sponsor_id: { type: "string" },
-          type: {
-            type: "string",
-            enum: ["reuniao", "ligacao", "email", "whatsapp", "nota"],
-          },
-          title: { type: "string" },
-          description: { type: "string" },
-          next_action: { type: "string" },
-          next_action_at: { type: "string", description: "ISO date opcional" },
+    name: "create_opportunity_activity",
+    description: "Cria uma tarefa/atividade em uma oportunidade.",
+    input_schema: {
+      type: "object",
+      properties: {
+        opportunity_id: { type: "string" },
+        title: { type: "string" },
+        description: { type: "string" },
+        due_date: { type: "string", description: "ISO date" },
+        activity_type: {
+          type: "string",
+          enum: ["nota", "ligacao", "reuniao", "email", "tarefa"],
         },
-        required: ["sponsor_id", "type", "title"],
       },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "create_opportunity_activity",
-      description: "Cria uma tarefa/atividade em uma oportunidade.",
-      parameters: {
-        type: "object",
-        properties: {
-          opportunity_id: { type: "string" },
-          title: { type: "string" },
-          description: { type: "string" },
-          due_date: { type: "string", description: "ISO date" },
-          activity_type: {
-            type: "string",
-            enum: ["nota", "ligacao", "reuniao", "email", "tarefa"],
-          },
-        },
-        required: ["opportunity_id", "title"],
-      },
+      required: ["opportunity_id", "title"],
     },
   },
 ];
@@ -367,30 +343,46 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: true })
       .limit(50);
 
-    const messages: any[] = [
-      { role: "system", content: SYSTEM_PROMPT },
-      ...(history || []).map((m: any) => {
-        if (m.role === "tool") {
-          return { role: "tool", content: m.content, tool_call_id: m.tool_call_id };
+    // Reconstrói o histórico no formato de mensagens da Anthropic.
+    // - Mensagens "tool" (resultado de execução) viram blocos tool_result agrupados
+    //   em UMA única mensagem role:"user" (a Anthropic exige/recomenda todos os
+    //   tool_results de um mesmo turno numa única mensagem).
+    // - Mensagens "assistant" com tool_calls reenviam o array de blocos original
+    //   (tool_calls guarda o `content` bruto retornado pela Anthropic, incluindo
+    //   os blocos tool_use necessários para casar com os tool_result seguintes).
+    const messages: any[] = [];
+    for (const m of history || []) {
+      if (m.role === "tool") {
+        const block = { type: "tool_result", tool_use_id: m.tool_call_id, content: m.content };
+        const last = messages[messages.length - 1];
+        if (last && last.role === "user" && Array.isArray(last.content) && last.content[0]?.type === "tool_result") {
+          last.content.push(block);
+        } else {
+          messages.push({ role: "user", content: [block] });
         }
-        if (m.role === "assistant" && m.tool_calls) {
-          return { role: "assistant", content: m.content || "", tool_calls: m.tool_calls };
-        }
-        return { role: m.role, content: m.content };
-      }),
-    ];
+        continue;
+      }
+      if (m.role === "assistant" && m.tool_calls) {
+        messages.push({ role: "assistant", content: m.tool_calls });
+        continue;
+      }
+      messages.push({ role: m.role, content: m.content });
+    }
 
     // Loop de tool calling (máx 5 iterações)
     let finalContent = "";
     for (let iter = 0; iter < 5; iter++) {
-      const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "claude-sonnet-5",
+          max_tokens: 4096,
+          system: SYSTEM_PROMPT,
           messages,
           tools: TOOLS,
         }),
@@ -415,12 +407,15 @@ Deno.serve(async (req) => {
       }
 
       const data = await aiResp.json();
-      const choice = data.choices?.[0]?.message;
-      if (!choice) throw new Error("Resposta IA vazia");
+      const content = data.content as any[] | undefined;
+      if (!content) throw new Error("Resposta IA vazia");
+
+      const toolUseBlocks = content.filter((b) => b.type === "tool_use");
+      const textBlock = content.find((b) => b.type === "text");
 
       // Sem tool calls → resposta final
-      if (!choice.tool_calls || choice.tool_calls.length === 0) {
-        finalContent = choice.content || "";
+      if (data.stop_reason !== "tool_use" || toolUseBlocks.length === 0) {
+        finalContent = textBlock?.text || "";
         await supabase.from("ai_messages").insert({
           conversation_id: convId,
           role: "assistant",
@@ -429,43 +424,32 @@ Deno.serve(async (req) => {
         break;
       }
 
-      // Salva mensagem assistant com tool_calls
+      // Salva mensagem assistant com os blocos de tool_use (formato Anthropic)
       await supabase.from("ai_messages").insert({
         conversation_id: convId,
         role: "assistant",
-        content: choice.content || "",
-        tool_calls: choice.tool_calls,
+        content: textBlock?.text || "",
+        tool_calls: content,
       });
-      messages.push({
-        role: "assistant",
-        content: choice.content || "",
-        tool_calls: choice.tool_calls,
-      });
+      messages.push({ role: "assistant", content });
 
-      // Executa cada tool e adiciona resultado
-      for (const tc of choice.tool_calls) {
-        const toolName = tc.function?.name;
-        let toolArgs: any = {};
-        try {
-          toolArgs = JSON.parse(tc.function?.arguments || "{}");
-        } catch {
-          toolArgs = {};
-        }
+      // Executa cada tool e agrupa todos os tool_results num único turno "user"
+      const toolResultBlocks: any[] = [];
+      for (const tb of toolUseBlocks) {
+        const toolName = tb.name;
+        const toolArgs = (tb.input as Record<string, unknown>) || {};
         const result = await executeTool(supabase, userId, toolName, toolArgs);
         const resultStr = JSON.stringify(result);
         await supabase.from("ai_messages").insert({
           conversation_id: convId,
           role: "tool",
           content: resultStr,
-          tool_call_id: tc.id,
+          tool_call_id: tb.id,
           tool_name: toolName,
         });
-        messages.push({
-          role: "tool",
-          tool_call_id: tc.id,
-          content: resultStr,
-        });
+        toolResultBlocks.push({ type: "tool_result", tool_use_id: tb.id, content: resultStr });
       }
+      messages.push({ role: "user", content: toolResultBlocks });
     }
 
     // Atualiza last_message_at

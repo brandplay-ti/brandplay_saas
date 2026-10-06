@@ -62,6 +62,14 @@ const bytesToDataUrl = (bytes: Uint8Array, mime: string) => {
   return `data:${mime};base64,${btoa(binary)}`;
 };
 
+// Splits a "data:<mime>;base64,<data>" URL into its media type and base64 payload,
+// as required by Anthropic's image content block (source.type === "base64").
+const dataUrlToBase64Source = (dataUrl: string) => {
+  const [meta, b64] = dataUrl.split(",");
+  const mediaType = meta.match(/data:(.*?);base64/)?.[1] ?? "image/jpeg";
+  return { media_type: mediaType, data: b64 ?? "" };
+};
+
 const fetchStorageDataUrl = async (admin: ReturnType<typeof createClient>, bucket: string, path: string) => {
   const { data: signed } = await admin.storage.from(bucket).createSignedUrl(path, 600);
   if (!signed?.signedUrl) return null;
@@ -108,7 +116,7 @@ Deno.serve(async (req) => {
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
 
     const authHeader = req.headers.get("Authorization") ?? "";
     const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
@@ -238,78 +246,74 @@ Deno.serve(async (req) => {
       { type: "text", text: `${media.media_type === "video" ? `Analise este frame-chave do vídeo no timestamp ${Number(timestamp).toFixed(1)}s` : "Analise esta imagem"} e detecte as marcas visíveis.\n\nMarcas esperadas do evento para contexto e normalização:\n${expectedContext}\n\nLogos de referência disponíveis:\n${logoReferenceContext}\n\nAprendizado por revisões humanas aprovadas/corrigidas:\n${positiveLearning}\n\nPadrões rejeitados como falsos positivos:\n${negativeLearning}\n\nRegras de precisão:\n1. Compare a imagem/frame com os logos de referência, mas reporte apenas quando houver evidência visual na mídia analisada.\n2. Se uma marca visível corresponder a uma marca esperada, alias ou logo de referência, retorne o nome oficial exatamente como listado.\n3. Use revisões corrigidas para normalizar nomes e tipos de exposição semelhantes.\n4. Evite repetir padrões rejeitados como falsos positivos, principalmente quando a evidência visual for parecida ou fraca.\n5. Para marcas inesperadas, só reporte quando houver logotipo/texto claro e alta confiança.\n6. Não reporte marcas por cor, setor, uniforme genérico, suposição de patrocínio ou contexto do evento.\n7. Evite duplicar variações da mesma marca no mesmo frame.` },
       ...logoReferences.flatMap((logo) => [
         { type: "text", text: `Logo de referência: ${logo.name}` },
-        { type: "image_url", image_url: { url: logo.dataUrl } },
+        { type: "image", source: { type: "base64", ...dataUrlToBase64Source(logo.dataUrl) } },
       ]),
       { type: "text", text: "Imagem/frame a analisar:" },
-      { type: "image_url", image_url: { url: dataUrl } },
+      { type: "image", source: { type: "base64", ...dataUrlToBase64Source(dataUrl) } },
     ];
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "claude-sonnet-5",
+        max_tokens: 4096,
+        system:
+          "Você é um analista conservador de exposição de marcas em mídias esportivas. Identifique apenas marcas/logotipos/textos comerciais realmente visíveis. Use marcas esperadas e aliases somente para desambiguação visual, nunca para inventar presença. Para cada marca, estime: tipo de exposição (uniforme, placa, backdrop, led, transmissao ou outro), bounding box relativa (x,y,width,height de 0 a 1), porcentagem aproximada da tela ocupada (0-100), e confiança (0-1). Se a evidência visual for fraca, omita a detecção. Se não houver marcas visíveis, retorne array vazio.",
         messages: [
           {
-            role: "system",
-            content:
-              "Você é um analista conservador de exposição de marcas em mídias esportivas. Identifique apenas marcas/logotipos/textos comerciais realmente visíveis. Use marcas esperadas e aliases somente para desambiguação visual, nunca para inventar presença. Para cada marca, estime: tipo de exposição (uniforme, placa, backdrop, led, transmissao ou outro), bounding box relativa (x,y,width,height de 0 a 1), porcentagem aproximada da tela ocupada (0-100), e confiança (0-1). Se a evidência visual for fraca, omita a detecção. Se não houver marcas visíveis, retorne array vazio.",
-          },
-          {
             role: "user",
-content: promptContent,
+            content: promptContent,
           },
         ],
         tools: [
           {
-            type: "function",
-            function: {
-              name: "report_brand_detections",
-              description: "Reporta as marcas detectadas na imagem.",
-              parameters: {
-                type: "object",
-                properties: {
-                  detections: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        brand_name: { type: "string" },
-                        exposure_type: {
-                          type: "string",
-                          enum: ["uniforme", "placa", "backdrop", "led", "transmissao", "outro"],
-                        },
-                        screen_percentage: { type: "number" },
-                        position_x: { type: "number" },
-                        position_y: { type: "number" },
-                        width: { type: "number" },
-                        height: { type: "number" },
-                        confidence: { type: "number" },
+            name: "report_brand_detections",
+            description: "Reporta as marcas detectadas na imagem.",
+            input_schema: {
+              type: "object",
+              properties: {
+                detections: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      brand_name: { type: "string" },
+                      exposure_type: {
+                        type: "string",
+                        enum: ["uniforme", "placa", "backdrop", "led", "transmissao", "outro"],
                       },
-                      required: [
-                        "brand_name",
-                        "exposure_type",
-                        "screen_percentage",
-                        "position_x",
-                        "position_y",
-                        "width",
-                        "height",
-                        "confidence",
-                      ],
-                      additionalProperties: false,
+                      screen_percentage: { type: "number" },
+                      position_x: { type: "number" },
+                      position_y: { type: "number" },
+                      width: { type: "number" },
+                      height: { type: "number" },
+                      confidence: { type: "number" },
                     },
+                    required: [
+                      "brand_name",
+                      "exposure_type",
+                      "screen_percentage",
+                      "position_x",
+                      "position_y",
+                      "width",
+                      "height",
+                      "confidence",
+                    ],
+                    additionalProperties: false,
                   },
                 },
-                required: ["detections"],
-                additionalProperties: false,
               },
+              required: ["detections"],
+              additionalProperties: false,
             },
           },
         ],
-        tool_choice: { type: "function", function: { name: "report_brand_detections" } },
+        tool_choice: { type: "tool", name: "report_brand_detections" },
       }),
     });
 
@@ -321,8 +325,8 @@ content: promptContent,
     }
 
     const aiJson = await aiResp.json();
-    const toolCall = aiJson?.choices?.[0]?.message?.tool_calls?.[0];
-    const args = toolCall ? JSON.parse(toolCall.function.arguments) : { detections: [] };
+    const toolUse = aiJson?.content?.find((b: any) => b.type === "tool_use");
+    const args = toolUse ? toolUse.input : { detections: [] };
     const detections: Detection[] = args.detections ?? [];
 
     await admin.from("brandtrack_media").update({ progress: 80 }).eq("id", media_id);

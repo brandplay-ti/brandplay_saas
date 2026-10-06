@@ -411,7 +411,7 @@ Deno.serve(async (req) => {
             <h2 style="color:#0f172a">Você tem ${emailQueue.length} novidade(s) no Scout</h2>
             <ul style="line-height:1.7;padding-left:18px">${items}</ul>
             <p style="margin-top:24px">
-              <a href="${Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovable.app") || "#"}/dashboard"
+              <a href="${Deno.env.get("APP_URL") || "#"}/dashboard"
                  style="background:hsl(217 91% 60%);color:white;padding:10px 18px;border-radius:8px;text-decoration:none;display:inline-block">
                  Abrir Scout
               </a>

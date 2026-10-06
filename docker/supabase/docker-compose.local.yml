@@ -1,0 +1,109 @@
+# Override de DESENVOLVIMENTO. Aplicado por cima de `docker-compose.yml`.
+#
+# ─── A regra deste arquivo ──────────────────────────────────────────────
+#
+# **Ele nunca toca imagem, versão ou variável que mude o comportamento do
+# Supabase.** Só acrescenta o que não existe num ambiente hospedado:
+#
+#   - portas publicadas no host, para o navegador e o psql alcançarem;
+#   - Mailpit, para o e-mail cair numa caixa local em vez de sair de verdade;
+#   - o mount de `supabase/` no `db`, de que `supabase:migrate` e
+#     `supabase:seed` dependem;
+#   - o mount de `supabase/functions` no `functions` e no `studio`. Nos
+#     ambientes hospedados as funções vêm assadas na imagem — ver
+#     `functions.Dockerfile`. Aqui o bind é o que permite editar uma função e
+#     ver o efeito sem rebuildar.
+#
+# Se alguma vez for preciso trocar uma versão de imagem aqui, a unificação
+# acabou e o problema que ela resolve voltou. Trocar na base, para os dois.
+#
+# ─── Por que não `docker-compose.override.yml` ──────────────────────────
+#
+# Aquele nome é carregado automaticamente por qualquer `docker compose up`
+# executado neste diretório — incluindo o do Dockploy, que consome a base daqui.
+# Configuração de desenvolvimento vazaria para produção sem ninguém pedir.
+#
+# Com este nome, só carrega quem passa `-f` explicitamente. É o que os scripts
+# `supabase:*` do `package.json` fazem.
+#
+# ─── Uso ────────────────────────────────────────────────────────────────
+#
+#   npm run supabase:up      # já inclui os dois `-f`
+#
+# Direto, se precisar:
+#
+#   docker compose --env-file docker/supabase/.env \
+#     -f docker/supabase/docker-compose.yml \
+#     -f docker/supabase/docker-compose.local.yml up -d
+
+services:
+  kong:
+    ports:
+      - ${KONG_HTTP_PORT_HOST:-8000}:8000
+
+  studio:
+    # O Studio também responde pelo Kong, atrás do basic auth do dashboard.
+    # Publicar direto evita digitar credencial a cada subida.
+    ports:
+      - ${STUDIO_PORT_HOST:-54323}:3000
+    volumes:
+      # As Edge Functions são as do repositório, e não uma cópia. O Studio
+      # escreve nesta pasta: o que for editado pela interface aparece como
+      # `git diff` no clone, pronto para revisar e commitar. Sem `:ro`, por
+      # isso mesmo — o upstream marca este mount como somente leitura.
+      #
+      # `z` minúsculo, e nunca `Z`: o mesmo caminho é montado também pelo
+      # serviço `functions`, logo abaixo. `Z` aplica um rótulo SELinux privado
+      # e exclusivo — com dois containers sobre o mesmo diretório, cada um
+      # rotula contra o outro e quem rotula por último tira o acesso do
+      # primeiro. O sintoma não menciona SELinux em momento nenhum: os
+      # arquivos existem, o caminho está certo, e toda função responde
+      # `could not find an appropriate entrypoint`.
+      - ../../supabase/functions:/app/edge-functions:z
+
+  functions:
+    volumes:
+      # Sobrepõe o diretório que veio na imagem. É por isso que editar uma
+      # função aqui tem efeito sem rebuild — e é o mount que NÃO existe em
+      # homologação e produção, onde o clone é refeito a cada deploy.
+      #
+      # `z` minúsculo pelo mesmo motivo do `studio` acima.
+      - ../../supabase/functions:/home/deno/functions:z
+
+  db:
+    ports:
+      # 54322 e não 5432: a porta padrão costuma já estar ocupada por um
+      # Postgres da máquina, e o erro que isso produz aparece no serviço errado.
+      - ${POSTGRES_PORT_HOST:-54322}:${POSTGRES_PORT}
+    volumes:
+      # `supabase:migrate` e `supabase:seed` rodam dentro deste container e leem
+      # `/supabase/tools/migrate.sh` e `/supabase/seed/*.sql`. Nos ambientes
+      # hospedados o runbook usa um container efêmero de psql, e este mount não
+      # existe.
+      - ../../supabase:/supabase:ro
+
+  redis:
+    ports:
+      - ${REDIS_PORT_HOST:-6379}:6379
+
+  # Caixa de entrada local: confirmação de cadastro e recuperação de senha caem
+  # aqui, e não na internet. O `.env` local aponta `SMTP_HOST` para este serviço
+  # — a variável é a mesma que em produção aponta para o provedor real.
+  mail:
+    image: axllent/mailpit:v1.21
+    restart: unless-stopped
+    ports:
+      - ${MAIL_UI_PORT_HOST:-8025}:8025
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    healthcheck:
+      test: ['CMD', 'sh', '-c', 'nc -z localhost 1025']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  auth:
+    depends_on:
+      mail:
+        condition: service_started

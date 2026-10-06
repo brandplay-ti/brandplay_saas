@@ -84,13 +84,19 @@ Deno.serve(async (req) => {
 
     const prompt = `Você é um especialista em marketing esportivo. Gere um relatório executivo de sell-out pós-temporada/evento (300-500 palavras, em português brasileiro, formato markdown com seções: Resumo Executivo, Performance Comercial, Performance Operacional, Insights e Recomendações). Use os dados:\n\n${JSON.stringify(ctx, null, 2)}`;
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const AI_MODEL = "claude-sonnet-5";
+    const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`, "Content-Type": "application/json" },
+      headers: {
+        "x-api-key": Deno.env.get("ANTHROPIC_API_KEY") ?? "",
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: AI_MODEL,
+        max_tokens: 4096,
+        system: "Responda em markdown limpo, sem ```markdown wrappers.",
         messages: [
-          { role: "system", content: "Responda em markdown limpo, sem ```markdown wrappers." },
           { role: "user", content: prompt },
         ],
       }),
@@ -101,7 +107,7 @@ Deno.serve(async (req) => {
     if (!aiResp.ok) throw new Error(`AI error: ${await aiResp.text()}`);
 
     const data = await aiResp.json();
-    const content = data.choices?.[0]?.message?.content ?? "";
+    const content = data.content?.find((b: any) => b.type === "text")?.text ?? "";
     const title = `Sell-out Report — ${property.name}${eventRes?.data?.title ? ` · ${eventRes.data.title}` : ""}`;
 
     const { data: report } = await supabase.from("sellout_reports").insert({
@@ -110,7 +116,7 @@ Deno.serve(async (req) => {
       title,
       content,
       metrics,
-      model: "google/gemini-2.5-flash",
+      model: AI_MODEL,
       owner_id: user.id,
     }).select().single();
 

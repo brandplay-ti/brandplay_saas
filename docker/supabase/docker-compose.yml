@@ -1,0 +1,548 @@
+# Stack do Supabase — a MESMA para desenvolvimento local, homologação e produção.
+#
+# ─── Por que um arquivo só ──────────────────────────────────────────────
+#
+# Antes havia dois: este, para desenvolvimento, e o que o Dockploy instanciava
+# nos ambientes hospedados. Eles divergiram do jeito que esse arranjo sempre
+# diverge — Postgres 15 contra 17, PostgREST v16 contra v14, Kong 2.8 contra
+# 3.9, Storage v1.70 contra v1.60. Desenvolver contra uma base e publicar em
+# outra é fabricar incompatibilidade.
+#
+# Este arquivo é a fonte única. É o que o Dockploy consome, e é o que sobe na
+# máquina de quem desenvolve.
+#
+# ─── O override local ───────────────────────────────────────────────────
+#
+# O que não pode ser igual nos dois — portas publicadas, Mailpit no lugar do
+# SMTP real, e o mount de `supabase/` que os scripts de migration usam — vive em
+# `docker-compose.local.yml`, aplicado com um `-f` explícito pelos scripts do
+# `package.json`.
+#
+# O nome daquele arquivo é deliberado: **não** é `docker-compose.override.yml`,
+# que qualquer `docker compose up` neste diretório carregaria sozinho —
+# inclusive o do Dockploy — e vazaria configuração de desenvolvimento para
+# produção.
+#
+# ─── Ao mexer aqui ──────────────────────────────────────────────────────
+#
+# Os arquivos montados de `../files/volumes/` são fixados num commit do upstream
+# que corresponde a estas imagens. Trocar versão de imagem sem revisar aqueles
+# arquivos produz falhas difíceis de ler. Ver `docker/files/volumes/README.md`.
+
+# Cada ambiente precisa do próprio nome de projeto: dois stacks chamados
+# `supabase` no mesmo host colidem em rede e volumes.
+name: ${COMPOSE_PROJECT_NAME:-brandplay-supabase}
+
+services:
+  studio:
+    image: supabase/studio:2026.08.03-sha-022b374
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "fetch(''http://localhost:3000/api/platform/profile'').then((r) => {if (r.status !== 200) throw new Error(r.status)})"',
+        ]
+      timeout: 10s
+      interval: 5s
+      retries: 5
+      start_period: 30s
+    environment:
+      HOSTNAME: '0.0.0.0'
+
+      STUDIO_PG_META_URL: http://meta:8080
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+      # See: https://supabase.com/docs/guides/self-hosting/remove-superuser-access
+      POSTGRES_USER_READ_WRITE: postgres
+
+      PG_META_CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
+      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS}
+      PGRST_DB_MAX_ROWS: ${PGRST_DB_MAX_ROWS:-1000}
+      PGRST_DB_EXTRA_SEARCH_PATH: ${PGRST_DB_EXTRA_SEARCH_PATH:-public}
+
+      DEFAULT_ORGANIZATION_NAME: ${STUDIO_DEFAULT_ORGANIZATION}
+      DEFAULT_PROJECT_NAME: ${STUDIO_DEFAULT_PROJECT}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:-}
+
+      # Analytics (Logflare) was removed from the upstream self-hosted stack
+      ENABLED_FEATURES_LOGS_ALL: 'false'
+
+      SNIPPETS_MANAGEMENT_FOLDER: /app/snippets
+      EDGE_FUNCTIONS_MANAGEMENT_FOLDER: /app/edge-functions
+    volumes:
+      - studio-snippets:/app/snippets
+      # O editor de Edge Functions do Studio so existe em desenvolvimento, no
+      # `docker-compose.local.yml`. Nos ambientes hospedados o runtime serve as
+      # funcoes da imagem: um editor que salvasse no clone pareceria funcionar
+      # e nao mudaria nada do que esta no ar — armadilha pior que a ausencia da
+      # tela. La o caminho e commit, deploy, imagem nova.
+
+  kong:
+    image: kong/kong:3.9.3
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'kong', 'health']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      studio:
+        condition: service_healthy
+    expose:
+      - 8000
+      - 8443
+    volumes:
+      - ../files/volumes/api/kong.yml:/home/kong/temp.yml:ro,z
+      - ../files/volumes/api/kong-entrypoint.sh:/home/kong/kong-entrypoint.sh:ro,z
+    environment:
+      KONG_DATABASE: 'off'
+      KONG_DECLARATIVE_CONFIG: /usr/local/kong/kong.yml
+      KONG_ROUTER_FLAVOR: expressions
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_DNS_NOT_FOUND_TTL: 1
+      KONG_DNS_VALID_TTL: 5
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth,request-termination,ip-restriction,post-function
+      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
+      KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
+      KONG_PROXY_ACCESS_LOG: /dev/stdout combined
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:-}
+      ANON_KEY_ASYMMETRIC: ${ANON_KEY_ASYMMETRIC:-}
+      SERVICE_ROLE_KEY_ASYMMETRIC: ${SERVICE_ROLE_KEY_ASYMMETRIC:-}
+      DASHBOARD_USERNAME: ${DASHBOARD_USERNAME}
+      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
+    entrypoint: ['/bin/bash', '/home/kong/kong-entrypoint.sh']
+
+  auth:
+    image: supabase/gotrue:v2.189.0
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:9999/health']
+      timeout: 5s
+      interval: 5s
+      retries: 3
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      GOTRUE_MAILER_EXTERNAL_HOSTS: kong,${SUPABASE_HOST}
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${API_EXTERNAL_URL}
+
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+
+      # Decide para onde vao os links dos e-mails de cadastro e recuperacao. Um
+      # SITE_URL esquecido no padrao manda todo mundo para localhost, e **nada
+      # falha** — a conta e criada, o e-mail sai, so o usuario e que nao chega a
+      # lugar nenhum. Destino fora da URI_ALLOW_LIST e descartado em silencio.
+      GOTRUE_SITE_URL: ${SITE_URL}
+      GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS}
+      GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP}
+
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: ${JWT_EXPIRY}
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_JWT_KEYS: ${JWT_KEYS:-[]}
+      GOTRUE_JWT_ISSUER: ${API_EXTERNAL_URL}
+
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: ${ENABLE_EMAIL_SIGNUP}
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: ${ENABLE_ANONYMOUS_USERS}
+      GOTRUE_MAILER_AUTOCONFIRM: ${ENABLE_EMAIL_AUTOCONFIRM}
+
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL}
+      GOTRUE_SMTP_HOST: ${SMTP_HOST}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT}
+      GOTRUE_SMTP_USER: ${SMTP_USER}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS}
+      GOTRUE_SMTP_SENDER_NAME: ${SMTP_SENDER_NAME}
+      GOTRUE_MAILER_URLPATHS_INVITE: ${MAILER_URLPATHS_INVITE}
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: ${MAILER_URLPATHS_CONFIRMATION}
+      GOTRUE_MAILER_URLPATHS_RECOVERY: ${MAILER_URLPATHS_RECOVERY}
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: ${MAILER_URLPATHS_EMAIL_CHANGE}
+
+      GOTRUE_EXTERNAL_PHONE_ENABLED: ${ENABLE_PHONE_SIGNUP}
+      GOTRUE_SMS_AUTOCONFIRM: ${ENABLE_PHONE_AUTOCONFIRM}
+
+  rest:
+    image: postgrest/postgrest:v14.12
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'postgrest', '--ready']
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS}
+      PGRST_DB_MAX_ROWS: ${PGRST_DB_MAX_ROWS:-1000}
+      PGRST_DB_EXTRA_SEARCH_PATH: ${PGRST_DB_EXTRA_SEARCH_PATH:-public}
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_ADMIN_SERVER_PORT: 3001
+      PGRST_ADMIN_SERVER_HOST: localhost
+      # Accepts a plain-text symmetric secret, a single JWK, or a JWKS.
+      PGRST_JWT_SECRET: ${JWT_JWKS:-${JWT_SECRET}}
+      PGRST_DB_USE_LEGACY_GUCS: 'false'
+      PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
+      PGRST_APP_SETTINGS_JWT_EXP: ${JWT_EXPIRY}
+    command: ['postgrest']
+
+  realtime:
+    image: supabase/realtime:v2.102.3
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'curl -sSfL --head -o /dev/null -H "Authorization: Bearer ${ANON_KEY}" http://localhost:4000/api/tenants/realtime-dev/health',
+        ]
+      timeout: 5s
+      interval: 30s
+      retries: 3
+      start_period: 10s
+    environment:
+      PORT: 4000
+      DB_HOST: ${POSTGRES_HOST}
+      DB_PORT: ${POSTGRES_PORT}
+      DB_USER: supabase_admin
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB}
+      DB_AFTER_CONNECT_QUERY: 'SET search_path TO _realtime'
+      DB_ENC_KEY: ${REALTIME_DB_ENC_KEY:-supabaserealtime}
+      # Legacy symmetric HS256 key
+      API_JWT_SECRET: ${JWT_SECRET}
+      # JWKS for token verification (EC public + legacy symmetric)
+      API_JWT_JWKS: ${JWT_JWKS:-{"keys":[]}}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      METRICS_JWT_SECRET: ${JWT_SECRET}
+      ERL_AFLAGS: -proto_dist inet_tcp
+      DNS_NODES: "''"
+      RLIMIT_NOFILE: '10000'
+      APP_NAME: realtime
+      SEED_SELF_HOST: 'true'
+      RUN_JANITOR: 'true'
+      DISABLE_HEALTHCHECK_LOGGING: 'true'
+
+  storage:
+    image: supabase/storage-api:v1.60.4
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      rest:
+        condition: service_started
+      imgproxy:
+        condition: service_started
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://storage:5000/status']
+      timeout: 5s
+      interval: 5s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - storage-data:/var/lib/storage
+    environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      POSTGREST_URL: http://rest:3000
+      # Legacy symmetric HS256 key
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+      # JWKS for token verification (EC public + legacy symmetric)
+      JWT_JWKS: ${JWT_JWKS:-{"keys":[]}}
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      STORAGE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      REQUEST_ALLOW_X_FORWARDED_PATH: 'true'
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      GLOBAL_S3_BUCKET: ${GLOBAL_S3_BUCKET}
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: ${STORAGE_TENANT_ID}
+      REGION: ${REGION}
+      ENABLE_IMAGE_TRANSFORMATION: 'true'
+      IMGPROXY_URL: http://imgproxy:5001
+      S3_PROTOCOL_ACCESS_KEY_ID: ${S3_PROTOCOL_ACCESS_KEY_ID}
+      S3_PROTOCOL_ACCESS_KEY_SECRET: ${S3_PROTOCOL_ACCESS_KEY_SECRET}
+
+  imgproxy:
+    image: darthsim/imgproxy:v3.30.1
+    restart: unless-stopped
+    volumes:
+      - storage-data:/var/lib/storage
+    healthcheck:
+      test: ['CMD', 'imgproxy', 'health']
+      timeout: 5s
+      interval: 5s
+      retries: 3
+    environment:
+      IMGPROXY_BIND: ':5001'
+      IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
+      IMGPROXY_USE_ETAG: 'true'
+      IMGPROXY_AUTO_WEBP: ${IMGPROXY_AUTO_WEBP}
+      IMGPROXY_MAX_SRC_RESOLUTION: 16.8
+
+  meta:
+    image: supabase/postgres-meta:v0.96.6
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: ${POSTGRES_HOST}
+      PG_META_DB_PORT: ${POSTGRES_PORT}
+      PG_META_DB_NAME: ${POSTGRES_DB}
+      # See: https://supabase.com/docs/guides/self-hosting/remove-superuser-access
+      PG_META_DB_USER: postgres
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
+
+  # Cache de configuracao (ADR-0011). O `_shared/cache.ts` degrada sozinho se
+  # `REDIS_URL` faltar — o que significa que a ausencia deste servico nao
+  # quebraria nada, so faria o cache desaparecer em silencio. Por isso ele fica
+  # na base, e nao no override: producao precisa dele tanto quanto o local.
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--save', '60', '1', '--loglevel', 'warning']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - redis-data:/data
+
+  functions:
+    # As funcoes vem da IMAGEM, e nao de um bind para o clone do repositorio.
+    # O porque esta inteiro em `functions.Dockerfile`: em resumo, o clone e
+    # refeito a cada deploy, `up -d` nao recria um servico cuja definicao nao
+    # mudou, e o container ficava preso ao diretorio antigo servindo 500 em
+    # toda funcao com o `main` de pe.
+    #
+    # Em desenvolvimento o bind volta, pelo `docker-compose.local.yml`, para
+    # editar funcao sem rebuildar.
+    build:
+      context: ../../supabase/functions
+      dockerfile: ../../docker/supabase/functions.Dockerfile
+    # Sem `image:`, de proposito. O Compose nomeia a imagem
+    # `<projeto>-functions`, e cada ambiente do Dockploy e um projeto proprio —
+    # entao homologacao e producao, que dividem o mesmo daemon nesta VPS, nao
+    # disputam a mesma tag. Com um nome fixo, um build de homologacao
+    # reescreveria a tag de producao, e bastaria um `docker run` ou um
+    # `up -d` sem build para producao subir com as funcoes de homologacao.
+    #
+    # `build` e nao `missing` (o padrao): sem isto, um `up -d` que encontrasse
+    # a imagem local reaproveitaria a do deploy anterior, e as funcoes ficariam
+    # para tras em silencio — que e a mesma classe de falha que esta mudanca
+    # existe para eliminar. Com cache de camada, rebuildar custa segundos.
+    pull_policy: build
+    restart: unless-stopped
+    # Duas afirmacoes, porque nenhuma das duas sozinha basta.
+    #
+    # 1. `curl /saude` exercita uma funcao de verdade, e nao o `main`. O `main`
+    #    responde mesmo com o diretorio das funcoes inacessivel — e compilado
+    #    para /var/tmp na subida —, e foi assim que homologacao passou um
+    #    deploy inteiro com toda funcao em 500 e o container "saudavel".
+    #
+    #    O alcance dessa linha e a SUBIDA. O runtime rele o diretorio a cada
+    #    worker novo, mas mantem o worker vivo por 5 minutos de ociosidade
+    #    (`workerTimeoutMs`, em `functions/main/index.ts`), e uma checagem a
+    #    cada 30s nunca deixa o de `saude` esfriar. Como todo deploy recria
+    #    este container, e a subida que o deploy precisa provar.
+    #
+    # 2. `test -s .../main/index.ts` cobre o resto do tempo. O shell do
+    #    healthcheck le o disco (o sandbox que impede isso vale so para o
+    #    worker), entao um diretorio que suma com o container no ar vira
+    #    unhealthy em ~90s — antes de o proximo worker frio tentar ler o disco
+    #    e devolver 500 na cara do cliente.
+    #
+    # Verificado nas duas pontas: apagar o diretorio com o container no ar
+    # derruba o healthcheck em tres checagens, e uma funcao ociosa volta a
+    # falhar com a mensagem exata do incidente.
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'test -s /home/deno/functions/main/index.ts && curl -fsS http://localhost:9000/saude',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    volumes:
+      # As funcoes importam de deno.land e esm.sh em runtime, sem import_map.
+      # Sem este cache, a primeira chamada de cada funcao paga o download e
+      # costuma estourar timeout.
+      - deno-cache:/root/.cache/deno
+    depends_on:
+      kong:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Legacy symmetric HS256 key
+      JWT_SECRET: ${JWT_SECRET}
+      # JWKS for token verification (EC public + legacy symmetric)
+      SUPABASE_JWKS: ${JWT_JWKS:-{"keys":[]}}
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      SUPABASE_PUBLISHABLE_KEYS: '{"default":"${SUPABASE_PUBLISHABLE_KEY:-}"}'
+      SUPABASE_SECRET_KEYS: '{"default":"${SUPABASE_SECRET_KEY:-}"}'
+      SUPABASE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      VERIFY_JWT: '${FUNCTIONS_VERIFY_JWT}'
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      # Segredos das integracoes. Nunca no bundle do portal — so aqui.
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_DOMAIN: ${RESEND_FROM_DOMAIN:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      # IA (ADR-0003): substitui o gateway proprietario do Lovable Cloud.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Base dos links que saem por e-mail. Vem do ambiente, e nao do corpo da
+      # requisicao: quem chama nao escolhe para onde o link aponta.
+      APP_URL: ${APP_URL:-${SITE_URL}}
+    command: ['start', '--main-service', '/home/deno/functions/main']
+
+  db:
+    # Major upgrade from Postgres 15 requires a dump/restore for existing installs.
+    # See: https://github.com/orgs/supabase/discussions/46080
+    image: supabase/postgres:17.6.1.136
+    restart: unless-stopped
+    volumes:
+      - ../files/volumes/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:Z
+      - ../files/volumes/db/webhooks.sql:/docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql:Z
+      - ../files/volumes/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:Z
+      - ../files/volumes/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:Z
+      # Volume NOMEADO, e nao bind mount para dentro do repositorio.
+      #
+      # O upstream monta `./volumes/db/data`, o que so funciona quando o compose
+      # vive num diretorio estavel. No Dockploy ele vive num clone do
+      # repositorio, refeito a cada deploy — e o banco ia junto. Aconteceu: um
+      # redeploy apagou schema e seed de homologacao.
+      #
+      # A regra: configuracao e codigo vem do repositorio por bind mount, porque
+      # DEVEM ser atualizados no deploy; dado vive em volume nomeado, porque nao
+      # deve.
+      - db-data:/var/lib/postgresql/data
+      - ../files/volumes/db/_supabase.sql:/docker-entrypoint-initdb.d/migrations/97-_supabase.sql:Z
+      - ../files/volumes/db/logs.sql:/docker-entrypoint-initdb.d/migrations/99-logs.sql:Z
+      - ../files/volumes/db/pooler.sql:/docker-entrypoint-initdb.d/migrations/99-pooler.sql:Z
+      - db-config:/etc/postgresql-custom
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'postgres', '-h', 'localhost']
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 60s
+    environment:
+      POSTGRES_HOST: /var/run/postgresql
+      PGPORT: ${POSTGRES_PORT}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # `POSTGRES_USER` NAO entra aqui, de proposito.
+      #
+      # A imagem `supabase/postgres` ja o define como `supabase_admin`, e o
+      # proprio `migrate.sh` dela conecta com esse papel. Declara-lo no compose
+      # sobrescreve o padrao da imagem: o initdb cria outro superusuario, o
+      # `migrate.sh` falha com `role "supabase_admin" does not exist`, e o
+      # volume fica inicializado pela metade — sem os papeis que `authenticator`
+      # e os servicos precisam. O sintoma chega como
+      # `password authentication failed` no PostgREST, longe da causa.
+      #
+      # Os scripts de init usam `$POSTGRES_USER` para definir dono de schema, e
+      # e o valor da imagem que eles enxergam.
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXP: ${JWT_EXPIRY}
+    command:
+      [
+        'postgres',
+        '-c',
+        'config_file=/etc/postgresql/postgresql.conf',
+        '-c',
+        'log_min_messages=fatal',
+      ]
+
+  supavisor:
+    image: supabase/supavisor:2.9.5
+    restart: unless-stopped
+    expose:
+      - '5432'
+      - '6543'
+    volumes:
+      - ../files/volumes/pooler/pooler.exs:/etc/pooler/pooler.exs:ro,z
+    healthcheck:
+      test:
+        ['CMD', 'curl', '-sSfL', '--head', '-o', '/dev/null', 'http://127.0.0.1:4000/api/health']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DATABASE_URL: ecto://supabase_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/_supabase
+      CLUSTER_POSTGRES: 'true'
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      VAULT_ENC_KEY: ${VAULT_ENC_KEY}
+      API_JWT_SECRET: ${JWT_SECRET}
+      METRICS_JWT_SECRET: ${JWT_SECRET}
+      REGION: local
+      ERL_AFLAGS: -proto_dist inet_tcp
+      POOLER_TENANT_ID: ${POOLER_TENANT_ID}
+      POOLER_DEFAULT_POOL_SIZE: ${POOLER_DEFAULT_POOL_SIZE}
+      POOLER_MAX_CLIENT_CONN: ${POOLER_MAX_CLIENT_CONN}
+      POOLER_POOL_MODE: transaction
+      DB_POOL_SIZE: ${POOLER_DB_POOL_SIZE}
+    command:
+      [
+        '/bin/sh',
+        '-c',
+        '/app/bin/migrate && /app/bin/supavisor eval "$$(cat /etc/pooler/pooler.exs)" && /app/bin/server',
+      ]
+
+# Tudo que precisa sobreviver a um redeploy fica aqui, e nao em bind mount.
+#
+# O Dockploy refaz o diretorio da aplicacao a cada deploy: qualquer caminho
+# relativo ao compose e efemero. Bind mount serve para o que DEVE ser
+# atualizado no deploy — o `kong.yml`, os SQL de init, as Edge Functions.
+volumes:
+  db-data: # o banco
+  storage-data: # arquivos enviados (storage + imgproxy)
+  studio-snippets: # snippets de SQL salvos no Studio
+  db-config:
+  deno-cache:
+  redis-data:

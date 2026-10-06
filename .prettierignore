@@ -1,0 +1,24 @@
+node_modules
+
+# Worktrees efemeras do Claude Code. Ja ignoradas pelo git; sem esta linha o
+# `format:check` falha por causa de arquivos de outra sessao.
+.claude/worktrees
+
+dist
+out
+coverage
+playwright-report
+test-results
+package-lock.json
+supabase/functions
+supabase/lovable-migrations
+
+# Componentes gerados pelo shadcn/ui: reformatar produz diff gratuito na
+# proxima vez que um componente for regenerado.
+portal/src/components/ui
+
+# Arquivos do upstream do Supabase, fixados num commit. Reformatar aqui produz
+# divergencia gratuita e torna ilegivel o diff da proxima atualizacao.
+# O README e nosso, e continua formatado.
+docker/files/volumes
+!docker/files/volumes/README.md

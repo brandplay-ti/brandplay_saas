@@ -10,7 +10,6 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
 const RESEND_KEY = Deno.env.get("RESEND_API_KEY");
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
 type Action =
   | { action: "invite"; email: string; role: string; organization_id: string }
@@ -32,17 +31,16 @@ const ROLE_LABEL: Record<string, string> = {
 };
 
 async function sendEmail(to: string, subject: string, html: string) {
-  if (!RESEND_KEY || !LOVABLE_API_KEY) {
+  if (!RESEND_KEY) {
     console.warn("Resend not configured, skipping email");
     return;
   }
   try {
-    const r = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
+    const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${RESEND_KEY}`,
         "Content-Type": "application/json",
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "X-Connection-Api-Key": RESEND_KEY,
       },
       body: JSON.stringify({
         from: "Equipe <onboarding@resend.dev>",

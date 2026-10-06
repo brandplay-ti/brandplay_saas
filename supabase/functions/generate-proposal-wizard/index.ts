@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
@@ -86,48 +86,51 @@ ATIVOS DISPONÍVEIS: ${assets.map((a) => `${a.name} (${a.category}, R$ ${Number(
 
 ${body.extra_context ? `CONTEXTO ADICIONAL: ${body.extra_context}` : ""}`;
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      headers: {
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
-        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
+        model: "claude-sonnet-5",
+        max_tokens: 8192,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userPrompt }],
         tools: [{
-          type: "function",
-          function: {
-            name: "submit_proposal",
-            description: "Submit complete multi-channel proposal",
-            parameters: {
-              type: "object",
-              properties: {
-                title: { type: "string" },
-                summary_message: { type: "string" },
-                concept: { type: "string" },
-                activations: {
-                  type: "array",
-                  items: { type: "object", properties: { title: { type: "string" }, description: { type: "string" } }, required: ["title", "description"] },
-                },
+          name: "submit_proposal",
+          description: "Submit complete multi-channel proposal",
+          input_schema: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              summary_message: { type: "string" },
+              concept: { type: "string" },
+              activations: {
+                type: "array",
+                items: { type: "object", properties: { title: { type: "string" }, description: { type: "string" } }, required: ["title", "description"] },
+              },
+              items: {
+                type: "array",
                 items: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: { name: { type: "string" }, description: { type: "string" }, quantity: { type: "number" }, unit_value: { type: "number" } },
-                    required: ["name", "quantity", "unit_value"],
-                  },
-                },
-                deck: { type: "string", description: "Markdown with slide structure" },
-                whatsapp: { type: "string" },
-                email: {
                   type: "object",
-                  properties: { subject: { type: "string" }, body_html: { type: "string" } },
-                  required: ["subject", "body_html"],
+                  properties: { name: { type: "string" }, description: { type: "string" }, quantity: { type: "number" }, unit_value: { type: "number" } },
+                  required: ["name", "quantity", "unit_value"],
                 },
               },
-              required: ["title", "summary_message", "concept", "activations", "items", "deck", "whatsapp", "email"],
+              deck: { type: "string", description: "Markdown with slide structure" },
+              whatsapp: { type: "string" },
+              email: {
+                type: "object",
+                properties: { subject: { type: "string" }, body_html: { type: "string" } },
+                required: ["subject", "body_html"],
+              },
             },
+            required: ["title", "summary_message", "concept", "activations", "items", "deck", "whatsapp", "email"],
           },
         }],
-        tool_choice: { type: "function", function: { name: "submit_proposal" } },
+        tool_choice: { type: "tool", name: "submit_proposal" },
       }),
     });
 
@@ -140,9 +143,9 @@ ${body.extra_context ? `CONTEXTO ADICIONAL: ${body.extra_context}` : ""}`;
     }
 
     const aiData = await aiResp.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("AI did not return proposal");
-    const proposal = JSON.parse(toolCall.function.arguments);
+    const toolUse = aiData.content?.find((b: any) => b.type === "tool_use");
+    if (!toolUse) throw new Error("AI did not return proposal");
+    const proposal = toolUse.input;
 
     return new Response(JSON.stringify(proposal), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
@@ -108,44 +108,48 @@ Para cada lead retorne: score (0-100), classificação (quente >=70, morno 40-69
 
     const userPrompt = `${propertyContext}\n\nLeads a avaliar (JSON):\n${JSON.stringify(targets, null, 2)}`;
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const AI_MODEL = "claude-haiku-4-5-20251001";
+    const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      headers: {
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
+        model: AI_MODEL,
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userPrompt }],
         tools: [{
-          type: "function",
-          function: {
-            name: "submit_scores",
-            description: "Submit lead scoring results",
-            parameters: {
-              type: "object",
-              properties: {
-                scored: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      target_type: { type: "string", enum: ["sponsor", "opportunity"] },
-                      target_id: { type: "string" },
-                      score: { type: "number" },
-                      classification: { type: "string", enum: ["quente", "morno", "frio"] },
-                      fit_segment: { type: "number" },
-                      fit_audience: { type: "number" },
-                      fit_history: { type: "number" },
-                      reasons: { type: "array", items: { type: "string" } },
-                      approach_argument: { type: "string" },
-                    },
-                    required: ["target_type", "target_id", "score", "classification", "reasons", "approach_argument"],
+          name: "submit_scores",
+          description: "Submit lead scoring results",
+          input_schema: {
+            type: "object",
+            properties: {
+              scored: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    target_type: { type: "string", enum: ["sponsor", "opportunity"] },
+                    target_id: { type: "string" },
+                    score: { type: "number" },
+                    classification: { type: "string", enum: ["quente", "morno", "frio"] },
+                    fit_segment: { type: "number" },
+                    fit_audience: { type: "number" },
+                    fit_history: { type: "number" },
+                    reasons: { type: "array", items: { type: "string" } },
+                    approach_argument: { type: "string" },
                   },
+                  required: ["target_type", "target_id", "score", "classification", "reasons", "approach_argument"],
                 },
               },
-              required: ["scored"],
             },
+            required: ["scored"],
           },
         }],
-        tool_choice: { type: "function", function: { name: "submit_scores" } },
+        tool_choice: { type: "tool", name: "submit_scores" },
       }),
     });
 
@@ -158,10 +162,9 @@ Para cada lead retorne: score (0-100), classificação (quente >=70, morno 40-69
     }
 
     const aiData = await aiResp.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("AI did not return scores");
-    const args = JSON.parse(toolCall.function.arguments);
-    const scored = args.scored as any[];
+    const toolUse = aiData.content?.find((b: any) => b.type === "tool_use");
+    if (!toolUse) throw new Error("AI did not return scores");
+    const scored = toolUse.input.scored as any[];
 
     // Persist: upsert per (target_type, target_id, property_id)
     for (const s of scored) {
@@ -186,7 +189,7 @@ Para cada lead retorne: score (0-100), classificação (quente >=70, morno 40-69
         fit_segment: s.fit_segment ?? null,
         fit_audience: s.fit_audience ?? null,
         fit_history: s.fit_history ?? null,
-        model: "google/gemini-2.5-flash",
+        model: AI_MODEL,
       });
     }
 

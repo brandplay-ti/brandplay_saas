@@ -1,20 +1,46 @@
+node_modules
+
 # Logs
 logs
 *.log
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
-node_modules
+# Segredos. Qualquer `.env`, em qualquer pasta, fica de fora — menos os
+# `.example`, que são o contrato das variáveis e não carregam valor real.
+#
+# Lista por padrão, e não por nome: o primeiro commit deste repositório levou
+# `docker/supabase/.env` (senha do Postgres, JWT_SECRET, service_role locais)
+# porque o `.gitignore` herdado do Lovable só conhecia `*.local`.
+.env
+.env.*
+!.env.example
+
+# Build e relatórios
 dist
 dist-ssr
-*.local
+coverage
+playwright-report
+test-results
+portal/dist
+portal/coverage
+portal/playwright-report
+portal/test-results
 
-.migracao-lovable
+# SQL gerado por supabase/tools/gerar-bundle.mjs — derivado, regenere
+supabase/bundle
 
-# Editor directories and files
+# Saída local da reconciliação de schema (supabase/tools/reconciliacao-schema)
+.recon/
+
+# Exportação de dados reais do Lovable (supabase/tools/migracao-lovable).
+# LGPD: nunca versionar.
+.migracao-lovable/
+
+# Configuração local do Claude Code (permissões pessoais)
+.claude/settings.local.json
+.claude/worktrees
+
+# Editor
 .vscode/*
 !.vscode/extensions.json
 .idea

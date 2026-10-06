@@ -81,16 +81,19 @@ Deno.serve(async (req) => {
 
     const prompt = `Você é um analista de patrocínios esportivos. Gere um resumo executivo conciso (máx 4 linhas, em português brasileiro) sobre a relação com este patrocinador, destacando saúde do relacionamento, situação financeira e próximos passos. Use linguagem direta de C-level.\n\nDados:\n${JSON.stringify(ctx, null, 2)}`;
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const AI_MODEL = "claude-sonnet-5";
+    const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+        "x-api-key": Deno.env.get("ANTHROPIC_API_KEY") ?? "",
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: AI_MODEL,
+        max_tokens: 1024,
+        system: "Responda apenas com o parágrafo executivo, sem títulos ou markdown.",
         messages: [
-          { role: "system", content: "Responda apenas com o parágrafo executivo, sem títulos ou markdown." },
           { role: "user", content: prompt },
         ],
       }),
@@ -101,7 +104,7 @@ Deno.serve(async (req) => {
     if (!aiResp.ok) throw new Error(`AI error: ${await aiResp.text()}`);
 
     const data = await aiResp.json();
-    const summary = data.choices?.[0]?.message?.content?.trim() ?? "";
+    const summary = data.content?.find((b: any) => b.type === "text")?.text?.trim() ?? "";
 
     const highlights = [
       { label: "Contratado", value: `R$ ${totalContracted.toLocaleString("pt-BR")}` },
@@ -115,7 +118,7 @@ Deno.serve(async (req) => {
       owner_id: user.id,
       summary,
       highlights,
-      model: "google/gemini-2.5-flash",
+      model: AI_MODEL,
       generated_at: new Date().toISOString(),
     });
 

@@ -5,6 +5,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Extracts a JSON object from a Claude text response, stripping any ```json fences.
+function extractJson(text: string): any {
+  let cleaned = (text ?? "").trim();
+  const fenceMatch = cleaned.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  if (fenceMatch) cleaned = fenceMatch[1].trim();
+  return JSON.parse(cleaned);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -80,23 +88,29 @@ Deno.serve(async (req) => {
 
     // Recomendação IA para top 5
     const topRisks = risks.slice(0, 5);
+    const AI_MODEL = "claude-haiku-4-5-20251001";
     if (topRisks.length > 0) {
-      const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        headers: { Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`, "Content-Type": "application/json" },
+        headers: {
+          "x-api-key": Deno.env.get("ANTHROPIC_API_KEY") ?? "",
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash-lite",
+          model: AI_MODEL,
+          max_tokens: 1024,
+          system: "Você é consultor de retenção de patrocinadores. Para cada contrato, gere 1 recomendação curta (máx 15 palavras) em português brasileiro. Responda APENAS com um objeto JSON válido, sem markdown, sem crases.",
           messages: [
-            { role: "system", content: "Você é consultor de retenção de patrocinadores. Para cada contrato, gere 1 recomendação curta (máx 15 palavras) em português brasileiro." },
             { role: "user", content: `Contratos em risco:\n${JSON.stringify(topRisks, null, 2)}\n\nResponda em JSON: {"recommendations":[{"contract_id":"...","recommendation":"..."}]}` },
           ],
-          response_format: { type: "json_object" },
         }),
       });
       if (aiResp.ok) {
         const data = await aiResp.json();
         try {
-          const parsed = JSON.parse(data.choices[0].message.content);
+          const text = data.content?.find((b: any) => b.type === "text")?.text ?? "";
+          const parsed = extractJson(text);
           for (const rec of parsed.recommendations ?? []) {
             const r = risks.find(r => r.contract_id === rec.contract_id);
             if (r) r.recommendation = rec.recommendation;
@@ -114,7 +128,7 @@ Deno.serve(async (req) => {
         risk_score: r.risk_score,
         signals: r.signals,
         recommendation: r.recommendation ?? null,
-        model: "google/gemini-2.5-flash-lite",
+        model: AI_MODEL,
         generated_at: new Date().toISOString(),
       });
     }

@@ -1,4 +1,4 @@
-// Suggest next steps using Lovable AI for multiple contexts:
+// Suggest next steps using the Anthropic API for multiple contexts:
 // opportunity | sponsor | contract | dashboard | delivery | proposal
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -25,8 +25,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not configured");
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -313,45 +313,47 @@ Deno.serve(async (req) => {
       });
     }
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      headers: {
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "claude-sonnet-5",
+        max_tokens: 4096,
+        system: SYSTEM_PROMPT,
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: ctx },
         ],
         tools: [{
-          type: "function",
-          function: {
-            name: "next_steps",
-            description: "Lista de próximos passos",
-            parameters: {
-              type: "object",
-              properties: {
-                steps: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      title: { type: "string" },
-                      description: { type: "string" },
-                      activity_type: { type: "string", enum: ["ligacao", "email", "reuniao", "tarefa", "nota"] },
-                      priority: { type: "string", enum: ["alta", "media", "baixa"] },
-                      due_in_days: { type: "integer", minimum: 0, maximum: 30 },
-                    },
-                    required: ["title", "description", "activity_type", "priority", "due_in_days"],
-                    additionalProperties: false,
+          name: "next_steps",
+          description: "Lista de próximos passos",
+          input_schema: {
+            type: "object",
+            properties: {
+              steps: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string" },
+                    description: { type: "string" },
+                    activity_type: { type: "string", enum: ["ligacao", "email", "reuniao", "tarefa", "nota"] },
+                    priority: { type: "string", enum: ["alta", "media", "baixa"] },
+                    due_in_days: { type: "integer", minimum: 0, maximum: 30 },
                   },
+                  required: ["title", "description", "activity_type", "priority", "due_in_days"],
+                  additionalProperties: false,
                 },
               },
-              required: ["steps"],
-              additionalProperties: false,
             },
+            required: ["steps"],
+            additionalProperties: false,
           },
         }],
-        tool_choice: { type: "function", function: { name: "next_steps" } },
+        tool_choice: { type: "tool", name: "next_steps" },
       }),
     });
 
@@ -365,14 +367,13 @@ Deno.serve(async (req) => {
     }
 
     const j = await aiResp.json();
-    const toolCall = j.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall?.function?.arguments) {
+    const toolUse = j.content?.find((b: any) => b.type === "tool_use");
+    if (!toolUse?.input) {
       return new Response(JSON.stringify({ error: "Resposta inválida" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const parsed = JSON.parse(toolCall.function.arguments);
-    return new Response(JSON.stringify(parsed), {
+    return new Response(JSON.stringify(toolUse.input), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

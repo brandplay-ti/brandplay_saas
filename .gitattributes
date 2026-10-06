@@ -1,0 +1,33 @@
+# Finais de linha.
+#
+# O repositorio guarda LF. Sem este arquivo, quem clona no Windows com
+# `core.autocrlf=true` recebe CRLF na arvore de trabalho — e isso nao e
+# cosmetico:
+#
+#   * `supabase/tools/migrate.sh` roda dentro do container Linux por bind mount.
+#     Com CRLF, o `sh` le `set -eu\r` e para com "illegal option": o runner de
+#     migrations simplesmente nao executa;
+#   * `npm run format:check` acusa o repositorio inteiro, porque o Prettier esta
+#     configurado com `endOfLine: "lf"`. O conteudo esta certo e a checagem
+#     falha assim mesmo, o que treina todo mundo a ignorar o resultado dela.
+#
+# `text=auto eol=lf` normaliza a arvore de trabalho em qualquer sistema. O
+# conteudo versionado nao muda: ja era LF.
+* text=auto eol=lf
+
+# Scripts e SQL nunca podem virar CRLF, mesmo que alguem sobrescreva o padrao
+# acima: sao executados por interpretadores que tratam o CR como parte do
+# comando.
+*.sh   text eol=lf
+*.mjs  text eol=lf
+*.sql  text eol=lf
+
+# Binarios nao passam por conversao nenhuma.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.webp binary
+*.ico  binary
+*.pdf  binary
+*.woff binary
+*.woff2 binary

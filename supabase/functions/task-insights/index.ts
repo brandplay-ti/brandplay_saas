@@ -8,6 +8,14 @@ const corsHeaders = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+// Extracts a JSON object from a Claude text response, stripping any ```json fences.
+function extractJson(text: string): any {
+  let cleaned = (text ?? "").trim();
+  const fenceMatch = cleaned.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  if (fenceMatch) cleaned = fenceMatch[1].trim();
+  return JSON.parse(cleaned);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -232,20 +240,25 @@ Deno.serve(async (req) => {
       required: ["resumo", "contexto_relevante", "passos", "argumentos", "riscos", "mensagem_sugerida", "dados_ausentes"],
     };
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const jsonInstructions = `Você é um copiloto comercial de patrocínio esportivo em português do Brasil. Sua missão é ajudar o usuário a CONCLUIR a tarefa indicada. Use APENAS os dados fornecidos; nunca invente números, nomes ou fatos — o que faltar vai em dados_ausentes. Máximo 5 itens por lista, passos objetivos e acionáveis. A mensagem_sugerida deve ser curta (até 900 caracteres), pronta para enviar por e-mail/WhatsApp ao contato principal.
+
+Responda APENAS com um objeto JSON válido, sem markdown, sem crases, seguindo exatamente este schema:
+${JSON.stringify(schema, null, 2)}`;
+
+    const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`, "Content-Type": "application/json" },
+      headers: {
+        "x-api-key": Deno.env.get("ANTHROPIC_API_KEY") ?? "",
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        model: "google/gemini-3.5-flash",
+        model: "claude-sonnet-5",
+        max_tokens: 4096,
+        system: jsonInstructions,
         messages: [
-          {
-            role: "system",
-            content:
-              "Você é um copiloto comercial de patrocínio esportivo em português do Brasil. Sua missão é ajudar o usuário a CONCLUIR a tarefa indicada. Use APENAS os dados fornecidos; nunca invente números, nomes ou fatos — o que faltar vai em dados_ausentes. Máximo 5 itens por lista, passos objetivos e acionáveis. A mensagem_sugerida deve ser curta (até 900 caracteres), pronta para enviar por e-mail/WhatsApp ao contato principal.",
-          },
           { role: "user", content: `Contexto real no BrandPlay:\n${JSON.stringify(ctx, null, 2)}` },
         ],
-        response_format: { type: "json_schema", json_schema: { name: "task_insights", strict: true, schema } },
       }),
     });
 
@@ -259,7 +272,8 @@ Deno.serve(async (req) => {
     const data = await aiResp.json();
     let parsed: any = {};
     try {
-      parsed = JSON.parse(data.choices?.[0]?.message?.content ?? "{}");
+      const text = data.content?.find((b: any) => b.type === "text")?.text ?? "{}";
+      parsed = extractJson(text);
     } catch {
       return json({ error: "Resposta da IA inválida" }, 502);
     }

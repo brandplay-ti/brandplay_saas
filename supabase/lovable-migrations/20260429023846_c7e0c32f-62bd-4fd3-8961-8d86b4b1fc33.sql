@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.notify_commercial_team_opportunity_lost() FROM PUBLIC, anon, authenticated;

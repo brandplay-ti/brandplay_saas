@@ -1,0 +1,31 @@
+# Build do portal no Dockploy (Nixpacks), com a pasta base em `/portal`.
+#
+# O Nixpacks resolve a versao do Node por uma lista interna fixa — 14, 16, 18,
+# 20, 22 e 24 — cada uma amarrada a um commit do nixpkgs. Pedir uma versao fora
+# da lista, ou uma cujo pacote nao exista no archive que ele fixa, faz cair
+# **calado** no padrao 18 — fora do alvo do projeto (Node 26).
+#
+# Declarar pacote e archive aqui tira a decisao dessas listas: o que se pede e o
+# que se instala, e um pedido impossivel falha dizendo o nome do pacote.
+#
+# `nodejs_26` (26.7.0 neste archive) do head de `nixos-26.05`, o ramo estavel de
+# manutencao — e nao `nixos-unstable`, porque build de producao nao deve se
+# mover sozinho.
+#
+# O `nixPkgs` substitui a lista que o Nixpacks montaria, que incluia `npm-9_x`.
+# Nao faz falta: o `nodejs_26` do nixpkgs ja traz o npm 11.
+#
+# **Este arquivo so e lido se a pasta base do Dockploy for `/portal`.** Foi por
+# estar na raiz que ele foi ignorado antes.
+
+[phases.setup]
+nixPkgs = ['nodejs_26']
+nixpkgsArchive = 'f4f698677b11021a8f84f452e23ae9ef2427bec3'
+
+# A checagem das variaveis do Supabase roda aqui tambem, e nao so no
+# `Dockerfile`: os dois caminhos de build precisam da mesma guarda. Ela nao
+# entra no `prebuild` do npm porque localmente o Vite le `.env.local` sozinho —
+# essas variaveis nao existem no ambiente do processo, e a checagem acusaria um
+# build local correto.
+[phases.build]
+cmds = ['node scripts/checar-build.mjs', 'npm run build']

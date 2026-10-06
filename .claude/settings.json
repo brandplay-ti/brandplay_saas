@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./**/.env)",
+      "Read(./**/.env.local)",
+      "Read(./**/.env.hml)",
+      "Read(./**/.env.prd)",
+      "Read(./.env.lovable)",
+      "Read(./.migracao-lovable/**)",
+      "Read(./secrets/**)",
+      "Read(./**/*.pem)",
+      "Read(./**/*.key)",
+      "Read(./**/credentials.json)"
+    ]
+  }
+}

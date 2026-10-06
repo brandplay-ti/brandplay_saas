@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [dev, hml, main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  portal:
+    name: Portal (lint, types, testes, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+
+      - run: npm ci
+
+      # NAO bloqueante, por enquanto. O codigo herdado do Lovable chega com ~250
+      # erros de lint (quase todos `no-explicit-any`). Bloquear aqui travaria
+      # todo PR por divida que nao e dele. O passo continua rodando para o
+      # numero ficar visivel no log; quando zerar, remova o `continue-on-error`
+      # — ver docs/infrastructure/cicd.md, secao "Divida conhecida".
+      - name: Lint (nao bloqueante — divida herdada do Lovable)
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Typecheck
+        run: npm run type-check
+
+      - name: Testes unitarios
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+  migrations:
+    name: Migrations (guarda, banco limpo, idempotencia, RLS)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Nenhuma migration pode conter uma operacao destrutiva sem marcador
+      # explicito de aprovacao na primeira linha do arquivo:
+      #   -- destrutivo: aprovado por <nome> em <data>
+      # O regex evita `drop policy/trigger if exists`, que e o idioma
+      # idempotente usado neste projeto (ver 0005_rls_policies.sql) e nao e
+      # uma operacao destrutiva de dado.
+      - name: Guarda contra migration destrutiva
+        run: |
+          set -euo pipefail
+          falhou=0
+          for arquivo in supabase/migrations/*.sql; do
+            [ -e "$arquivo" ] || continue
+            if grep -Eiq '\bdrop[[:space:]]+(table|schema|database|column|materialized[[:space:]]+view)\b|\btruncate\b' "$arquivo"; then
+              primeira_linha="$(head -n1 "$arquivo")"
+              if ! echo "$primeira_linha" | grep -Eiq '^--[[:space:]]*destrutivo:[[:space:]]*aprovado por .+ em .+'; then
+                echo "FALHA: $arquivo tem uma operacao destrutiva sem marcador de aprovacao na primeira linha." >&2
+                echo "  Adicione: -- destrutivo: aprovado por <nome> em <data>" >&2
+                falhou=1
+              fi
+            fi
+          done
+          [ "$falhou" -eq 0 ] && echo "OK: nenhuma migration destrutiva sem aprovacao."
+          exit $falhou
+
+      # O MESMO stack de local, homologacao e producao (docker/supabase), com
+      # segredos descartaveis gerados na hora.
+      - name: Gerar chaves locais do stack
+        run: |
+          cp docker/supabase/.env.example docker/supabase/.env
+          node supabase/tools/gerar-chaves-locais.mjs --env >> docker/supabase/.env
+
+      - name: Subir o stack do Supabase
+        run: npm run supabase:up
+
+      # `storage.buckets` (0007) e `auth.users` (FKs da 0003) so existem depois
+      # que os servicos storage e auth terminam o proprio bootstrap. Esperar so
+      # o `db` deixaria a 0007 falhar de forma intermitente.
+      - name: Aguardar db, auth e storage saudaveis
+        run: |
+          compose="docker compose --env-file docker/supabase/.env -f docker/supabase/docker-compose.yml -f docker/supabase/docker-compose.local.yml"
+          for servico in db auth storage; do
+            for i in $(seq 1 60); do
+              status="$($compose ps "$servico" --format '{{.Health}}' 2>/dev/null || true)"
+              [ "$status" = "healthy" ] && { echo "$servico saudavel"; break; }
+              if [ "$i" -eq 60 ]; then
+                echo "$servico nao ficou saudavel a tempo" >&2
+                $compose logs --no-color --tail=200 "$servico" || true
+                exit 1
+              fi
+              sleep 5
+            done
+          done
+
+      - name: Aplicar migrations
+        run: npm run supabase:migrate
+
+      - name: Exigir idempotencia (rodar de novo nao deve aplicar nada)
+        run: |
+          saida="$(npm run supabase:migrate 2>&1)"
+          echo "$saida"
+          echo "$saida" | grep -q "nenhuma migration pendente"
+
+      - name: Seed local (exercita os gatilhos de cadastro)
+        run: npm run supabase:seed
+
+      - name: Testes de seguranca (RLS)
+        run: npm run supabase:test
+
+      - name: Encerrar o stack
+        if: always()
+        run: npm run supabase:down

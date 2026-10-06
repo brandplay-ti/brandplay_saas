@@ -1,0 +1,153 @@
+name: Deploy (VPS)
+
+# Deploy manual e auditavel da APLICACAO. Nao toca no banco.
+#
+# Mesmo fluxo do projeto de referencia central-check — o padrao esta em
+# docs/infrastructure/padrao-de-projeto.md.
+#
+# ─── O banco fica fora daqui ─────────────────────────────────────────
+#
+# Migrations sao aplicadas A MAO, fora do pipeline. Este workflow atualiza o
+# clone na VPS, LISTA o que esta pendente, republica o portal e checa a saude —
+# nenhum passo escreve no Postgres.
+#
+# O que fica com quem migra:
+#
+#   * o **backup** antes de migrar — docs/runbooks/backup.md;
+#   * a **ordem**: aplicar as migrations ANTES de republicar o portal quando a
+#     versao nova depende de schema novo. O pipeline nao garante isso.
+#
+# ─── Dois ambientes, dois Supabase ───────────────────────────────────
+#
+# Homologacao e producao sao **servicos instanciados pelo Dockploy**, cada um
+# com sua rede Docker, seus containers e sua senha — os dois a partir do
+# `docker/supabase/docker-compose.yml` deste repositorio, distinguidos so pelas
+# variaveis de ambiente do servico.
+#
+# Por isso o workflow recebe `ambiente` e nao tem nada de producao embutido: os
+# nomes, o DSN e a rede vem de fora.
+#
+# ─── Como o passo de status alcanca o banco ──────────────────────────
+#
+# Os nomes de container e de projeto sao definidos no Dockploy, entao
+# `docker compose exec db` nao encontra nada. No lugar disso: um container
+# efemero com `psql`, ligado a mesma rede Docker do Supabase daquele ambiente,
+# com `supabase/` do repositorio montado. E o mesmo caminho que voce usa para
+# migrar a mao — ver docs/runbooks/primeira-carga.md.
+#
+# ─── O que precisa existir na VPS ────────────────────────────────────
+#
+# Um arquivo por ambiente, legivel so pelo usuario de deploy (`chmod 600`):
+#
+#   /etc/brandplay/homologacao.env
+#   /etc/brandplay/producao.env
+#
+# Cada um com:
+#
+#   DATABASE_URL=postgres://supabase_admin:SENHA@HOST_DO_DB:5432/postgres
+#   SUPABASE_NETWORK=nome-da-rede-docker-do-supabase-daquele-ambiente
+#   VPS_APP_DIR=/opt/brandplay
+#
+# Arquivos separados, e nao um com prefixos: apontar homologacao para o banco de
+# producao por um erro de variavel e o tipo de acidente que este desenho tem de
+# tornar impossivel.
+#
+# O DSN fica **na VPS**, e nao nos secrets do GitHub: segredo de producao nao
+# passa pelo repositorio nem pelo workflow.
+#
+# Secrets do repositorio: VPS_SSH_KEY, VPS_HOST, VPS_USER.
+# Secrets DO ENVIRONMENT (um valor por ambiente): DOCKPLOY_DEPLOY_WEBHOOK,
+# APP_HEALTH_URL.
+on:
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        description: 'Ambiente alvo'
+        type: choice
+        options: [homologacao, producao]
+        default: homologacao
+        required: true
+      apenas_status:
+        description: 'Somente listar migrations pendentes (nao republica a aplicacao)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-${{ inputs.ambiente }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Configure o environment "producao" com required reviewers: e o portao que
+    # obriga uma segunda pessoa a aprovar antes de qualquer coisa rodar em
+    # producao. "homologacao" pode ficar sem revisor — e para isso que ele
+    # existe.
+    environment: ${{ inputs.ambiente }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar acesso SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Atualizar o repositorio na VPS
+        run: |
+          ssh -i ~/.ssh/id_ed25519 "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" "AMBIENTE=${{ inputs.ambiente }} REF=${{ github.sha }} bash -se" <<'REMOTO'
+          set -euo pipefail
+          arquivo="/etc/brandplay/${AMBIENTE}.env"
+          if [ ! -r "$arquivo" ]; then
+            echo "erro: $arquivo nao existe ou nao e legivel." >&2
+            echo "Ver docs/runbooks/primeira-carga.md, secao de pre-requisitos." >&2
+            exit 2
+          fi
+          . "$arquivo"
+          : "${DATABASE_URL:?defina DATABASE_URL em $arquivo}"
+          : "${SUPABASE_NETWORK:?defina SUPABASE_NETWORK em $arquivo}"
+          cd "${VPS_APP_DIR:-/opt/brandplay}"
+          # `REF` vem do runner, expandido do lado de ca. Dentro de heredoc com
+          # aspas, `${GITHUB_SHA}` nunca seria expandido e a VPS ficaria sempre
+          # no mesmo commit — migrations de um, portal de outro.
+          git fetch --all --prune --tags
+          git checkout --detach "$REF"
+          echo "commit na VPS: $(git rev-parse --short HEAD)"
+          REMOTO
+
+      # Somente leitura: `--status` lista e nao aplica. E o unico passo que fala
+      # com o banco, e existe para dizer o que voce precisa rodar a mao.
+      - name: Migrations pendentes (status)
+        run: |
+          ssh -i ~/.ssh/id_ed25519 "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" "AMBIENTE=${{ inputs.ambiente }} bash -se" <<'REMOTO'
+          set -euo pipefail
+          . "/etc/brandplay/${AMBIENTE}.env"
+          cd "${VPS_APP_DIR:-/opt/brandplay}"
+          docker run --rm --network "$SUPABASE_NETWORK" \
+            -v "$PWD/supabase:/supabase:ro" \
+            -e DATABASE_URL="$DATABASE_URL" \
+            postgres:17-alpine sh /supabase/tools/migrate.sh --status
+          REMOTO
+
+      - name: Redeploy do portal no Dockploy
+        if: ${{ !inputs.apenas_status }}
+        run: |
+          # Webhook de deploy da aplicacao no Dockploy. O ciclo de vida dos
+          # containers e a configuracao deles ficam do lado do Dockploy.
+          curl -fsS -X POST "${{ secrets.DOCKPLOY_DEPLOY_WEBHOOK }}"
+
+      - name: Health check
+        if: ${{ !inputs.apenas_status }}
+        run: |
+          set -eu
+          for i in $(seq 1 10); do
+            if curl -fsS "${{ secrets.APP_HEALTH_URL }}" > /dev/null; then
+              echo "health check ok"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "health check falhou apos o deploy" >&2
+          exit 1

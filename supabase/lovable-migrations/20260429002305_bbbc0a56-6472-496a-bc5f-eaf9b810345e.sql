@@ -1,0 +1,1 @@
+GRANT SELECT ON pg_catalog.pg_policies TO service_role;

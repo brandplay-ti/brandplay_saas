@@ -1,0 +1,2 @@
+ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS exclusive_sponsor_id uuid REFERENCES public.sponsors(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_assets_exclusive_sponsor ON public.assets(exclusive_sponsor_id);

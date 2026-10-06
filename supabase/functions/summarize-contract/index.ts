@@ -25,8 +25,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not configured");
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -105,13 +105,18 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        headers: {
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
+          model: "claude-sonnet-5",
+          max_tokens: 4096,
+          system: CHAT_SYSTEM,
           messages: [
-            { role: "system", content: CHAT_SYSTEM },
             { role: "user", content: `CONTRATO:\n${contractContext}\n\nRESUMO PRÉVIO:\n${contract.ai_summary ?? "(sem resumo)"}\n\nPERGUNTA: ${question}` },
           ],
         }),
@@ -125,20 +130,25 @@ Deno.serve(async (req) => {
         });
       }
       const j = await aiResp.json();
-      const answer = j.choices?.[0]?.message?.content ?? "";
+      const answer = j.content?.find((b: any) => b.type === "text")?.text ?? "";
       return new Response(JSON.stringify({ answer }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // Summarize
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      headers: {
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "claude-sonnet-5",
+        max_tokens: 4096,
+        system: SUMMARY_SYSTEM,
         messages: [
-          { role: "system", content: SUMMARY_SYSTEM },
           { role: "user", content: `Resuma este contrato:\n\n${contractContext}` },
         ],
       }),
@@ -152,7 +162,7 @@ Deno.serve(async (req) => {
       });
     }
     const j = await aiResp.json();
-    const summary = j.choices?.[0]?.message?.content ?? "";
+    const summary = j.content?.find((b: any) => b.type === "text")?.text ?? "";
 
     await supabase.from("contracts").update({ ai_summary: summary }).eq("id", contractId);
 

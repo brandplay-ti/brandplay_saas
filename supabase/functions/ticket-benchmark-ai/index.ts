@@ -5,6 +5,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Extracts a JSON object from a Claude text response, stripping any ```json fences.
+function extractJson(text: string): any {
+  let cleaned = (text ?? "").trim();
+  const fenceMatch = cleaned.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  if (fenceMatch) cleaned = fenceMatch[1].trim();
+  return JSON.parse(cleaned);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -82,9 +90,10 @@ Deno.serve(async (req) => {
       }
 
       if (market.length === 0) {
-        // Generate via Lovable AI
-        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-        if (LOVABLE_API_KEY) {
+        // Generate via the Anthropic API
+        const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+        const AI_MODEL = "claude-sonnet-5";
+        if (ANTHROPIC_API_KEY) {
           try {
             const prompt = `Você é um analista do mercado brasileiro de patrocínio esportivo. Para cada segmento abaixo, estime o ticket médio anual realista de uma cota de patrocínio (em BRL) no mercado brasileiro de propriedades esportivas regionais/nacionais. Retorne JSON puro.
 
@@ -93,23 +102,24 @@ Segmentos: ${internal.map((i) => i.segment).join(", ")}
 Formato exato (apenas JSON, sem markdown):
 {"segments":[{"segment":"...","market_avg":120000,"market_min":50000,"market_max":300000,"notes":"breve justificativa"}]}`;
 
-            const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
               method: "POST",
               headers: {
-                Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                "x-api-key": ANTHROPIC_API_KEY,
+                "anthropic-version": "2023-06-01",
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                model: "google/gemini-2.5-flash",
+                model: AI_MODEL,
+                max_tokens: 2048,
                 messages: [{ role: "user", content: prompt }],
               }),
             });
 
             if (aiRes.ok) {
               const aiData = await aiRes.json();
-              const content = aiData.choices?.[0]?.message?.content || "{}";
-              const cleaned = content.replace(/```json|```/g, "").trim();
-              const parsed = JSON.parse(cleaned);
+              const content = aiData.content?.find((b: any) => b.type === "text")?.text || "{}";
+              const parsed = extractJson(content);
               const segs = parsed.segments || [];
               market = segs;
 
@@ -122,7 +132,7 @@ Formato exato (apenas JSON, sem markdown):
                   market_min: s.market_min,
                   market_max: s.market_max,
                   notes: s.notes,
-                  model: "google/gemini-2.5-flash",
+                  model: AI_MODEL,
                   generated_at: new Date().toISOString(),
                 }, { onConflict: "organization_id,segment" });
               }
