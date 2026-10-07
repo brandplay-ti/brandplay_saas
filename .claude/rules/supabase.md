@@ -87,6 +87,19 @@ Padrão adicionado pela reconciliação com o Lovable (ADR-0005, `0017`):
    entregas, ativos e propriedades. Ao criar uma tabela nova desses módulos,
    use este padrão, não o 1 (que deixaria qualquer membro escrever).
 
+Padrão da cobrança (ADR-0007, `0024`):
+
+8. **Cobrança** (`billing_*_admin_read`) — leitura só para
+   `has_org_role(organization_id, ['owner','admin'])`, nenhuma policy de
+   escrita e `insert/update/delete` revogados de `authenticated`. Estado de
+   cobrança é escrito só pelas Edge Functions (service role) e por gatilhos.
+   Os demais membros leem o resumo por `billing_status(_org_id)`.
+
+Uma tabela nova que represente algo **limitado por plano** precisa de gatilho
+`trg_zz_billing_limit` no padrão da `0024` (erro com
+`hint = 'limite_plano:<recurso>'` e plano sugerido em `detail`) e de uma
+coluna correspondente em `billing_plans`.
+
 Nunca use `has_role(..., 'admin')` (papel **global** de `user_roles`) em
 policy de tabela de organização: no Lovable isso dava acesso a todas as
 organizações e não foi portado de propósito (ADR-0005).

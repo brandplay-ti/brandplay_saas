@@ -1,4 +1,4 @@
-import { LayoutDashboard, Trophy, Boxes, Briefcase, FileText, FileSignature, Truck, Wallet, BarChart3, Users, ShieldCheck, Settings as SettingsIcon, Sparkles, Camera, Eye, Upload, Tag, Image as ImageIcon, AlertTriangle, Bell, CalendarDays } from "lucide-react";
+import { LayoutDashboard, Trophy, Boxes, Briefcase, FileText, FileSignature, Truck, Wallet, BarChart3, Users, ShieldCheck, Settings as SettingsIcon, Sparkles, Camera, Eye, Upload, Tag, Image as ImageIcon, AlertTriangle, Bell, CalendarDays, CreditCard } from "lucide-react";
 import { useOrganization } from "@/hooks/useOrganization";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -82,6 +82,7 @@ const NAV_GROUPS: NavGroup[] = [
       { title: "Acessos ao Portal", url: "/dashboard/portal-access", icon: ShieldCheck, modules: ["team"] },
       { title: "Logs de Falhas", url: "/dashboard/logs-falhas", icon: AlertTriangle, modules: ["team"] },
       { title: "Configurações", url: "/dashboard/configuracoes", icon: SettingsIcon, modules: ["team"] },
+      { title: "Plano e cobrança", url: "/dashboard/plano", icon: CreditCard, modules: ["team"] },
     ],
   },
 ];

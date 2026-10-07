@@ -344,9 +344,18 @@ Deno.serve(async (req) => {
     });
   } catch (e: any) {
     console.error(e);
-    return new Response(JSON.stringify({ error: e.message ?? "Erro" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // Limite do plano (gatilhos da 0024): devolve hint e plano sugerido para a
+    // tela explicar o bloqueio, em vez de um 500 genérico.
+    const limitePlano = typeof e?.hint === "string" && e.hint.startsWith("limite_plano:");
+    return new Response(
+      JSON.stringify({
+        error: e.message ?? "Erro",
+        ...(limitePlano ? { hint: e.hint, details: e.details ?? null } : {}),
+      }),
+      {
+        status: limitePlano ? 409 : 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

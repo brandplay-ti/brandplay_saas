@@ -27,6 +27,13 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   escopo de acesso intencionalmente cross-tenant, mas restrito por
   `sponsor_id` — qualquer policy nova nessa superfície precisa manter esse
   escopo estreito.
+- **Cobrança** (ADR-0007). Estado de assinatura e faturas é escrito só pelo
+  servidor: `billing-webhook` (autenticado pela assinatura do Stripe — sem
+  `STRIPE_WEBHOOK_SECRET` recusa tudo) e `manage-billing` (JWT + owner/admin
+  ativo na organização, conferido em `organization_members`). As tabelas
+  `billing_*` não aceitam escrita de `authenticated`, então ninguém se dá um
+  plano ou estende o próprio teste pela API. Limites de plano são gatilhos no
+  banco, não verificação de tela.
 - **Media Kit público** (`/p/:slug`, `portal/src/pages/PublicMediaKit.tsx`). Única
   rota que aceita leitura anônima (`anon`) de propriedades publicadas e
   insert público de leads. Qualquer dado exposto ali é público por definição
@@ -38,6 +45,7 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `ANTHROPIC_API_KEY`
 - `RESEND_API_KEY`
+- `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET`
 - JWT secret, senha do Postgres, qualquer credencial de infraestrutura
 - Tokens de sessão, cookies, headers de autorização em logs
 

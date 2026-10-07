@@ -6,6 +6,7 @@
 - 0004 Schema reconstruído por inferência de types.ts
 - 0005 Reconciliar o schema reconstruído com o schema real do Lovable
 - 0006 Padrão de infraestrutura da VPS (Dockploy + monorepo do central-check)
+- 0007 Cobrança por organização com Stripe (teste grátis, limites no banco)
 
 Use `NNNN-titulo-curto.md`. Status possíveis: Proposed, Accepted, Superseded,
 Deprecated. Não apague decisões históricas; supersede-as com uma ADR nova que

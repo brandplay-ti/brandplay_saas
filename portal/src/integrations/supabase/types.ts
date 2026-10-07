@@ -378,6 +378,277 @@ export type Database = {
           },
         ]
       }
+      billing_accounts: {
+        Row: {
+          created_at: string
+          organization_id: string
+          stripe_customer_id: string | null
+          trial_ends_at: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          organization_id: string
+          stripe_customer_id?: string | null
+          trial_ends_at: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          organization_id?: string
+          stripe_customer_id?: string | null
+          trial_ends_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_accounts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_invoices: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          due_at: string | null
+          hosted_invoice_url: string | null
+          id: string
+          invoice_pdf_url: string | null
+          number: string | null
+          organization_id: string
+          paid_at: string | null
+          payment_method: string | null
+          status: string
+          stripe_invoice_id: string
+          subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          currency?: string
+          due_at?: string | null
+          hosted_invoice_url?: string | null
+          id?: string
+          invoice_pdf_url?: string | null
+          number?: string | null
+          organization_id: string
+          paid_at?: string | null
+          payment_method?: string | null
+          status: string
+          stripe_invoice_id: string
+          subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          due_at?: string | null
+          hosted_invoice_url?: string | null
+          id?: string
+          invoice_pdf_url?: string | null
+          number?: string | null
+          organization_id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          status?: string
+          stripe_invoice_id?: string
+          subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_invoices_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "billing_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_plans: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string
+          features: string[]
+          highlight: boolean
+          id: string
+          max_properties: number | null
+          max_users: number | null
+          name: string
+          price_cents: number | null
+          sort_order: number
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string
+          features?: string[]
+          highlight?: boolean
+          id: string
+          max_properties?: number | null
+          max_users?: number | null
+          name: string
+          price_cents?: number | null
+          sort_order?: number
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string
+          features?: string[]
+          highlight?: boolean
+          id?: string
+          max_properties?: number | null
+          max_users?: number | null
+          name?: string
+          price_cents?: number | null
+          sort_order?: number
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      billing_settings: {
+        Row: {
+          created_at: string
+          id: boolean
+          trial_days: number
+          trial_plan_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: boolean
+          trial_days?: number
+          trial_plan_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: boolean
+          trial_days?: number
+          trial_plan_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_settings_trial_plan_id_fkey"
+            columns: ["trial_plan_id"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_stripe_events: {
+        Row: {
+          error: string | null
+          event_id: string
+          processed_at: string | null
+          received_at: string
+          type: string
+        }
+        Insert: {
+          error?: string | null
+          event_id: string
+          processed_at?: string | null
+          received_at?: string
+          type: string
+        }
+        Update: {
+          error?: string | null
+          event_id?: string
+          processed_at?: string | null
+          received_at?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      billing_subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          canceled_at: string | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          organization_id: string
+          payment_method: string | null
+          plan_id: string
+          status: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          updated_at: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          organization_id: string
+          payment_method?: string | null
+          plan_id: string
+          status: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          updated_at?: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          organization_id?: string
+          payment_method?: string | null
+          plan_id?: string
+          status?: string
+          stripe_customer_id?: string
+          stripe_subscription_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brandtrack_brands: {
         Row: {
           color: string | null
@@ -4543,6 +4814,62 @@ export type Database = {
       archive_sponsor: {
         Args: { _reason: string; _sponsor_id: string }
         Returns: undefined
+      }
+      billing_effective_plan: {
+        Args: { _org_id: string }
+        Returns: {
+          active: boolean
+          created_at: string
+          description: string
+          features: string[]
+          highlight: boolean
+          id: string
+          max_properties: number | null
+          max_users: number | null
+          name: string
+          price_cents: number | null
+          sort_order: number
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "billing_plans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      billing_ensure_account: {
+        Args: { _org_id: string }
+        Returns: {
+          created_at: string
+          organization_id: string
+          stripe_customer_id: string | null
+          trial_ends_at: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "billing_accounts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      billing_limits_bypassed: { Args: never; Returns: boolean }
+      billing_raise_without_plan: { Args: never; Returns: undefined }
+      billing_status: { Args: { _org_id: string }; Returns: Json }
+      billing_suggest_plan: {
+        Args: { _properties: number; _users: number }
+        Returns: string
+      }
+      billing_usage: {
+        Args: { _org_id: string }
+        Returns: {
+          invites_pending: number
+          properties: number
+          users_active: number
+        }[]
       }
       can_access_contract_file: {
         Args: { _path: string; _user_id: string }

@@ -31,8 +31,9 @@ de credenciais fora do necessário.
 
 Nunca inserir secrets em código, logs, commits, PRs ou mensagens de erro.
 
-`SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY` e `RESEND_API_KEY` só podem
-existir em Edge Functions / ambiente server-side. Nunca com prefixo `VITE_`
+`SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`,
+`STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET` só podem existir em Edge
+Functions / ambiente server-side. Nunca com prefixo `VITE_`
 (tudo que tem esse prefixo é público no bundle) e nunca no `useEffect` de um
 componente React.
 
@@ -73,6 +74,12 @@ estender esse fluxo.
   `ANTHROPIC_API_KEY` (ver ADR-0003). Todas processam dado de organização; confirme que continuam
   escopando por `organization_id` derivado do usuário autenticado, não do
   prompt ou de parâmetro solto no body.
+- **Cobrança** (`manage-billing`, `billing-webhook`, tabelas `billing_*`, ADR-0007)
+  — estado de cobrança só é escrito pelo servidor; nunca abra escrita dessas
+  tabelas para `authenticated` nem aceite plano, status ou fim de teste vindos
+  do client. O webhook se autentica pela assinatura do Stripe e recusa tudo
+  sem `STRIPE_WEBHOOK_SECRET`. Limites de plano são gatilhos no banco: não
+  substitua por checagem de tela.
 
 ## Dependências
 

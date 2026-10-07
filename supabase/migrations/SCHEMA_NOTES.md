@@ -426,3 +426,42 @@ Nomes: as 4 FKs que a `0014` recriou com o sufixo `_lovable`
 `sellout_reports.property_id`, `sponsors.merged_into_sponsor_id`) voltam ao
 nome padrão `<tabela>_<coluna>_fkey` na `0023` — o mesmo que tinham na origem,
 onde eram declaradas inline. A definição não muda.
+
+## Cobrança e planos (0024, ADR-0007)
+
+Tabelas novas, não vindas do Lovable. Regras de negócio em
+`docs/business/cobranca.md`.
+
+| Tabela                  | O que é                                          | Leitura            | Escrita        |
+| ----------------------- | ------------------------------------------------ | ------------------ | -------------- |
+| `billing_plans`         | catálogo: preço e limites                         | pública (`anon`)   | só service role |
+| `billing_settings`      | linha única: dias e plano do teste               | ninguém pela API   | só service role |
+| `billing_accounts`      | 1 por organização: fim do teste, customer Stripe | owner/admin        | só servidor    |
+| `billing_subscriptions` | projeção das assinaturas do Stripe               | owner/admin        | só servidor    |
+| `billing_invoices`      | projeção das faturas do Stripe                   | owner/admin        | só servidor    |
+| `billing_stripe_events` | idempotência do webhook                          | ninguém pela API   | só servidor    |
+
+Padrão de RLS novo (8, "cobrança"): leitura `has_org_role(organization_id,
+['owner','admin'])`, nenhuma policy de escrita e `insert/update/delete`
+revogados de `authenticated` — estado de cobrança só é escrito pelas Edge
+Functions (service role) e pelos gatilhos. Os demais membros enxergam o
+resumo por `billing_status(_org_id)`, que exige `is_org_member`.
+
+Valores em português em `status`/`payment_method`, como no restante do schema.
+Preço em centavos; nulo em `price_cents` = "sob consulta". Nulo em
+`max_properties`/`max_users` = sem teto (no central-check era `0`; aqui nulo,
+para "zero" não significar "ilimitado").
+
+Gatilhos de limite: `trg_zz_billing_limit` em `sports_properties` (só raízes),
+`organization_invites` e `organization_members` (insert ou volta a `ativo`). O
+prefixo `zz` garante que rodem depois de `set_org_id`. `trg_billing_account`
+em `organizations` cria a conta com o teste; `billing_ensure_account` a cria
+sob demanda para organização importada sem gatilho.
+
+Suposições registradas:
+
+- Edição/temporada (`parent_property_id`) não conta como propriedade.
+- Convite pendente (`status = 'pendente'` e não expirado — o critério de
+  `handle_new_user`) ocupa vaga de usuário; o aceite de um convite pendente
+  nunca é bloqueado.
+- `inadimplente` (past_due) mantém o acesso enquanto o Stripe tenta cobrar.

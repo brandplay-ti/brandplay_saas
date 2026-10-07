@@ -58,7 +58,11 @@ Crie (uma vez) o projeto `brandplay`. Os quatro serviços abaixo vivem nele.
      `SMTP_ADMIN_EMAIL`, `SMTP_SENDER_NAME`) — o padrão `mail:1025` é o
      Mailpit, que não existe nos hospedados;
    - `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `RESEND_FROM_DOMAIN`,
-     `EMAIL_FROM` do ambiente.
+     `EMAIL_FROM` do ambiente;
+   - `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET` (chaves de teste em
+     homologação, live em produção). O endpoint do webhook no Stripe e o
+     portal do cliente são configurados no Dashboard do Stripe — passo a passo
+     em `docs/runbooks/cobranca.md`, "Configurar o Stripe num ambiente".
 6. **Domains**: `api.hml.<dominio>` → serviço `kong`, porta `8000`, HTTPS
    ligado (Let's Encrypt). Nenhum outro serviço do stack recebe domínio.
 7. **Deploy**. Espere **todos** os serviços ficarem saudáveis — `functions`

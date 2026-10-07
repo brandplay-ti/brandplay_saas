@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { PasswordInput } from "@/components/PasswordInput";
+import { usePlanLimitNotice } from "@/hooks/usePlanLimitNotice";
+import { readEdgeFunctionError } from "@/lib/edgeFunctionError";
 import {
   Select,
   SelectContent,
@@ -75,6 +77,7 @@ type Invite = {
 export const TeamManagement = () => {
   const { toast } = useToast();
   const { orgId, isAdmin, role: myRole, loading: orgLoading } = useOrganization();
+  const avisarLimiteDoPlano = usePlanLimitNotice();
 
   const [members, setMembers] = useState<Member[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
@@ -135,9 +138,13 @@ export const TeamManagement = () => {
     const { data, error } = await supabase.functions.invoke("manage-team-access", { body: payload });
     setBusy(false);
     if (error || data?.error) {
+      // O corpo do erro traz a mensagem real da função; `error.message` é só
+      // "non-2xx status code".
+      const corpo = await readEdgeFunctionError(error, data);
+      if (avisarLimiteDoPlano(corpo)) return false;
       toast({
         title: "Erro",
-        description: error?.message || data?.error || "Falha na operação",
+        description: corpo.error || "Falha na operação",
         variant: "destructive",
       });
       return false;
@@ -358,6 +365,7 @@ export const TeamManagement = () => {
                       value={createPassword}
                       onChange={(e) => setCreatePassword(e.target.value)}
                       placeholder="Ex: Bem-vindo123"
+                      autoComplete="new-password"
                     />
                   </div>
                   <div>
@@ -365,7 +373,6 @@ export const TeamManagement = () => {
                     <Select value={createRole} onValueChange={(v) => setCreateRole(v as OrgRole)}>
                       <SelectTrigger>
                         <SelectValue />
-                      autoComplete="new-password"
                       </SelectTrigger>
                       <SelectContent>
                         {ROLE_OPTIONS.map((r) => (

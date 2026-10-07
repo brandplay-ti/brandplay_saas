@@ -29,6 +29,7 @@ import PortalAccess from "./pages/dashboard/PortalAccess";
 import Settings from "./pages/dashboard/Settings";
 import Team from "./pages/dashboard/Team";
 import FailureLogs from "./pages/dashboard/FailureLogs";
+import Plan from "./pages/dashboard/Plan";
 import BrandTrackLayout from "./pages/dashboard/brandtrack/BrandTrackLayout";
 import BrandTrackDashboard from "./pages/dashboard/brandtrack/BrandTrackDashboard";
 import BrandTrackUploads from "./pages/dashboard/brandtrack/BrandTrackUploads";
@@ -98,6 +99,7 @@ const App = () => (
             <Route path="equipe" element={<Team />} />
             <Route path="logs-falhas" element={<FailureLogs />} />
             <Route path="configuracoes" element={<Settings />} />
+            <Route path="plano" element={<Plan />} />
             <Route path="brandtrack" element={<BrandTrackLayout />}>
               <Route index element={<BrandTrackDashboard />} />
               <Route path="uploads" element={<BrandTrackUploads />} />
