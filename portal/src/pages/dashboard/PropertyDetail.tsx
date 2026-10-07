@@ -78,6 +78,7 @@ import {
 } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
+import { dataLocal } from "@/lib/datas";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { SponsorSocialDashboard } from "@/components/sponsors/SponsorProfileFields";
@@ -85,7 +86,7 @@ import { SponsorSocialDashboard } from "@/components/sponsors/SponsorProfileFiel
 const fmtBRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s?: string | null) =>
-  s ? new Date(s).toLocaleDateString("pt-BR") : "—";
+  s ? dataLocal(s).toLocaleDateString("pt-BR") : "—";
 const fmtDateTime = (s?: string | null) =>
   s ? new Date(s).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—";
 
@@ -714,7 +715,7 @@ export default function PropertyDetail() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const overdue = checklistItems.filter(
-      (c) => c.status !== "concluido" && c.due_date && new Date(c.due_date) < today,
+      (c) => c.status !== "concluido" && c.due_date && dataLocal(c.due_date) < today,
     ).length;
     const pending = total - done;
     const pct = total > 0 ? Math.round((done / total) * 100) : 0;
@@ -724,7 +725,7 @@ export default function PropertyDetail() {
         if (!a.due_date && !b.due_date) return 0;
         if (!a.due_date) return 1;
         if (!b.due_date) return -1;
-        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+        return dataLocal(a.due_date).getTime() - dataLocal(b.due_date).getTime();
       })
       .slice(0, 5);
     return { total, done, pending, overdue, pct, upcoming, today };
@@ -1646,7 +1647,7 @@ export default function PropertyDetail() {
                       <ul className="space-y-1.5">
                         {checklistSummary.upcoming.map((item) => {
                           const isOverdue =
-                            item.due_date && new Date(item.due_date) < checklistSummary.today;
+                            item.due_date && dataLocal(item.due_date) < checklistSummary.today;
                           return (
                             <li
                               key={item.id}

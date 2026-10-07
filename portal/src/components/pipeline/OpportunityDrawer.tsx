@@ -54,6 +54,7 @@ import { OpportunityContactsPanel } from "@/components/pipeline/OpportunityConta
 import { getOpportunityStageChecklistIssues } from "@/lib/opportunityStageChecklist";
 import { MissingInfoDialog, focusMissingField, type MissingInfoState } from "@/components/common/MissingInfoDialog";
 import { getStageSyncUpdate, type JourneySnapshot } from "@/lib/opportunityJourneyStage";
+import { dataLocal } from "@/lib/datas";
 
 
 type Stage = Database["public"]["Enums"]["opportunity_stage"];
@@ -452,7 +453,7 @@ export function OpportunityDrawer({
         activity_type: newAct.activity_type,
         title: newAct.title.trim(),
         description: newAct.description || null,
-        due_date: newAct.due_date ? new Date(newAct.due_date).toISOString() : null,
+        due_date: newAct.due_date ? dataLocal(newAct.due_date).toISOString() : null,
       })
       .select()
       .single();
@@ -934,17 +935,17 @@ export function OpportunityDrawer({
   const JourneyPanel = () => {
     if (!opp) return null;
 
-    const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString("pt-BR") : null);
+    const fmtDate = (d?: string | null) => (d ? dataLocal(d).toLocaleDateString("pt-BR") : null);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const deliveriesDone = journey.deliveries.filter((d) => d.status === "entregue" || d.status === "aprovada");
     const deliveriesLate = journey.deliveries.filter(
-      (d) => d.due_date && new Date(d.due_date) < today && d.status !== "entregue" && d.status !== "aprovada",
+      (d) => d.due_date && dataLocal(d.due_date) < today && d.status !== "entregue" && d.status !== "aprovada",
     );
     const nextDelivery = journey.deliveries
       .filter((d) => d.status !== "entregue" && d.status !== "aprovada" && d.due_date)
-      .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime())[0];
+      .sort((a, b) => dataLocal(a.due_date!).getTime() - dataLocal(b.due_date!).getTime())[0];
     const allDelivered = journey.deliveries.length > 0 && deliveriesDone.length === journey.deliveries.length;
 
     const paidInstallments = installments.filter((i) => i.status === "pago" || i.paid_at);
@@ -952,11 +953,11 @@ export function OpportunityDrawer({
     const totalAmount = installments.reduce((s, i) => s + Number(i.amount || 0), 0);
     const nextInstallment = installments
       .filter((i) => !i.paid_at && i.status !== "pago" && i.status !== "cancelado")
-      .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0];
+      .sort((a, b) => dataLocal(a.due_date).getTime() - dataLocal(b.due_date).getTime())[0];
 
     const nextActivity = activities
       .filter((a) => a.status !== "concluida" && a.due_date)
-      .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime())[0];
+      .sort((a, b) => dataLocal(a.due_date!).getTime() - dataLocal(b.due_date!).getTime())[0];
 
     const tierName = tiers.find((t) => t.id === opp.tier_id)?.name;
 
@@ -985,7 +986,7 @@ export function OpportunityDrawer({
             ? [{
                 label: "Próxima atividade",
                 value: `${nextActivity.title} — ${fmtDate(nextActivity.due_date)}`,
-                tone: (new Date(nextActivity.due_date!) < today ? "warn" : "default") as StepInfo["tone"],
+                tone: (dataLocal(nextActivity.due_date!) < today ? "warn" : "default") as StepInfo["tone"],
               }]
             : [{ label: "Próxima atividade", value: "Nenhuma agendada", tone: "warn" as const }]),
         ],
@@ -1006,7 +1007,7 @@ export function OpportunityDrawer({
                 ? [{
                     label: "Válida até",
                     value: fmtDate(journey.proposal.valid_until)!,
-                    tone: (new Date(journey.proposal.valid_until) < today ? "warn" : "default") as StepInfo["tone"],
+                    tone: (dataLocal(journey.proposal.valid_until) < today ? "warn" : "default") as StepInfo["tone"],
                   }]
                 : []),
               ...(journey.proposal.decided_at ? [{ label: "Decisão em", value: fmtDate(journey.proposal.decided_at)! }] : []),
@@ -1038,7 +1039,7 @@ export function OpportunityDrawer({
                       ? [{
                           label: "Próxima parcela",
                           value: `#${nextInstallment.installment_number} — ${formatBRL(Number(nextInstallment.amount || 0))} em ${fmtDate(nextInstallment.due_date)}`,
-                          tone: (new Date(nextInstallment.due_date) < today ? "warn" : "default") as StepInfo["tone"],
+                          tone: (dataLocal(nextInstallment.due_date) < today ? "warn" : "default") as StepInfo["tone"],
                         }]
                       : []),
                   ]
@@ -1488,7 +1489,7 @@ export function OpportunityDrawer({
                     const meta = ACTIVITY_TYPES.find((t) => t.id === a.activity_type);
                     const Icon = meta?.icon ?? StickyNote;
                     const overdue =
-                      a.due_date && a.status === "pendente" && new Date(a.due_date) < new Date();
+                      a.due_date && a.status === "pendente" && dataLocal(a.due_date) < new Date();
                     return (
                       <div
                         key={a.id}

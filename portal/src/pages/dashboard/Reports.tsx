@@ -58,6 +58,7 @@ import { RevenueForecastWidget } from "@/components/dashboard/RevenueForecastWid
 import { QuotaHeatmapWidget } from "@/components/dashboard/QuotaHeatmapWidget";
 import { TicketBenchmarkWidget } from "@/components/dashboard/TicketBenchmarkWidget";
 import { ROIWidget } from "@/components/dashboard/ROIWidget";
+import { dataLocal } from "@/lib/datas";
 
 
 const fmtMoney = (n: number) =>
@@ -256,7 +257,7 @@ export default function Reports() {
       months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: fmtMonth(d), recebido: 0, previsto: 0 });
     }
     filteredInstallments.forEach((i) => {
-      const d = new Date(i.due_date);
+      const d = dataLocal(i.due_date);
       const key = `${d.getFullYear()}-${d.getMonth()}`;
       const m = months.find((x) => x.key === key);
       if (!m) return;

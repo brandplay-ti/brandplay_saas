@@ -40,6 +40,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import { dataLocal } from "@/lib/datas";
 
 type InstallmentStatus = "pendente" | "pago" | "atrasado" | "cancelado";
 
@@ -208,7 +209,7 @@ export default function Finance() {
 
   const reopenInstallment = async () => {
     if (!selected) return;
-    const overdue = new Date(selected.due_date) < new Date(new Date().toDateString());
+    const overdue = dataLocal(selected.due_date) < new Date(new Date().toDateString());
     const { error } = await supabase
       .from("installments")
       .update({

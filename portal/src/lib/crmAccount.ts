@@ -1,3 +1,5 @@
+import { dataLocal } from "@/lib/datas";
+
 export type Lifecycle =
   | "prospect"
   | "em_abordagem"
@@ -86,11 +88,11 @@ export const formatBRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 export const formatDate = (v?: string | null) =>
-  v ? new Date(v).toLocaleDateString("pt-BR") : "—";
+  v ? dataLocal(v).toLocaleDateString("pt-BR") : "—";
 
 export const daysSince = (v?: string | null) => {
   if (!v) return null;
-  const diff = Date.now() - new Date(v).getTime();
+  const diff = Date.now() - dataLocal(v).getTime();
   return Math.floor(diff / 86400000);
 };
 

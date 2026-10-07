@@ -224,13 +224,31 @@ Deno.serve(async (req) => {
     if (body.action === "create_user") {
       if (!ROLES.includes(body.role)) throw new Error("Papel inválido");
       const email = body.email.trim().toLowerCase();
+
+      // Convite pendente ANTES de criar o usuário. O gatilho handle_new_user
+      // aceita convite pendente do e-mail e vincula o membro à organização;
+      // sem convite, ele cria uma organização pessoal — e o membro ganhava
+      // uma segunda organização, só dele, com o nome desta.
+      //
+      // `app_metadata` não serve como sinal: o GoTrue grava o usuário primeiro
+      // e o app_metadata num passo seguinte, e o gatilho roda no INSERT.
+      const { data: convite, error: conviteErr } = await admin
+        .from("organization_invites")
+        .insert({ organization_id: body.organization_id, email, role: body.role as any, invited_by: userId })
+        .select("id")
+        .single();
+      if (conviteErr) throw conviteErr;
+
       const { data: created, error: createErr } = await admin.auth.admin.createUser({
         email,
         password: body.password,
         email_confirm: true,
         user_metadata: { full_name: body.full_name ?? "", company: orgName },
       });
-      if (createErr) throw createErr;
+      if (createErr) {
+        await admin.from("organization_invites").update({ status: "revogado" }).eq("id", convite.id);
+        throw createErr;
+      }
       const newUserId = created.user!.id;
 
       const { error: memberErr } = await admin

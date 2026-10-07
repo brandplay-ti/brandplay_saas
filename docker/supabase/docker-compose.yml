@@ -426,6 +426,10 @@ services:
       # Base dos links que saem por e-mail. Vem do ambiente, e nao do corpo da
       # requisicao: quem chama nao escolhe para onde o link aponta.
       APP_URL: ${APP_URL:-${SITE_URL}}
+      # Base dos links do portal do patrocinador (`manage-portal-access`). E o
+      # mesmo dominio do portal; sem a variavel, a funcao caia no `Origin` da
+      # requisicao.
+      PORTAL_URL: ${PORTAL_URL:-${SITE_URL}}
     command: ['start', '--main-service', '/home/deno/functions/main']
 
   db:

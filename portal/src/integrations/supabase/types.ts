@@ -1,3 +1,6 @@
+// Gerado por supabase/tools/gerar-types.mjs a partir de supabase/migrations/.
+// Não edite: aplique a migration e rode `npm run supabase:types`.
+
 export type Json =
   | string
   | number
@@ -7,11 +10,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.15"
-  }
   public: {
     Tables: {
       ai_conversations: {
@@ -42,7 +40,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_messages: {
         Row: {
@@ -140,7 +146,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_suggestions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       asset_allocations: {
         Row: {
@@ -170,6 +184,13 @@ export type Database = {
             columns: ["asset_id"]
             isOneToOne: false
             referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_allocations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
@@ -215,6 +236,13 @@ export type Database = {
             columns: ["asset_id"]
             isOneToOne: false
             referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_photos_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -276,6 +304,13 @@ export type Database = {
             referencedRelation: "sponsors"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "assets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       backend_error_logs: {
@@ -333,7 +368,15 @@ export type Database = {
           user_email?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "backend_error_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       brandtrack_brands: {
         Row: {
@@ -370,6 +413,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "brandtrack_brands_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "brandtrack_brands_sponsor_id_fkey"
             columns: ["sponsor_id"]
@@ -476,6 +526,13 @@ export type Database = {
             referencedRelation: "brandtrack_media"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "brandtrack_detections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       brandtrack_event_brands: {
@@ -540,6 +597,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "brandtrack_event_brands_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "brandtrack_event_brands_sponsor_id_fkey"
             columns: ["sponsor_id"]
             isOneToOne: false
@@ -583,6 +647,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "brandtrack_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "brandtrack_events_property_id_fkey"
             columns: ["property_id"]
@@ -661,6 +732,13 @@ export type Database = {
             referencedRelation: "brandtrack_events"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "brandtrack_media_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       contract_assets: {
@@ -712,6 +790,13 @@ export type Database = {
             referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contract_assets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       contract_churn_risk: {
@@ -756,6 +841,13 @@ export type Database = {
             referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contract_churn_risk_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       contract_clause_templates: {
@@ -786,7 +878,15 @@ export type Database = {
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contract_clause_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contract_clauses: {
         Row: {
@@ -822,6 +922,13 @@ export type Database = {
             columns: ["contract_id"]
             isOneToOne: false
             referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_clauses_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -923,6 +1030,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contracts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contracts_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
@@ -1008,6 +1122,13 @@ export type Database = {
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_tasks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
@@ -1124,6 +1245,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "deliveries_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "deliveries_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
@@ -1131,7 +1259,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "deliveries_sponsor_id_fkey"
+            foreignKeyName: "deliveries_sponsor_id_fkey_lovable"
             columns: ["sponsor_id"]
             isOneToOne: false
             referencedRelation: "sponsors"
@@ -1176,6 +1304,13 @@ export type Database = {
             columns: ["delivery_id"]
             isOneToOne: false
             referencedRelation: "deliveries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_approval_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -1237,6 +1372,13 @@ export type Database = {
             referencedRelation: "deliveries"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "delivery_attachments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       error_reports: {
@@ -1285,7 +1427,15 @@ export type Database = {
           user_email?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "error_reports_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       installments: {
         Row: {
@@ -1351,7 +1501,14 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "installments_sponsor_id_fkey"
+            foreignKeyName: "installments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_sponsor_id_fkey_lovable"
             columns: ["sponsor_id"]
             isOneToOne: false
             referencedRelation: "sponsors"
@@ -1416,6 +1573,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "lead_scores_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lead_scores_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
@@ -1458,7 +1622,15 @@ export type Database = {
           organization_id?: string
           segment?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "market_benchmarks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_preferences: {
         Row: {
@@ -1536,7 +1708,15 @@ export type Database = {
           title?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notifications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       opportunities: {
         Row: {
@@ -1545,6 +1725,7 @@ export type Database = {
           converted_contract_id: string | null
           converted_proposal_id: string | null
           created_at: string
+          decided_at: string | null
           expected_close_date: string | null
           id: string
           last_stage_change_at: string
@@ -1570,6 +1751,7 @@ export type Database = {
           converted_contract_id?: string | null
           converted_proposal_id?: string | null
           created_at?: string
+          decided_at?: string | null
           expected_close_date?: string | null
           id?: string
           last_stage_change_at?: string
@@ -1595,6 +1777,7 @@ export type Database = {
           converted_contract_id?: string | null
           converted_proposal_id?: string | null
           created_at?: string
+          decided_at?: string | null
           expected_close_date?: string | null
           id?: string
           last_stage_change_at?: string
@@ -1627,6 +1810,13 @@ export type Database = {
             columns: ["converted_proposal_id"]
             isOneToOne: false
             referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
@@ -1710,6 +1900,13 @@ export type Database = {
             referencedRelation: "opportunities"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "opportunity_activities_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       opportunity_audit_logs: {
@@ -1752,7 +1949,15 @@ export type Database = {
           organization_id?: string
           to_stage?: Database["public"]["Enums"]["opportunity_stage"] | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       opportunity_comment_attachments: {
         Row: {
@@ -1791,7 +1996,29 @@ export type Database = {
           storage_path?: string
           uploaded_by?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_comment_attachments_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunity_comment_attachments_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunity_comment_attachments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       opportunity_comments: {
         Row: {
@@ -1827,7 +2054,22 @@ export type Database = {
           organization_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_comments_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunity_comments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       opportunity_contacts: {
         Row: {
@@ -1881,6 +2123,13 @@ export type Database = {
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunity_contacts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -2266,6 +2515,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "property_checklist_items_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "property_checklist_items_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
@@ -2328,6 +2584,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "property_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "property_events_property_id_fkey"
             columns: ["property_id"]
@@ -2395,6 +2658,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "property_leads_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "property_leads_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
@@ -2458,6 +2728,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "property_media_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "property_media_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
@@ -2515,6 +2792,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "proposal_items_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "proposal_items_proposal_id_fkey"
             columns: ["proposal_id"]
             isOneToOne: false
@@ -2564,6 +2848,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "proposal_versions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "proposal_versions_proposal_id_fkey"
             columns: ["proposal_id"]
@@ -2665,6 +2956,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "proposals_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "proposals_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
@@ -2726,7 +3024,14 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "sellout_reports_property_id_fkey"
+            foreignKeyName: "sellout_reports_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sellout_reports_property_id_fkey_lovable"
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "sports_properties"
@@ -2774,7 +3079,22 @@ export type Database = {
           source?: Database["public"]["Enums"]["crm_audit_source"]
           sponsor_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sponsor_audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsor_audit_logs_sponsor_id_fkey"
+            columns: ["sponsor_id"]
+            isOneToOne: false
+            referencedRelation: "sponsors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sponsor_brands: {
         Row: {
@@ -2828,6 +3148,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sponsor_brands_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sponsor_brands_sponsor_id_fkey"
             columns: ["sponsor_id"]
             isOneToOne: false
@@ -2875,6 +3202,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "sponsor_brandtrack_profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sponsor_brandtrack_profiles_sponsor_id_fkey"
             columns: ["sponsor_id"]
             isOneToOne: true
@@ -2918,6 +3252,13 @@ export type Database = {
           sponsor_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sponsor_contacts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sponsor_contacts_sponsor_id_fkey"
             columns: ["sponsor_id"]
@@ -2969,6 +3310,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "sponsor_contract_profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sponsor_contract_profiles_sponsor_id_fkey"
             columns: ["sponsor_id"]
             isOneToOne: true
@@ -3019,6 +3367,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "sponsor_crm_profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sponsor_crm_profiles_sponsor_id_fkey"
             columns: ["sponsor_id"]
             isOneToOne: true
@@ -3062,6 +3417,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sponsor_delivery_profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sponsor_delivery_profiles_sponsor_id_fkey"
             columns: ["sponsor_id"]
@@ -3128,6 +3490,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "sponsor_documents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sponsor_documents_sponsor_id_fkey"
             columns: ["sponsor_id"]
             isOneToOne: false
@@ -3165,6 +3534,13 @@ export type Database = {
           summary?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sponsor_executive_summaries_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sponsor_executive_summaries_sponsor_id_fkey"
             columns: ["sponsor_id"]
@@ -3212,6 +3588,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sponsor_finance_profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sponsor_finance_profiles_sponsor_id_fkey"
             columns: ["sponsor_id"]
@@ -3296,6 +3679,48 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "sponsor_interactions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsor_interactions_related_contract_id_fkey"
+            columns: ["related_contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsor_interactions_related_delivery_id_fkey"
+            columns: ["related_delivery_id"]
+            isOneToOne: false
+            referencedRelation: "deliveries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsor_interactions_related_installment_id_fkey"
+            columns: ["related_installment_id"]
+            isOneToOne: false
+            referencedRelation: "installments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsor_interactions_related_opportunity_id_fkey"
+            columns: ["related_opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsor_interactions_related_proposal_id_fkey"
+            columns: ["related_proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sponsor_interactions_sponsor_id_fkey"
             columns: ["sponsor_id"]
             isOneToOne: false
@@ -3346,6 +3771,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "sponsor_invites_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sponsor_invites_sponsor_id_fkey"
             columns: ["sponsor_id"]
             isOneToOne: false
@@ -3386,6 +3818,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sponsor_portal_access_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sponsor_portal_access_sponsor_id_fkey"
             columns: ["sponsor_id"]
@@ -3430,6 +3869,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sponsor_portal_profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sponsor_portal_profiles_sponsor_id_fkey"
             columns: ["sponsor_id"]
@@ -3477,6 +3923,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sponsor_proposal_profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sponsor_proposal_profiles_sponsor_id_fkey"
             columns: ["sponsor_id"]
@@ -3618,10 +4071,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "sponsors_merged_into_sponsor_id_fkey"
+            foreignKeyName: "sponsors_merged_into_sponsor_id_fkey_lovable"
             columns: ["merged_into_sponsor_id"]
             isOneToOne: false
             referencedRelation: "sponsors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsors_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -3676,6 +4136,13 @@ export type Database = {
           value?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "sponsorship_tiers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sponsorship_tiers_property_id_fkey"
             columns: ["property_id"]
@@ -3781,6 +4248,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "sports_properties_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sports_properties_parent_property_id_fkey"
             columns: ["parent_property_id"]
             isOneToOne: false
@@ -3837,6 +4311,13 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "team_audit_log_target_member_id_fkey"
+            columns: ["target_member_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["id"]
+          },
         ]
       }
       tier_assets: {
@@ -3870,6 +4351,13 @@ export type Database = {
             columns: ["asset_id"]
             isOneToOne: false
             referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tier_assets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
@@ -3930,6 +4418,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tier_sales_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tier_sales_sponsor_id_fkey"
             columns: ["sponsor_id"]
             isOneToOne: false
@@ -3964,7 +4459,15 @@ export type Database = {
           user_id?: string
           widgets?: Json
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_dashboard_preferences_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -4009,7 +4512,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_stage_probabilities_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -4045,6 +4556,10 @@ export type Database = {
           _write: boolean
         }
         Returns: boolean
+      }
+      copy_opportunity_tier_to_contract: {
+        Args: { _contract_id: string; _opportunity_id: string }
+        Returns: undefined
       }
       copy_opportunity_tier_to_proposal: {
         Args: { _opportunity_id: string; _proposal_id: string }
@@ -4099,14 +4614,19 @@ export type Database = {
         }[]
       }
       get_user_org: { Args: { _user_id: string }; Returns: string }
-      has_org_role: {
-        Args: {
-          _org_id: string
-          _roles: Database["public"]["Enums"]["org_role"][]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      has_org_role:
+        | {
+            Args: {
+              _org_id: string
+              _roles: Database["public"]["Enums"]["org_role"][]
+              _user_id: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: { allowed_roles: string[]; target_org_id: string }
+            Returns: boolean
+          }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -4118,16 +4638,27 @@ export type Database = {
         Args: { _sponsor_id: string; _user_id: string }
         Returns: boolean
       }
+      has_sponsor_portal_access: {
+        Args: { target_sponsor_id: string }
+        Returns: boolean
+      }
       is_asset_publicly_visible: {
-        Args: { _asset_id: string }
+        Args: { target_asset_id: string }
         Returns: boolean
       }
-      is_org_member: {
-        Args: { _org_id: string; _user_id: string }
-        Returns: boolean
-      }
+      is_org_member:
+        | { Args: { _org_id: string; _user_id: string }; Returns: boolean }
+        | { Args: { target_org_id: string }; Returns: boolean }
       is_property_published: {
-        Args: { _property_id: string }
+        Args: { target_property_id: string }
+        Returns: boolean
+      }
+      is_sponsor_publicly_visible: {
+        Args: { target_sponsor_id: string }
+        Returns: boolean
+      }
+      is_tier_publicly_visible: {
+        Args: { target_tier_id: string }
         Returns: boolean
       }
       log_sponsor_interaction: {
@@ -4154,6 +4685,9 @@ export type Database = {
         Args: { _duplicate_id: string; _target_id: string }
         Returns: Json
       }
+      safe_uuid: { Args: { value: string }; Returns: string }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       sync_opportunity_contact_to_sponsor: {
         Args: { _contact_id: string }
         Returns: undefined
@@ -4165,6 +4699,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      unaccent: { Args: { "": string }; Returns: string }
       unarchive_sponsor: {
         Args: {
           _lifecycle?: Database["public"]["Enums"]["sponsor_lifecycle"]

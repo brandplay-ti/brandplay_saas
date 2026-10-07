@@ -32,11 +32,12 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AssetCatalogToolbar, filterAndSortAssets, type AssetSortBy, type AssetViewMode } from "@/components/assets/AssetCatalogToolbar";
+import { dataLocal } from "@/lib/datas";
 
 const fmtBRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s?: string | null) =>
-  s ? new Date(s).toLocaleDateString("pt-BR") : "—";
+  s ? dataLocal(s).toLocaleDateString("pt-BR") : "—";
 
 interface PublicProperty {
   id: string;

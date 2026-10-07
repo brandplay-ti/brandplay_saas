@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Camera, Calendar, MapPin, CheckCircle2, AlertCircle, Clock, Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { dataLocal } from "@/lib/datas";
 
 type Delivery = {
   id: string;
@@ -147,7 +148,7 @@ const FieldDeliveries = () => {
               {list.map((d) => {
                 const cfg = statusConfig[d.status] || statusConfig.pendente;
                 const Icon = cfg.icon;
-                const overdue = d.due_date && new Date(d.due_date) < new Date() && d.status !== "entregue" && d.status !== "aprovada";
+                const overdue = d.due_date && dataLocal(d.due_date) < new Date() && d.status !== "entregue" && d.status !== "aprovada";
                 return (
                   <Link key={d.id} to={`/campo/entregas/${d.id}`}>
                     <Card className="p-4 active:scale-[0.99] transition-transform">
@@ -174,7 +175,7 @@ const FieldDeliveries = () => {
                         {d.due_date && (
                           <span className={`text-[10px] flex items-center gap-1 ${overdue ? "text-red-600 dark:text-red-400 font-semibold" : "text-muted-foreground"}`}>
                             <Calendar className="w-3 h-3" />
-                            {new Date(d.due_date).toLocaleDateString("pt-BR")}
+                            {dataLocal(d.due_date).toLocaleDateString("pt-BR")}
                           </span>
                         )}
                       </div>

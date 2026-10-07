@@ -18,6 +18,7 @@ import { CheckCircle2, Clock, FileCheck, FolderKanban, XCircle } from "lucide-re
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { dataLocal } from "@/lib/datas";
 
 interface Delivery {
   id: string;
@@ -224,13 +225,13 @@ export default function PortalDeliveries() {
                           {d.due_date && (
                             <span>
                               Prazo:{" "}
-                              {format(new Date(d.due_date), "dd MMM yyyy", { locale: ptBR })}
+                              {format(dataLocal(d.due_date), "dd MMM yyyy", { locale: ptBR })}
                             </span>
                           )}
                           {d.delivered_at && (
                             <span>
                               Entregue:{" "}
-                              {format(new Date(d.delivered_at), "dd MMM yyyy", { locale: ptBR })}
+                              {format(dataLocal(d.delivered_at), "dd MMM yyyy", { locale: ptBR })}
                             </span>
                           )}
                         </div>

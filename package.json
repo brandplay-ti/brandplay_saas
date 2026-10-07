@@ -27,6 +27,7 @@
     "supabase:seed": "docker compose --env-file docker/supabase/.env -f docker/supabase/docker-compose.yml -f docker/supabase/docker-compose.local.yml exec -T db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres -f /supabase/seed/00-seed.sql",
     "supabase:test": "docker compose --env-file docker/supabase/.env -f docker/supabase/docker-compose.yml -f docker/supabase/docker-compose.local.yml exec -T db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres -f /supabase/tests/seguranca.sql",
     "supabase:bundle": "node supabase/tools/gerar-bundle.mjs",
+    "supabase:types": "node supabase/tools/gerar-types.mjs",
     "supabase:chaves": "node supabase/tools/gerar-chaves-locais.mjs",
     "supabase:chave-de-papel": "node supabase/tools/gerar-chave-de-papel.mjs",
     "supabase:checar": "node supabase/tools/checar-supabase.mjs"
