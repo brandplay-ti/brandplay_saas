@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { PasswordInput } from "@/components/PasswordInput";
 import {
   Select,
   SelectContent,
@@ -351,9 +352,9 @@ export const TeamManagement = () => {
                     <Input type="email" value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} />
                   </div>
                   <div>
-                    <Label>Senha temporária (mín. 6 caracteres)</Label>
-                    <Input
-                      type="text"
+                    <Label htmlFor="create-password">Senha temporária (mín. 6 caracteres)</Label>
+                    <PasswordInput
+                      id="create-password"
                       value={createPassword}
                       onChange={(e) => setCreatePassword(e.target.value)}
                       placeholder="Ex: Bem-vindo123"
@@ -364,6 +365,7 @@ export const TeamManagement = () => {
                     <Select value={createRole} onValueChange={(v) => setCreateRole(v as OrgRole)}>
                       <SelectTrigger>
                         <SelectValue />
+                      autoComplete="new-password"
                       </SelectTrigger>
                       <SelectContent>
                         {ROLE_OPTIONS.map((r) => (
