@@ -421,7 +421,7 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM_DOMAIN: ${RESEND_FROM_DOMAIN:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
-      # IA (ADR-0003): substitui o gateway proprietario do Lovable Cloud.
+      # IA (ADR-0003): as Edge Functions chamam a API da Anthropic direto.
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       # Base dos links que saem por e-mail. Vem do ambiente, e nao do corpo da
       # requisicao: quem chama nao escolhe para onde o link aponta.

@@ -157,8 +157,8 @@ o arquivo.
 Arquivos em `portal/` que existem para isso e não devem ser removidos:
 
 - **`scripts/checar-build.mjs`** — para o build quando as variáveis do
-  Supabase faltam, estão sob o nome errado (os do Lovable, ou os que o modal
-  "Connect" do Studio sugere), não têm esquema ou apontam para `localhost`.
+  Supabase faltam, estão sob o nome errado (os que o modal "Connect" do Studio
+  sugere), não têm esquema ou apontam para `localhost`.
   Roda nos dois caminhos de build e **não** é `prebuild`: localmente o Vite lê
   `.env.local` sozinho e a checagem recusaria um build local correto.
 - **`scripts/checar-node.mjs`** (`prebuild`), e o mesmo major em

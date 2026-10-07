@@ -1,6 +1,5 @@
-// Cliente único do Supabase no portal. Era gerado pelo Lovable; desde a saída
-// dele (ADR-0001/0006) é mantido aqui. As variáveis são embutidas no build —
-// ver docs/architecture/deployment.md.
+// Cliente único do Supabase no portal, mantido à mão (não é gerado). As
+// variáveis são embutidas no build — ver docs/architecture/deployment.md.
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 

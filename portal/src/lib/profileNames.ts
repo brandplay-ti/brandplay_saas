@@ -5,8 +5,8 @@ type ComPerfil<T> = T & { profiles: { full_name: string | null } | null };
 /**
  * Anexa `profiles.full_name` a linhas que têm `user_id`.
  *
- * Não existe FK de organization_members/sponsor_portal_access para profiles
- * (nem no banco original do Lovable), então o embed do PostgREST
+ * Não existe FK de organization_members/sponsor_portal_access para profiles,
+ * então o embed do PostgREST
  * `profiles(full_name)` falha com PGRST200 e a tela inteira fica sem dados.
  * Esta função faz a segunda consulta e devolve as linhas no mesmo formato que
  * o embed devolveria.

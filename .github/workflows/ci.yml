@@ -23,12 +23,12 @@ jobs:
 
       - run: npm ci
 
-      # NAO bloqueante, por enquanto. O codigo herdado do Lovable chega com ~250
-      # erros de lint (quase todos `no-explicit-any`). Bloquear aqui travaria
-      # todo PR por divida que nao e dele. O passo continua rodando para o
-      # numero ficar visivel no log; quando zerar, remova o `continue-on-error`
-      # — ver docs/infrastructure/cicd.md, secao "Divida conhecida".
-      - name: Lint (nao bloqueante — divida herdada do Lovable)
+      # NAO bloqueante, por enquanto. O codigo herdado chega com ~250 erros de
+      # lint (quase todos `no-explicit-any`). Bloquear aqui travaria todo PR
+      # por divida que nao e dele. O passo continua rodando para o numero
+      # ficar visivel no log; quando zerar, remova o `continue-on-error` — ver
+      # docs/infrastructure/cicd.md, secao "Divida conhecida".
+      - name: Lint (nao bloqueante — divida herdada)
         run: npm run lint
         continue-on-error: true
 

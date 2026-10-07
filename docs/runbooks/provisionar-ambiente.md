@@ -94,7 +94,7 @@ comando na VPS) e confira com a seção "Conferir" de lá.
    ```
 
    O build **para** com a explicação se faltar uma delas, se estiverem com o
-   nome do Lovable/Studio (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`),
+   nome que o Studio sugere (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`),
    sem `https://` ou apontando para `localhost`.
 
 6. **Domains**: `hml.<dominio>` → porta `3000`, HTTPS ligado.

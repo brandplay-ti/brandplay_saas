@@ -5,11 +5,9 @@
 //
 // ─── Por que isto existe ─────────────────────────────────────────────
 //
-// O `types.ts` era gerado pelo Lovable a partir do banco DELE. Com o schema
-// versionado em `supabase/migrations/`, a fonte de verdade passou a ser este
-// repositório: depois de uma migration, regenere o arquivo para o frontend
-// enxergar a mudança — e o `type-check` acusar quem usa coluna que deixou de
-// existir.
+// O schema é versionado em `supabase/migrations/`, e o `types.ts` deriva dele:
+// depois de uma migration, regenere o arquivo para o frontend enxergar a
+// mudança — e o `type-check` acusar quem usa coluna que deixou de existir.
 //
 // O gerador é o `postgres-meta` do próprio stack (o mesmo que o Studio usa),
 // alcançado pela rota `/pg/` do Kong com a service role. Nada é instalado e

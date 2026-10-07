@@ -420,3 +420,9 @@ Bugs do Lovable reproduzidos no replay das migrations reais e corrigidos aqui:
 - `0019`: lead do media kit público falhava para visitante anônimo, a
   oportunidade herdava o `owner_id` enviado pelo formulário, e o vínculo
   lead → oportunidade se perdia pela ordem dos triggers.
+
+Nomes: as 4 FKs que a `0014` recriou com o sufixo `_lovable`
+(`deliveries.sponsor_id`, `installments.sponsor_id`,
+`sellout_reports.property_id`, `sponsors.merged_into_sponsor_id`) voltam ao
+nome padrão `<tabela>_<coluna>_fkey` na `0023` — o mesmo que tinham na origem,
+onde eram declaradas inline. A definição não muda.

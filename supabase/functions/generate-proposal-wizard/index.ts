@@ -138,8 +138,7 @@ ${body.extra_context ? `CONTEXTO ADICIONAL: ${body.extra_context}` : ""}`;
       const t = await aiResp.text();
       console.error("AI error", aiResp.status, t);
       if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Limite de uso da IA atingido." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (aiResp.status === 402) return new Response(JSON.stringify({ error: "Créditos da IA esgotados." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      throw new Error(`AI gateway: ${aiResp.status}`);
+      throw new Error(`Anthropic API: ${aiResp.status}`);
     }
 
     const aiData = await aiResp.json();

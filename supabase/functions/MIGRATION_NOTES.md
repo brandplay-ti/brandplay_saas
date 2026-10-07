@@ -125,6 +125,10 @@ modelo "lite"/"flash-lite" explícito de baixo custo); por isso foram tratadas c
   (`{type:"error", error:{type, message}}`), não como `402`. Não foi adicionado
   tratamento específico para esse caso porque não fazia parte do comportamento original
   a ser preservado; considerar revisitar isso com testes reais contra a chave de produção.
+  **Atualização (2026-10-07):** os ramos de `402` foram removidos das 11 funções. Eram
+  código morto contra a Anthropic, e as mensagens mandavam o usuário à tela de créditos
+  do workspace do Lovable, que não existe neste produto. Falta de saldo continua caindo
+  no erro genérico de cada função, como já caía.
 - **`response_format`/`json_schema` com `strict: true`**: ver seção acima — trocado por
   instrução no prompt + parse defensivo, sem garantia "hard" de schema.
 - **Forçar uma única tool (`tool_choice`)**: mapeado 1:1 para

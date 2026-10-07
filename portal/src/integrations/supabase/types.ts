@@ -1259,7 +1259,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "deliveries_sponsor_id_fkey_lovable"
+            foreignKeyName: "deliveries_sponsor_id_fkey"
             columns: ["sponsor_id"]
             isOneToOne: false
             referencedRelation: "sponsors"
@@ -1508,7 +1508,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "installments_sponsor_id_fkey_lovable"
+            foreignKeyName: "installments_sponsor_id_fkey"
             columns: ["sponsor_id"]
             isOneToOne: false
             referencedRelation: "sponsors"
@@ -3031,7 +3031,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "sellout_reports_property_id_fkey_lovable"
+            foreignKeyName: "sellout_reports_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "sports_properties"
@@ -4071,7 +4071,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "sponsors_merged_into_sponsor_id_fkey_lovable"
+            foreignKeyName: "sponsors_merged_into_sponsor_id_fkey"
             columns: ["merged_into_sponsor_id"]
             isOneToOne: false
             referencedRelation: "sponsors"

@@ -62,8 +62,7 @@ dados) e isolamento entre organizações com usuários reais (roteiro comentado 
 
 ### Dívida conhecida
 
-- **Lint não bloqueante.** O código herdado do Lovable chega com ~250 erros de
-  ESLint, quase todos `@typescript-eslint/no-explicit-any`. O passo roda com
+- **Lint não bloqueante.** O código herdado chega com ~250 erros de ESLint, quase todos `@typescript-eslint/no-explicit-any`. O passo roda com
   `continue-on-error` para o número ficar visível; quando zerar, remova a
   flag. Código novo não deve aumentar a contagem.
 - **Prettier fora do CI.** `.prettierrc.json` é o mesmo do central-check, mas

@@ -117,10 +117,9 @@ O npm roda em workspaces: os comandos do portal (`dev`, `build`, `lint`,
 
 ### Integrações
 
-- Anthropic API (`ANTHROPIC_API_KEY`) para as funcionalidades de IA — em
-  migração do gateway proprietário do Lovable (ADR-0003). Enquanto a migração
-  não terminar, pode haver Edge Functions ainda referenciando o gateway antigo;
-  não assuma que todas já foram convertidas sem checar o arquivo.
+- Anthropic API (`ANTHROPIC_API_KEY`) para as funcionalidades de IA, chamada
+  direto pelas Edge Functions (ADR-0003; histórico da conversão em
+  `supabase/functions/MIGRATION_NOTES.md`).
 - Resend (e-mail transacional) — chave apenas em Edge Functions.
 
 ### Infraestrutura

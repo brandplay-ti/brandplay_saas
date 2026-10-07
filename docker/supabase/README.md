@@ -1,8 +1,8 @@
 # Supabase self-hosted (local, homologação e produção)
 
 Stack Docker do Supabase self-hosted, alinhado ao
-[ADR-0001](../../docs/adr/0001-sair-do-lovable-cloud.md). Substitui o Supabase
-remoto do Lovable Cloud. É o **mesmo** compose nos três ambientes — o padrão
+[ADR-0001](../../docs/adr/0001-sair-do-lovable-cloud.md). É o **mesmo**
+compose nos três ambientes — o padrão
 herdado do central-check, descrito em
 [`docs/infrastructure/padrao-de-projeto.md`](../../docs/infrastructure/padrao-de-projeto.md).
 
@@ -76,7 +76,7 @@ VITE_PUBLIC_SUPABASE_ANON_KEY="<ANON_KEY do docker/supabase/.env>"
 
 `npm run dev` **recusa** subir apontando para um Supabase que não seja
 `localhost` (guarda em `portal/vite.config.ts`): desenvolvimento roda contra o
-stack local, nunca contra o Lovable Cloud nem contra homologação.
+stack local, nunca contra homologação ou produção.
 
 ## Estrutura
 

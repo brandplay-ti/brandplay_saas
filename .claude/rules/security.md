@@ -69,8 +69,8 @@ estender esse fluxo.
   internet — nunca exponha ali um campo que não esteja explicitamente
   destinado a ser público.
 - **Edge Functions de IA** (`ai-assistant`, `score-leads`,
-  `generate-proposal-ai`, etc.) — em migração para `ANTHROPIC_API_KEY` (ver
-  ADR-0003). Todas processam dado de organização; confirme que continuam
+  `generate-proposal-ai`, etc.) — chamam a Anthropic API com
+  `ANTHROPIC_API_KEY` (ver ADR-0003). Todas processam dado de organização; confirme que continuam
   escopando por `organization_id` derivado do usuário autenticado, não do
   prompt ou de parâmetro solto no body.
 

@@ -19,8 +19,8 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   derivar `user.id` dele e escopar toda consulta por organização. Nunca devem
   confiar em `organization_id`/`user_id` vindos do corpo da requisição.
   Funções de IA (`ai-assistant`, `score-leads`, `generate-proposal-ai`, entre
-  outras) estão em migração do gateway do Lovable para a Anthropic API
-  (ADR-0003) — `ANTHROPIC_API_KEY` só existe nesse ambiente server-side.
+  outras) chamam a Anthropic API diretamente (ADR-0003) —
+  `ANTHROPIC_API_KEY` só existe nesse ambiente server-side.
 - **Portal do patrocinador.** Usuários com `sponsor_portal_access` ativo
   acessam contratos, entregas, parcelas, propostas e documentos de **um**
   patrocinador específico, sem serem membros da organização dona dele. É um
