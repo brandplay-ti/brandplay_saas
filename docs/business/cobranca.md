@@ -16,7 +16,8 @@ O portal do patrocinador não é afetado pela cobrança.
 
 ## Catálogo
 
-Fonte: tabela `billing_plans`. Os valores abaixo são os da migration `0024`.
+Fonte: tabela `billing_plans`, editada pelo superadmin em `/admin/planos`
+(ADR-0008). Os valores abaixo são os da migration `0024`.
 
 | Plano      | Preço/mês    | Propriedades | Usuários   | Contratação        |
 | ---------- | ------------ | ------------ | ---------- | ------------------ |
@@ -35,6 +36,9 @@ Fonte: tabela `billing_plans`. Os valores abaixo são os da migration `0024`.
 ## Teste grátis
 
 - **14 dias, sem cartão, com os limites do Pro** (`billing_settings`).
+- O superadmin pode **estender** o teste de uma organização (1 a 90 dias por
+  vez, com comentário), a partir do fim atual ou de agora, o que for mais
+  tarde.
 - Começa quando a organização é criada. As organizações que já existiam quando
   a cobrança entrou ganharam os 14 dias a partir daquele momento.
 - Organização importada sem passar pelos gatilhos ganha o teste no primeiro
@@ -80,9 +84,15 @@ parada nesse intervalo:
   declaram que pagaram. Vale só quando há uma contratação aguardando pagamento
   cuja fatura em aberto é um **boleto**, e **uma vez por fatura**. Dura 72
   horas (`billing_settings.provisional_access_hours`).
-- **Pela equipe da plataforma (manual):** com comentário obrigatório, sem o
-  limite de uma por fatura — para quando o prazo do cliente acabou e a
-  compensação ainda não chegou.
+- **Pelo superadmin** (`/admin/clientes/<organização>`, ADR-0008): de 1 a
+  720 horas, com comentário obrigatório, sem o limite de uma por fatura — para
+  quando o prazo do cliente acabou e a compensação ainda não chegou, ou por
+  decisão comercial. Pode ser revogada antes do fim, também com comentário.
+- **Pela equipe, por SQL (manual):** o mesmo, pelo runbook, quando a tela não
+  serve.
+
+Liberações do superadmin, revogações e extensões de teste ficam no histórico
+administrativo (`platform_admin_audit_log`), com autor e motivo.
 
 A liberação nunca muda a assinatura: quando o boleto compensa, ela fica ativa
 sozinha; quando o prazo passa sem compensar, o acesso cai. Durante a
@@ -120,3 +130,20 @@ owner/admin).
 
 Se o limite de um plano diminuir, quem já está acima continua com o que tem,
 mas não cresce até voltar para baixo do limite.
+
+## Faturamento da plataforma
+
+Como a área administrativa apura (ADR-0008, `0028`):
+
+- **Realizado** é caixa: soma das faturas `paga`, no mês em que foram pagas.
+  Fatura em aberto não entra.
+- **MRR** soma o preço atual do catálogo das assinaturas `ativa` e
+  `inadimplente`. `trialing` e `incompleta` ficam fora. Assinatura antiga num
+  preço já arquivado entra pelo preço de hoje — o valor exato de cada uma está
+  no Stripe.
+- **Cliente** num mês = organização com assinatura criada até o fim do mês e
+  não cancelada até lá. Contratação abandonada (cancelada sem nenhuma fatura
+  paga) não é cliente nem cancelamento.
+- **Projeção**: parte do MRR de hoje e aplica crescimento e churn observados
+  nos últimos 6 meses fechados. Sem histórico, as taxas são zero e a projeção
+  repete o MRR.

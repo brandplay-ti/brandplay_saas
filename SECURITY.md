@@ -34,6 +34,16 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   `billing_*` não aceitam escrita de `authenticated`, então ninguém se dá um
   plano ou estende o próprio teste pela API. Limites de plano são gatilhos no
   banco, não verificação de tela.
+- **Superadmin da plataforma** (ADR-0008, área `/admin`). Papel em
+  `platform_admins`, lido por `is_platform_admin()`; só `service_role` e as
+  funções de concessão escrevem ali, e `authenticated` não as executa — a
+  concessão é operada à mão (`docs/runbooks/superadmin.md`), nunca pela API nem
+  por migration. O superadmin lê a cobrança de todas as organizações e
+  contagens de uso, pelas policies `*_platform_admin_read` e pelas funções
+  `admin_*` (que recusam quem não é superadmin), mas **não** lê dados de
+  domínio dos clientes. Toda ação administrativa vai para
+  `platform_admin_audit_log`, imutável pela API. Ao estender essa área, mantenha
+  as duas coisas: leitura mínima e registro de quem fez.
 - **Media Kit público** (`/p/:slug`, `portal/src/pages/PublicMediaKit.tsx`). Única
   rota que aceita leitura anônima (`anon`) de propriedades publicadas e
   insert público de leads. Qualquer dado exposto ali é público por definição

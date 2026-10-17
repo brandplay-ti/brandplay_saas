@@ -465,3 +465,38 @@ Suposições registradas:
   `handle_new_user`) ocupa vaga de usuário; o aceite de um convite pendente
   nunca é bloqueado.
 - `inadimplente` (past_due) mantém o acesso enquanto o Stripe tenta cobrar.
+
+## Superadmin da plataforma (0027–0029, ADR-0008)
+
+Tabelas novas, não vindas do Lovable. Operação em `docs/runbooks/superadmin.md`.
+
+| Tabela                     | O que é                                           | Leitura                       | Escrita                    |
+| -------------------------- | ------------------------------------------------- | ----------------------------- | -------------------------- |
+| `platform_admins`          | quem é superadmin (revogar = `revoked_at`)        | o próprio vínculo             | só `platform_admin_grant/revoke` (operadas à mão) e service role |
+| `platform_admin_audit_log` | ações administrativas: quem, quando, org, antes/depois, comentário | só superadmin | só funções `admin_*`, concessão e `admin-plans`; imutável pela API |
+
+Padrão de RLS novo (9, "plataforma"): policies `*_platform_admin_read` com
+`is_platform_admin()` em `billing_accounts`, `billing_subscriptions`,
+`billing_invoices` e `billing_access_grants` (0028). Nenhuma tabela de domínio
+ganhou leitura do superadmin; `organizations` também não — cadastro, contato
+do owner e contagens de uso vêm só pelas funções `admin_clientes()` e
+`admin_cliente_detalhe()`, que chamam `platform_admin_require()` primeiro.
+
+`billing_access_grants.kind` ganhou `superadmin` (0029): exige comentário e
+`granted_by`. Continua sem policy de escrita; o superadmin grava por
+`admin_liberar_acesso()`.
+
+Suposições registradas:
+
+- `platform_admin_audit_log.organization_id` referencia a organização afetada
+  com `on delete set null` (o registro sobrevive à organização). Não é dado da
+  organização: fica fora da policy restritiva `billing_access_restrictive` e
+  na lista de exceções do teste `(m)`.
+- O log não tem `updated_at`: é imutável, como `billing_stripe_events`.
+- "Virou cliente" (faturamento, `billing_subscription_was_customer`): status
+  diferente de `incompleta` e, se `cancelada`, com ao menos uma fatura `paga`
+  ligada à assinatura. Fatura espelhada antes da assinatura fica com
+  `subscription_id` nulo até o próximo espelhamento; nesse intervalo uma
+  assinatura cancelada pode não contar como cliente.
+- MRR usa o preço **atual** do catálogo, não o preço real de cada assinatura
+  no Stripe (que fica no preço antigo depois de um reajuste).

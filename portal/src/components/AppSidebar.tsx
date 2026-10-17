@@ -1,5 +1,6 @@
-import { LayoutDashboard, Trophy, Boxes, Briefcase, FileText, FileSignature, Truck, Wallet, BarChart3, Users, ShieldCheck, Settings as SettingsIcon, Sparkles, Camera, Eye, Upload, Tag, Image as ImageIcon, AlertTriangle, Bell, CalendarDays, CreditCard } from "lucide-react";
+import { LayoutDashboard, Trophy, Boxes, Briefcase, FileText, FileSignature, Truck, Wallet, BarChart3, Users, ShieldCheck, Settings as SettingsIcon, Sparkles, Camera, Eye, Upload, Tag, Image as ImageIcon, AlertTriangle, Bell, CalendarDays, CreditCard, ShieldEllipsis } from "lucide-react";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useIsPlatformAdmin } from "@/hooks/usePlatformAdmin";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -92,6 +93,8 @@ export const AppSidebar = () => {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { can, isAdmin, loading } = useOrganization();
+  // Só o atalho: a área /admin se protege sozinha (layout + banco).
+  const { isPlatformAdmin } = useIsPlatformAdmin();
 
   const filterItem = (item: NavItem) => {
     if (!item.modules) return true;
@@ -103,6 +106,12 @@ export const AppSidebar = () => {
   const visibleGroups = NAV_GROUPS
     .map((g) => ({ ...g, items: g.items.filter(filterItem) }))
     .filter((g) => g.items.length > 0);
+  if (isPlatformAdmin) {
+    visibleGroups.push({
+      label: "Plataforma",
+      items: [{ title: "Administração", url: "/admin", icon: ShieldEllipsis }],
+    });
+  }
 
   return (
     <Sidebar collapsible="icon">

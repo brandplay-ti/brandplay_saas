@@ -23,6 +23,7 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 import {
   adminClient,
   corsHeaders,
+  ensurePlanPrice,
   idOf,
   json,
   methodOfInvoice,
@@ -143,7 +144,7 @@ async function exigirQueOPlanoComporte(db: SupabaseClient, orgId: string, plano:
   }
 }
 
-// ─── Stripe: customer, produto e preço ───────────────────────────────
+// ─── Stripe: customer ────────────────────────────────────────────────
 
 /** Customer da organização no Stripe, criado na primeira contratação. */
 async function garantirCustomer(
@@ -190,81 +191,6 @@ async function garantirCustomer(
   return customer.id;
 }
 
-/**
- * Preço recorrente mensal do plano no Stripe. O catálogo é a fonte: se o preço
- * mudou na tabela (por migration), cria um preço novo e arquiva o antigo.
- * Assinaturas em curso continuam no preço antigo até alguém migrá-las.
- */
-async function garantirPreco(db: SupabaseClient, stripe: Stripe, plano: Plano): Promise<string> {
-  let productId = plano.stripe_product_id;
-  if (productId) {
-    try {
-      const produto = await stripe.products.retrieve(productId);
-      if (!produto.active) productId = null;
-    } catch {
-      productId = null;
-    }
-  }
-  if (!productId) {
-    const encontrados = await stripe.products.search({
-      query: `active:'true' AND metadata['plan_id']:'${plano.id}'`,
-      limit: 1,
-    });
-    productId = encontrados.data[0]?.id ?? null;
-  }
-  if (!productId) {
-    const produto = await stripe.products.create({
-      name: `BrandPlay ${plano.name}`,
-      description: plano.description || undefined,
-      // Os limites viajam como metadata só para o Dashboard do Stripe ser
-      // legível. Quem aplica limite é o banco.
-      metadata: {
-        plan_id: plano.id,
-        max_properties: plano.max_properties == null ? "ilimitado" : String(plano.max_properties),
-        max_users: plano.max_users == null ? "ilimitado" : String(plano.max_users),
-      },
-    });
-    productId = produto.id;
-  }
-
-  let priceId = plano.stripe_price_id;
-  if (priceId) {
-    try {
-      const preco = await stripe.prices.retrieve(priceId);
-      const valido =
-        preco.active &&
-        preco.product === productId &&
-        preco.unit_amount === plano.price_cents &&
-        preco.currency === "brl" &&
-        preco.recurring?.interval === "month";
-      if (!valido) {
-        if (preco.active) await stripe.prices.update(preco.id, { active: false });
-        priceId = null;
-      }
-    } catch {
-      priceId = null;
-    }
-  }
-  if (!priceId) {
-    const preco = await stripe.prices.create({
-      product: productId,
-      unit_amount: plano.price_cents!,
-      currency: "brl",
-      recurring: { interval: "month" },
-      metadata: { plan_id: plano.id },
-    });
-    priceId = preco.id;
-  }
-
-  if (productId !== plano.stripe_product_id || priceId !== plano.stripe_price_id) {
-    await db
-      .from("billing_plans")
-      .update({ stripe_product_id: productId, stripe_price_id: priceId })
-      .eq("id", plano.id);
-  }
-  return priceId;
-}
-
 // ─── Ações ───────────────────────────────────────────────────────────
 async function checkout(
   db: SupabaseClient,
@@ -292,7 +218,7 @@ async function checkout(
   await exigirQueOPlanoComporte(db, orgId, plano);
 
   const customerId = await garantirCustomer(db, stripe, orgId, email);
-  const priceId = await garantirPreco(db, stripe, plano);
+  const priceId = await ensurePlanPrice(db, stripe, plano);
 
   // Cartão e boleto. Pix recorrente no Stripe exige Pix Automático, que não
   // está disponível para contas brasileiras (ADR-0007).
@@ -328,7 +254,7 @@ async function trocarPlano(db: SupabaseClient, stripe: Stripe, orgId: string, pl
 
   await exigirQueOPlanoComporte(db, orgId, plano);
 
-  const priceId = await garantirPreco(db, stripe, plano);
+  const priceId = await ensurePlanPrice(db, stripe, plano);
   const atual = await stripe.subscriptions.retrieve(vigente.stripe_subscription_id);
   const item = atual.items.data[0];
   if (!item) throw new Error(`assinatura ${atual.id} sem item`);

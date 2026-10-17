@@ -98,7 +98,20 @@ Padrão da cobrança (ADR-0007, `0024`):
 Toda tabela nova com `organization_id` precisa também da policy restritiva
 `billing_access_restrictive` (formato da `0026`), que bloqueia os membros de
 organização sem acesso. O teste `(m)` de `supabase/tests/cobranca.sql` falha
-se faltar.
+se faltar. Exceção: dado **da plataforma** que só referencia a organização
+(ex.: `platform_admin_audit_log`) entra na lista de exceções do teste, com o
+motivo.
+
+Padrão da plataforma (ADR-0008, `0027`–`0029`):
+
+9. **Superadmin** (`<tabela>_platform_admin_read`) — leitura extra para
+   `is_platform_admin()`, só em tabelas da cobrança e da própria plataforma
+   (`billing_*`, `platform_admin_audit_log`). Nunca em tabela de domínio dos
+   clientes. O resto do que o superadmin vê vem por funções `admin_*`
+   `SECURITY DEFINER` que começam com `platform_admin_require()`, devolvem só
+   cadastro, cobrança e contagens, e gravam toda alteração em
+   `platform_admin_audit_log`. `platform_admins` não tem policy de escrita e a
+   concessão (`platform_admin_grant`) não é executável por `authenticated`.
 
 Uma tabela nova que represente algo **limitado por plano** precisa de gatilho
 `trg_zz_billing_limit` no padrão da `0024` (erro com

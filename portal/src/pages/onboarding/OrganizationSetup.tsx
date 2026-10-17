@@ -68,6 +68,14 @@ const OrganizationSetup = () => {
       return;
     }
 
+    // O superadmin da plataforma não precisa ser membro de organização: sem
+    // nenhuma, vai para a administração em vez de ser convidado a criar uma.
+    const { data: superadmin } = await supabase.rpc("is_platform_admin");
+    if (superadmin === true) {
+      navigate("/admin", { replace: true });
+      return;
+    }
+
     setState("failed");
     setErrorMessage("Nenhuma organização ativa foi encontrada para sua conta.");
   }, [navigate, user]);

@@ -2719,6 +2719,77 @@ export type Database = {
           },
         ]
       }
+      platform_admin_audit_log: {
+        Row: {
+          action: string
+          admin_user_id: string | null
+          after: Json | null
+          before: Json | null
+          comment: string | null
+          created_at: string
+          id: string
+          organization_id: string | null
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          admin_user_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          admin_user_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_admin_audit_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_admins: {
+        Row: {
+          comment: string
+          created_at: string
+          revoked_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string
+          revoked_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          revoked_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -4864,6 +4935,59 @@ export type Database = {
         Args: { p_token: string }
         Returns: boolean
       }
+      admin_cliente_detalhe: { Args: { _org_id: string }; Returns: Json }
+      admin_clientes: {
+        Args: never
+        Returns: {
+          access_source: string
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string
+          invites_pending: number
+          last_paid_at: string
+          mrr_cents: number
+          name: string
+          open_invoices: number
+          organization_id: string
+          owner_email: string
+          owner_name: string
+          payment_method: string
+          plan_id: string
+          plan_name: string
+          properties: number
+          provisional_expires_at: string
+          subscription_status: string
+          trial_ends_at: string
+          users_active: number
+        }[]
+      }
+      admin_estender_teste: {
+        Args: { _comentario: string; _dias: number; _org_id: string }
+        Returns: Json
+      }
+      admin_faturamento_projetado: {
+        Args: { _historico?: number; _meses?: number }
+        Returns: Json
+      }
+      admin_faturamento_realizado: {
+        Args: { _meses?: number }
+        Returns: {
+          cancellations: number
+          customers: number
+          month: string
+          new_subscriptions: number
+          paid_invoices: number
+          revenue_cents: number
+        }[]
+      }
+      admin_liberar_acesso: {
+        Args: { _comentario: string; _horas: number; _org_id: string }
+        Returns: Json
+      }
+      admin_revogar_liberacao: {
+        Args: { _comentario: string; _grant_id: string }
+        Returns: Json
+      }
       archive_sponsor: {
         Args: { _reason: string; _sponsor_id: string }
         Returns: undefined
@@ -4938,6 +5062,12 @@ export type Database = {
       billing_limits_bypassed: { Args: never; Returns: boolean }
       billing_raise_without_plan: { Args: never; Returns: undefined }
       billing_status: { Args: { _org_id: string }; Returns: Json }
+      billing_subscription_was_customer: {
+        Args: {
+          _sub: Database["public"]["Tables"]["billing_subscriptions"]["Row"]
+        }
+        Returns: boolean
+      }
       billing_suggest_plan: {
         Args: { _properties: number; _users: number }
         Returns: string
@@ -5055,6 +5185,7 @@ export type Database = {
       is_org_member:
         | { Args: { _org_id: string; _user_id: string }; Returns: boolean }
         | { Args: { target_org_id: string }; Returns: boolean }
+      is_platform_admin: { Args: never; Returns: boolean }
       is_property_published: {
         Args: { target_property_id: string }
         Returns: boolean
@@ -5090,6 +5221,15 @@ export type Database = {
       merge_sponsors: {
         Args: { _duplicate_id: string; _target_id: string }
         Returns: Json
+      }
+      platform_admin_grant: {
+        Args: { _comment: string; _email: string }
+        Returns: string
+      }
+      platform_admin_require: { Args: never; Returns: undefined }
+      platform_admin_revoke: {
+        Args: { _comment: string; _email: string }
+        Returns: string
       }
       safe_uuid: { Args: { value: string }; Returns: string }
       show_limit: { Args: never; Returns: number }

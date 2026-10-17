@@ -62,7 +62,12 @@ de teste: qualquer CPF válido; o Stripe simula a compensação em alguns minuto
 
 ## Alterar preço ou limite de um plano
 
-Migration de dados, nunca edição manual:
+Pela área administrativa: `/admin/planos` → Editar (superadmin,
+`docs/runbooks/superadmin.md`). A Edge Function `admin-plans` grava o
+catálogo, sincroniza o Stripe e registra na auditoria.
+
+Sem acesso à tela (ou para versionar um catálogo inicial de ambiente novo),
+migration de dados — nunca edição manual no Studio:
 
 ```sql
 update public.billing_plans set price_cents = 59000 where id = 'starter';
@@ -78,8 +83,9 @@ update public.billing_plans set price_cents = 59000 where id = 'starter';
 
 ## Plano novo
 
-Migration de dados com `id` estável (é a chave do checkout e da metadata do
-produto no Stripe). `price_cents` nulo = "sob consulta" (sem checkout).
+`/admin/planos` → Novo plano, ou migration de dados. O `id` é estável (é a
+chave do checkout e da metadata do produto no Stripe) e não muda depois.
+`price_cents` nulo = "sob consulta" (sem checkout).
 
 ## Contrato Enterprise
 
@@ -95,24 +101,31 @@ O webhook espelha a assinatura e a organização passa a ter acesso, sem limites
 
 ## Estender o teste de uma organização
 
+Pela área administrativa: `/admin/clientes/<organização>` → Estender teste,
+com o motivo (fica na auditoria). Por SQL, só se a tela não servir:
+
 ```sql
 update public.billing_accounts
    set trial_ends_at = now() + interval '7 days'
  where organization_id = '<uuid>';
 ```
 
-Registre quem pediu e por quê. Para mudar a duração do teste das organizações
+Por SQL não há auditoria: registre quem pediu e por quê. Para mudar a duração do teste das organizações
 **novas**: `update public.billing_settings set trial_days = 21;`.
 
 ## Liberação provisória de acesso
 
 Enquanto o boleto compensa, o acesso pode ser liberado **sem mudar a
-assinatura** (`billing_access_grants`). A API não grava nessa tabela: o
-cliente libera pela `manage-billing`, a equipe por SQL.
+assinatura** (`billing_access_grants`). A API não grava nessa tabela direto: o
+cliente libera pela `manage-billing`, o superadmin pela área administrativa
+(`admin_liberar_acesso`), e a equipe, em último caso, por SQL.
 
 - **Pelo cliente:** tela de plano → "Já pagou o boleto?" → comprovante +
   declaração. Uma vez por fatura, 72 h.
-- **Pela equipe (manual)**, com comentário obrigatório:
+- **Pelo superadmin:** `/admin/clientes/<organização>` → Liberar acesso (1 a
+  720 h, motivo obrigatório). Revogar pela mesma tela. Tudo vai para a
+  auditoria (`platform_admin_audit_log`).
+- **Pela equipe, por SQL (manual)**, com comentário obrigatório:
 
   ```sql
   insert into public.billing_access_grants (organization_id, kind, comment, expires_at)

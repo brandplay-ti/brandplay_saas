@@ -62,6 +62,10 @@ modelo "lite"/"flash-lite" explícito de baixo custo); por isso foram tratadas c
   especificamente a URL do Portal do Patrocinador — variável dedicada já existente no
   projeto antes desta migração. `sendEmail` nessa função já chamava a API do Resend
   diretamente (não usava o proxy do Lovable) e não precisou de alteração.
+- **Depois (ADR-0008, fase F):** as três funções deixaram de chamar o Resend
+  direto. O envio passou para `_shared/email.ts` (`sendEmail`, com adaptador
+  Resend, remetente de `EMAIL_FROM`/`RESEND_FROM_DOMAIN` e base dos links de
+  `APP_URL`) — operação em `docs/runbooks/email.md`.
 
 ## Suposições sobre formato de resposta / JSON
 

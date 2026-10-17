@@ -149,6 +149,129 @@ async function planOfSubscription(db: SupabaseClient, sub: Stripe.Subscription):
   return null;
 }
 
+// ─── Catálogo → Stripe ───────────────────────────────────────────────
+
+/** Linha de `billing_plans` com o que o Stripe precisa. */
+export interface CatalogPlan {
+  id: string;
+  name: string;
+  description: string;
+  price_cents: number | null;
+  max_properties: number | null;
+  max_users: number | null;
+  stripe_product_id: string | null;
+  stripe_price_id: string | null;
+}
+
+function productFields(plano: CatalogPlan) {
+  return {
+    name: `BrandPlay ${plano.name}`,
+    description: plano.description || undefined,
+    // Os limites viajam como metadata só para o Dashboard do Stripe ser
+    // legível. Quem aplica limite é o banco.
+    metadata: {
+      plan_id: plano.id,
+      max_properties: plano.max_properties == null ? "ilimitado" : String(plano.max_properties),
+      max_users: plano.max_users == null ? "ilimitado" : String(plano.max_users),
+    },
+  };
+}
+
+/**
+ * Produto e preço recorrente mensal do plano no Stripe. O catálogo é a fonte:
+ * nome, descrição e limites atualizam o produto; preço diferente cria um preço
+ * novo e arquiva o antigo, porque preço no Stripe é imutável. Assinaturas em
+ * curso continuam no preço antigo até alguém migrá-las.
+ *
+ * Usado pelo checkout (`manage-billing`) e pela gestão de planos
+ * (`admin-plans`). Grava os ids em `billing_plans` quando mudam.
+ */
+export async function ensurePlanPrice(db: SupabaseClient, stripe: Stripe, plano: CatalogPlan): Promise<string> {
+  if (plano.price_cents == null) throw new Error(`plano ${plano.id} sem preço (sob consulta)`);
+  const campos = productFields(plano);
+
+  let productId = plano.stripe_product_id;
+  if (productId) {
+    try {
+      const produto = await stripe.products.retrieve(productId);
+      // Arquivado quando o plano saiu de venda (`archivePlanProduct`): volta
+      // a valer junto com o plano.
+      const desatualizado =
+        !produto.active ||
+        produto.name !== campos.name ||
+        (produto.description ?? undefined) !== campos.description ||
+        Object.entries(campos.metadata).some(([k, v]) => produto.metadata?.[k] !== v);
+      if (desatualizado) {
+        await stripe.products.update(productId, {
+          active: true,
+          name: campos.name,
+          description: campos.description ?? "",
+          metadata: campos.metadata,
+        });
+      }
+    } catch {
+      // Produto que não existe nesta conta do Stripe (troca de chave, ambiente
+      // de teste refeito): procura ou cria abaixo.
+      productId = null;
+    }
+  }
+  if (!productId) {
+    const encontrados = await stripe.products.search({
+      query: `active:'true' AND metadata['plan_id']:'${plano.id}'`,
+      limit: 1,
+    });
+    productId = encontrados.data[0]?.id ?? null;
+    if (productId) await stripe.products.update(productId, { ...campos, description: campos.description ?? "" });
+  }
+  if (!productId) {
+    const produto = await stripe.products.create(campos);
+    productId = produto.id;
+  }
+
+  let priceId = plano.stripe_price_id;
+  if (priceId) {
+    try {
+      const preco = await stripe.prices.retrieve(priceId);
+      const valido =
+        preco.active &&
+        preco.product === productId &&
+        preco.unit_amount === plano.price_cents &&
+        preco.currency === "brl" &&
+        preco.recurring?.interval === "month";
+      if (!valido) {
+        if (preco.active) await stripe.prices.update(preco.id, { active: false });
+        priceId = null;
+      }
+    } catch {
+      priceId = null;
+    }
+  }
+  if (!priceId) {
+    const preco = await stripe.prices.create({
+      product: productId,
+      unit_amount: plano.price_cents,
+      currency: "brl",
+      recurring: { interval: "month" },
+      metadata: { plan_id: plano.id },
+    });
+    priceId = preco.id;
+  }
+
+  if (productId !== plano.stripe_product_id || priceId !== plano.stripe_price_id) {
+    await db
+      .from("billing_plans")
+      .update({ stripe_product_id: productId, stripe_price_id: priceId })
+      .eq("id", plano.id);
+  }
+  return priceId;
+}
+
+/** Arquiva o produto do plano no Stripe (plano fora de venda). Falha não impede a alteração no banco. */
+export async function archivePlanProduct(stripe: Stripe, productId: string | null): Promise<void> {
+  if (!productId) return;
+  await stripe.products.update(productId, { active: false });
+}
+
 // ─── Espelhamento ────────────────────────────────────────────────────
 
 /**

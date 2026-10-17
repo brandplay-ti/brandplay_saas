@@ -28,7 +28,7 @@ export interface BillingStatus {
   has_customer: boolean;
   /** Prazo, em horas, de uma liberação provisória (`billing_settings`). */
   provisional_access_hours: number;
-  provisional_access: { kind: "confianca" | "manual"; expires_at: string } | null;
+  provisional_access: { kind: "confianca" | "manual" | "superadmin"; expires_at: string } | null;
   plan: BillingPlanSummary | null;
   subscription: {
     plan_id: string;

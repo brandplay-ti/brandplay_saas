@@ -487,8 +487,9 @@ end $$;
 reset role;
 
 -- (m) cobertura: toda tabela de organização tem a policy de bloqueio ---------
--- A lista de exceções é a mesma da 0026. Tabela nova com organization_id que
--- não estiver aqui precisa da policy `billing_access_restrictive`.
+-- A lista de exceções é a da 0026 mais a auditoria da plataforma (0027).
+-- Tabela nova com organization_id que não estiver aqui precisa da policy
+-- `billing_access_restrictive`.
 do $$
 declare _faltando text;
 begin
@@ -503,7 +504,9 @@ begin
      )
      and c.relname <> all (array[
        'billing_accounts', 'billing_subscriptions', 'billing_invoices', 'billing_access_grants',
-       'organization_members', 'organization_invites', 'backend_error_logs', 'error_reports'
+       'organization_members', 'organization_invites', 'backend_error_logs', 'error_reports',
+       -- Dado da plataforma, não da organização: só o superadmin lê (0027).
+       'platform_admin_audit_log'
      ])
      and not exists (
        select 1 from pg_policy p

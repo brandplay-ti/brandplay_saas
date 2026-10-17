@@ -69,7 +69,8 @@ docs/               adr/, architecture/, infrastructure/, runbooks/
 docker/             compose único do Supabase (local/hml/produção) + files/volumes
 portal/             aplicação React (workspace npm) — Dockerfile, nixpacks.toml
   src/
-    pages/          rotas (dashboard, portal do patrocinador, onboarding, public)
+    pages/          rotas (dashboard, admin da plataforma, portal do patrocinador,
+                    onboarding, public)
     components/     componentes de UI (ui/ = shadcn, demais = por feature)
     hooks/          hooks de domínio e integração (useAuth, useOrganization, ...)
     lib/            utilitários e helpers puros
@@ -161,7 +162,8 @@ npm run supabase:up            # sobe o Supabase local (Docker)
 npm run supabase:migrate       # aplica migrations pendentes
 npm run supabase:migrate:status
 npm run supabase:seed          # usuário de exemplo (só local)
-npm run supabase:test          # testes de segurança/RLS e de cobrança (supabase/tests/)
+npm run supabase:test          # testes de segurança/RLS, cobrança e superadmin (supabase/tests/)
+npm run supabase:superadmin -- -v email=<e-mail> -v comentario=<motivo>   # concede superadmin (local)
 npm run supabase:down / :reset
 npm run supabase:bundle        # migrations achatadas para o SQL Editor do Studio
 npm run supabase:checar -- <url> <anon_key> [--portal <url>]   # diagnóstico de um ambiente
@@ -275,6 +277,17 @@ Consequência direta para RLS e Edge Functions:
 
 O isolamento de organização é um invariante de segurança, não apenas uma regra
 de modelagem ou de UX.
+
+### Superadmin da plataforma (leitura administrativa, por design)
+
+Quem opera o BrandPlay como negócio (`platform_admins`, `is_platform_admin()`,
+área `/admin`, ADR-0008) lê a **cobrança** de todas as organizações e
+**contagens** de uso, sem ser membro delas — e mais nada. Dados de domínio dos
+clientes continuam só com os membros. O papel é concedido à mão, por quem
+opera o banco (`docs/runbooks/superadmin.md`), nunca pela API nem por
+migration; toda ação administrativa vai para `platform_admin_audit_log`. Não
+estenda esse acesso a tabelas de domínio (`or is_platform_admin()` em policy
+de organização), e não o confunda com o `owner`/`admin` de uma organização.
 
 ### Portal do patrocinador (acesso cross-tenant limitado, por design)
 

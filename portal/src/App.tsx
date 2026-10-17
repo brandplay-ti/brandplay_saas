@@ -49,6 +49,12 @@ import FieldDeliveries from "./pages/field/FieldDeliveries";
 import FieldDeliveryDetail from "./pages/field/FieldDeliveryDetail";
 import FieldEvents from "./pages/field/FieldEvents";
 import FieldEventChecklist from "./pages/field/FieldEventChecklist";
+import AdminLayout from "./pages/admin/AdminLayout";
+import AdminOverview from "./pages/admin/AdminOverview";
+import AdminClients from "./pages/admin/AdminClients";
+import AdminClientDetail from "./pages/admin/AdminClientDetail";
+import AdminPlans from "./pages/admin/AdminPlans";
+import AdminRevenue from "./pages/admin/AdminRevenue";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -109,6 +115,22 @@ const App = () => (
               <Route path="evidencias" element={<BrandTrackEvidence />} />
               <Route path="relatorios" element={<BrandTrackReports />} />
             </Route>
+          </Route>
+          {/* Administração da plataforma (superadmin, ADR-0008). A guarda do
+              layout é experiência; quem barra é o banco. */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<AdminOverview />} />
+            <Route path="clientes" element={<AdminClients />} />
+            <Route path="clientes/:id" element={<AdminClientDetail />} />
+            <Route path="planos" element={<AdminPlans />} />
+            <Route path="faturamento" element={<AdminRevenue />} />
           </Route>
           <Route path="/campo" element={<FieldLayout />}>
             <Route index element={<FieldDeliveries />} />

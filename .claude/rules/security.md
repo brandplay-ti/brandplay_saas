@@ -74,6 +74,15 @@ estender esse fluxo.
   `ANTHROPIC_API_KEY` (ver ADR-0003). Todas processam dado de organização; confirme que continuam
   escopando por `organization_id` derivado do usuário autenticado, não do
   prompt ou de parâmetro solto no body.
+- **Superadmin da plataforma** (`platform_admins`, `admin_*`, `admin-plans`,
+  área `/admin`, ADR-0008) — papel concedido só à mão por quem opera o banco;
+  nunca abra escrita de `platform_admins` para `authenticated` nem crie
+  superadmin em migration. O superadmin lê cobrança e contagens, nunca dado de
+  domínio dos clientes: não acrescente `or is_platform_admin()` em policy de
+  tabela de domínio. Função administrativa nova começa com
+  `platform_admin_require()` e grava em `platform_admin_audit_log`. Edge
+  Function administrativa confere `platform_admins` (ativo) para o `user.id`
+  do JWT.
 - **Cobrança** (`manage-billing`, `billing-webhook`, tabelas `billing_*`, ADR-0007)
   — estado de cobrança só é escrito pelo servidor; nunca abra escrita dessas
   tabelas para `authenticated` nem aceite plano, status ou fim de teste vindos
