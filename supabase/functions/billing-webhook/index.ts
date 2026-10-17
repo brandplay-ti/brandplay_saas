@@ -18,6 +18,7 @@ import {
   mirrorInvoice,
   mirrorSubscription,
   organizationOfCustomer,
+  settlePixPayment,
   Stripe,
   stripeClient,
 } from "../_shared/billing.ts";
@@ -65,6 +66,16 @@ async function processar(db: SupabaseClient, stripe: Stripe, event: Stripe.Event
     case "checkout.session.async_payment_succeeded":
     case "checkout.session.async_payment_failed": {
       const sessao = event.data.object as Stripe.Checkout.Session;
+
+      // Pix avulso de fatura em aberto. Pix é assíncrono: a baixa acontece no
+      // evento em que a sessão chega paga (completed ou async_payment_succeeded).
+      if (sessao.mode === "payment") {
+        if (event.type !== "checkout.session.async_payment_failed") {
+          await settlePixPayment(db, stripe, sessao);
+        }
+        return;
+      }
+
       if (sessao.mode !== "subscription") return;
       const customerId = idOf(sessao.customer);
       if (customerId) {

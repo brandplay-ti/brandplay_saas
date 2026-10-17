@@ -6,15 +6,46 @@ import { readEdgeFunctionError } from "@/lib/edgeFunctionError";
 
 export type BillingPlan = Tables<"billing_plans">;
 export type BillingInvoice = Tables<"billing_invoices">;
+export type BillingSettings = Tables<"billing_settings">;
 
-export type BillingAction = "checkout" | "change_plan" | "cancel" | "resume" | "portal" | "sync";
+export type BillingAction =
+  | "checkout"
+  | "change_plan"
+  | "cancel"
+  | "resume"
+  | "portal"
+  | "sync"
+  | "pay_pix"
+  | "request_provisional_access";
+
+export interface BillingActionInput {
+  action: BillingAction;
+  planId?: string;
+  invoiceId?: string;
+  receiptPath?: string;
+  confirmPaid?: boolean;
+}
 
 export const billingKeys = {
   all: ["billing"] as const,
   status: (orgId: string | null) => ["billing", "status", orgId] as const,
   plans: ["billing", "plans"] as const,
+  settings: ["billing", "settings"] as const,
   invoices: (orgId: string | null) => ["billing", "invoices", orgId] as const,
 };
+
+/** Parâmetros públicos de cobrança: duração do teste e prazo da liberação. */
+export function useBillingSettings() {
+  return useQuery({
+    queryKey: billingKeys.settings,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<BillingSettings | null> => {
+      const { data, error } = await supabase.from("billing_settings").select("*").maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
 
 /** Acesso, plano, assinatura e uso da organização (RPC `billing_status`). */
 export function useBillingStatus(orgId: string | null) {
@@ -78,16 +109,24 @@ interface BillingActionResult {
   url?: string;
   ok?: boolean;
   current_period_end?: string | null;
+  expires_at?: string;
 }
 
 /** Ações da Edge Function `manage-billing` sobre a organização ativa. */
 export function useManageBilling(orgId: string | null) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ action, planId }: { action: BillingAction; planId?: string }): Promise<BillingActionResult> => {
+    mutationFn: async ({ action, planId, invoiceId, receiptPath, confirmPaid }: BillingActionInput): Promise<BillingActionResult> => {
       if (!orgId) throw new BillingActionError("Nenhuma organização selecionada.");
       const { data, error } = await supabase.functions.invoke("manage-billing", {
-        body: { action, organization_id: orgId, plan_id: planId },
+        body: {
+          action,
+          organization_id: orgId,
+          plan_id: planId,
+          invoice_id: invoiceId,
+          receipt_path: receiptPath,
+          confirm_paid: confirmPaid,
+        },
       });
       if (error || data?.error) {
         const corpo = await readEdgeFunctionError(error, data);

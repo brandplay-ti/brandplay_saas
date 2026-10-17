@@ -85,6 +85,37 @@ criar o papel de administrador da plataforma) e leitura do catálogo pela
 Landing (os preços dela ainda estão no código e precisam bater com
 `billing_plans`).
 
+## Complemento (migrations 0025 e 0026)
+
+Os itens que ficaram fora da primeira entrega foram implementados em seguida:
+
+- **Bloqueio no banco** (`0026`). A primeira consequência negativa acima deixa
+  de valer: organização sem acesso fica inacessível aos próprios membros também
+  pela API. Uma policy `RESTRICTIVE` por tabela de organização
+  (`billing_access_restrictive`) é combinada com AND às policies existentes,
+  que não mudam. "Sem acesso" é calculado para o usuário da sessão
+  (`billing_blocked_orgs()`, uma vez por consulta). Ficam fora as tabelas de
+  cobrança, `organization_members`/`organization_invites` (carregar a
+  organização e reduzir a equipe) e os logs de erro. O portal do patrocinador
+  (não é membro) e o Media Kit público (`anon`) não são afetados. O Storage
+  não foi coberto: arquivo cujo caminho alguém já conhece continua legível
+  pelas policies de bucket.
+- **Liberação provisória** (`0025`): enquanto o boleto da contratação compensa,
+  owner/admin liberam o acesso por 72 h (parâmetro), uma vez por fatura, com
+  comprovante e declaração de pagamento. A `manage-billing` confere no Stripe
+  que a fatura em aberto é de boleto. A equipe da plataforma libera
+  manualmente por SQL, com comentário. A liberação nunca altera a assinatura.
+- **Pix avulso**: fatura em aberto pode ser paga num Checkout `mode=payment`
+  só com Pix; pago, o webhook quita a fatura com `paid_out_of_band` e a marca
+  com `paid_with = pix`. Depende de o Pix estar habilitado na conta Stripe
+  (para contas brasileiras, por convite) — sem isso a tela responde
+  `pix_indisponivel`.
+- **Catálogo na página pública**: a Landing lê `billing_plans` e
+  `billing_settings` (leitura pública), a mesma fonte do checkout.
+
+Continua fora: tela de administração do catálogo (exige papel de
+administrador da plataforma).
+
 ## Relacionadas
 
 ADR-0002 (tenant), `docs/business/cobranca.md`, `docs/runbooks/cobranca.md`,

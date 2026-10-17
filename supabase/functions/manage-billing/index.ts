@@ -6,6 +6,9 @@
 //   POST { action: "resume",      organization_id }           → { ok }
 //   POST { action: "portal",      organization_id }           → { url }
 //   POST { action: "sync",        organization_id }           → { ok, subscriptions, invoices }
+//   POST { action: "pay_pix",     organization_id, invoice_id } → { url }
+//   POST { action: "request_provisional_access", organization_id, receipt_path, confirm_paid }
+//                                                              → { ok, expires_at }
 //
 // Quem chama vem do JWT; o `organization_id` do corpo só diz QUAL organização,
 // e é conferido contra `organization_members`: precisa ser owner/admin ativo.
@@ -13,13 +16,16 @@
 // escolhe para onde o checkout devolve.
 //
 // Erros que a tela trata têm `code`: assinatura_vigente, uso_excede_plano,
-// sem_assinatura, cobranca_nao_configurada, portal_nao_configurado.
+// sem_assinatura, cobranca_nao_configurada, portal_nao_configurado,
+// pix_indisponivel, nao_elegivel, ja_utilizado.
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import {
   adminClient,
   corsHeaders,
+  idOf,
   json,
+  methodOfInvoice,
   mirrorInvoice,
   mirrorSubscription,
   Stripe,
@@ -27,19 +33,41 @@ import {
   VIGENTES,
 } from "../_shared/billing.ts";
 
+const BUCKET_COMPROVANTES = "billing-receipts";
+
 // Dias até o vencimento do boleto. O padrão do Stripe é 3; explícito porque o
 // prazo aparece para o cliente e define quando a fatura expira.
 const BOLETO_EXPIRA_EM_DIAS = 3;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-type Acao = "checkout" | "change_plan" | "cancel" | "resume" | "portal" | "sync";
-const ACOES: Acao[] = ["checkout", "change_plan", "cancel", "resume", "portal", "sync"];
+type Acao =
+  | "checkout"
+  | "change_plan"
+  | "cancel"
+  | "resume"
+  | "portal"
+  | "sync"
+  | "pay_pix"
+  | "request_provisional_access";
+const ACOES: Acao[] = [
+  "checkout",
+  "change_plan",
+  "cancel",
+  "resume",
+  "portal",
+  "sync",
+  "pay_pix",
+  "request_provisional_access",
+];
 
 interface Corpo {
   action?: string;
   organization_id?: string;
   plan_id?: string;
+  invoice_id?: string;
+  receipt_path?: string;
+  confirm_paid?: boolean;
 }
 
 interface Plano {
@@ -398,6 +426,151 @@ async function sincronizar(db: SupabaseClient, stripe: Stripe, orgId: string) {
   return { ok: true, subscriptions: assinaturas.data.length, invoices: faturas.data.length };
 }
 
+/**
+ * Pix avulso de uma fatura em aberto (ADR-0007). A assinatura cobra em cartão
+ * ou boleto; pagar no Pix é um Checkout `mode=payment` à parte, e o webhook dá
+ * baixa na fatura quando ele é pago (`settlePixPayment`).
+ */
+async function pagarComPix(
+  db: SupabaseClient,
+  stripe: Stripe,
+  orgId: string,
+  invoiceId: string | undefined,
+  appUrl: string,
+) {
+  if (!invoiceId || !UUID.test(invoiceId)) throw new ErroDeNegocio("Informe a fatura.", 400);
+
+  // A fatura precisa ser da própria organização: o id vem da tela.
+  const { data: linha } = await db
+    .from("billing_invoices")
+    .select("stripe_invoice_id")
+    .eq("id", invoiceId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (!linha) throw new ErroDeNegocio("Fatura não encontrada.", 404);
+
+  const fatura = await stripe.invoices.retrieve(linha.stripe_invoice_id as string);
+  if (fatura.status !== "open") throw new ErroDeNegocio("Esta fatura não está em aberto.", 409);
+  if (!fatura.amount_due || fatura.amount_due <= 0) throw new ErroDeNegocio("Fatura sem valor a pagar.", 409);
+
+  try {
+    const sessao = await stripe.checkout.sessions.create({
+      mode: "payment",
+      customer: idOf(fatura.customer) ?? undefined,
+      client_reference_id: orgId,
+      payment_method_types: ["pix"],
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: fatura.currency || "brl",
+            unit_amount: fatura.amount_due,
+            product_data: { name: `Fatura ${fatura.number ?? fatura.id} — BrandPlay` },
+          },
+        },
+      ],
+      locale: "pt-BR",
+      // O webhook usa esta metadata para dar baixa na fatura certa.
+      metadata: { organization_id: orgId, stripe_invoice_id: fatura.id },
+      payment_intent_data: { metadata: { organization_id: orgId, stripe_invoice_id: fatura.id } },
+      success_url: `${appUrl}/dashboard/plano?pix=sucesso`,
+      cancel_url: `${appUrl}/dashboard/plano?pix=cancelado`,
+    });
+    return { url: sessao.url };
+  } catch (e) {
+    // Pix precisa ser habilitado na conta do Stripe (para contas brasileiras,
+    // por convite). Sem isso a API recusa o método.
+    if (e instanceof Error && /pix is invalid|type provided: pix/i.test(e.message)) {
+      throw new ErroDeNegocio("Pix não está disponível nesta conta de pagamento.", 503, "pix_indisponivel");
+    }
+    throw e;
+  }
+}
+
+/**
+ * Liberação provisória em confiança enquanto o boleto compensa (0025).
+ *
+ * Regras: a organização está sem acesso; há uma contratação aguardando
+ * pagamento cuja fatura em aberto é de boleto (conferido NO STRIPE, que é a
+ * fonte — a projeção pode estar atrasada justamente agora); o comprovante já
+ * foi enviado ao bucket; quem pede declara que pagou; uma vez por fatura.
+ */
+async function liberarProvisoriamente(
+  db: SupabaseClient,
+  stripe: Stripe,
+  orgId: string,
+  userId: string,
+  receiptPath: string | undefined,
+  confirmouPagamento: boolean | undefined,
+) {
+  if (confirmouPagamento !== true) {
+    throw new ErroDeNegocio("Confirme que o boleto já foi pago.", 400);
+  }
+  if (!receiptPath || !receiptPath.startsWith(`${orgId}/`) || receiptPath.includes("..")) {
+    throw new ErroDeNegocio("Anexe o comprovante de pagamento.", 400);
+  }
+
+  const pasta = receiptPath.slice(0, receiptPath.lastIndexOf("/"));
+  const arquivo = receiptPath.slice(receiptPath.lastIndexOf("/") + 1);
+  const { data: encontrados } = await db.storage.from(BUCKET_COMPROVANTES).list(pasta, { search: arquivo });
+  if (!encontrados?.some((o) => o.name === arquivo)) {
+    throw new ErroDeNegocio("Comprovante não encontrado. Envie o arquivo de novo.", 400);
+  }
+
+  const { data: plano } = await db.rpc("billing_access_plan", { _org_id: orgId });
+  if (plano && (plano as { id: string | null }).id) {
+    throw new ErroDeNegocio("A organização já tem acesso.", 409, "nao_elegivel");
+  }
+
+  const vigente = await assinaturaVigente(db, orgId);
+  if (!vigente || vigente.status !== "incompleta") {
+    throw new ErroDeNegocio(
+      "A liberação provisória vale só para contratação por boleto aguardando compensação.",
+      409,
+      "nao_elegivel",
+    );
+  }
+
+  const sub = await stripe.subscriptions.retrieve(vigente.stripe_subscription_id, {
+    expand: ["latest_invoice.payment_intent.latest_charge"],
+  });
+  const fatura = sub.latest_invoice;
+  if (!fatura || typeof fatura !== "object" || fatura.status !== "open" || methodOfInvoice(fatura) !== "boleto") {
+    throw new ErroDeNegocio(
+      "A liberação provisória vale só quando a fatura em aberto é um boleto.",
+      409,
+      "nao_elegivel",
+    );
+  }
+
+  const { data: parametros } = await db.from("billing_settings").select("provisional_access_hours").single();
+  const horas = (parametros?.provisional_access_hours as number | undefined) ?? 72;
+  const expiraEm = new Date(Date.now() + horas * 3_600_000).toISOString();
+
+  const { error } = await db.from("billing_access_grants").insert({
+    organization_id: orgId,
+    kind: "confianca",
+    stripe_invoice_id: fatura.id,
+    receipt_path: receiptPath,
+    granted_by: userId,
+    expires_at: expiraEm,
+  });
+  if (error) {
+    if (error.code === "23505") {
+      throw new ErroDeNegocio(
+        "A liberação provisória desta fatura já foi usada. Aguarde a compensação do boleto.",
+        409,
+        "ja_utilizado",
+      );
+    }
+    throw new Error(`billing_access_grants: ${error.message}`);
+  }
+
+  await mirrorInvoice(db, stripe, fatura.id);
+  console.log(`[manage-billing] liberação provisória até ${expiraEm} — org ${orgId}, fatura ${fatura.id}`);
+  return { ok: true, expires_at: expiraEm };
+}
+
 // ─── Entrada ─────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -449,7 +622,7 @@ Deno.serve(async (req) => {
   }
 
   const appUrl = (Deno.env.get("APP_URL") || Deno.env.get("SITE_URL") || "").replace(/\/+$/, "");
-  if (!appUrl && (acao === "checkout" || acao === "portal")) {
+  if (!appUrl && (acao === "checkout" || acao === "portal" || acao === "pay_pix")) {
     console.error("[manage-billing] APP_URL/SITE_URL ausente");
     return json({ error: "Cobrança não configurada neste ambiente.", code: "cobranca_nao_configurada" }, 503);
   }
@@ -474,6 +647,12 @@ Deno.serve(async (req) => {
         break;
       case "sync":
         resultado = await sincronizar(db, stripe, orgId);
+        break;
+      case "pay_pix":
+        resultado = await pagarComPix(db, stripe, orgId, corpo.invoice_id, appUrl);
+        break;
+      case "request_provisional_access":
+        resultado = await liberarProvisoriamente(db, stripe, orgId, user.id, corpo.receipt_path, corpo.confirm_paid);
         break;
     }
     console.log(`[manage-billing] ${acao} ok — org ${orgId}, usuário ${user.id}`);

@@ -20,6 +20,8 @@ function status(parcial: Partial<BillingStatus>): BillingStatus {
     source: "trial",
     trial_ends_at: "2026-10-21T12:00:00Z",
     has_customer: false,
+    provisional_access_hours: 72,
+    provisional_access: null,
     plan: { id: "pro", name: "Pro", price_cents: 149000, max_properties: null, max_users: 10 },
     subscription: null,
     usage: { properties: 0, users_active: 1, invites_pending: 0 },
@@ -31,6 +33,11 @@ describe("formatCents", () => {
   it("formata centavos em reais e trata nulo como sob consulta", () => {
     expect(formatCents(149000)).toMatch(/1\.490,00/);
     expect(formatCents(null)).toBe("Sob consulta");
+  });
+
+  it("no formato compacto omite centavos só quando o valor é inteiro", () => {
+    expect(formatCents(49000, true)).toMatch(/490$/);
+    expect(formatCents(49050, true)).toMatch(/490,50$/);
   });
 });
 
@@ -79,6 +86,33 @@ describe("describeStatus", () => {
     );
     expect(resumo).toMatchObject({ label: "Aguardando pagamento", tone: "warn" });
     expect(resumo.detail).toContain("Teste grátis");
+  });
+
+  it("boleto aguardando com liberação provisória mostra o prazo", () => {
+    const resumo = describeStatus(
+      status({
+        source: "provisional",
+        trial_ends_at: "2026-10-01T00:00:00Z",
+        provisional_access: { kind: "confianca", expires_at: "2026-10-10T12:00:00Z" },
+        subscription: { plan_id: "starter", status: "incompleta", payment_method: "boleto", current_period_end: null, cancel_at_period_end: false },
+      }),
+      agora,
+    );
+    expect(resumo).toMatchObject({ label: "Aguardando pagamento", tone: "warn" });
+    expect(resumo.detail).toContain("provisoriamente");
+  });
+
+  it("liberação manual sem assinatura", () => {
+    expect(
+      describeStatus(
+        status({
+          source: "provisional",
+          trial_ends_at: "2026-10-01T00:00:00Z",
+          provisional_access: { kind: "manual", expires_at: "2026-10-10T12:00:00Z" },
+        }),
+        agora,
+      ),
+    ).toMatchObject({ label: "Acesso provisório", tone: "warn" });
   });
 
   it("sem assinatura e com o teste vencido", () => {

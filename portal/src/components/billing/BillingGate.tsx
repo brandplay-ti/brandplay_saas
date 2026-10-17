@@ -5,18 +5,19 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useBillingStatus } from "@/hooks/useBilling";
 import { useOrganization } from "@/hooks/useOrganization";
-import { BILLING_ROUTE, daysLeft, type BillingStatus } from "@/lib/billing";
+import { BILLING_ROUTE, daysLeft, formatDateTime, type BillingStatus } from "@/lib/billing";
 
 /**
  * Aplica no painel a regra de acesso que o banco calcula (`billing_status`).
  *
- * Sem acesso (teste vencido e sem assinatura), owner/admin vão para a tela de
- * plano; os demais membros veem o aviso para procurar quem administra. Os
- * limites de cadastro continuam no banco — isto é a experiência, não a
- * fronteira.
+ * Sem acesso (teste vencido, sem assinatura e sem liberação provisória),
+ * owner/admin vão para a tela de plano; os demais membros veem o aviso para
+ * procurar quem administra. A fronteira é o banco (0026: os dados da
+ * organização ficam inacessíveis aos membros); isto é a experiência — explicar
+ * o bloqueio em vez de mostrar telas vazias.
  *
- * Se a consulta falhar, não bloqueia: travar a organização inteira por um erro
- * transitório seria pior que deixar passar uma navegação.
+ * Se a consulta falhar, não bloqueia aqui: o banco continua barrando, e travar
+ * a navegação por um erro transitório só pioraria a experiência.
  */
 export const BillingGate = ({ children }: { children: ReactNode }) => {
   const { orgId, orgName, isAdmin, loading: orgLoading } = useOrganization();
@@ -76,6 +77,20 @@ const BillingNotice = ({ status }: { status: BillingStatus }) => {
           <Button asChild size="sm" variant="outline">
             <Link to={BILLING_ROUTE}>Ver plano e cobrança</Link>
           </Button>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (status.source === "provisional" && status.provisional_access) {
+    return (
+      <Alert className="mb-6">
+        <Clock className="h-4 w-4" />
+        <AlertTitle>Acesso provisório até {formatDateTime(status.provisional_access.expires_at)}</AlertTitle>
+        <AlertDescription>
+          {sub?.status === "incompleta"
+            ? "Liberado enquanto o boleto compensa. Quando o pagamento for confirmado, a assinatura fica ativa sozinha."
+            : "Liberado pela equipe do BrandPlay. Assine um plano para manter o acesso depois do prazo."}
         </AlertDescription>
       </Alert>
     );

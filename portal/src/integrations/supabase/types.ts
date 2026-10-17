@@ -378,6 +378,56 @@ export type Database = {
           },
         ]
       }
+      billing_access_grants: {
+        Row: {
+          comment: string | null
+          created_at: string
+          expires_at: string
+          granted_by: string | null
+          id: string
+          kind: string
+          organization_id: string
+          receipt_path: string | null
+          revoked_at: string | null
+          stripe_invoice_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          expires_at: string
+          granted_by?: string | null
+          id?: string
+          kind: string
+          organization_id: string
+          receipt_path?: string | null
+          revoked_at?: string | null
+          stripe_invoice_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          expires_at?: string
+          granted_by?: string | null
+          id?: string
+          kind?: string
+          organization_id?: string
+          receipt_path?: string | null
+          revoked_at?: string | null
+          stripe_invoice_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_access_grants_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_accounts: {
         Row: {
           created_at: string
@@ -534,6 +584,7 @@ export type Database = {
         Row: {
           created_at: string
           id: boolean
+          provisional_access_hours: number
           trial_days: number
           trial_plan_id: string
           updated_at: string
@@ -541,6 +592,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: boolean
+          provisional_access_hours?: number
           trial_days?: number
           trial_plan_id: string
           updated_at?: string
@@ -548,6 +600,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: boolean
+          provisional_access_hours?: number
           trial_days?: number
           trial_plan_id?: string
           updated_at?: string
@@ -4815,6 +4868,32 @@ export type Database = {
         Args: { _reason: string; _sponsor_id: string }
         Returns: undefined
       }
+      billing_access_plan: {
+        Args: { _org_id: string }
+        Returns: {
+          active: boolean
+          created_at: string
+          description: string
+          features: string[]
+          highlight: boolean
+          id: string
+          max_properties: number | null
+          max_users: number | null
+          name: string
+          price_cents: number | null
+          sort_order: number
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "billing_plans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      billing_blocked_orgs: { Args: never; Returns: string[] }
       billing_effective_plan: {
         Args: { _org_id: string }
         Returns: {

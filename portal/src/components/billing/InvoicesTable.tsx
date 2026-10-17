@@ -1,4 +1,4 @@
-import { ExternalLink, FileDown, Loader2, Receipt } from "lucide-react";
+import { ExternalLink, FileDown, Loader2, QrCode, Receipt } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,14 +26,18 @@ const TOM_DA_FATURA: Record<InvoiceStatus, StatusTone | null> = {
 interface Props {
   invoices: BillingInvoice[];
   loading: boolean;
+  /** Fatura cujo pagamento por Pix está sendo preparado. */
+  pendingPixInvoiceId: string | null;
+  onPayPix: (invoiceId: string) => void;
 }
 
-export const InvoicesTable = ({ invoices, loading }: Props) => (
+export const InvoicesTable = ({ invoices, loading, pendingPixInvoiceId, onPayPix }: Props) => (
   <Card>
     <CardHeader>
       <CardTitle>Faturas</CardTitle>
       <CardDescription>
-        Emitidas pelo Stripe a cada ciclo. Fatura em aberto de boleto pode ser paga pelo link até o vencimento.
+        Emitidas pelo Stripe a cada ciclo. Fatura em aberto pode ser paga pelo link (cartão ou boleto) ou por Pix,
+        num pagamento avulso — o Pix não é recorrente.
       </CardDescription>
     </CardHeader>
     <CardContent>
@@ -79,6 +83,16 @@ export const InvoicesTable = ({ invoices, loading }: Props) => (
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
+                      {status === "aberta" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={pendingPixInvoiceId !== null}
+                          onClick={() => onPayPix(fatura.id)}
+                        >
+                          {pendingPixInvoiceId === fatura.id ? <Loader2 className="animate-spin" /> : <QrCode />} Pix
+                        </Button>
+                      )}
                       {fatura.hosted_invoice_url && (
                         <Button asChild variant="ghost" size="sm">
                           <a href={fatura.hosted_invoice_url} target="_blank" rel="noopener noreferrer">

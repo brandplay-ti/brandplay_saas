@@ -28,12 +28,14 @@ import {
 
 interface Props {
   status: BillingStatus;
+  /** Nome do plano da assinatura em jogo — mostrado quando ela ainda não dá acesso. */
+  contractedPlanName: string | null;
   canManage: boolean;
   pendingAction: BillingAction | null;
   onAction: (action: BillingAction) => void;
 }
 
-export const CurrentPlanCard = ({ status, canManage, pendingAction, onAction }: Props) => {
+export const CurrentPlanCard = ({ status, contractedPlanName, canManage, pendingAction, onAction }: Props) => {
   const resumo = describeStatus(status);
   const plano = status.plan;
   const sub = status.subscription;
@@ -48,7 +50,7 @@ export const CurrentPlanCard = ({ status, canManage, pendingAction, onAction }: 
       <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
         <div className="space-y-1">
           <CardDescription>Plano atual</CardDescription>
-          <CardTitle className="text-2xl">{plano?.name ?? "Nenhum"}</CardTitle>
+          <CardTitle className="text-2xl">{plano?.name ?? contractedPlanName ?? "Nenhum"}</CardTitle>
           {plano && (
             <p className="text-sm text-muted-foreground">
               {status.source === "trial"

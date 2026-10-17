@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CurrentPlanCard } from "@/components/billing/CurrentPlanCard";
 import { InvoicesTable } from "@/components/billing/InvoicesTable";
 import { PlanCatalog } from "@/components/billing/PlanCatalog";
+import { ProvisionalAccessCard } from "@/components/billing/ProvisionalAccessCard";
 import {
   BillingActionError,
   useBillingInvoices,
@@ -14,15 +15,22 @@ import {
   useBillingStatus,
   useManageBilling,
   type BillingAction,
+  type BillingActionInput,
 } from "@/hooks/useBilling";
 import { useOrganization } from "@/hooks/useOrganization";
-import { canManageBilling } from "@/lib/billing";
+import { canManageBilling, formatDateTime } from "@/lib/billing";
 
 const SUCESSO: Partial<Record<BillingAction, string>> = {
   change_plan: "Plano alterado.",
   cancel: "Cancelamento registrado.",
   resume: "A assinatura continua ativa.",
   sync: "Situação atualizada com o Stripe.",
+};
+
+/** Explicação extra para erros que a manage-billing identifica por `code`. */
+const DETALHE_DO_ERRO: Record<string, string> = {
+  cobranca_nao_configurada: "As chaves do Stripe não estão configuradas neste ambiente.",
+  pix_indisponivel: "Pague pelo link da fatura, com cartão ou boleto.",
 };
 
 const Plan = () => {
@@ -37,50 +45,62 @@ const Plan = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const retornoDoCheckout = searchParams.get("checkout");
+  const retornoDoPix = searchParams.get("pix");
 
   // Volta do Stripe. O webhook pode chegar depois do redirecionamento, então
-  // quem contratou também pede a sincronização na hora.
+  // quem pagou também pede a sincronização na hora.
   useEffect(() => {
-    if (!retornoDoCheckout || !orgId) return;
+    if ((!retornoDoCheckout && !retornoDoPix) || !orgId) return;
     setSearchParams({}, { replace: true });
     if (retornoDoCheckout === "sucesso") {
       toast.success("Contratação recebida.", {
         description: "Cartão é confirmado na hora. Boleto, em até 1 dia útil depois de pago.",
       });
-      if (podeGerenciar) mutate({ action: "sync" });
-    } else if (retornoDoCheckout === "cancelado") {
-      toast.info("Contratação interrompida. Nada foi cobrado.");
+    } else if (retornoDoPix === "sucesso") {
+      toast.success("Pagamento por Pix recebido.", {
+        description: "A fatura é baixada assim que o Stripe confirmar o Pix.",
+      });
+    } else {
+      toast.info("Pagamento interrompido. Nada foi cobrado.");
+      return;
     }
-  }, [retornoDoCheckout, orgId, podeGerenciar, mutate, setSearchParams]);
+    if (podeGerenciar) mutate({ action: "sync" });
+  }, [retornoDoCheckout, retornoDoPix, orgId, podeGerenciar, mutate, setSearchParams]);
 
-  const executar = (action: BillingAction, planId?: string) => {
-    mutate(
-      { action, planId },
-      {
-        onSuccess: (resultado) => {
-          // Checkout e portal continuam no Stripe.
-          if (resultado.url) {
-            window.location.assign(resultado.url);
-            return;
-          }
-          const mensagem = SUCESSO[action];
-          if (mensagem) toast.success(mensagem);
-        },
-        onError: (erro) => {
-          const codigo = erro instanceof BillingActionError ? erro.code : undefined;
-          toast.error(erro.message, codigo === "cobranca_nao_configurada"
-            ? { description: "As chaves do Stripe não estão configuradas neste ambiente." }
-            : undefined);
-        },
+  const executar = (entrada: BillingActionInput) => {
+    mutate(entrada, {
+      onSuccess: (resultado) => {
+        // Checkout, Pix e portal continuam no Stripe.
+        if (resultado.url) {
+          window.location.assign(resultado.url);
+          return;
+        }
+        if (entrada.action === "request_provisional_access" && resultado.expires_at) {
+          toast.success(`Acesso liberado até ${formatDateTime(resultado.expires_at)}.`, {
+            description: "Quando o boleto compensar, a assinatura fica ativa sozinha.",
+          });
+          return;
+        }
+        const mensagem = SUCESSO[entrada.action];
+        if (mensagem) toast.success(mensagem);
       },
-    );
+      onError: (erro) => {
+        const codigo = erro instanceof BillingActionError ? erro.code : undefined;
+        const detalhe = codigo ? DETALHE_DO_ERRO[codigo] : undefined;
+        toast.error(erro.message, detalhe ? { description: detalhe } : undefined);
+      },
+    });
   };
 
-  const acaoEmAndamento = gerenciar.isPending ? gerenciar.variables?.action ?? null : null;
+  const emAndamento = gerenciar.isPending ? gerenciar.variables ?? null : null;
+  const acaoEmAndamento = emAndamento?.action ?? null;
   const planoEmAndamento =
-    gerenciar.isPending && (acaoEmAndamento === "checkout" || acaoEmAndamento === "change_plan")
-      ? gerenciar.variables?.planId ?? null
-      : null;
+    acaoEmAndamento === "checkout" || acaoEmAndamento === "change_plan" ? emAndamento?.planId ?? null : null;
+  const faturaPixEmAndamento = acaoEmAndamento === "pay_pix" ? emAndamento?.invoiceId ?? null : null;
+
+  // Boleto da contratação aguardando compensação, sem teste nem liberação.
+  const podeLiberarProvisoriamente =
+    podeGerenciar && status.data?.subscription?.status === "incompleta" && !status.data.access;
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto animate-fade-in">
@@ -120,19 +140,36 @@ const Plan = () => {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Acesso suspenso</AlertTitle>
                 <AlertDescription>
-                  O teste grátis acabou e a organização não tem assinatura.{" "}
-                  {podeGerenciar
-                    ? "Assine um plano abaixo para liberar o painel para toda a equipe."
-                    : "Peça ao proprietário ou a um administrador para assinar um plano."}
+                  {status.data.subscription?.status === "incompleta"
+                    ? podeGerenciar
+                      ? "A contratação aguarda a compensação do boleto. Se já pagou, libere o acesso provisoriamente abaixo."
+                      : "A contratação aguarda a compensação do boleto."
+                    : podeGerenciar
+                      ? "O teste grátis acabou e a organização não tem assinatura. Assine um plano abaixo para liberar o painel para toda a equipe."
+                      : "O teste grátis acabou e a organização não tem assinatura. Peça ao proprietário ou a um administrador para assinar um plano."}
                 </AlertDescription>
               </Alert>
             )}
 
+            {podeLiberarProvisoriamente && orgId && (
+              <ProvisionalAccessCard
+                orgId={orgId}
+                hours={status.data.provisional_access_hours}
+                pending={acaoEmAndamento === "request_provisional_access"}
+                onRequest={(receiptPath) =>
+                  executar({ action: "request_provisional_access", receiptPath, confirmPaid: true })
+                }
+              />
+            )}
+
             <CurrentPlanCard
               status={status.data}
+              contractedPlanName={
+                planos.data?.find((p) => p.id === status.data.subscription?.plan_id)?.name ?? null
+              }
               canManage={podeGerenciar}
               pendingAction={acaoEmAndamento}
-              onAction={(acao) => executar(acao)}
+              onAction={(acao) => executar({ action: acao })}
             />
 
             <section className="space-y-4">
@@ -154,8 +191,8 @@ const Plan = () => {
                   status={status.data}
                   canManage={podeGerenciar}
                   pendingPlanId={planoEmAndamento}
-                  onSubscribe={(planId) => executar("checkout", planId)}
-                  onChangePlan={(planId) => executar("change_plan", planId)}
+                  onSubscribe={(planId) => executar({ action: "checkout", planId })}
+                  onChangePlan={(planId) => executar({ action: "change_plan", planId })}
                 />
               )}
             </section>
@@ -163,7 +200,12 @@ const Plan = () => {
 
           {podeGerenciar && (
             <TabsContent value="cobrancas">
-              <InvoicesTable invoices={faturas.data ?? []} loading={faturas.isLoading} />
+              <InvoicesTable
+                invoices={faturas.data ?? []}
+                loading={faturas.isLoading}
+                pendingPixInvoiceId={faturaPixEmAndamento}
+                onPayPix={(invoiceId) => executar({ action: "pay_pix", invoiceId })}
+              />
             </TabsContent>
           )}
         </Tabs>

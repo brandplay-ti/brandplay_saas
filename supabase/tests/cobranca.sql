@@ -24,7 +24,25 @@ insert into public.organizations (id, owner_id, name) values
   ('b1000000-0000-4000-8000-000000000002', '1b000000-0000-4000-8000-00000000000b', 'Org B (cobrança)');
 
 insert into public.organization_members (organization_id, user_id, role, status) values
-  ('a1000000-0000-4000-8000-000000000001', '1c000000-0000-4000-8000-00000000000c', 'financeiro', 'ativo');
+  ('a1000000-0000-4000-8000-000000000001', '1c000000-0000-4000-8000-00000000000c', 'financeiro', 'ativo'),
+  -- A também é membro da Org B: o bloqueio de B não pode alcançar A.
+  ('b1000000-0000-4000-8000-000000000002', '1a000000-0000-4000-8000-00000000000a', 'comercial', 'ativo');
+
+-- Dados da Org B para o bloqueio (k..m): patrocinador, entrega, propriedade
+-- publicada e um usuário do portal do patrocinador (P), que não é membro.
+insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-000000000000', '1f000000-0000-4000-8000-00000000000f', 'authenticated', 'authenticated', 'cobranca.p@teste.local', '{"full_name":"Patrocinador P"}');
+insert into public.sponsors (id, organization_id, owner_id, name) values
+  ('5b100000-0000-4000-8000-000000000002', 'b1000000-0000-4000-8000-000000000002', '1b000000-0000-4000-8000-00000000000b', 'Sponsor B (cobrança)');
+insert into public.deliveries (id, organization_id, owner_id, sponsor_id, title, brand) values
+  ('de100000-0000-4000-8000-000000000002', 'b1000000-0000-4000-8000-000000000002', '1b000000-0000-4000-8000-00000000000b',
+   '5b100000-0000-4000-8000-000000000002', 'Entrega B', 'Marca B');
+insert into public.sports_properties (id, organization_id, owner_id, name, category, is_published) values
+  ('9b100000-0000-4000-8000-000000000002', 'b1000000-0000-4000-8000-000000000002', '1b000000-0000-4000-8000-00000000000b',
+   'Propriedade publicada B', 'futebol', true);
+insert into public.sponsor_portal_access (organization_id, sponsor_id, user_id, granted_by, status) values
+  ('b1000000-0000-4000-8000-000000000002', '5b100000-0000-4000-8000-000000000002',
+   '1f000000-0000-4000-8000-00000000000f', '1b000000-0000-4000-8000-00000000000b', 'ativo');
 
 -- (a) organização nova nasce com conta de cobrança e teste de 14 dias -------
 do $$
@@ -321,6 +339,181 @@ insert into public.sports_properties (organization_id, owner_id, name, category)
 values ('b1000000-0000-4000-8000-000000000002', '1b000000-0000-4000-8000-00000000000b', 'Importada', 'futebol');
 set local brandplay.ignorar_limites = 'off';
 \echo 'OK (j): carga com brandplay.ignorar_limites ignora os limites'
+
+-- (k) liberação provisória enquanto o boleto compensa (0025) ---------------
+-- Org B: teste vencido; nova contratação Starter com boleto aguardando.
+insert into public.billing_subscriptions
+  (organization_id, plan_id, status, stripe_customer_id, stripe_subscription_id)
+values
+  ('b1000000-0000-4000-8000-000000000002', 'starter', 'incompleta', 'cus_teste_b', 'sub_teste_b2');
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"1b000000-0000-4000-8000-00000000000b","role":"authenticated"}', true);
+do $$
+begin
+  if (public.billing_status('b1000000-0000-4000-8000-000000000002')->>'access')::boolean then
+    raise exception 'FALHA (k): boleto aguardando, sem liberação, já dá acesso';
+  end if;
+  begin
+    insert into public.billing_access_grants (organization_id, kind, stripe_invoice_id, receipt_path, expires_at)
+    values ('b1000000-0000-4000-8000-000000000002', 'confianca', 'in_forjada',
+            'b1000000-0000-4000-8000-000000000002/x.pdf', now() + interval '10 years');
+    raise exception 'FALHA (k): cliente gravou a própria liberação pela API';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+
+-- Como a manage-billing gravaria, depois de conferir a fatura no Stripe.
+insert into public.billing_access_grants
+  (organization_id, kind, stripe_invoice_id, receipt_path, granted_by, expires_at)
+values
+  ('b1000000-0000-4000-8000-000000000002', 'confianca', 'in_boleto_b',
+   'b1000000-0000-4000-8000-000000000002/comprovante.pdf', '1b000000-0000-4000-8000-00000000000b',
+   now() + interval '72 hours');
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"1b000000-0000-4000-8000-00000000000b","role":"authenticated"}', true);
+do $$
+declare _s jsonb;
+begin
+  _s := public.billing_status('b1000000-0000-4000-8000-000000000002');
+  if (_s->>'access')::boolean is not true or _s->>'source' <> 'provisional'
+     or _s->'plan'->>'id' <> 'starter' or _s->'provisional_access' = 'null'::jsonb then
+    raise exception 'FALHA (k): liberação vigente não dá acesso com o plano contratado: %', _s;
+  end if;
+  raise notice 'OK (k): liberação provisória dá acesso, com os limites do plano contratado';
+end $$;
+reset role;
+
+do $$
+begin
+  begin
+    insert into public.billing_access_grants
+      (organization_id, kind, stripe_invoice_id, receipt_path, expires_at)
+    values
+      ('b1000000-0000-4000-8000-000000000002', 'confianca', 'in_boleto_b',
+       'b1000000-0000-4000-8000-000000000002/outro.pdf', now() + interval '72 hours');
+    raise exception 'FALHA (k): segunda liberação em confiança para a mesma fatura';
+  exception when unique_violation then null;
+  end;
+  begin
+    insert into public.billing_access_grants (organization_id, kind, expires_at)
+    values ('b1000000-0000-4000-8000-000000000002', 'manual', now() + interval '1 day');
+    raise exception 'FALHA (k): liberação manual sem comentário';
+  exception when check_violation then null;
+  end;
+  raise notice 'OK (k): uma liberação em confiança por fatura; manual exige comentário';
+end $$;
+
+-- O prazo passa: o acesso cai sozinho.
+update public.billing_access_grants set expires_at = now() - interval '1 minute'
+ where organization_id = 'b1000000-0000-4000-8000-000000000002';
+
+-- (l) bloqueio total no banco (0026) — a Org B está sem acesso ---------------
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"1b000000-0000-4000-8000-00000000000b","role":"authenticated"}', true);
+do $$
+declare n int;
+begin
+  if (public.billing_status('b1000000-0000-4000-8000-000000000002')->>'access')::boolean then
+    raise exception 'FALHA (l): liberação vencida ainda dá acesso';
+  end if;
+  if (select count(*) from public.sponsors where id = '5b100000-0000-4000-8000-000000000002') <> 0 then
+    raise exception 'FALHA (l): membro de organização sem acesso lê patrocinador';
+  end if;
+  if (select count(*) from public.deliveries where id = 'de100000-0000-4000-8000-000000000002') <> 0 then
+    raise exception 'FALHA (l): membro de organização sem acesso lê entrega';
+  end if;
+  update public.sponsors set name = 'Alterado' where id = '5b100000-0000-4000-8000-000000000002';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'FALHA (l): membro de organização sem acesso alterou patrocinador'; end if;
+  begin
+    insert into public.sponsors (organization_id, owner_id, name)
+    values ('b1000000-0000-4000-8000-000000000002', '1b000000-0000-4000-8000-00000000000b', 'Novo');
+    raise exception 'FALHA (l): membro de organização sem acesso inseriu patrocinador';
+  exception when insufficient_privilege then null;
+  end;
+
+  -- o que precisa continuar acessível para regularizar
+  if (select count(*) from public.organizations where id = 'b1000000-0000-4000-8000-000000000002') <> 1 then
+    raise exception 'FALHA (l): owner bloqueado não lê a própria organização';
+  end if;
+  if (select count(*) from public.organization_members where organization_id = 'b1000000-0000-4000-8000-000000000002') < 1 then
+    raise exception 'FALHA (l): owner bloqueado não lê a equipe';
+  end if;
+  if (select count(*) from public.billing_subscriptions where organization_id = 'b1000000-0000-4000-8000-000000000002') < 1 then
+    raise exception 'FALHA (l): owner bloqueado não lê a assinatura para regularizar';
+  end if;
+  raise notice 'OK (l): organização sem acesso fica bloqueada no banco, menos o necessário para regularizar';
+end $$;
+reset role;
+
+-- A é membro da Org A (com acesso) e da Org B (sem): o bloqueio é por organização.
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"1a000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+do $$
+begin
+  if (select count(*) from public.sponsors where id = '5b100000-0000-4000-8000-000000000002') <> 0 then
+    raise exception 'FALHA (l): A lê patrocinador da Org B, que está sem acesso';
+  end if;
+  if (select count(*) from public.sports_properties where organization_id = 'a1000000-0000-4000-8000-000000000001') < 3 then
+    raise exception 'FALHA (l): o bloqueio da Org B alcançou a Org A';
+  end if;
+  raise notice 'OK (l): o bloqueio vale por organização';
+end $$;
+reset role;
+
+-- P (portal do patrocinador) não é membro da Org B: continua vendo a entrega.
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"1f000000-0000-4000-8000-00000000000f","role":"authenticated"}', true);
+do $$
+begin
+  if (select count(*) from public.deliveries where id = 'de100000-0000-4000-8000-000000000002') <> 1 then
+    raise exception 'FALHA (l): o portal do patrocinador perdeu acesso com a organização bloqueada';
+  end if;
+  raise notice 'OK (l): portal do patrocinador não é afetado';
+end $$;
+reset role;
+
+set local role anon;
+do $$
+begin
+  if (select count(*) from public.sports_properties where id = '9b100000-0000-4000-8000-000000000002') <> 1 then
+    raise exception 'FALHA (l): Media Kit público sumiu com a organização bloqueada';
+  end if;
+  raise notice 'OK (l): Media Kit público não é afetado';
+end $$;
+reset role;
+
+-- (m) cobertura: toda tabela de organização tem a policy de bloqueio ---------
+-- A lista de exceções é a mesma da 0026. Tabela nova com organization_id que
+-- não estiver aqui precisa da policy `billing_access_restrictive`.
+do $$
+declare _faltando text;
+begin
+  select string_agg(c.relname, ', ' order by c.relname) into _faltando
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public'
+     and c.relkind = 'r'
+     and exists (
+       select 1 from pg_attribute a
+        where a.attrelid = c.oid and a.attname = 'organization_id' and not a.attisdropped
+     )
+     and c.relname <> all (array[
+       'billing_accounts', 'billing_subscriptions', 'billing_invoices', 'billing_access_grants',
+       'organization_members', 'organization_invites', 'backend_error_logs', 'error_reports'
+     ])
+     and not exists (
+       select 1 from pg_policy p
+        where p.polrelid = c.oid and p.polname = 'billing_access_restrictive' and not p.polpermissive
+     );
+  if _faltando is not null then
+    raise exception 'FALHA (m): tabelas de organização sem bloqueio de cobrança (0026): %', _faltando;
+  end if;
+  raise notice 'OK (m): toda tabela de organização tem a policy de bloqueio de cobrança';
+end $$;
 
 rollback;
 

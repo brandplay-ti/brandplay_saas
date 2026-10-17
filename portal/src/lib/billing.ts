@@ -22,9 +22,13 @@ export interface BillingPlanSummary {
 export interface BillingStatus {
   organization_id: string;
   access: boolean;
-  source: "subscription" | "trial" | "none";
+  /** De onde vem o acesso: assinatura, teste grátis ou liberação provisória do boleto. */
+  source: "subscription" | "trial" | "provisional" | "none";
   trial_ends_at: string | null;
   has_customer: boolean;
+  /** Prazo, em horas, de uma liberação provisória (`billing_settings`). */
+  provisional_access_hours: number;
+  provisional_access: { kind: "confianca" | "manual"; expires_at: string } | null;
   plan: BillingPlanSummary | null;
   subscription: {
     plan_id: string;
@@ -64,15 +68,30 @@ export function canManageBilling(role: string | null): boolean {
   return role === "owner" || role === "admin";
 }
 
-/** Centavos de BRL para texto. Nulo é plano "sob consulta". */
-export function formatCents(cents: number | null): string {
+/**
+ * Centavos de BRL para texto. Nulo é plano "sob consulta". `compacto` omite
+ * os centavos quando o valor é inteiro (R$ 490), como na página pública.
+ */
+export function formatCents(cents: number | null, compacto = false): string {
   if (cents == null) return "Sob consulta";
-  return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const semCentavos = compacto && cents % 100 === 0;
+  return (cents / 100).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: semCentavos ? 0 : 2,
+    maximumFractionDigits: semCentavos ? 0 : 2,
+  });
 }
 
 export function formatDate(iso: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("pt-BR");
+}
+
+/** Data e hora no fuso de quem vê — prazos de horas, como a liberação provisória. */
+export function formatDateTime(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 }
 
 /** Dias inteiros que restam até `fim`, arredondando para cima. Nunca negativo. */
@@ -132,7 +151,9 @@ export function describeStatus(status: BillingStatus, agora: Date = new Date()):
           detail:
             status.source === "trial"
               ? `O boleto leva até 1 dia útil para compensar. Teste grátis: ${textoDias}.`
-              : "O boleto leva até 1 dia útil para compensar. O acesso volta quando o pagamento for confirmado.",
+              : status.source === "provisional" && status.provisional_access
+                ? `Acesso liberado provisoriamente até ${formatDateTime(status.provisional_access.expires_at)}, enquanto o boleto compensa.`
+                : "O boleto leva até 1 dia útil para compensar. O acesso volta quando o pagamento for confirmado.",
         };
       default:
         break;
@@ -144,6 +165,14 @@ export function describeStatus(status: BillingStatus, agora: Date = new Date()):
       label: "Teste grátis",
       tone: dias <= 3 ? "warn" : "ok",
       detail: `${textoDias} — termina em ${formatDate(status.trial_ends_at)}.`,
+    };
+  }
+
+  if (status.source === "provisional" && status.provisional_access) {
+    return {
+      label: "Acesso provisório",
+      tone: "warn",
+      detail: `Liberado até ${formatDateTime(status.provisional_access.expires_at)}.`,
     };
   }
 

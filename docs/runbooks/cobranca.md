@@ -12,7 +12,10 @@ Uma vez por ambiente. Homologação usa a conta em **modo de teste**; produção
 modo live. Nunca reaproveite chaves entre ambientes.
 
 1. **Boleto**: Dashboard → Settings → Payment methods → ative **Boleto**.
-   Cartão já vem ativo.
+   Cartão já vem ativo. **Pix** (pagamento avulso de fatura): ative também. Em
+   contas brasileiras o Stripe libera o Pix **por convite** — enquanto não
+   liberar, o botão "Pix" da aba Cobranças responde que o Pix não está
+   disponível, e o resto da cobrança funciona normalmente.
 2. **Chave secreta**: Developers → API keys → `sk_test_...` (homologação) ou
    `sk_live_...` (produção). No Dockploy, no serviço **Compose do Supabase**
    do ambiente, variável `STRIPE_SECRET_KEY`.
@@ -70,8 +73,8 @@ update public.billing_plans set price_cents = 59000 where id = 'starter';
   assina é decisão comercial e se faz no Stripe, assinatura a assinatura.
 - **Limite**: vale na hora. Quem já está acima do novo limite mantém o que tem,
   mas não cresce.
-- Depois de mudar preço, ajuste a Landing (`portal/src/pages/Landing.tsx`), que
-  ainda tem os preços no código.
+- A página pública lê o catálogo do banco: não há preço no código para
+  ajustar.
 
 ## Plano novo
 
@@ -100,6 +103,60 @@ update public.billing_accounts
 
 Registre quem pediu e por quê. Para mudar a duração do teste das organizações
 **novas**: `update public.billing_settings set trial_days = 21;`.
+
+## Liberação provisória de acesso
+
+Enquanto o boleto compensa, o acesso pode ser liberado **sem mudar a
+assinatura** (`billing_access_grants`). A API não grava nessa tabela: o
+cliente libera pela `manage-billing`, a equipe por SQL.
+
+- **Pelo cliente:** tela de plano → "Já pagou o boleto?" → comprovante +
+  declaração. Uma vez por fatura, 72 h.
+- **Pela equipe (manual)**, com comentário obrigatório:
+
+  ```sql
+  insert into public.billing_access_grants (organization_id, kind, comment, expires_at)
+  values ('<uuid da organização>', 'manual',
+          'Boleto pago em <data>, compensação atrasada — pedido de <quem>',
+          now() + interval '48 hours');
+  ```
+
+- **Revogar** (nunca `delete`):
+
+  ```sql
+  update public.billing_access_grants set revoked_at = now() where id = '<id>';
+  ```
+
+- **Prazo padrão** do cliente: `update public.billing_settings set provisional_access_hours = 72;`
+
+Os comprovantes ficam no bucket privado `billing-receipts`, em
+`<uuid da organização>/<arquivo>`. Abra pelo Studio (Storage) ao revisar
+clientes com boleto em aberto. Ninguém é avisado automaticamente quando um
+cliente se libera.
+
+## Pix pago em duplicidade
+
+Se o cliente pagar a fatura por Pix **e** o boleto/cartão da mesma fatura,
+o segundo pagamento entra no Stripe sem fatura em aberto para quitar (o
+webhook só dá baixa em fatura `open`). Reembolse pelo Dashboard do Stripe o
+pagamento a mais.
+
+## Organização bloqueada
+
+Sem assinatura com acesso, teste ou liberação, os dados da organização ficam
+inacessíveis aos membros **no banco** (policies `billing_access_restrictive`,
+`0026`) — telas vazias e a tela de plano no lugar do painel. Para conferir o
+motivo:
+
+```sql
+select public.billing_access_plan('<uuid>');   -- nulo = sem acesso
+select status, plan_id, created_at from public.billing_subscriptions where organization_id = '<uuid>' order by created_at desc;
+select trial_ends_at from public.billing_accounts where organization_id = '<uuid>';
+select kind, expires_at, revoked_at from public.billing_access_grants where organization_id = '<uuid>' order by created_at desc;
+```
+
+Tabela nova com `organization_id` precisa da policy restritiva (mesmo formato
+da `0026`); o teste `(m)` de `supabase/tests/cobranca.sql` falha se faltar.
 
 ## Cliente pagou e continua sem acesso
 

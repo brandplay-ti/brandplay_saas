@@ -205,7 +205,11 @@ export async function mirrorSubscription(
 }
 
 /** Método com que a fatura foi (ou está sendo) paga — o real, não o primeiro aceito. */
-function methodOfInvoice(inv: Stripe.Invoice): string | null {
+export function methodOfInvoice(inv: Stripe.Invoice): string | null {
+  // Pix avulso dá baixa "fora do Stripe" (paid_out_of_band): a fatura não tem
+  // cobrança própria, e a marca fica na metadata (ver settlePixPayment).
+  if (inv.metadata?.paid_with === "pix") return "pix";
+
   const pi = inv.payment_intent;
   if (pi && typeof pi === "object") {
     const charge = pi.latest_charge;
@@ -277,4 +281,40 @@ export async function mirrorInvoice(
   if (error) throw new Error(`billing_invoices (${inv.id}): ${error.message}`);
 
   return orgId;
+}
+
+/**
+ * Pix avulso pago: dá baixa na fatura da assinatura (ADR-0007).
+ *
+ * O Pix é cobrado num Checkout `mode=payment` separado, criado pela
+ * manage-billing com `stripe_invoice_id` na metadata. Pago, a fatura original
+ * é quitada com `paid_out_of_band` — o dinheiro entrou por outra cobrança — e
+ * marcada com `paid_with = pix`. Idempotente: fatura já paga não é tocada.
+ */
+export async function settlePixPayment(
+  db: SupabaseClient,
+  stripe: Stripe,
+  sessao: Stripe.Checkout.Session,
+): Promise<void> {
+  const faturaId = sessao.metadata?.stripe_invoice_id;
+  if (!faturaId) return;
+  if (sessao.payment_status !== "paid") {
+    console.log(`[billing] Pix da fatura ${faturaId} ainda não pago — sem baixa`);
+    return;
+  }
+
+  const fatura = await stripe.invoices.retrieve(faturaId);
+  if (idOf(fatura.customer) !== idOf(sessao.customer)) {
+    throw new Error(`sessão ${sessao.id} não é do customer da fatura ${faturaId}`);
+  }
+
+  if (fatura.status === "open") {
+    await stripe.invoices.update(faturaId, { metadata: { ...fatura.metadata, paid_with: "pix" } });
+    await stripe.invoices.pay(faturaId, { paid_out_of_band: true });
+    console.log(`[billing] fatura ${faturaId} quitada por Pix avulso (${sessao.id})`);
+  }
+
+  const subId = idOf(fatura.subscription);
+  if (subId) await mirrorSubscription(db, stripe, subId);
+  await mirrorInvoice(db, stripe, faturaId);
 }

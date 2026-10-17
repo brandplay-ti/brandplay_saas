@@ -45,11 +45,20 @@ Fonte: tabela `billing_plans`. Os valores abaixo são os da migration `0024`.
 A organização tem acesso quando:
 
 - tem assinatura `ativa`, `trialing` ou `inadimplente`; **ou**
-- está dentro do teste grátis.
+- está dentro do teste grátis; **ou**
+- tem uma liberação provisória vigente (abaixo).
 
-Sem acesso, owner/admin são levados à tela de plano; os demais membros veem
-"Acesso suspenso". Os limites de cadastro valem em qualquer caso, inclusive com
-acesso: uma organização sem plano não cria propriedades nem convida.
+Sem acesso, os dados da organização ficam **bloqueados no banco** para os
+membros dela — pela tela e pela API. Continuam acessíveis só o necessário para
+regularizar: a própria organização, a equipe e os convites, o plano, a
+assinatura e as faturas. Na tela, owner/admin são levados à tela de plano; os
+demais membros veem "Acesso suspenso".
+
+O bloqueio é por organização: quem é membro de outra organização com acesso
+continua usando aquela normalmente. Não são afetados o **portal do
+patrocinador** (o patrocinador não é membro) nem o **Media Kit público**.
+
+Os limites de cadastro valem em qualquer caso, inclusive com acesso.
 
 | Status da assinatura | Significado                                            | Acesso |
 | -------------------- | ------------------------------------------------------ | ------ |
@@ -59,7 +68,25 @@ acesso: uma organização sem plano não cria propriedades nem convida.
 | `nao_paga`           | o Stripe desistiu de cobrar                            | não    |
 | `cancelada`          | encerrada                                              | não    |
 
-\* Enquanto o teste estiver valendo, o acesso continua pelo teste.
+\* Enquanto o teste estiver valendo, o acesso continua pelo teste; depois
+dele, pela liberação provisória, se houver.
+
+## Liberação provisória (boleto compensando)
+
+O boleto compensa em até 1 dia útil depois de pago. Para a equipe não ficar
+parada nesse intervalo:
+
+- **Pelo cliente (em confiança):** owner/admin anexam o comprovante e
+  declaram que pagaram. Vale só quando há uma contratação aguardando pagamento
+  cuja fatura em aberto é um **boleto**, e **uma vez por fatura**. Dura 72
+  horas (`billing_settings.provisional_access_hours`).
+- **Pela equipe da plataforma (manual):** com comentário obrigatório, sem o
+  limite de uma por fatura — para quando o prazo do cliente acabou e a
+  compensação ainda não chegou.
+
+A liberação nunca muda a assinatura: quando o boleto compensa, ela fica ativa
+sozinha; quando o prazo passa sem compensar, o acesso cai. Durante a
+liberação valem os limites do plano contratado.
 
 Cancelar uma assinatura paga **não** corta o acesso na hora: ela segue ativa até
 o fim do período pago e não renova. Cancelar uma contratação `incompleta`
@@ -69,8 +96,11 @@ encerra na hora, para permitir contratar de novo com outra forma de pagamento.
 
 - **Cartão ou boleto**, pelo Checkout do Stripe. O boleto vence em 3 dias e
   compensa em até 1 dia útil depois de pago.
-- **Pix** não está disponível: recorrência em Pix no Stripe exige Pix
-  Automático, que não existe para contas brasileiras.
+- **Pix não é recorrente**: recorrência em Pix no Stripe exige Pix
+  Automático, que não existe para contas brasileiras. Uma **fatura em aberto**
+  pode ser paga por Pix, num pagamento avulso, pela aba Cobranças; a cada ciclo
+  o cliente precisa pagar de novo. Depende de o Pix estar habilitado na conta
+  do Stripe.
 - Uma assinatura vigente por organização. Com uma contratação aguardando
   pagamento, não dá para contratar de novo até pagar ou cancelar a tentativa.
 

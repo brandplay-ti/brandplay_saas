@@ -95,6 +95,11 @@ Padrão da cobrança (ADR-0007, `0024`):
    cobrança é escrito só pelas Edge Functions (service role) e por gatilhos.
    Os demais membros leem o resumo por `billing_status(_org_id)`.
 
+Toda tabela nova com `organization_id` precisa também da policy restritiva
+`billing_access_restrictive` (formato da `0026`), que bloqueia os membros de
+organização sem acesso. O teste `(m)` de `supabase/tests/cobranca.sql` falha
+se faltar.
+
 Uma tabela nova que represente algo **limitado por plano** precisa de gatilho
 `trg_zz_billing_limit` no padrão da `0024` (erro com
 `hint = 'limite_plano:<recurso>'` e plano sugerido em `detail`) e de uma
