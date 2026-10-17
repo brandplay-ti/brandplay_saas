@@ -133,8 +133,8 @@ cada um e repetir os SELECTs/UPDATEs acima pelo client - o resultado esperado
 -- ===========================================================================
 -- Testes automatizados (c)..(g): isolamento entre organizações (automatiza o
 -- roteiro (b)), escrita por módulo, perfis, trigger de organization_id e
--- escopo por usuário. Cobrem a reconciliação com o schema real do Lovable
--- (0012..0017).
+-- escopo por usuário. Cobrem a reconciliação do schema (0012..0017,
+-- ADR-0005).
 --
 -- Tudo roda numa transação com ROLLBACK no fim: o script cria os próprios
 -- usuários/organizações e não deixa resíduo. Cada verificação que falha

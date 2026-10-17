@@ -61,6 +61,25 @@ necessidade clara e sem antes confirmar que o componente equivalente não
 existe ou não pode ser composto a partir do que já está instalado (Radix +
 Tailwind).
 
+## Campos de senha
+
+Todo campo de senha usa o `PasswordInput`
+(`portal/src/components/PasswordInput.tsx`), nunca `<Input type="password">`
+direto nem `type="text"`:
+
+- o padrão é **oculto**;
+- há sempre um botão para mostrar e ocultar a senha, acessível por teclado e
+  com `aria-label` ("Mostrar senha" / "Ocultar senha");
+- vale para qualquer senha: login, cadastro, definição de senha e senha
+  temporária definida por outra pessoa (ex.: criação de membro em
+  `TeamManagement`).
+
+Campo de senha nova ou temporária usa `autoComplete="new-password"`. Sem isso,
+o navegador pode preencher nele a senha salva de quem está logado.
+
+Em E2E, localize o campo com `getByLabel("Senha", { exact: true })`: sem o
+`exact`, o Playwright também encontra o botão "Mostrar senha".
+
 ## Autorização
 
 Verificações no frontend (esconder botão, desabilitar ação, redirecionar em

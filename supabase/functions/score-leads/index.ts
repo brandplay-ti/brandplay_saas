@@ -157,8 +157,7 @@ Para cada lead retorne: score (0-100), classificação (quente >=70, morno 40-69
       const t = await aiResp.text();
       console.error("AI error", aiResp.status, t);
       if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Limite de uso da IA atingido. Tente novamente em instantes." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (aiResp.status === 402) return new Response(JSON.stringify({ error: "Créditos da IA esgotados. Adicione créditos na sua workspace." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      throw new Error(`AI gateway: ${aiResp.status}`);
+      throw new Error(`Anthropic API: ${aiResp.status}`);
     }
 
     const aiData = await aiResp.json();

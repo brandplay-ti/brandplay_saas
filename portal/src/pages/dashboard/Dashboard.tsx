@@ -50,6 +50,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import { dataLocal } from "@/lib/datas";
 
 const fmtMoney = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
@@ -219,7 +220,7 @@ const Dashboard = () => {
       months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: fmtMonth(d), recebido: 0, previsto: 0 });
     }
     installments.forEach((i: any) => {
-      const d = new Date(i.due_date);
+      const d = dataLocal(i.due_date);
       const m = months.find((x) => x.key === `${d.getFullYear()}-${d.getMonth()}`);
       if (!m) return;
       if (i.status === "pago") m.recebido += Number(i.paid_amount ?? i.amount);

@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { PasswordInput } from "@/components/PasswordInput";
+import { usePlanLimitNotice } from "@/hooks/usePlanLimitNotice";
+import { readEdgeFunctionError } from "@/lib/edgeFunctionError";
 import {
   Select,
   SelectContent,
@@ -74,6 +77,7 @@ type Invite = {
 export const TeamManagement = () => {
   const { toast } = useToast();
   const { orgId, isAdmin, role: myRole, loading: orgLoading } = useOrganization();
+  const avisarLimiteDoPlano = usePlanLimitNotice();
 
   const [members, setMembers] = useState<Member[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
@@ -134,9 +138,13 @@ export const TeamManagement = () => {
     const { data, error } = await supabase.functions.invoke("manage-team-access", { body: payload });
     setBusy(false);
     if (error || data?.error) {
+      // O corpo do erro traz a mensagem real da função; `error.message` é só
+      // "non-2xx status code".
+      const corpo = await readEdgeFunctionError(error, data);
+      if (avisarLimiteDoPlano(corpo)) return false;
       toast({
         title: "Erro",
-        description: error?.message || data?.error || "Falha na operação",
+        description: corpo.error || "Falha na operação",
         variant: "destructive",
       });
       return false;
@@ -351,12 +359,13 @@ export const TeamManagement = () => {
                     <Input type="email" value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} />
                   </div>
                   <div>
-                    <Label>Senha temporária (mín. 6 caracteres)</Label>
-                    <Input
-                      type="text"
+                    <Label htmlFor="create-password">Senha temporária (mín. 6 caracteres)</Label>
+                    <PasswordInput
+                      id="create-password"
                       value={createPassword}
                       onChange={(e) => setCreatePassword(e.target.value)}
                       placeholder="Ex: Bem-vindo123"
+                      autoComplete="new-password"
                     />
                   </div>
                   <div>

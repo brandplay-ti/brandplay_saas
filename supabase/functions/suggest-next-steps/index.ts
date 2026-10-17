@@ -360,8 +360,8 @@ Deno.serve(async (req) => {
     if (!aiResp.ok) {
       const t = await aiResp.text();
       console.error("next-steps error:", aiResp.status, t);
-      return new Response(JSON.stringify({ error: aiResp.status === 429 ? "Rate limit" : aiResp.status === 402 ? "Créditos esgotados" : "Erro IA" }), {
-        status: aiResp.status === 429 || aiResp.status === 402 ? aiResp.status : 500,
+      return new Response(JSON.stringify({ error: aiResp.status === 429 ? "Rate limit" : "Erro IA" }), {
+        status: aiResp.status === 429 ? 429 : 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

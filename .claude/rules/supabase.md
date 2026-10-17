@@ -87,6 +87,37 @@ Padrão adicionado pela reconciliação com o Lovable (ADR-0005, `0017`):
    entregas, ativos e propriedades. Ao criar uma tabela nova desses módulos,
    use este padrão, não o 1 (que deixaria qualquer membro escrever).
 
+Padrão da cobrança (ADR-0007, `0024`):
+
+8. **Cobrança** (`billing_*_admin_read`) — leitura só para
+   `has_org_role(organization_id, ['owner','admin'])`, nenhuma policy de
+   escrita e `insert/update/delete` revogados de `authenticated`. Estado de
+   cobrança é escrito só pelas Edge Functions (service role) e por gatilhos.
+   Os demais membros leem o resumo por `billing_status(_org_id)`.
+
+Toda tabela nova com `organization_id` precisa também da policy restritiva
+`billing_access_restrictive` (formato da `0026`), que bloqueia os membros de
+organização sem acesso. O teste `(m)` de `supabase/tests/cobranca.sql` falha
+se faltar. Exceção: dado **da plataforma** que só referencia a organização
+(ex.: `platform_admin_audit_log`) entra na lista de exceções do teste, com o
+motivo.
+
+Padrão da plataforma (ADR-0008, `0027`–`0029`):
+
+9. **Superadmin** (`<tabela>_platform_admin_read`) — leitura extra para
+   `is_platform_admin()`, só em tabelas da cobrança e da própria plataforma
+   (`billing_*`, `platform_admin_audit_log`). Nunca em tabela de domínio dos
+   clientes. O resto do que o superadmin vê vem por funções `admin_*`
+   `SECURITY DEFINER` que começam com `platform_admin_require()`, devolvem só
+   cadastro, cobrança e contagens, e gravam toda alteração em
+   `platform_admin_audit_log`. `platform_admins` não tem policy de escrita e a
+   concessão (`platform_admin_grant`) não é executável por `authenticated`.
+
+Uma tabela nova que represente algo **limitado por plano** precisa de gatilho
+`trg_zz_billing_limit` no padrão da `0024` (erro com
+`hint = 'limite_plano:<recurso>'` e plano sugerido em `detail`) e de uma
+coluna correspondente em `billing_plans`.
+
 Nunca use `has_role(..., 'admin')` (papel **global** de `user_roles`) em
 policy de tabela de organização: no Lovable isso dava acesso a todas as
 organizações e não foi portado de propósito (ADR-0005).

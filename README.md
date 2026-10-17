@@ -5,8 +5,8 @@ patrocínio esportivo de ponta a ponta: propriedades e ativos patrocináveis,
 pipeline comercial, propostas, contratos, entregas, financeiro, relatórios de
 performance e um portal exclusivo para o patrocinador.
 
-O projeto nasceu no Lovable e roda em arquitetura própria — Supabase
-self-hosted e VPS com Dockploy —, no mesmo padrão do central-check
+Roda em arquitetura própria — Supabase self-hosted e VPS com Dockploy —, no
+mesmo padrão do central-check
 ([ADR-0001](docs/adr/0001-sair-do-lovable-cloud.md),
 [ADR-0006](docs/adr/0006-padrao-de-infraestrutura-vps.md)).
 

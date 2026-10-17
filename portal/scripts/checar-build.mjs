@@ -19,9 +19,6 @@
 // build parar dizendo que a variável está vazia. E está mesmo: o valor foi
 // parar num nome que este projeto não lê.
 //
-// São também os nomes que o Lovable usava neste projeto até a saída dele
-// (ADR-0001): um `.env` antigo copiado para o Dockploy cai exatamente aqui.
-//
 // "Está vazia" manda procurar um valor que já existe. Dizer qual nome errado
 // foi usado transforma um build perdido em dez segundos de correção.
 const OBRIGATORIAS = {

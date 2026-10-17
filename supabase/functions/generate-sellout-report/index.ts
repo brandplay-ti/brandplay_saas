@@ -103,7 +103,6 @@ Deno.serve(async (req) => {
     });
 
     if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Limite de requisições. Tente novamente em instantes." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    if (aiResp.status === 402) return new Response(JSON.stringify({ error: "Créditos de IA esgotados." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (!aiResp.ok) throw new Error(`AI error: ${await aiResp.text()}`);
 
     const data = await aiResp.json();

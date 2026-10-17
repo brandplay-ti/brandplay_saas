@@ -62,6 +62,10 @@ modelo "lite"/"flash-lite" explícito de baixo custo); por isso foram tratadas c
   especificamente a URL do Portal do Patrocinador — variável dedicada já existente no
   projeto antes desta migração. `sendEmail` nessa função já chamava a API do Resend
   diretamente (não usava o proxy do Lovable) e não precisou de alteração.
+- **Depois (ADR-0008, fase F):** as três funções deixaram de chamar o Resend
+  direto. O envio passou para `_shared/email.ts` (`sendEmail`, com adaptador
+  Resend, remetente de `EMAIL_FROM`/`RESEND_FROM_DOMAIN` e base dos links de
+  `APP_URL`) — operação em `docs/runbooks/email.md`.
 
 ## Suposições sobre formato de resposta / JSON
 
@@ -125,6 +129,10 @@ modelo "lite"/"flash-lite" explícito de baixo custo); por isso foram tratadas c
   (`{type:"error", error:{type, message}}`), não como `402`. Não foi adicionado
   tratamento específico para esse caso porque não fazia parte do comportamento original
   a ser preservado; considerar revisitar isso com testes reais contra a chave de produção.
+  **Atualização (2026-10-07):** os ramos de `402` foram removidos das 11 funções. Eram
+  código morto contra a Anthropic, e as mensagens mandavam o usuário à tela de créditos
+  do workspace do Lovable, que não existe neste produto. Falta de saldo continua caindo
+  no erro genérico de cada função, como já caía.
 - **`response_format`/`json_schema` com `strict: true`**: ver seção acima — trocado por
   instrução no prompt + parse defensivo, sem garantia "hard" de schema.
 - **Forçar uma única tool (`tool_choice`)**: mapeado 1:1 para

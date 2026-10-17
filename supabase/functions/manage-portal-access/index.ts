@@ -1,7 +1,8 @@
 // Edge function para gerenciar acessos ao Portal do Patrocinador.
 // Ações: 'activate' (vincula conta existente), 'invite' (gera convite), 'revoke'.
-// Para 'activate' e 'invite' envia e-mail via Resend (se configurado).
+// Para 'activate' e 'invite' envia e-mail (`_shared/email.ts`), se configurado.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { escapeHtml as escHtml, sendEmail } from "../_shared/email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,12 +22,7 @@ interface RequestBody {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const PORTAL_URL_ENV = Deno.env.get("PORTAL_URL");
-
-// HTML escape to prevent injection into email templates
-const escHtml = (s: unknown) =>
-  String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
 // Only allow URLs from the app's own origin (PORTAL_URL_ENV host) or localhost for local dev.
 function safePortalUrl(candidate: string | undefined, reqOrigin: string | null): string {
@@ -48,32 +44,6 @@ function safePortalUrl(candidate: string | undefined, reqOrigin: string | null):
   }
 }
 
-
-async function sendEmail(to: string, subject: string, html: string) {
-  if (!RESEND_API_KEY) {
-    console.warn("RESEND_API_KEY ausente, pulando envio de e-mail");
-    return { sent: false, reason: "no_api_key" };
-  }
-  const r = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: "Portal Patrocinador <onboarding@resend.dev>",
-      to: [to],
-      subject,
-      html,
-    }),
-  });
-  const data = await r.json();
-  if (!r.ok) {
-    console.error("Resend error", data);
-    return { sent: false, reason: "resend_error", detail: data };
-  }
-  return { sent: true, id: data.id };
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -207,10 +177,10 @@ Deno.serve(async (req) => {
       }
 
       const loginUrl = `${portalUrl}/portal/login`;
-      const emailRes = await sendEmail(
-        email,
-        `Acesso liberado: Portal ${sponsor.name}`,
-        `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a">
+      const emailRes = await sendEmail({
+        to: email,
+        subject: `Acesso liberado: Portal ${sponsor.name}`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a">
           <h2 style="color:#0f172a">Seu acesso foi ativado 🎉</h2>
           <p>Você agora tem acesso ao <strong>Portal do Patrocinador</strong> de <strong>${escHtml(sponsor.name)}</strong>.</p>
           <p>Faça login com este e-mail (<strong>${escHtml(email)}</strong>) para acompanhar entregas, contratos e relatórios.</p>
@@ -219,7 +189,7 @@ Deno.serve(async (req) => {
           </p>
           <p style="color:#64748b;font-size:13px">Se o botão não funcionar, copie e cole: ${escHtml(loginUrl)}</p>
         </div>`,
-      );
+      });
 
       return new Response(
         JSON.stringify({ ok: true, mode: "activated", email: emailRes }),
@@ -265,10 +235,10 @@ Deno.serve(async (req) => {
       }
 
       const inviteUrl = `${portalUrl}/portal/login?invite=${token}`;
-      const emailRes = await sendEmail(
-        email,
-        `Convite: Portal ${sponsor.name}`,
-        `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a">
+      const emailRes = await sendEmail({
+        to: email,
+        subject: `Convite: Portal ${sponsor.name}`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a">
           <h2 style="color:#0f172a">Você foi convidado 🤝</h2>
           <p>Você foi convidado para acessar o <strong>Portal do Patrocinador</strong> de <strong>${escHtml(sponsor.name)}</strong>.</p>
           <p>Clique no botão abaixo para criar sua conta e começar.</p>
@@ -278,7 +248,7 @@ Deno.serve(async (req) => {
           <p style="color:#64748b;font-size:13px">Se o botão não funcionar, copie e cole: ${escHtml(inviteUrl)}</p>
           <p style="color:#94a3b8;font-size:12px">Este convite expira em 14 dias.</p>
         </div>`,
-      );
+      });
 
       return new Response(
         JSON.stringify({

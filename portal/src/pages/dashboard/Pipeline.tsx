@@ -60,6 +60,7 @@ import {
   DEFAULT_PROBABILITIES,
 } from "@/components/pipeline/StageProbabilitiesDialog";
 import { cn } from "@/lib/utils";
+import { dataLocal } from "@/lib/datas";
 
 type Stage = Database["public"]["Enums"]["opportunity_stage"];
 
@@ -433,10 +434,10 @@ export default function Pipeline() {
       const current = summary[activity.opportunity_id] ?? { total: 0, pending: 0, overdue: 0, lastActivityAt: null, nextActivity: null };
       current.total += 1;
       if (activity.status !== "concluido") current.pending += 1;
-      if (activity.status !== "concluido" && activity.due_date && new Date(activity.due_date) < today) current.overdue += 1;
+      if (activity.status !== "concluido" && activity.due_date && dataLocal(activity.due_date) < today) current.overdue += 1;
       if (activity.status !== "concluido") {
-        const currentNextTime = current.nextActivity?.due_date ? new Date(current.nextActivity.due_date).getTime() : Number.POSITIVE_INFINITY;
-        const activityTime = activity.due_date ? new Date(activity.due_date).getTime() : Number.POSITIVE_INFINITY;
+        const currentNextTime = current.nextActivity?.due_date ? dataLocal(current.nextActivity.due_date).getTime() : Number.POSITIVE_INFINITY;
+        const activityTime = activity.due_date ? dataLocal(activity.due_date).getTime() : Number.POSITIVE_INFINITY;
         if (!current.nextActivity || activityTime < currentNextTime) current.nextActivity = { id: activity.id, title: activity.title, due_date: activity.due_date, owner_id: activity.owner_id };
       }
       if (!current.lastActivityAt || new Date(activity.created_at) > new Date(current.lastActivityAt)) {

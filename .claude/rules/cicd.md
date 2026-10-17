@@ -17,8 +17,8 @@ na ADR-0006.
 
 Todo PR e todo push em `dev`, `hml` e `main` executam:
 
-**`portal`**: `npm ci` → lint (**não bloqueante** — dívida herdada do Lovable,
-ver `docs/infrastructure/cicd.md`) → `type-check` → `test` → `build`.
+**`portal`**: `npm ci` → lint (**não bloqueante** — dívida herdada, ver
+`docs/infrastructure/cicd.md`) → `type-check` → `test` → `build`.
 
 **`migrations`**: guarda contra migration destrutiva sem marcador
 (`-- destrutivo: aprovado por <nome> em <data>` na primeira linha) → sobe o

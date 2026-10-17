@@ -263,7 +263,6 @@ ${JSON.stringify(schema, null, 2)}`;
     });
 
     if (aiResp.status === 429) return json({ error: "Limite de requisições de IA. Tente novamente em instantes." }, 429);
-    if (aiResp.status === 402) return json({ error: "Créditos de IA esgotados. Adicione créditos na sua workspace." }, 402);
     if (!aiResp.ok) {
       console.error("AI error", await aiResp.text());
       return json({ error: "Falha ao gerar insights da tarefa" }, 502);

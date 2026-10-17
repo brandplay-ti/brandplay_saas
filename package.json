@@ -25,8 +25,11 @@
     "supabase:migrate": "docker compose --env-file docker/supabase/.env -f docker/supabase/docker-compose.yml -f docker/supabase/docker-compose.local.yml exec -T -e DATABASE_URL=postgres://supabase_admin@localhost:5432/postgres db sh /supabase/tools/migrate.sh",
     "supabase:migrate:status": "docker compose --env-file docker/supabase/.env -f docker/supabase/docker-compose.yml -f docker/supabase/docker-compose.local.yml exec -T -e DATABASE_URL=postgres://supabase_admin@localhost:5432/postgres db sh /supabase/tools/migrate.sh --status",
     "supabase:seed": "docker compose --env-file docker/supabase/.env -f docker/supabase/docker-compose.yml -f docker/supabase/docker-compose.local.yml exec -T db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres -f /supabase/seed/00-seed.sql",
-    "supabase:test": "docker compose --env-file docker/supabase/.env -f docker/supabase/docker-compose.yml -f docker/supabase/docker-compose.local.yml exec -T db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres -f /supabase/tests/seguranca.sql",
+    "supabase:test": "docker compose --env-file docker/supabase/.env -f docker/supabase/docker-compose.yml -f docker/supabase/docker-compose.local.yml exec -T db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres -f /supabase/tests/seguranca.sql -f /supabase/tests/cobranca.sql -f /supabase/tests/superadmin.sql",
+    "supabase:superadmin": "docker compose --env-file docker/supabase/.env -f docker/supabase/docker-compose.yml -f docker/supabase/docker-compose.local.yml exec -T db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres -f /supabase/tools/conceder-superadmin.sql",
+    "supabase:superadmin:revogar": "docker compose --env-file docker/supabase/.env -f docker/supabase/docker-compose.yml -f docker/supabase/docker-compose.local.yml exec -T db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres -f /supabase/tools/revogar-superadmin.sql",
     "supabase:bundle": "node supabase/tools/gerar-bundle.mjs",
+    "supabase:types": "node supabase/tools/gerar-types.mjs",
     "supabase:chaves": "node supabase/tools/gerar-chaves-locais.mjs",
     "supabase:chave-de-papel": "node supabase/tools/gerar-chave-de-papel.mjs",
     "supabase:checar": "node supabase/tools/checar-supabase.mjs"
