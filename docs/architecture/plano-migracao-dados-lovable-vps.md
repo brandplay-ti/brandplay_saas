@@ -225,6 +225,23 @@ primeiro, depois produção.
    editor mostra `relation "importacao_relatorio" does not exist`, e o
    relatório não aparece. As partes geradas a partir de 2026-10-19 já
    habilitam RLS na tabela do relatório e não disparam esse aviso.
+
+   **Linhas órfãs** (referência a um registro que não veio na exportação,
+   porque o Lovable não tinha várias das FKs do schema reconstruído) abortam
+   a última parte, que é desfeita inteira. Gere as partes de novo escolhendo
+   o tratamento, e rode todas outra vez; as já gravadas mostram 0 inseridos:
+   - `--anular-orfaos`: mantém a linha e anula a referência, quando a coluna
+     aceita nulo. É o mesmo efeito de um `on delete set null`.
+   - `--descartar-orfaos`: apaga a linha. Em rodadas, apaga também as que
+     ficarem órfãs por causa dela, porque com os gatilhos desligados o
+     `on delete cascade` não dispara. Cada caso aparece como `descartados`,
+     e a `conferencia` daquela tabela fica menor que o exportado. Com
+     `delete` no texto, o Studio avisa "destructive operations": responda
+     **"Run query"**.
+
+   Na carga de 2026-10-19 apareceram 4 órfãs em `sponsor_interactions`
+   (3 em `related_contract_id` e 1 em `related_proposal_id`), e o
+   responsável decidiu descartá-las (`--descartar-orfaos`).
 4. **Storage**:
 
    ```bash

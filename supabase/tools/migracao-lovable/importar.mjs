@@ -58,6 +58,11 @@
 //                         referência a registro que não existe mais na origem (o
 //                         Lovable não tinha várias das FKs do schema reconstruído);
 //                         cada caso é relatado. Órfãos em coluna obrigatória abortam.
+//   --descartar-orfaos    apaga a linha órfã inteira (e, em rodadas, as que ficarem
+//                         órfãs por causa dela: com os gatilhos desligados o "on
+//                         delete cascade" não dispara); cada caso é relatado como
+//                         `descartados`, e a conferência daquela tabela fica menor
+//                         que o exportado. Não combina com --anular-orfaos.
 
 import { createClient } from "@supabase/supabase-js";
 import { spawn } from "node:child_process";
@@ -87,6 +92,7 @@ function args() {
     semArquivos: a.includes("--sem-arquivos"),
     permitirOrfaos: a.includes("--permitir-orfaos"),
     anularOrfaos: a.includes("--anular-orfaos"),
+    descartarOrfaos: a.includes("--descartar-orfaos"),
   };
 }
 
@@ -275,40 +281,57 @@ begin
   insert into importacao_relatorio (item, resultado) values ('fantasmas', total);
 end $fantasmas$;`);
 
-  // validação de FKs (com triggers desligados nada foi checado na carga)
+  // validação de FKs (com triggers desligados nada foi checado na carga).
+  // --descartar-orfaos roda em rodadas: com session_replication_role = replica
+  // o "on delete cascade" não dispara, então apagar um órfão pode deixar órfãos
+  // os filhos dele; a rodada seguinte os encontra, até nada mais sair.
   L.push(`do $fks$
-declare r record; q text; n bigint; total bigint := 0; lista text := '';
+declare r record; orfa text; existe text; n bigint; total bigint; lista text; removidos bigint; rodada int := 0;
 begin
-  for r in
-    select c.conname, c.conrelid::regclass as filho, c.confrelid::regclass as pai,
-           (select array_agg(attname order by k.i) from unnest(c.conkey) with ordinality k(attnum, i) join pg_attribute a on a.attrelid = c.conrelid and a.attnum = k.attnum) as cols_f,
-           (select array_agg(attname order by k.i) from unnest(c.confkey) with ordinality k(attnum, i) join pg_attribute a on a.attrelid = c.confrelid and a.attnum = k.attnum) as cols_p
-    from pg_constraint c
-    where c.contype = 'f' and c.connamespace = 'public'::regnamespace
   loop
-    q := format('select count(*) from %s f where %s and not exists (select 1 from %s p where %s)',
-      r.filho,
-      (select string_agg(format('f.%I is not null', x), ' and ') from unnest(r.cols_f) x),
-      r.pai,
-      (select string_agg(format('p.%I = f.%I', r.cols_p[i], r.cols_f[i]), ' and ') from generate_subscripts(r.cols_f, 1) i));
-    execute q into n;
-    if n > 0 and ${opt.anularOrfaos ? "true" : "false"} and array_length(r.cols_f, 1) = 1
-       and not (select attnotnull from pg_attribute where attrelid = r.filho and attname = r.cols_f[1]) then
-      -- referência a registro que não existe mais na origem (o Lovable não tinha esta FK):
-      -- mantém a linha e anula só a referência
-      execute format('update %s f set %I = null where f.%I is not null and not exists (select 1 from %s p where p.%I = f.%I)',
-        r.filho, r.cols_f[1], r.cols_f[1], r.pai, r.cols_p[1], r.cols_f[1]);
-      insert into importacao_relatorio (item, tabela, resultado, detalhe) values ('anulados', r.filho::text, n, r.cols_f[1]);
-      n := 0;
-    end if;
-    if n > 0 then
-      insert into importacao_relatorio (item, tabela, resultado, detalhe) values ('orfaos', r.filho::text, n, r.conname);
-      lista := lista || format(' %s.%s=%s', r.filho, r.conname, n);
-      total := total + n;
+    rodada := rodada + 1;
+    removidos := 0;
+    total := 0;
+    lista := '';
+    for r in
+      select c.conname, c.conrelid::regclass as filho, c.confrelid::regclass as pai,
+             (select array_agg(attname order by k.i) from unnest(c.conkey) with ordinality k(attnum, i) join pg_attribute a on a.attrelid = c.conrelid and a.attnum = k.attnum) as cols_f,
+             (select array_agg(attname order by k.i) from unnest(c.confkey) with ordinality k(attnum, i) join pg_attribute a on a.attrelid = c.confrelid and a.attnum = k.attnum) as cols_p
+      from pg_constraint c
+      where c.contype = 'f' and c.connamespace = 'public'::regnamespace
+    loop
+      -- linha órfã: referência preenchida que não existe no pai
+      existe := format('exists (select 1 from %s p where %s)', r.pai,
+        (select string_agg(format('p.%I = f.%I', r.cols_p[i], r.cols_f[i]), ' and ') from generate_subscripts(r.cols_f, 1) i));
+      orfa := (select string_agg(format('f.%I is not null', x), ' and ') from unnest(r.cols_f) x) || ' and not ' || existe;
+      execute format('select count(*) from %s f where %s', r.filho, orfa) into n;
+      if n > 0 and ${opt.anularOrfaos ? "true" : "false"} and array_length(r.cols_f, 1) = 1
+         and not (select attnotnull from pg_attribute where attrelid = r.filho and attname = r.cols_f[1]) then
+        -- referência a registro que não existe mais na origem (o Lovable não tinha esta FK):
+        -- mantém a linha e anula só a referência
+        execute format('update %s f set %I = null where %s', r.filho, r.cols_f[1], orfa);
+        insert into importacao_relatorio (item, tabela, resultado, detalhe) values ('anulados', r.filho::text, n, r.cols_f[1]);
+        n := 0;
+      elsif n > 0 and ${opt.descartarOrfaos ? "true" : "false"} then
+        -- descarta a linha inteira (decisão de quem chamou, com registro no relatório)
+        execute format('delete from %s f where %s', r.filho, orfa);
+        insert into importacao_relatorio (item, tabela, resultado, detalhe) values ('descartados', r.filho::text, n, r.conname);
+        removidos := removidos + n;
+        n := 0;
+      end if;
+      if n > 0 then
+        insert into importacao_relatorio (item, tabela, resultado, detalhe) values ('orfaos', r.filho::text, n, r.conname);
+        lista := lista || format(' %s.%s=%s', r.filho, r.conname, n);
+        total := total + n;
+      end if;
+    end loop;
+    exit when removidos = 0;
+    if rodada >= 20 then
+      raise exception 'carga abortada: o descarte de órfãos não convergiu em % rodadas', rodada;
     end if;
   end loop;
   if total > 0 and ${opt.permitirOrfaos ? "false" : "true"} then
-    raise exception 'carga abortada: % linha(s) órfã(s):% (use --permitir-orfaos para só relatar, ou --anular-orfaos)', total, lista;
+    raise exception 'carga abortada: % linha(s) órfã(s):% (use --permitir-orfaos para só relatar, --anular-orfaos ou --descartar-orfaos)', total, lista;
   end if;
 end $fks$;`);
 
@@ -358,7 +381,7 @@ function montarPartes(dados, usuarios, opt, limite) {
 function lerRelatorio(texto) {
   const itens = [];
   for (const l of texto.split(/\r?\n/)) {
-    const m = l.match(/^(usuarios|tabela|fantasmas|anulados|orfaos|conferencia)\|([^|]*)\|([^|]*)\|([^|]*)\|(.*)$/);
+    const m = l.match(/^(usuarios|tabela|fantasmas|anulados|descartados|orfaos|conferencia)\|([^|]*)\|([^|]*)\|([^|]*)\|(.*)$/);
     if (m) itens.push({ item: m[1], tabela: m[2], exportado: m[3] === "" ? null : +m[3], resultado: m[4] === "" ? null : +m[4], detalhe: m[5] });
   }
   return itens;
@@ -376,11 +399,13 @@ function imprimirRelatorio(itens, usuarios) {
   const fant = itens.find((i) => i.item === "fantasmas");
   const orf = itens.filter((i) => i.item === "orfaos").map((i) => `${i.tabela}|${i.detalhe}|${i.resultado}`);
   const anul = itens.filter((i) => i.item === "anulados").map((i) => `${i.tabela}|${i.detalhe}|${i.resultado}`);
+  const desc = itens.filter((i) => i.item === "descartados").map((i) => `${i.tabela}|${i.detalhe}|${i.resultado}`);
   const divergentes = itens.filter((i) => i.item === "conferencia" && i.exportado !== i.resultado);
   console.log(`\nLinhas: exportadas ${esperado}, inseridas ${inserido}`);
   console.log(`Usuários: ${usuarios.filter((u) => u.email).length} criados/mantidos, ${fant ? fant.resultado : 0} fantasma(s)`);
   console.log(`Linhas órfãs: ${orf.length ? orf.join("; ") : "nenhuma"}`);
   if (anul.length) console.log(`Referências anuladas (registro inexistente na origem): ${anul.join("; ")}`);
+  if (desc.length) console.log(`Linhas órfãs descartadas: ${desc.join("; ")}`);
   console.log(`Conferência no destino: ${divergentes.length ? divergentes.map((d) => `${d.tabela} exportado ${d.exportado}, no destino ${d.resultado}`).join("; ") : "todas as tabelas batem"}`);
 }
 
@@ -467,6 +492,7 @@ async function main() {
   if (!opt.pasta) throw new Error("informe --pasta <pasta da exportação>");
   if (opt.gerarSql && opt.soArquivos) throw new Error("--gerar-sql e --so-arquivos são etapas separadas: rode uma de cada vez");
   if (!(opt.limiteKb >= 50)) throw new Error("--limite-kb precisa ser pelo menos 50");
+  if (opt.anularOrfaos && opt.descartarOrfaos) throw new Error("--anular-orfaos e --descartar-orfaos são alternativas: escolha uma");
   const pasta = path.resolve(opt.pasta);
   const manifesto = JSON.parse(await readFile(path.join(pasta, "manifesto.json"), "utf8"));
   console.log(`Exportação: ${manifesto.origem} em ${manifesto.iniciado_em}`);
