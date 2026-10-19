@@ -182,7 +182,9 @@ npm run supabase:checar -- https://api.<dominio> <ANON_KEY> --portal https://<do
 2. **Backup inicial**, já com o schema, antes do primeiro dado real.
 3. No corte do Lovable: importação dos dados reais seguindo
    `docs/architecture/plano-migracao-dados-lovable-vps.md` (seção 3), com
-   ensaio em homologação antes.
+   ensaio em homologação antes. Pelo Studio, sem SSH, siga a seção 3.7:
+   `importar.mjs --gerar-sql` para o banco e `--so-arquivos --url` para o
+   Storage.
 
 ## Edge Functions
 
