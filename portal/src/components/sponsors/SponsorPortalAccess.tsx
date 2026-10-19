@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { withProfileNames } from "@/lib/profileNames";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,12 +60,12 @@ export function SponsorPortalAccess({ sponsorId }: Props) {
         .order("created_at", { ascending: false }),
       supabase
         .from("sponsor_portal_access")
-        .select("id,user_id,status,created_at,profiles(full_name)")
+        .select("id,user_id,status,created_at")
         .eq("sponsor_id", sponsorId)
         .order("created_at", { ascending: false }),
     ]);
     setInvites((invRes.data ?? []) as Invite[]);
-    setAccesses((accRes.data ?? []) as any);
+    setAccesses((await withProfileNames(accRes.data ?? [])) as any);
     setLoading(false);
   };
 

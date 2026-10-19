@@ -420,3 +420,83 @@ Bugs do Lovable reproduzidos no replay das migrations reais e corrigidos aqui:
 - `0019`: lead do media kit público falhava para visitante anônimo, a
   oportunidade herdava o `owner_id` enviado pelo formulário, e o vínculo
   lead → oportunidade se perdia pela ordem dos triggers.
+
+Nomes: as 4 FKs que a `0014` recriou com o sufixo `_lovable`
+(`deliveries.sponsor_id`, `installments.sponsor_id`,
+`sellout_reports.property_id`, `sponsors.merged_into_sponsor_id`) voltam ao
+nome padrão `<tabela>_<coluna>_fkey` na `0023` — o mesmo que tinham na origem,
+onde eram declaradas inline. A definição não muda.
+
+## Cobrança e planos (0024, ADR-0007)
+
+Tabelas novas, não vindas do Lovable. Regras de negócio em
+`docs/business/cobranca.md`.
+
+| Tabela                  | O que é                                          | Leitura            | Escrita        |
+| ----------------------- | ------------------------------------------------ | ------------------ | -------------- |
+| `billing_plans`         | catálogo: preço e limites                         | pública (`anon`)   | só service role |
+| `billing_settings`      | linha única: dias e plano do teste               | ninguém pela API   | só service role |
+| `billing_accounts`      | 1 por organização: fim do teste, customer Stripe | owner/admin        | só servidor    |
+| `billing_subscriptions` | projeção das assinaturas do Stripe               | owner/admin        | só servidor    |
+| `billing_invoices`      | projeção das faturas do Stripe                   | owner/admin        | só servidor    |
+| `billing_stripe_events` | idempotência do webhook                          | ninguém pela API   | só servidor    |
+
+Padrão de RLS novo (8, "cobrança"): leitura `has_org_role(organization_id,
+['owner','admin'])`, nenhuma policy de escrita e `insert/update/delete`
+revogados de `authenticated` — estado de cobrança só é escrito pelas Edge
+Functions (service role) e pelos gatilhos. Os demais membros enxergam o
+resumo por `billing_status(_org_id)`, que exige `is_org_member`.
+
+Valores em português em `status`/`payment_method`, como no restante do schema.
+Preço em centavos; nulo em `price_cents` = "sob consulta". Nulo em
+`max_properties`/`max_users` = sem teto (no central-check era `0`; aqui nulo,
+para "zero" não significar "ilimitado").
+
+Gatilhos de limite: `trg_zz_billing_limit` em `sports_properties` (só raízes),
+`organization_invites` e `organization_members` (insert ou volta a `ativo`). O
+prefixo `zz` garante que rodem depois de `set_org_id`. `trg_billing_account`
+em `organizations` cria a conta com o teste; `billing_ensure_account` a cria
+sob demanda para organização importada sem gatilho.
+
+Suposições registradas:
+
+- Edição/temporada (`parent_property_id`) não conta como propriedade.
+- Convite pendente (`status = 'pendente'` e não expirado — o critério de
+  `handle_new_user`) ocupa vaga de usuário; o aceite de um convite pendente
+  nunca é bloqueado.
+- `inadimplente` (past_due) mantém o acesso enquanto o Stripe tenta cobrar.
+
+## Superadmin da plataforma (0027–0029, ADR-0008)
+
+Tabelas novas, não vindas do Lovable. Operação em `docs/runbooks/superadmin.md`.
+
+| Tabela                     | O que é                                           | Leitura                       | Escrita                    |
+| -------------------------- | ------------------------------------------------- | ----------------------------- | -------------------------- |
+| `platform_admins`          | quem é superadmin (revogar = `revoked_at`)        | o próprio vínculo             | só `platform_admin_grant/revoke` (operadas à mão) e service role |
+| `platform_admin_audit_log` | ações administrativas: quem, quando, org, antes/depois, comentário | só superadmin | só funções `admin_*`, concessão e `admin-plans`; imutável pela API |
+
+Padrão de RLS novo (9, "plataforma"): policies `*_platform_admin_read` com
+`is_platform_admin()` em `billing_accounts`, `billing_subscriptions`,
+`billing_invoices` e `billing_access_grants` (0028). Nenhuma tabela de domínio
+ganhou leitura do superadmin; `organizations` também não — cadastro, contato
+do owner e contagens de uso vêm só pelas funções `admin_clientes()` e
+`admin_cliente_detalhe()`, que chamam `platform_admin_require()` primeiro.
+
+`billing_access_grants.kind` ganhou `superadmin` (0029): exige comentário e
+`granted_by`. Continua sem policy de escrita; o superadmin grava por
+`admin_liberar_acesso()`.
+
+Suposições registradas:
+
+- `platform_admin_audit_log.organization_id` referencia a organização afetada
+  com `on delete set null` (o registro sobrevive à organização). Não é dado da
+  organização: fica fora da policy restritiva `billing_access_restrictive` e
+  na lista de exceções do teste `(m)`.
+- O log não tem `updated_at`: é imutável, como `billing_stripe_events`.
+- "Virou cliente" (faturamento, `billing_subscription_was_customer`): status
+  diferente de `incompleta` e, se `cancelada`, com ao menos uma fatura `paga`
+  ligada à assinatura. Fatura espelhada antes da assinatura fica com
+  `subscription_id` nulo até o próximo espelhamento; nesse intervalo uma
+  assinatura cancelada pode não contar como cliente.
+- MRR usa o preço **atual** do catálogo, não o preço real de cada assinatura
+  no Stripe (que fica no preço antigo depois de um reajuste).

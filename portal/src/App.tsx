@@ -29,6 +29,7 @@ import PortalAccess from "./pages/dashboard/PortalAccess";
 import Settings from "./pages/dashboard/Settings";
 import Team from "./pages/dashboard/Team";
 import FailureLogs from "./pages/dashboard/FailureLogs";
+import Plan from "./pages/dashboard/Plan";
 import BrandTrackLayout from "./pages/dashboard/brandtrack/BrandTrackLayout";
 import BrandTrackDashboard from "./pages/dashboard/brandtrack/BrandTrackDashboard";
 import BrandTrackUploads from "./pages/dashboard/brandtrack/BrandTrackUploads";
@@ -48,6 +49,12 @@ import FieldDeliveries from "./pages/field/FieldDeliveries";
 import FieldDeliveryDetail from "./pages/field/FieldDeliveryDetail";
 import FieldEvents from "./pages/field/FieldEvents";
 import FieldEventChecklist from "./pages/field/FieldEventChecklist";
+import AdminLayout from "./pages/admin/AdminLayout";
+import AdminOverview from "./pages/admin/AdminOverview";
+import AdminClients from "./pages/admin/AdminClients";
+import AdminClientDetail from "./pages/admin/AdminClientDetail";
+import AdminPlans from "./pages/admin/AdminPlans";
+import AdminRevenue from "./pages/admin/AdminRevenue";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -98,6 +105,7 @@ const App = () => (
             <Route path="equipe" element={<Team />} />
             <Route path="logs-falhas" element={<FailureLogs />} />
             <Route path="configuracoes" element={<Settings />} />
+            <Route path="plano" element={<Plan />} />
             <Route path="brandtrack" element={<BrandTrackLayout />}>
               <Route index element={<BrandTrackDashboard />} />
               <Route path="uploads" element={<BrandTrackUploads />} />
@@ -107,6 +115,22 @@ const App = () => (
               <Route path="evidencias" element={<BrandTrackEvidence />} />
               <Route path="relatorios" element={<BrandTrackReports />} />
             </Route>
+          </Route>
+          {/* Administração da plataforma (superadmin, ADR-0008). A guarda do
+              layout é experiência; quem barra é o banco. */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<AdminOverview />} />
+            <Route path="clientes" element={<AdminClients />} />
+            <Route path="clientes/:id" element={<AdminClientDetail />} />
+            <Route path="planos" element={<AdminPlans />} />
+            <Route path="faturamento" element={<AdminRevenue />} />
           </Route>
           <Route path="/campo" element={<FieldLayout />}>
             <Route index element={<FieldDeliveries />} />

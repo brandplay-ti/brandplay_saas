@@ -12,6 +12,7 @@ import {
 import { FileText, CalendarDays, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { dataLocal } from "@/lib/datas";
 
 interface Contract {
   id: string;
@@ -174,11 +175,11 @@ export default function PortalContracts() {
                 <div className="grid gap-2 text-xs sm:grid-cols-3">
                   <div>
                     <p className="text-muted-foreground">Início</p>
-                    <p>{c.start_date ? format(new Date(c.start_date), "dd/MM/yyyy") : "—"}</p>
+                    <p>{c.start_date ? format(dataLocal(c.start_date), "dd/MM/yyyy") : "—"}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Fim</p>
-                    <p>{c.end_date ? format(new Date(c.end_date), "dd/MM/yyyy") : "—"}</p>
+                    <p>{c.end_date ? format(dataLocal(c.end_date), "dd/MM/yyyy") : "—"}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Pagamento</p>
@@ -202,7 +203,7 @@ export default function PortalContracts() {
                             {i.installment_number}/{installments[c.id].length}
                           </span>
                           <span className="text-muted-foreground">
-                            {format(new Date(i.due_date), "dd/MM/yyyy")}
+                            {format(dataLocal(i.due_date), "dd/MM/yyyy")}
                           </span>
                           <span className="font-semibold">{fmt(Number(i.amount))}</span>
                           <Badge variant="outline" className={installmentUI[i.status]}>

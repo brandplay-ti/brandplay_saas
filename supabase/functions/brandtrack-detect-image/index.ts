@@ -320,7 +320,6 @@ Deno.serve(async (req) => {
     if (!aiResp.ok) {
       const errText = await aiResp.text();
       if (aiResp.status === 429) throw new Error("Limite de requisições à IA atingido. Tente novamente em instantes.");
-      if (aiResp.status === 402) throw new Error("Créditos da IA esgotados. Adicione créditos em Configurações.");
       throw new Error(`AI error: ${errText}`);
     }
 

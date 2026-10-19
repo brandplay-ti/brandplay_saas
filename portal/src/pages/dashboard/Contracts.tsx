@@ -965,11 +965,10 @@ function ContractDetail({
       }
 
       const projectUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL as string;
-      const storageUrl = projectUrl.replace(".supabase.co", ".storage.supabase.co");
 
       await new Promise<void>((resolve, reject) => {
         const upload = new TusUpload(file, {
-          endpoint: `${storageUrl}/storage/v1/upload/resumable`,
+          endpoint: `${projectUrl}/storage/v1/upload/resumable`,
           retryDelays: [0, 1000, 3000, 5000],
           headers: {
             authorization: `Bearer ${session.access_token}`,

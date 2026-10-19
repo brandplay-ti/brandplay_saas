@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { appUrl, escapeHtml, sendEmail } from "../_shared/email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -398,54 +399,39 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Send email digest via Resend
+    // Resumo por e-mail (`_shared/email.ts`). Falha de envio não derruba a
+    // verificação: as notificações já foram gravadas.
     let emailsSent = 0;
-    if (emailQueue.length > 0 && prefs.email_enabled) {
-      const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-      if (RESEND_API_KEY && user.email) {
-        const items = emailQueue
-          .map((n) => `<li><strong>${n.title}</strong>${n.description ? `<br><span style="color:#64748b">${n.description}</span>` : ""}</li>`)
-          .join("");
-        const html = `
+    if (emailQueue.length > 0 && prefs.email_enabled && user.email) {
+      // Títulos e descrições levam nomes digitados no produto: escapados.
+      const items = emailQueue
+        .map((n) => `<li><strong>${escapeHtml(n.title)}</strong>${n.description ? `<br><span style="color:#64748b">${escapeHtml(n.description)}</span>` : ""}</li>`)
+        .join("");
+      const html = `
           <div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;padding:24px">
-            <h2 style="color:#0f172a">Você tem ${emailQueue.length} novidade(s) no Scout</h2>
+            <h2 style="color:#0f172a">Você tem ${emailQueue.length} novidade(s) no BrandPlay</h2>
             <ul style="line-height:1.7;padding-left:18px">${items}</ul>
             <p style="margin-top:24px">
-              <a href="${Deno.env.get("APP_URL") || "#"}/dashboard"
+              <a href="${escapeHtml(appUrl() || "#")}/dashboard"
                  style="background:hsl(217 91% 60%);color:white;padding:10px 18px;border-radius:8px;text-decoration:none;display:inline-block">
-                 Abrir Scout
+                 Abrir o BrandPlay
               </a>
             </p>
             <p style="color:#94a3b8;font-size:12px;margin-top:32px">Você está recebendo este e-mail porque ativou notificações em sua conta. Ajuste em Configurações.</p>
           </div>`;
-        try {
-          const r = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${RESEND_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              from: "Scout <onboarding@resend.dev>",
-              to: [user.email],
-              subject: `Scout: ${emailQueue.length} novidade(s) precisam da sua atenção`,
-              html,
-            }),
-          });
-          if (r.ok) {
-            emailsSent = emailQueue.length;
-            const ids = emailQueue.map((n) => n.dedupe_key);
-            await supabase
-              .from("notifications")
-              .update({ email_sent_at: new Date().toISOString() })
-              .eq("user_id", user.id)
-              .in("dedupe_key", ids);
-          } else {
-            console.error("Resend error", await r.text());
-          }
-        } catch (e) {
-          console.error("Email send failed", e);
-        }
+      const envio = await sendEmail({
+        to: user.email,
+        subject: `BrandPlay: ${emailQueue.length} novidade(s) precisam da sua atenção`,
+        html,
+      });
+      if (envio.sent) {
+        emailsSent = emailQueue.length;
+        const ids = emailQueue.map((n) => n.dedupe_key);
+        await supabase
+          .from("notifications")
+          .update({ email_sent_at: new Date().toISOString() })
+          .eq("user_id", user.id)
+          .in("dedupe_key", ids);
       }
     }
 
