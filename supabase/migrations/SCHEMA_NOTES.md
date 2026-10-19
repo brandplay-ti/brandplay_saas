@@ -323,7 +323,7 @@ pura de nome/assinatura, sem nenhuma pista adicional).
 | `get_organization_invite_by_token` | média | **Gap parcial**: nenhum call site - `src/pages/Auth.tsx` ignora o parâmetro `invite` da URL gerado por `manage-team-access/index.ts`. Implementada por analogia a `get_sponsor_invite_by_token` |
 | `can_access_contract_file` | alta | Reaproveita a regra de `contracts_bucket_org` de 0007, estendida ao portal |
 | `mark_overdue_installments` | média | Call site: `src/pages/dashboard/Finance.tsx`; decisão de não filtrar por `_owner` documentada no corpo da função |
-| `get_delivery_report_data` | alta (shape) / média (regras de filtro) | Shape do JSON confirmado literalmente pelo consumidor `supabase/functions/generate-delivery-report/index.ts` |
+| `get_delivery_report_data` | alta (shape) / média (regras de filtro) | Shape do JSON confirmado literalmente pelo consumidor `supabase/functions/generate-delivery-report/index.ts`. Corpo atual: `0030` (regra de evidências decidida com o usuário, ver o fim deste documento) |
 | `can_access_module` | alta | Matriz copiada literalmente de `src/hooks/useOrganization.tsx` (`can`); parâmetro `_write` aceito mas ignorado (documentado) |
 | `archive_sponsor` | alta | Especificada literalmente no plano CRM Fase 1 item 6 |
 | `unarchive_sponsor` | média-alta | Lifecycle default (`'prospect'`) quando `_lifecycle` omitido é suposição |
@@ -420,6 +420,9 @@ Bugs do Lovable reproduzidos no replay das migrations reais e corrigidos aqui:
 - `0019`: lead do media kit público falhava para visitante anônimo, a
   oportunidade herdava o `owner_id` enviado pelo formulário, e o vínculo
   lead → oportunidade se perdia pela ordem dos triggers.
+- `0030`: `get_delivery_report_data` (portada em `0015`) lia colunas que não
+  existem em `brandtrack_media` e falhava em toda chamada; aceitava também um
+  `_contract_id` de qualquer organização. Detalhes abaixo.
 
 Nomes: as 4 FKs que a `0014` recriou com o sufixo `_lovable`
 (`deliveries.sponsor_id`, `installments.sponsor_id`,
@@ -500,3 +503,31 @@ Suposições registradas:
   assinatura cancelada pode não contar como cliente.
 - MRR usa o preço **atual** do catálogo, não o preço real de cada assinatura
   no Stripe (que fica no preço antigo depois de um reajuste).
+
+## Relatório de entrega: quais evidências entram (0030, 2026-10-17)
+
+`get_delivery_report_data` alimenta o PDF de `generate-delivery-report`. A
+regra de evidências foi **decidida com o usuário** em 2026-10-17; o resto
+segue o Lovable.
+
+- **Fonte**: `brandtrack_detections` (marca, confiança e revisão ficam ali),
+  com `brandtrack_media`/`brandtrack_events` só para tipo de mídia, URL e nome
+  do evento. A versão do Lovable lia `brandtrack_media.brand`,
+  `detection_confidence` etc., que nunca existiram.
+- **Quais detecções**: mesma organização da oportunidade; marca (corrigida,
+  senão a detectada) igual à da oportunidade, sem diferenciar maiúsculas e
+  ignorando espaços nas pontas, **ou** marca BrandTrack (`brand_id`) vinculada
+  ao mesmo patrocinador da oportunidade; confiança `>= 0.6`; **fora as
+  rejeitadas** na revisão (`review_status = 'rejeitada'`), como fazem as telas
+  do BrandTrack. Pendentes, aprovadas e corrigidas entram.
+- **Alternativas descartadas pelo usuário**: só detecções revisadas
+  (aprovada/corrigida) e restringir ao período do contrato.
+- **Escala da confiança**: 0–1, como grava `brandtrack-detect-image` (a
+  reconstrução em `0008` dividia por 100, o que estava errado).
+- **`detected_at`** = `brandtrack_detections.created_at` (não há coluna
+  própria). **`media_url`** = `external_url`, senão `storage_path` da mídia.
+- **Sem limite de linhas**: um vídeo longo pode gerar muitas detecções e
+  páginas no PDF. Não houve pedido de limite.
+- **Contrato**: `_contract_id` precisa ser da própria oportunidade; se não
+  for, a função devolve `null` e a Edge Function responde 404. Sem contrato
+  informado, vale o mais recente da oportunidade, como no Lovable.

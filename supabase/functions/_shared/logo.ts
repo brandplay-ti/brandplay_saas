@@ -59,25 +59,27 @@ export async function fetchLogoBytes(url: string | null): Promise<Uint8Array | n
   }
 }
 
-type EmbedTarget = {
-  embedPng: (b: Uint8Array) => Promise<{ width: number; height: number }>;
-  embedJpg: (b: Uint8Array) => Promise<{ width: number; height: number }>;
+// Genérico na imagem para aceitar o PDFDocument/PDFPage reais do pdf-lib:
+// `drawImage(image: PDFImage)` não é atribuível a `(img: unknown) => void`.
+type EmbedTarget<Img> = {
+  embedPng: (b: Uint8Array) => Promise<Img>;
+  embedJpg: (b: Uint8Array) => Promise<Img>;
 };
 
 /**
  * Embeds a logo into a pdf-lib page, scaled to fit (contain) and centered
  * inside the given box. Returns false when the logo could not be rendered.
  */
-export async function drawContainedLogo(
-  pdf: EmbedTarget,
+export async function drawContainedLogo<Img extends { width: number; height: number }>(
+  pdf: EmbedTarget<Img>,
   page: {
-    drawImage: (img: unknown, opts: { x: number; y: number; width: number; height: number }) => void;
+    drawImage: (img: Img, opts: { x: number; y: number; width: number; height: number }) => void;
   },
   bytes: Uint8Array | null,
   box: { x: number; y: number; width: number; height: number },
 ): Promise<boolean> {
   if (!bytes || bytes.length === 0) return false;
-  let image: { width: number; height: number } | null = null;
+  let image: Img | null = null;
   try {
     image = await pdf.embedPng(bytes);
   } catch {
