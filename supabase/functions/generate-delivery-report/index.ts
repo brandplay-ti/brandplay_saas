@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+import { PDFDocument, StandardFonts, rgb, type Color } from "https://esm.sh/pdf-lib@1.17.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,6 +25,9 @@ const sanitize = (t: string) => {
     .replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g, "");
 };
 
+const isUuid = (v: unknown): v is string =>
+  typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -47,21 +50,21 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const { opportunity_id, organization_id, contract_id } = body;
-    if (!opportunity_id || !organization_id) {
-      return new Response(JSON.stringify({ error: "opportunity_id e organization_id são obrigatórios" }), {
+    if (!isUuid(opportunity_id) || !isUuid(organization_id) || (contract_id != null && !isUuid(contract_id))) {
+      return new Response(JSON.stringify({ error: "opportunity_id e organization_id são obrigatórios (uuid); contract_id, se enviado, também" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Verify user belongs to the organization via profiles
-    const { data: profile } = await userClient
-      .from("profiles")
-      .select("id")
-      .eq("id", user.id)
-      .eq("organization_id", organization_id)
-      .maybeSingle();
-    if (!profile) {
+    // Membro ativo da organização, com o user.id do JWT (nunca do body). Gerar o
+    // relatório só lê oportunidade, contrato e entregas, e a leitura desses
+    // módulos é liberada a qualquer papel ativo — a associação basta.
+    const { data: isMember, error: memberError } = await userClient.rpc("is_org_member", {
+      _user_id: user.id,
+      _org_id: organization_id,
+    });
+    if (memberError || !isMember) {
       return new Response(JSON.stringify({ error: "Acesso negado à organização" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -90,10 +93,17 @@ Deno.serve(async (req) => {
       _opportunity_id: opportunity_id,
       _contract_id: contract_id || null,
     });
-    if (reportError || !reportData) {
+    if (reportError) {
       console.error("get_delivery_report_data error", reportError);
       return new Response(JSON.stringify({ error: "Erro ao consolidar dados do relatório" }), {
         status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // null: contract_id enviado não é desta oportunidade
+    if (!reportData) {
+      return new Response(JSON.stringify({ error: "Contrato não encontrado para esta oportunidade" }), {
+        status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -124,10 +134,10 @@ Deno.serve(async (req) => {
       }
     };
 
-    const text = (t: string, opts: { x?: number; size?: number; bold?: boolean; color?: any } = {}) => {
+    const text = (t: string, opts: { x?: number; y?: number; size?: number; bold?: boolean; color?: Color } = {}) => {
       page.drawText(sanitize(t), {
         x: opts.x ?? left,
-        y,
+        y: opts.y ?? y,
         size: opts.size ?? 10,
         font: opts.bold ? bold : font,
         color: opts.color ?? TEXT,
@@ -136,8 +146,8 @@ Deno.serve(async (req) => {
 
     // Header
     page.drawRectangle({ x: 0, y: 800, width: 595, height: 42, color: PRIMARY });
-    text("Relatório de Entrega", { x: left, y: 815, size: 18, bold: true, color: rgb(1, 1, 1) });
-    text(`Marca: ${report.opportunity.brand}`, { x: left, y: 802, size: 9, color: rgb(1, 1, 1) });
+    text("Relatório de Entrega", { x: left, y: 822, size: 18, bold: true, color: rgb(1, 1, 1) });
+    text(`Marca: ${report.opportunity.brand}`, { x: left, y: 807, size: 9, color: rgb(1, 1, 1) });
     y = 780;
 
     // Opportunity summary
