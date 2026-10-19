@@ -179,8 +179,49 @@ services:
       GOTRUE_MAILER_URLPATHS_RECOVERY: ${MAILER_URLPATHS_RECOVERY}
       GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: ${MAILER_URLPATHS_EMAIL_CHANGE}
 
+      # E-mails de autenticacao em PT-BR. Assunto aqui; corpo no HTML servido
+      # pelo `auth-templates`, que o GoTrue baixa por HTTP (so aceita URL) e
+      # guarda por ate 10 min. Iguais em todos os ambientes, por isso nao vem
+      # do .env. Se o `auth-templates` estiver fora, o GoTrue usa o template
+      # padrao dele, em ingles — o e-mail sai mesmo assim. Sem o RELOADING, ele
+      # ficaria com o padrao ate 10 min depois de o `auth-templates` voltar;
+      # com ele, um worker em segundo plano tenta de novo em segundos.
+      # Ver docs/runbooks/email.md.
+      GOTRUE_MAILER_TEMPLATE_RELOADING_ENABLED: 'true'
+      GOTRUE_MAILER_SUBJECTS_RECOVERY: 'Redefina sua senha do Brandplay'
+      GOTRUE_MAILER_SUBJECTS_CONFIRMATION: 'Confirme seu e-mail no Brandplay'
+      GOTRUE_MAILER_SUBJECTS_INVITE: 'Você foi convidado para o Brandplay'
+      GOTRUE_MAILER_SUBJECTS_EMAIL_CHANGE: 'Confirme a troca de e-mail no Brandplay'
+      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: 'Seu link de acesso ao Brandplay'
+      GOTRUE_MAILER_SUBJECTS_REAUTHENTICATION: 'Seu código de confirmação do Brandplay'
+      GOTRUE_MAILER_TEMPLATES_RECOVERY: http://auth-templates/recuperacao.html
+      GOTRUE_MAILER_TEMPLATES_CONFIRMATION: http://auth-templates/confirmacao.html
+      GOTRUE_MAILER_TEMPLATES_INVITE: http://auth-templates/convite.html
+      GOTRUE_MAILER_TEMPLATES_EMAIL_CHANGE: http://auth-templates/troca-de-email.html
+      GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: http://auth-templates/link-de-acesso.html
+      GOTRUE_MAILER_TEMPLATES_REAUTHENTICATION: http://auth-templates/reautenticacao.html
+
       GOTRUE_EXTERNAL_PHONE_ENABLED: ${ENABLE_PHONE_SIGNUP}
       GOTRUE_SMS_AUTOCONFIRM: ${ENABLE_PHONE_AUTOCONFIRM}
+
+  # Serve, so na rede interna do stack, o HTML dos e-mails de autenticacao
+  # (`../files/volumes/auth/templates`, versionado). Nao tem dominio no
+  # Dockploy nem porta publicada: o unico cliente e o `auth`. Fica fora do Kong
+  # de proposito — um erro aqui deixa o e-mail em ingles, nao derruba a API.
+  # O `auth` nao depende dele: na falha, o GoTrue cai no template padrao e
+  # volta ao PT-BR sozinho quando este servico volta.
+  auth-templates:
+    image: nginx:1.27.5-alpine
+    restart: unless-stopped
+    expose:
+      - 80
+    volumes:
+      - ../files/volumes/auth/templates:/usr/share/nginx/html:ro,z
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://127.0.0.1/recuperacao.html']
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   rest:
     image: postgrest/postgrest:v14.12

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Redefina sua senha · Brandplay</title>
+</head>
+<body style="margin:0;padding:0;background:#F5F6FA;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F5F6FA;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background:#FFFFFF;border:1px solid #E4E7EF;border-radius:12px;">
+          <tr>
+            <td style="padding:28px 32px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:22px;font-weight:700;letter-spacing:-0.3px;color:#6206C8;">Brandplay</td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0F1221;">
+              <h1 style="margin:0 0 12px;font-size:20px;line-height:28px;font-weight:700;">Redefina sua senha</h1>
+              <p style="margin:0 0 24px;font-size:15px;line-height:24px;">Recebemos um pedido para criar uma nova senha para a conta <strong>{{ .Email }}</strong>. Use o botão abaixo para escolher a nova senha.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 32px;">
+              <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#6206C8;color:#FFFFFF;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;line-height:20px;padding:12px 24px;border-radius:8px;text-decoration:none;">Criar nova senha</a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 32px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:20px;color:#5B6173;">
+              Se o botão não funcionar, copie este endereço e cole no navegador:<br>
+              <a href="{{ .ConfirmationURL }}" style="color:#6206C8;word-break:break-all;">{{ .ConfirmationURL }}</a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 32px 28px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:20px;color:#5B6173;">O link vale por tempo limitado e só pode ser usado uma vez. Se você não pediu uma nova senha, ignore este e-mail: a senha atual continua valendo.</td>
+          </tr>
+        </table>
+        <p style="margin:16px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;line-height:18px;color:#5B6173;">Brandplay · Gestão de patrocínio esportivo<br>E-mail automático, não é preciso responder.</p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

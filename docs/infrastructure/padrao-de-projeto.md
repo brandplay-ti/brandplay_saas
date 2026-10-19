@@ -29,8 +29,9 @@ comentado nos próprios arquivos de referência — leia o comentário antes de
    <dominio> (portal)    api.<dominio> (kong:8000)
            │                   │
   portal: serve -s dist   Supabase self-hosted (1 compose)
-  (Dockerfile, Node 26)   kong · auth · rest · realtime · storage · imgproxy
-                          meta · functions · supavisor · studio · redis · db
+  (Dockerfile, Node 26)   kong · auth · auth-templates · rest · realtime
+                          storage · imgproxy · meta · functions · supavisor
+                          studio · redis · db
 ```
 
 - Uma VPS, um projeto por produto no Dockploy, **dois serviços por
