@@ -218,6 +218,13 @@ primeiro, depois produção.
    usuários-fantasma, valida todas as FKs (`orfaos`/`anulados`) e traz a
    `conferencia` de todas as tabelas, com o exportado contra o que está no
    destino. As duas colunas precisam bater.
+
+   Se o Studio mostrar **"Potential issue detected"** (tabela sem RLS),
+   escolha **"Run without RLS"**. O botão em destaque, "Run and enable RLS",
+   acrescenta um `alter table` depois do `commit`. A parte é gravada, mas o
+   editor mostra `relation "importacao_relatorio" does not exist`, e o
+   relatório não aparece. As partes geradas a partir de 2026-10-19 já
+   habilitam RLS na tabela do relatório e não disparam esse aviso.
 4. **Storage**:
 
    ```bash

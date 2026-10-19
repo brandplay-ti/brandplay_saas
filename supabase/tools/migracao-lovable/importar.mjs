@@ -164,12 +164,20 @@ async function listarArquivos(base, rel = "") {
 // O mesmo SQL serve ao psql e ao SQL Editor do Studio: nada de meta-comando do
 // psql, e o resultado sai de um SELECT final sobre uma tabela temporária (o
 // Studio não mostra RAISE NOTICE). A tabela some no fim da transação.
+//
+// O RLS da tabela temporária não protege nada (só esta sessão a vê, e o dono
+// passa por cima do RLS). Existe por causa do Studio: sem ele, o editor
+// avisa "Potential issue detected", e o botão em destaque, "Run and enable
+// RLS", acrescenta um `alter table` DEPOIS do commit, quando a tabela já foi
+// descartada. A carga é gravada, mas o editor mostra
+// `relation "importacao_relatorio" does not exist`.
 
 const ABRIR = `begin;
 set local session_replication_role = replica;
 create temp table importacao_relatorio (
   ordem serial, item text, tabela text, exportado bigint, resultado bigint, detalhe text
-) on commit drop;`;
+) on commit drop;
+alter table importacao_relatorio enable row level security;`;
 
 const RELATORIO = "select item, tabela, exportado, resultado, detalhe from importacao_relatorio order by ordem;";
 
