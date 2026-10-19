@@ -24,9 +24,18 @@ arquivos do Kong seguem versionados lá.
 **Ao atualizar as imagens do compose, reveja estes arquivos no mesmo passo.** Um
 `kong.yml` de uma geração e um Kong de outra falham de formas difíceis de ler.
 
-## Arquivo que NÃO é do upstream
+## Arquivos que NÃO são do upstream
 
-Um. Não sobrescreva com a versão upstream sem ler o motivo:
+Não sobrescreva com a versão upstream sem ler o motivo:
+
+### `auth/templates/`
+
+HTML dos e-mails de autenticação em PT-BR (recuperação de senha, confirmação,
+convite, troca de e-mail, link de acesso, reautenticação). O upstream não tem
+equivalente: usa o template padrão do GoTrue, em inglês. Servido pelo serviço
+`auth-templates` do compose, porque o GoTrue só aceita template por URL HTTP.
+Como editar e por que mora aqui: `docs/runbooks/email.md`, seção "Texto dos
+e-mails de autenticação".
 
 ### `db/roles.sql`
 
@@ -69,7 +78,8 @@ arquivo.
 
 ## Aqui não mora dado
 
-Só configuração e código: `kong.yml`, os SQL de inicialização, o `pooler.exs`.
+Só configuração e código: `kong.yml`, os SQL de inicialização, o `pooler.exs`, os
+templates de e-mail de `auth/templates`.
 Tudo isso **deve** ser atualizado a cada deploy, e por isso vem do repositório
 por bind mount.
 
