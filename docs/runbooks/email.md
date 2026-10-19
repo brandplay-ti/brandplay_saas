@@ -124,6 +124,35 @@ GoTrue volta ao PT-BR uns 20 s depois de o `auth-templates` voltar (medido no
 stack local); sem ele, ficaria com o padrão em inglês até o cache de 10 min
 vencer.
 
+## Recuperação de senha
+
+Fluxo, nos dois logins (painel em `/auth`, portal do patrocinador em
+`/portal/login`):
+
+1. "Esqueci minha senha" leva a `/esqueci-senha` (`?destino=portal` quando
+   veio do portal), que chama `auth.resetPasswordForEmail`.
+2. O GoTrue envia o e-mail com o link `API_EXTERNAL_URL/auth/v1/verify`, que
+   redireciona para `SITE_URL/resetar-senha` com a sessão de recuperação no
+   fragmento da URL. Por estar sob o `SITE_URL`, esse retorno não precisa de
+   entrada própria em `ADDITIONAL_REDIRECT_URLS`.
+3. `/resetar-senha` mostra a conta da sessão e troca a senha com
+   `auth.updateUser`. A pessoa sai conectada e segue para o painel ou para o
+   portal.
+
+A tela de pedido responde igual para e-mail com ou sem conta: o GoTrue não
+diz quem tem cadastro, e a tela não deve dizer também. Link vencido ou já
+usado chega com `error_code` na URL; a tela oferece um novo link em vez do
+formulário, mesmo para quem já estava logado.
+
+Testado de ponta a ponta em `portal/e2e/recuperacao-senha.spec.ts`, que lê o
+e-mail no Mailpit (`E2E_MAILPIT_URL`, padrão `http://localhost:8026`).
+
+No local, `SUPABASE_HOST` fica **vazio** no `docker/supabase/.env`. Com
+`localhost` ali, o GoTrue monta o link do e-mail com o host repassado pelo
+Kong, sem a porta (`http://localhost/auth/v1/verify`), e o link não abre.
+`.env` antigo com `SUPABASE_HOST=localhost`: esvazie e recrie o `auth`
+(`npm run supabase:up`).
+
 ## Diagnóstico
 
 | Sintoma | Onde olhar |
@@ -135,3 +164,5 @@ vencer.
 | Link do e-mail aponta para `localhost` | `SITE_URL` (autenticação) ou `APP_URL` (produto) esquecidos no padrão |
 | E-mail de autenticação em inglês ("Reset Password") | `auth-templates` fora do ar ou template com erro de sintaxe: log do `auth` (erro ao baixar ou interpretar o template) e `docker compose ps auth-templates` |
 | Template editado, e-mail ainda com o texto antigo | Cache de até 10 min do GoTrue: espere ou reinicie o `auth` |
+| No local, link de recuperação sem porta (`http://localhost/auth/v1/verify`) | `SUPABASE_HOST=localhost` no `docker/supabase/.env`: deixe vazio (ver "Recuperação de senha") |
+| Link de recuperação abre "Link inválido" na hora | Link já usado (cada um vale uma vez) ou vencido; ou o e-mail foi aberto por um scanner de link do provedor, que consome o token antes da pessoa |

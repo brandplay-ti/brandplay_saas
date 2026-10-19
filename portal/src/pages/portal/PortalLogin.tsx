@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/Logo";
 import { PasswordInput } from "@/components/PasswordInput";
+import { linkParaEsqueciSenha } from "@/lib/recuperacaoSenha";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
@@ -142,7 +143,14 @@ export default function PortalLogin() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Senha</Label>
+                {mode === "login" && (
+                  <Link to={linkParaEsqueciSenha("portal")} className="text-sm text-primary hover:underline">
+                    Esqueci minha senha
+                  </Link>
+                )}
+              </div>
               <PasswordInput
                 id="password"
                 value={password}
