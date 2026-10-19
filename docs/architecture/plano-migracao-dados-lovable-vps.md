@@ -190,6 +190,67 @@ trigger durante a carga (contagens da seção 3.6).
 - [ ] Arquivos abrem (logos, contratos assinados, evidências do BrandTrack).
 - [ ] Edge Functions principais respondem (IA via Anthropic, e-mail via Resend).
 
+### 3.7 Execução nos ambientes hospedados, pelo Studio (sem SSH)
+
+A exportação foi feita pelo login de um owner (`exportar.mjs`, cenário C da
+seção 1.2), e `importar.mjs` carrega essa exportação. Nos ambientes hospedados
+o Postgres não fica exposto, então a carga vai em duas etapas: o banco pelo
+SQL Editor do Studio, e o Storage pela API pública do ambiente. Homologação
+primeiro, depois produção.
+
+1. **Destino vazio e migrado** (`docs/runbooks/primeira-carga.md`). Se o
+   ambiente já recebeu cadastro de teste, resete antes. A carga recusa e-mail
+   da exportação que já exista no destino com outro id, porque esse usuário
+   seria pulado em silêncio.
+2. **Gerar o SQL**:
+
+   ```bash
+   node supabase/tools/migracao-lovable/importar.mjs --pasta .migracao-lovable/<data-hora> --gerar-sql
+   ```
+
+   O SQL sai em `<pasta>/studio-<data-hora>/parte-NN-de-MM.sql`, dentro da
+   pasta da exportação, que fica fora do git.
+3. **No SQL Editor do ambiente** (confira pela URL que é o ambiente certo),
+   cole cada parte inteira, em ordem, e execute. O resultado de cada parte é
+   o relatório: `item`, `tabela`, `exportado` e `resultado`. Cada parte é uma
+   transação. Se der erro, nada daquela parte fica gravado, e ela pode ser
+   executada de novo (`on conflict do nothing`). A última parte cria os
+   usuários-fantasma, valida todas as FKs (`orfaos`/`anulados`) e traz a
+   `conferencia` de todas as tabelas, com o exportado contra o que está no
+   destino. As duas colunas precisam bater.
+4. **Storage**:
+
+   ```bash
+   node supabase/tools/migracao-lovable/importar.mjs --pasta .migracao-lovable/<data-hora> --so-arquivos --url https://teste.db.brandplay.com.br
+   ```
+
+   A `SERVICE_ROLE_KEY` do ambiente é pedida no terminal e não é gravada.
+   Para host que não é local, o script pede que você digite o host para
+   confirmar. O envio usa upsert, então dá para rodar de novo.
+5. Validação da seção 3.6. Depois, apague as pastas `studio-*`, que contêm os
+   dados.
+
+Pontos verificados em 2026-10-19 num stack isolado (`supabase/postgres`
+17.6.1.136, Studio 2026.08.03), com uma exportação sintética:
+
+- O SQL Editor conecta como `postgres`, que não é superusuário, mas pode usar
+  `session_replication_role = replica` e escrever em `auth.users` e
+  `auth.identities`.
+- O Studio recusa requisição acima de 1 MB (`Body exceeded 1mb limit`). Por
+  isso o SQL é dividido em partes, e `--limite-kb` (padrão 900) mede o
+  tamanho como o Studio recebe: dentro de um JSON, com as aspas escapadas.
+- `--ensaio` (termina em rollback) só funciona com uma parte, porque cada
+  parte desfaria a anterior. Com várias partes, o ensaio é a própria carga em
+  homologação, seguida de reset.
+- A organização importada chega sem conta de cobrança, porque os gatilhos
+  estão desligados. A conta é criada no primeiro acesso, com o teste grátis
+  contando a partir dali. Se um cliente migrado precisar de mais prazo, use a
+  área `/admin` (estender teste ou liberação provisória).
+- Os usuários entram com senha aleatória e precisam usar "esqueci minha
+  senha". Por isso o e-mail e o `SITE_URL` do ambiente precisam estar certos
+  antes do corte. Em homologação, cuidado para não disparar redefinição para
+  clientes reais.
+
 ---
 
 ## 4. Ensaio em homologação (obrigatório)
