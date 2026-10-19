@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { appUrl, escapeHtml, sendEmail } from "../_shared/email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,7 +10,6 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
-const RESEND_KEY = Deno.env.get("RESEND_API_KEY");
 
 type Action =
   | { action: "invite"; email: string; role: string; organization_id: string }
@@ -30,45 +30,21 @@ const ROLE_LABEL: Record<string, string> = {
   financeiro: "Financeiro",
 };
 
-async function sendEmail(to: string, subject: string, html: string) {
-  if (!RESEND_KEY) {
-    console.warn("Resend not configured, skipping email");
-    return;
-  }
-  try {
-    const r = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${RESEND_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "Equipe <onboarding@resend.dev>",
-        to: [to],
-        subject,
-        html,
-      }),
-    });
-    if (!r.ok) console.error("Resend error", await r.text());
-  } catch (e) {
-    console.error("sendEmail failed", e);
-  }
-}
-
+// O nome da organização é digitado por quem a administra: escapado.
 const inviteEmail = (orgName: string, role: string, link: string) => `
   <div style="font-family:system-ui,sans-serif;max-width:520px;margin:auto">
-    <h2>Você foi convidado para <strong>${orgName}</strong></h2>
-    <p>Você foi convidado como <strong>${ROLE_LABEL[role] ?? role}</strong>. Clique abaixo para criar sua conta e aceitar o convite.</p>
-    <p><a href="${link}" style="display:inline-block;background:#3b82f6;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none">Aceitar convite</a></p>
+    <h2>Você foi convidado para <strong>${escapeHtml(orgName)}</strong></h2>
+    <p>Você foi convidado como <strong>${escapeHtml(ROLE_LABEL[role] ?? role)}</strong>. Clique abaixo para criar sua conta e aceitar o convite.</p>
+    <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#3b82f6;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none">Aceitar convite</a></p>
     <p style="color:#64748b;font-size:13px">Este convite expira em 14 dias.</p>
   </div>`;
 
 const welcomeEmail = (orgName: string, role: string, email: string, password: string, link: string) => `
   <div style="font-family:system-ui,sans-serif;max-width:520px;margin:auto">
-    <h2>Bem-vindo a <strong>${orgName}</strong></h2>
-    <p>Sua conta foi criada como <strong>${ROLE_LABEL[role] ?? role}</strong>.</p>
-    <p><strong>E-mail:</strong> ${email}<br/><strong>Senha temporária:</strong> ${password}</p>
-    <p><a href="${link}" style="display:inline-block;background:#3b82f6;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none">Acessar plataforma</a></p>
+    <h2>Bem-vindo a <strong>${escapeHtml(orgName)}</strong></h2>
+    <p>Sua conta foi criada como <strong>${escapeHtml(ROLE_LABEL[role] ?? role)}</strong>.</p>
+    <p><strong>E-mail:</strong> ${escapeHtml(email)}<br/><strong>Senha temporária:</strong> ${escapeHtml(password)}</p>
+    <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#3b82f6;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none">Acessar plataforma</a></p>
     <p style="color:#64748b;font-size:13px">Recomendamos alterar sua senha no primeiro acesso.</p>
   </div>`;
 
@@ -126,7 +102,10 @@ Deno.serve(async (req) => {
       .eq("id", body.organization_id)
       .maybeSingle();
     const orgName = org?.name ?? "Equipe";
-    const origin = req.headers.get("origin") ?? "";
+    // Base dos links do e-mail: APP_URL do ambiente. O `Origin` da requisição
+    // só vale onde APP_URL não existe — quem chama não escolhe para onde o
+    // convite aponta.
+    const origin = appUrl() || (req.headers.get("origin") ?? "");
 
     const audit = async (entry: Record<string, unknown>) => {
       await admin.from("team_audit_log").insert({
@@ -152,7 +131,7 @@ Deno.serve(async (req) => {
             { onConflict: "organization_id,user_id" }
           );
         if (error) throw error;
-        await sendEmail(email, `Você foi adicionado a ${orgName}`, inviteEmail(orgName, body.role, `${origin}/dashboard`));
+        await sendEmail({ to: email, subject: `Você foi adicionado a ${orgName}`, html: inviteEmail(orgName, body.role, `${origin}/dashboard`) });
         await audit({ action: "member_created", target_email: email, target_user_id: existing.id, new_role: body.role });
         return new Response(JSON.stringify({ ok: true, mode: "added_existing" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -172,7 +151,7 @@ Deno.serve(async (req) => {
       if (error) throw error;
 
       const link = `${origin}/auth?invite=${invite.token}&email=${encodeURIComponent(email)}`;
-      await sendEmail(email, `Convite para ${orgName}`, inviteEmail(orgName, body.role, link));
+      await sendEmail({ to: email, subject: `Convite para ${orgName}`, html: inviteEmail(orgName, body.role, link) });
       await audit({ action: "invite_sent", target_email: email, new_role: body.role, metadata: { invite_id: invite.id } });
 
       return new Response(JSON.stringify({ ok: true, mode: "invited", invite }), {
@@ -194,7 +173,7 @@ Deno.serve(async (req) => {
       await admin.from("organization_invites").update({ expires_at: newExpiresAt }).eq("id", invite.id);
 
       const link = `${origin}/auth?invite=${invite.token}&email=${encodeURIComponent(invite.email)}`;
-      await sendEmail(invite.email, `Lembrete: convite para ${orgName}`, inviteEmail(orgName, invite.role, link));
+      await sendEmail({ to: invite.email, subject: `Lembrete: convite para ${orgName}`, html: inviteEmail(orgName, invite.role, link) });
       await audit({ action: "invite_resent", target_email: invite.email, new_role: invite.role, metadata: { invite_id: invite.id } });
 
       return new Response(JSON.stringify({ ok: true }), {
@@ -224,13 +203,31 @@ Deno.serve(async (req) => {
     if (body.action === "create_user") {
       if (!ROLES.includes(body.role)) throw new Error("Papel inválido");
       const email = body.email.trim().toLowerCase();
+
+      // Convite pendente ANTES de criar o usuário. O gatilho handle_new_user
+      // aceita convite pendente do e-mail e vincula o membro à organização;
+      // sem convite, ele cria uma organização pessoal — e o membro ganhava
+      // uma segunda organização, só dele, com o nome desta.
+      //
+      // `app_metadata` não serve como sinal: o GoTrue grava o usuário primeiro
+      // e o app_metadata num passo seguinte, e o gatilho roda no INSERT.
+      const { data: convite, error: conviteErr } = await admin
+        .from("organization_invites")
+        .insert({ organization_id: body.organization_id, email, role: body.role as any, invited_by: userId })
+        .select("id")
+        .single();
+      if (conviteErr) throw conviteErr;
+
       const { data: created, error: createErr } = await admin.auth.admin.createUser({
         email,
         password: body.password,
         email_confirm: true,
         user_metadata: { full_name: body.full_name ?? "", company: orgName },
       });
-      if (createErr) throw createErr;
+      if (createErr) {
+        await admin.from("organization_invites").update({ status: "revogado" }).eq("id", convite.id);
+        throw createErr;
+      }
       const newUserId = created.user!.id;
 
       const { error: memberErr } = await admin
@@ -241,7 +238,7 @@ Deno.serve(async (req) => {
         );
       if (memberErr) throw memberErr;
 
-      await sendEmail(email, `Bem-vindo a ${orgName}`, welcomeEmail(orgName, body.role, email, body.password, `${origin}/auth`));
+      await sendEmail({ to: email, subject: `Bem-vindo a ${orgName}`, html: welcomeEmail(orgName, body.role, email, body.password, `${origin}/auth`) });
       await audit({ action: "member_created", target_email: email, target_user_id: newUserId, new_role: body.role });
 
       return new Response(JSON.stringify({ ok: true, user_id: newUserId }), {
@@ -326,9 +323,18 @@ Deno.serve(async (req) => {
     });
   } catch (e: any) {
     console.error(e);
-    return new Response(JSON.stringify({ error: e.message ?? "Erro" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // Limite do plano (gatilhos da 0024): devolve hint e plano sugerido para a
+    // tela explicar o bloqueio, em vez de um 500 genérico.
+    const limitePlano = typeof e?.hint === "string" && e.hint.startsWith("limite_plano:");
+    return new Response(
+      JSON.stringify({
+        error: e.message ?? "Erro",
+        ...(limitePlano ? { hint: e.hint, details: e.details ?? null } : {}),
+      }),
+      {
+        status: limitePlano ? 409 : 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

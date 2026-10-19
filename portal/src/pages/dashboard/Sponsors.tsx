@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { withProfileNames } from "@/lib/profileNames";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useToast } from "@/hooks/use-toast";
@@ -102,8 +103,10 @@ export default function Sponsors() {
       db.from("contracts").select("id,sponsor_id,status,total_value").eq("organization_id", orgId).not("sponsor_id", "is", null),
       db.from("installments").select("id,sponsor_id,status").not("sponsor_id", "is", null),
       db.from("deliveries").select("id,sponsor_id,status,due_date").eq("organization_id", orgId).not("sponsor_id", "is", null),
-      supabase.from("organization_members").select("user_id, profiles:profiles(id, full_name)").eq("organization_id", orgId).eq("status", "ativo"),
+      supabase.from("organization_members").select("user_id").eq("organization_id", orgId).eq("status", "ativo"),
     ]);
+
+    const membros = await withProfileNames(mem.data ?? []);
 
     const today = new Date().toISOString().slice(0, 10);
     const byId = new Map<string, SponsorRow>();
@@ -131,7 +134,7 @@ export default function Sponsors() {
     });
 
     setRows(Array.from(byId.values()));
-    setMembers(((mem.data ?? []) as any[]).map((m) => ({
+    setMembers(membros.map((m) => ({
       id: m.user_id,
       name: m.profiles?.full_name?.trim() || "Sem nome",
     })));

@@ -19,14 +19,31 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   derivar `user.id` dele e escopar toda consulta por organização. Nunca devem
   confiar em `organization_id`/`user_id` vindos do corpo da requisição.
   Funções de IA (`ai-assistant`, `score-leads`, `generate-proposal-ai`, entre
-  outras) estão em migração do gateway do Lovable para a Anthropic API
-  (ADR-0003) — `ANTHROPIC_API_KEY` só existe nesse ambiente server-side.
+  outras) chamam a Anthropic API diretamente (ADR-0003) —
+  `ANTHROPIC_API_KEY` só existe nesse ambiente server-side.
 - **Portal do patrocinador.** Usuários com `sponsor_portal_access` ativo
   acessam contratos, entregas, parcelas, propostas e documentos de **um**
   patrocinador específico, sem serem membros da organização dona dele. É um
   escopo de acesso intencionalmente cross-tenant, mas restrito por
   `sponsor_id` — qualquer policy nova nessa superfície precisa manter esse
   escopo estreito.
+- **Cobrança** (ADR-0007). Estado de assinatura e faturas é escrito só pelo
+  servidor: `billing-webhook` (autenticado pela assinatura do Stripe — sem
+  `STRIPE_WEBHOOK_SECRET` recusa tudo) e `manage-billing` (JWT + owner/admin
+  ativo na organização, conferido em `organization_members`). As tabelas
+  `billing_*` não aceitam escrita de `authenticated`, então ninguém se dá um
+  plano ou estende o próprio teste pela API. Limites de plano são gatilhos no
+  banco, não verificação de tela.
+- **Superadmin da plataforma** (ADR-0008, área `/admin`). Papel em
+  `platform_admins`, lido por `is_platform_admin()`; só `service_role` e as
+  funções de concessão escrevem ali, e `authenticated` não as executa — a
+  concessão é operada à mão (`docs/runbooks/superadmin.md`), nunca pela API nem
+  por migration. O superadmin lê a cobrança de todas as organizações e
+  contagens de uso, pelas policies `*_platform_admin_read` e pelas funções
+  `admin_*` (que recusam quem não é superadmin), mas **não** lê dados de
+  domínio dos clientes. Toda ação administrativa vai para
+  `platform_admin_audit_log`, imutável pela API. Ao estender essa área, mantenha
+  as duas coisas: leitura mínima e registro de quem fez.
 - **Media Kit público** (`/p/:slug`, `portal/src/pages/PublicMediaKit.tsx`). Única
   rota que aceita leitura anônima (`anon`) de propriedades publicadas e
   insert público de leads. Qualquer dado exposto ali é público por definição
@@ -38,6 +55,7 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `ANTHROPIC_API_KEY`
 - `RESEND_API_KEY`
+- `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET`
 - JWT secret, senha do Postgres, qualquer credencial de infraestrutura
 - Tokens de sessão, cookies, headers de autorização em logs
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { withProfileNames } from "@/lib/profileNames";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -67,7 +68,7 @@ export default function PortalAccess() {
       supabase
         .from("sponsor_portal_access")
         .select(
-          "id,sponsor_id,user_id,status,created_at,sponsors(name),profiles(full_name)",
+          "id,sponsor_id,user_id,status,created_at,sponsors(name)",
         )
         .order("created_at", { ascending: false }),
       supabase
@@ -76,7 +77,7 @@ export default function PortalAccess() {
         .order("created_at", { ascending: false }),
     ]);
     setSponsors((spRes.data ?? []) as Sponsor[]);
-    setAccesses((accRes.data ?? []) as any);
+    setAccesses((await withProfileNames(accRes.data ?? [])) as any);
     setInvites((invRes.data ?? []) as any);
     if (!selectedSponsor && spRes.data && spRes.data.length > 0) {
       setSelectedSponsor(spRes.data[0].id);

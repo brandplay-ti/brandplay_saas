@@ -69,7 +69,8 @@ docs/               adr/, architecture/, infrastructure/, runbooks/
 docker/             compose único do Supabase (local/hml/produção) + files/volumes
 portal/             aplicação React (workspace npm) — Dockerfile, nixpacks.toml
   src/
-    pages/          rotas (dashboard, portal do patrocinador, onboarding, public)
+    pages/          rotas (dashboard, admin da plataforma, portal do patrocinador,
+                    onboarding, public)
     components/     componentes de UI (ui/ = shadcn, demais = por feature)
     hooks/          hooks de domínio e integração (useAuth, useOrganization, ...)
     lib/            utilitários e helpers puros
@@ -117,11 +118,14 @@ O npm roda em workspaces: os comandos do portal (`dev`, `build`, `lint`,
 
 ### Integrações
 
-- Anthropic API (`ANTHROPIC_API_KEY`) para as funcionalidades de IA — em
-  migração do gateway proprietário do Lovable (ADR-0003). Enquanto a migração
-  não terminar, pode haver Edge Functions ainda referenciando o gateway antigo;
-  não assuma que todas já foram convertidas sem checar o arquivo.
+- Anthropic API (`ANTHROPIC_API_KEY`) para as funcionalidades de IA, chamada
+  direto pelas Edge Functions (ADR-0003; histórico da conversão em
+  `supabase/functions/MIGRATION_NOTES.md`).
 - Resend (e-mail transacional) — chave apenas em Edge Functions.
+- Stripe (cobrança da organização: planos, teste grátis, assinatura) —
+  `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` apenas em Edge Functions
+  (ADR-0007, `docs/business/cobranca.md`). Planos e limites ficam no banco
+  (`billing_plans`); limites são aplicados por gatilho, não pela tela.
 
 ### Infraestrutura
 
@@ -158,7 +162,8 @@ npm run supabase:up            # sobe o Supabase local (Docker)
 npm run supabase:migrate       # aplica migrations pendentes
 npm run supabase:migrate:status
 npm run supabase:seed          # usuário de exemplo (só local)
-npm run supabase:test          # testes de segurança/RLS (supabase/tests/seguranca.sql)
+npm run supabase:test          # testes de segurança/RLS, cobrança e superadmin (supabase/tests/)
+npm run supabase:superadmin -- -v email=<e-mail> -v comentario=<motivo>   # concede superadmin (local)
 npm run supabase:down / :reset
 npm run supabase:bundle        # migrations achatadas para o SQL Editor do Studio
 npm run supabase:checar -- <url> <anon_key> [--portal <url>]   # diagnóstico de um ambiente
@@ -273,6 +278,17 @@ Consequência direta para RLS e Edge Functions:
 O isolamento de organização é um invariante de segurança, não apenas uma regra
 de modelagem ou de UX.
 
+### Superadmin da plataforma (leitura administrativa, por design)
+
+Quem opera o BrandPlay como negócio (`platform_admins`, `is_platform_admin()`,
+área `/admin`, ADR-0008) lê a **cobrança** de todas as organizações e
+**contagens** de uso, sem ser membro delas — e mais nada. Dados de domínio dos
+clientes continuam só com os membros. O papel é concedido à mão, por quem
+opera o banco (`docs/runbooks/superadmin.md`), nunca pela API nem por
+migration; toda ação administrativa vai para `platform_admin_audit_log`. Não
+estenda esse acesso a tabelas de domínio (`or is_platform_admin()` em policy
+de organização), e não o confunda com o `owner`/`admin` de uma organização.
+
 ### Portal do patrocinador (acesso cross-tenant limitado, por design)
 
 O portal do patrocinador é uma exceção deliberada ao modelo acima: um usuário
@@ -297,8 +313,9 @@ Nunca:
 - aceitar `organization_id`, `user_id` ou papel vindos do corpo da requisição
   sem validar contra o JWT/sessão autenticada;
 - commitar secrets ou colocar tokens no código;
-- expor `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY` ou
-  qualquer credencial privilegiada no client (nunca com prefixo `VITE_`);
+- expor `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`,
+  `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` ou qualquer credencial
+  privilegiada no client (nunca com prefixo `VITE_`);
 - logar dado sensível (senha, token, header de autorização, service role,
   documento pessoal);
 - expor dados de outra organização ou de outro usuário.
@@ -396,7 +413,7 @@ máquina local como parte do fluxo normal. Ver `.claude/rules/cicd.md`.
 ## 10.1 Produção
 
 Produção é um ambiente protegido. Segredos (`JWT_SECRET`, `SERVICE_ROLE_KEY`,
-`POSTGRES_PASSWORD`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, SMTP) vivem no
+`POSTGRES_PASSWORD`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, Stripe, SMTP) vivem no
 Dockploy; nunca proponha commitá-los nem copiá-los para o ambiente local.
 Nunca execute alterações destrutivas diretamente em produção, e nunca use
 dados reais de produção (ou exportações do Lovable em `.migracao-lovable/`)

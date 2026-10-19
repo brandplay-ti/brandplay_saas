@@ -31,8 +31,9 @@ de credenciais fora do necessário.
 
 Nunca inserir secrets em código, logs, commits, PRs ou mensagens de erro.
 
-`SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY` e `RESEND_API_KEY` só podem
-existir em Edge Functions / ambiente server-side. Nunca com prefixo `VITE_`
+`SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`,
+`STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET` só podem existir em Edge
+Functions / ambiente server-side. Nunca com prefixo `VITE_`
 (tudo que tem esse prefixo é público no bundle) e nunca no `useEffect` de um
 componente React.
 
@@ -69,10 +70,25 @@ estender esse fluxo.
   internet — nunca exponha ali um campo que não esteja explicitamente
   destinado a ser público.
 - **Edge Functions de IA** (`ai-assistant`, `score-leads`,
-  `generate-proposal-ai`, etc.) — em migração para `ANTHROPIC_API_KEY` (ver
-  ADR-0003). Todas processam dado de organização; confirme que continuam
+  `generate-proposal-ai`, etc.) — chamam a Anthropic API com
+  `ANTHROPIC_API_KEY` (ver ADR-0003). Todas processam dado de organização; confirme que continuam
   escopando por `organization_id` derivado do usuário autenticado, não do
   prompt ou de parâmetro solto no body.
+- **Superadmin da plataforma** (`platform_admins`, `admin_*`, `admin-plans`,
+  área `/admin`, ADR-0008) — papel concedido só à mão por quem opera o banco;
+  nunca abra escrita de `platform_admins` para `authenticated` nem crie
+  superadmin em migration. O superadmin lê cobrança e contagens, nunca dado de
+  domínio dos clientes: não acrescente `or is_platform_admin()` em policy de
+  tabela de domínio. Função administrativa nova começa com
+  `platform_admin_require()` e grava em `platform_admin_audit_log`. Edge
+  Function administrativa confere `platform_admins` (ativo) para o `user.id`
+  do JWT.
+- **Cobrança** (`manage-billing`, `billing-webhook`, tabelas `billing_*`, ADR-0007)
+  — estado de cobrança só é escrito pelo servidor; nunca abra escrita dessas
+  tabelas para `authenticated` nem aceite plano, status ou fim de teste vindos
+  do client. O webhook se autentica pela assinatura do Stripe e recusa tudo
+  sem `STRIPE_WEBHOOK_SECRET`. Limites de plano são gatilhos no banco: não
+  substitua por checagem de tela.
 
 ## Dependências
 

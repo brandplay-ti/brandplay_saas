@@ -20,6 +20,7 @@ import { AIAssistantTrigger } from "@/components/ai/AIAssistantTrigger";
 import { NotificationsBell } from "@/components/notifications/NotificationsBell";
 import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
 import { OrganizationProvider } from "@/hooks/useOrganization";
+import { BillingGate } from "@/components/billing/BillingGate";
 
 const DashboardLayoutInner = () => {
   const { user } = useAuth();
@@ -80,7 +81,9 @@ const DashboardLayoutInner = () => {
             </div>
           </header>
           <main className="flex-1 p-4 md:p-8">
-            <Outlet />
+            <BillingGate>
+              <Outlet />
+            </BillingGate>
           </main>
         </div>
         <AIAssistantTrigger />

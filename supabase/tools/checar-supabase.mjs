@@ -36,8 +36,9 @@ process.stdout.on('error', (erro) => {
 // tabelas não é legível sem sessão, e um "permission denied" ali não
 // distinguiria banco vazio de RLS funcionando.
 //
-// A contagem é só informativa: num ambiente recém-migrado, sem a importação do
-// Lovable, nenhuma propriedade está publicada e zero linhas é o esperado.
+// A contagem é só informativa: num ambiente recém-migrado, sem a importação
+// dos dados reais, nenhuma propriedade está publicada e zero linhas é o
+// esperado.
 //
 // É também a tabela que a página pública do Media Kit consulta: se esta leitura
 // falha, aquela página falha junto.

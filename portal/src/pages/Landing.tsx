@@ -29,6 +29,7 @@ import {
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
+import { PublicPricing } from "@/components/billing/PublicPricing";
 
 const stats = [
   { value: "R$ 240M+", label: "em patrocínios gerenciados" },
@@ -397,38 +398,7 @@ const Landing = () => {
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Planos para cada estágio</h2>
             <p className="mt-4 text-muted-foreground text-lg">Comece pequeno, escale quando quiser. Sem fidelidade.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {[
-              { name: "Starter", price: "R$ 490", desc: "Para projetos e pequenas propriedades.", features: ["Até 3 propriedades", "Pipeline comercial", "Propostas básicas", "1 usuário"], highlight: false, cta: "Começar grátis" },
-              { name: "Pro", price: "R$ 1.490", desc: "Para agências e federações em crescimento.", features: ["Propriedades ilimitadas", "Contratos & assinaturas", "Gestão de entregas", "Portal do patrocinador", "BrandTrack com IA", "Até 10 usuários"], highlight: true, cta: "Teste 14 dias grátis" },
-              { name: "Enterprise", price: "Sob consulta", desc: "Para grandes detentores de direito.", features: ["SLA dedicado", "SSO & RBAC avançado", "Integrações sob medida", "Onboarding com CS", "Usuários ilimitados"], highlight: false, cta: "Falar com vendas" },
-            ].map((p) => (
-              <div key={p.name} className={`p-8 rounded-2xl border bg-card transition-all ${p.highlight ? "border-primary shadow-glow scale-[1.02]" : "border-border hover:border-primary/30"}`}>
-                {p.highlight && (
-                  <div className="inline-block mb-3 rounded-full bg-gradient-brand px-3 py-1 text-xs font-semibold text-primary-foreground">
-                    Mais popular
-                  </div>
-                )}
-                <h3 className="font-semibold text-xl">{p.name}</h3>
-                <p className="text-sm text-muted-foreground mt-1">{p.desc}</p>
-                <div className="mt-6 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold">{p.price}</span>
-                  {p.price.startsWith("R$") && <span className="text-muted-foreground text-sm">/mês</span>}
-                </div>
-                <Button asChild className={`w-full mt-6 ${p.highlight ? "bg-gradient-brand hover:opacity-90" : ""}`} variant={p.highlight ? "default" : "outline"}>
-                  <Link to={p.name === "Enterprise" ? "#contato" : "/auth?mode=signup"}>{p.cta}</Link>
-                </Button>
-                <ul className="mt-8 space-y-3">
-                  {p.features.map((feat) => (
-                    <li key={feat} className="flex items-start gap-2 text-sm">
-                      <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                      <span>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
+          <PublicPricing />
 
           {/* Trust signals */}
           <div className="mt-16 grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto">

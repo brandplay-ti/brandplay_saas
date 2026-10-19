@@ -37,6 +37,7 @@ import { toast } from "sonner";
 import { ActivityContextLinks } from "@/components/common/ActivityContextLinks";
 import { DueDateEditor } from "@/components/common/DueDateEditor";
 import { TaskInsightsButton } from "@/components/common/TaskInsightsButton";
+import { dataLocal } from "@/lib/datas";
 
 interface ChecklistItem {
   id: string;
@@ -93,7 +94,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 const fmtDate = (s?: string | null) =>
-  s ? new Date(s).toLocaleDateString("pt-BR") : "—";
+  s ? dataLocal(s).toLocaleDateString("pt-BR") : "—";
 
 export default function PropertyChecklist({ propertyId, ownerId }: Props) {
   const [items, setItems] = useState<ChecklistItem[]>([]);
@@ -261,7 +262,7 @@ export default function PropertyChecklist({ propertyId, ownerId }: Props) {
             const sponsorName =
               sponsors.find((sp) => sp.id === sponsorId)?.name ?? delivery?.brand ?? null;
             const overdue =
-              it.due_date && it.status !== "concluido" && new Date(it.due_date) < new Date();
+              it.due_date && it.status !== "concluido" && dataLocal(it.due_date) < new Date();
             return (
               <Card key={it.id} className={it.status === "concluido" ? "opacity-70" : ""}>
                 <CardContent className="p-3 flex items-start gap-3">

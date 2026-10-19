@@ -10,7 +10,7 @@ npm-debug.log*
 #
 # Lista por padrão, e não por nome: o primeiro commit deste repositório levou
 # `docker/supabase/.env` (senha do Postgres, JWT_SECRET, service_role locais)
-# porque o `.gitignore` herdado do Lovable só conhecia `*.local`.
+# porque o `.gitignore` original só conhecia `*.local`.
 .env
 .env.*
 !.env.example

@@ -56,9 +56,13 @@ Crie (uma vez) o projeto `brandplay`. Os quatro serviços abaixo vivem nele.
      `ADDITIONAL_REDIRECT_URLS`, `APP_URL`);
    - SMTP real com TLS (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`,
      `SMTP_ADMIN_EMAIL`, `SMTP_SENDER_NAME`) — o padrão `mail:1025` é o
-     Mailpit, que não existe nos hospedados;
+     Mailpit, que não existe nos hospedados. Pelo Resend: `docs/runbooks/email.md`;
    - `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `RESEND_FROM_DOMAIN`,
-     `EMAIL_FROM` do ambiente.
+     `EMAIL_FROM` do ambiente;
+   - `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET` (chaves de teste em
+     homologação, live em produção). O endpoint do webhook no Stripe e o
+     portal do cliente são configurados no Dashboard do Stripe — passo a passo
+     em `docs/runbooks/cobranca.md`, "Configurar o Stripe num ambiente".
 6. **Domains**: `api.hml.<dominio>` → serviço `kong`, porta `8000`, HTTPS
    ligado (Let's Encrypt). Nenhum outro serviço do stack recebe domínio.
 7. **Deploy**. Espere **todos** os serviços ficarem saudáveis — `functions`
@@ -94,7 +98,7 @@ comando na VPS) e confira com a seção "Conferir" de lá.
    ```
 
    O build **para** com a explicação se faltar uma delas, se estiverem com o
-   nome do Lovable/Studio (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`),
+   nome que o Studio sugere (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`),
    sem `https://` ou apontando para `localhost`.
 
 6. **Domains**: `hml.<dominio>` → porta `3000`, HTTPS ligado.
@@ -112,6 +116,9 @@ falhar, dizendo onde mexer. Só lê: pode rodar contra produção.
 
 Depois, no navegador: cadastre um usuário de teste, confirme que o e-mail
 chega com link para o domínio do portal, crie a organização no onboarding.
+
+Por último, conceda o superadmin a quem vai operar a plataforma (a pessoa se
+cadastra antes): `docs/runbooks/superadmin.md`, "Conceder".
 
 ## 6. GitHub Actions (deploy manual e status de migrations)
 

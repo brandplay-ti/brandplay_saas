@@ -395,15 +395,9 @@ Deno.serve(async (req) => {
             { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
-        if (aiResp.status === 402) {
-          return new Response(
-            JSON.stringify({ error: "Créditos de IA esgotados. Adicione créditos no workspace." }),
-            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
-        }
         const t = await aiResp.text();
         console.error("AI error", aiResp.status, t);
-        throw new Error(`AI gateway erro ${aiResp.status}`);
+        throw new Error(`Anthropic API erro ${aiResp.status}`);
       }
 
       const data = await aiResp.json();

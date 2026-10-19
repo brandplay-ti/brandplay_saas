@@ -33,6 +33,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePlanLimitNotice } from "@/hooks/usePlanLimitNotice";
 import { toast } from "sonner";
 import {
   SponsorProfileFields,
@@ -76,6 +77,7 @@ const STATUSES: Record<string, { label: string; variant: "default" | "secondary"
 const Properties = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const avisarLimiteDoPlano = usePlanLimitNotice();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -200,7 +202,7 @@ const Properties = () => {
       : await supabase.from("sports_properties").insert({ owner_id: user.id, ...payload });
     setSubmitting(false);
     if (error) {
-      toast.error(error.message);
+      if (!avisarLimiteDoPlano(error)) toast.error(error.message);
       return;
     }
     toast.success(editing ? "Propriedade atualizada!" : "Propriedade criada!");

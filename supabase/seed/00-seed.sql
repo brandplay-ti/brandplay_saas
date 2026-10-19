@@ -117,4 +117,49 @@ begin
   raise notice 'organizacao de teste criada: % (id: %)', v_empresa, v_org_id;
 end $$;
 
+-- Superadmin da plataforma (ADR-0008), sem organização: abre direto em /admin.
+-- Só aqui existe superadmin com senha conhecida; nos ambientes hospedados a
+-- concessão é por supabase/tools/conceder-superadmin.sql, para uma conta que
+-- se cadastrou normalmente.
+do $$
+declare
+  v_user_id  uuid := '00000000-0000-4000-a000-000000000002';
+  v_email    text := 'superadmin@brandplay.local';
+  v_password text := 'brandplay-dev';
+  v_nome     text := 'Superadmin de Testes';
+begin
+  delete from public.organization_members where user_id = v_user_id;
+  delete from public.organizations where owner_id = v_user_id;
+  delete from public.profiles where id = v_user_id;
+  delete from auth.users where email = v_email;
+
+  insert into auth.users (
+    instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+    raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+    confirmation_token, recovery_token, email_change, email_change_token_new
+  ) values (
+    '00000000-0000-0000-0000-000000000000', v_user_id, 'authenticated', 'authenticated',
+    v_email, crypt(v_password, gen_salt('bf')), now(),
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    jsonb_build_object('full_name', v_nome), now(), now(), '', '', '', ''
+  );
+
+  insert into auth.identities (
+    user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at
+  ) values (
+    v_user_id, v_user_id::text,
+    jsonb_build_object('sub', v_user_id::text, 'email', v_email, 'email_verified', true),
+    'email', now(), now(), now()
+  );
+
+  -- handle_new_user cria a organização pessoal de todo cadastro sem convite
+  -- (0022). O superadmin opera a plataforma, não é cliente: sai sem ela.
+  delete from public.organization_members where user_id = v_user_id;
+  delete from public.organizations where owner_id = v_user_id;
+
+  perform public.platform_admin_grant(v_email, 'Seed local');
+
+  raise notice 'superadmin de teste criado: % / %', v_email, v_password;
+end $$;
+
 commit;
