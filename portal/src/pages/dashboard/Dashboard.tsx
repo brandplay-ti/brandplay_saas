@@ -380,7 +380,7 @@ const Dashboard = () => {
             <CardContent className="space-y-2">
               {overdueDeliveriesList.length === 0 ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <CheckCircle2 className="h-4 w-4 text-success" /> Tudo em dia.
+                  <CheckCircle2 className="h-4 w-4 text-success-strong" /> Tudo em dia.
                 </div>
               ) : (
                 overdueDeliveriesList.map((d) => (

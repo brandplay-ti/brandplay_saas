@@ -82,7 +82,7 @@ export const NextActionsWidget = () => {
           </div>
         ) : rows.length === 0 ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-            <CheckCircle2 className="h-4 w-4 text-success" /> Nenhuma ação pendente.
+            <CheckCircle2 className="h-4 w-4 text-success-strong" /> Nenhuma ação pendente.
           </div>
         ) : (
           rows.map((r) => {

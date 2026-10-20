@@ -1096,7 +1096,7 @@ export default function PropertyDetail() {
         td.c { text-align: center; } td.r { text-align: right; }
         .muted { color: #6b7280; font-size: 10px; }
         tr.excl td { background: #fffbeb; }
-        a { color: #1d4ed8; text-decoration: none; }
+        a { color: #6206C8; text-decoration: none; }
         .dv { margin-bottom: 2px; }
       </style></head><body>
       <h1>Mapa de ativos</h1>

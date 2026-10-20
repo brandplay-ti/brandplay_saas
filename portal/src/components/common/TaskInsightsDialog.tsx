@@ -162,7 +162,7 @@ export const TaskInsightsDialog = ({
               <>
                 <Separator />
                 <div>
-                  <p className="font-medium mb-1">Dados que faltam no BrandPlay</p>
+                  <p className="font-medium mb-1">Dados que faltam no Brandplay</p>
                   <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
                     {i.dados_ausentes.map((d, idx) => <li key={idx}>{d}</li>)}
                   </ul>

@@ -512,9 +512,9 @@ export default function Deliveries() {
       if (!win) return toast.error("Permita pop-ups para gerar o relatório");
       win.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório de campo — Entregas</title><style>
         *{box-sizing:border-box}
-        body{font-family:'Helvetica Neue',Arial,sans-serif;margin:0;color:#0f172a;background:#fff}
+        body{font-family:'Helvetica Neue',Arial,sans-serif;margin:0;color:#0F1221;background:#fff}
         .wrap{padding:28px 32px}
-        .cover{background:linear-gradient(135deg,#0b1b3a,#1d4ed8);color:#fff;padding:28px 32px;border-radius:14px;margin-bottom:20px}
+        .cover{background:linear-gradient(135deg,#4B0FA3,#6206C8);color:#fff;padding:28px 32px;border-radius:14px;margin-bottom:20px}
         .cover h1{margin:0;font-size:24px;letter-spacing:-.4px}
         .cover p{margin:6px 0 0;font-size:12px;opacity:.85}
         .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:18px}
@@ -526,18 +526,18 @@ export default function Deliveries() {
         .card h2{font-size:15px;margin:0 0 6px}
         .tags{display:flex;flex-wrap:wrap;gap:6px}
         .tag{font-size:9.5px;padding:3px 8px;border-radius:999px;background:#f1f5f9;color:#475569;font-weight:600}
-        .tag.brand{background:#e0e7ff;color:#3730a3}
+        .tag.brand{background:#F4EEFD;color:#4B0FA3}
         .tag.warn{background:#fee2e2;color:#b91c1c}
         .tag.st-aprovada,.tag.ap-aprovada{background:#dcfce7;color:#15803d}
         .tag.st-entregue{background:#fef3c7;color:#a16207}
         .tag.st-atrasada,.tag.ap-reprovada{background:#fee2e2;color:#b91c1c}
-        .qty{font-size:20px;font-weight:700;text-align:center;color:#1d4ed8;line-height:1}
+        .qty{font-size:20px;font-weight:700;text-align:center;color:#6206C8;line-height:1}
         .qty small{display:block;font-size:9px;color:#94a3b8;font-weight:600;text-transform:uppercase}
         .meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 16px;margin-bottom:10px}
         .meta-grid label,.txt label{display:block;font-size:8.5px;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;font-weight:700}
         .meta-grid span{font-size:11px}
         .txt{font-size:11px;margin:0 0 8px;line-height:1.45}
-        .txt.note{background:#f8fafc;border-left:3px solid #1d4ed8;padding:8px 10px;border-radius:0 6px 6px 0}
+        .txt.note{background:#f8fafc;border-left:3px solid #6206C8;padding:8px 10px;border-radius:0 6px 6px 0}
         .gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
         figure{margin:0}
         figure img{width:100%;aspect-ratio:1/1;height:auto;object-fit:cover;object-position:center;display:block;border-radius:8px;border:1px solid #e2e8f0;background:#f1f5f9}
@@ -562,7 +562,7 @@ export default function Deliveries() {
             </div>
           </div>
           ${sections}
-          <footer>BrandPlay · Relatório gerado automaticamente a partir das capturas do app de campo</footer>
+          <footer>Brandplay · Relatório gerado automaticamente a partir das capturas do app de campo</footer>
         </div>
       </body></html>`);
       win.document.close();

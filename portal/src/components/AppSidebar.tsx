@@ -117,9 +117,9 @@ export const AppSidebar = () => {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border h-20 flex items-center justify-center px-4">
         {collapsed ? (
-          <Logo showWordmark={false} sizeClassName="h-12 w-12" />
+          <Logo showWordmark={false} sizeClassName="h-7" />
         ) : (
-          <Logo sizeClassName="h-14" />
+          <Logo sizeClassName="h-8" />
         )}
       </SidebarHeader>
       <SidebarContent>

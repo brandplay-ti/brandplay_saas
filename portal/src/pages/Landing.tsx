@@ -169,8 +169,8 @@ const Landing = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-lg">
-        <div className="container flex h-32 items-center justify-between">
-          <Logo sizeClassName="h-28" />
+        <div className="container flex h-16 items-center justify-between">
+          <Logo sizeClassName="h-8" />
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
             <a href="#how" className="hover:text-foreground transition-colors">Como funciona</a>
             <a href="#features" className="hover:text-foreground transition-colors">Funcionalidades</a>
@@ -201,7 +201,7 @@ const Landing = () => {
               <span className="text-gradient-brand">planilha</span>
             </h1>
             <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-              Propriedades esportivas que usam o BrandPlay fecham <strong className="text-foreground">2,3x mais contratos</strong> porque têm pipeline, propostas e entregas no mesmo lugar — não no e-mail.
+              Propriedades esportivas que usam o Brandplay fecham <strong className="text-foreground">2,3x mais contratos</strong> porque têm pipeline, propostas e entregas no mesmo lugar — não no e-mail.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button size="lg" asChild className="bg-gradient-brand hover:opacity-90 shadow-glow">
@@ -214,9 +214,9 @@ const Landing = () => {
               </Button>
             </div>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-success" /> Sem cartão de crédito</span>
-              <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-success" /> Setup em 5 minutos</span>
-              <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-success" /> Cancele quando quiser</span>
+              <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-success-strong" /> Sem cartão de crédito</span>
+              <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-success-strong" /> Setup em 5 minutos</span>
+              <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-success-strong" /> Cancele quando quiser</span>
             </div>
           </div>
 
@@ -227,7 +227,7 @@ const Landing = () => {
                 <span className="h-3 w-3 rounded-full bg-destructive/60" />
                 <span className="h-3 w-3 rounded-full bg-warning/60" />
                 <span className="h-3 w-3 rounded-full bg-success/60" />
-                <span className="ml-3 text-xs text-muted-foreground">app.brandplay.com/dashboard</span>
+                <span className="ml-3 text-xs text-muted-foreground">brandplay.com.br/dashboard</span>
               </div>
               <div className="grid md:grid-cols-3 gap-4 p-6 bg-surface-soft">
                 {[
@@ -238,7 +238,7 @@ const Landing = () => {
                   <div key={kpi.label} className="rounded-xl border border-border bg-card p-5">
                     <p className="text-xs text-muted-foreground">{kpi.label}</p>
                     <p className="mt-2 text-2xl font-bold">{kpi.value}</p>
-                    <p className="mt-1 text-xs text-success font-medium">{kpi.trend} vs ano anterior</p>
+                    <p className="mt-1 text-xs text-success-strong font-medium">{kpi.trend} vs ano anterior</p>
                   </div>
                 ))}
               </div>
@@ -248,7 +248,7 @@ const Landing = () => {
           {/* Social proof bar */}
           <div className="mt-16 text-center">
             <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-6">
-              Quem confia no BrandPlay
+              Quem confia no Brandplay
             </p>
             <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4 opacity-60">
               {partners.map((p) => (
@@ -341,20 +341,20 @@ const Landing = () => {
       <section className="py-24 bg-background">
         <div className="container">
           <div className="mx-auto max-w-2xl text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">BrandPlay vs. planilha + e-mail</h2>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Brandplay vs. planilha + e-mail</h2>
             <p className="mt-4 text-muted-foreground text-lg">Veja por que times comerciais migram em uma semana.</p>
           </div>
           <div className="max-w-3xl mx-auto rounded-2xl border border-border bg-card overflow-hidden">
             <div className="grid grid-cols-3 bg-surface-soft px-6 py-4 text-sm font-semibold border-b border-border">
               <div></div>
-              <div className="text-center text-primary">BrandPlay</div>
+              <div className="text-center text-primary">Brandplay</div>
               <div className="text-center text-muted-foreground">Planilha + e-mail</div>
             </div>
             {comparison.map((c, i) => (
               <div key={i} className="grid grid-cols-3 px-6 py-4 text-sm border-b border-border last:border-0 items-center">
                 <div className="font-medium">{c.feature}</div>
                 <div className="text-center">
-                  <CheckCircle2 className="h-5 w-5 text-success inline" />
+                  <CheckCircle2 className="h-5 w-5 text-success-strong inline" />
                 </div>
                 <div className="text-center text-muted-foreground">—</div>
               </div>
@@ -468,9 +468,9 @@ const Landing = () => {
 
       <footer className="border-t border-border/60 py-10">
         <div className="container flex flex-col md:flex-row items-center justify-between gap-4">
-          <Logo sizeClassName="h-24" />
+          <Logo sizeClassName="h-7" />
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} BrandPlay. Transformando patrocínio em resultado.
+            © {new Date().getFullYear()} Brandplay. Transformando patrocínio em resultado.
           </p>
         </div>
       </footer>
