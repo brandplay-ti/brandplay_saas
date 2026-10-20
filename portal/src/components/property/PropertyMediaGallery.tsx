@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface MediaItem {
   id: string;
@@ -58,6 +59,7 @@ function isVideoExt(name: string) {
 }
 
 export default function PropertyMediaGallery({ propertyId, ownerId }: Props) {
+  const confirm = useConfirm();
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -142,7 +144,12 @@ export default function PropertyMediaGallery({ propertyId, ownerId }: Props) {
   };
 
   const removeItem = async (item: MediaItem) => {
-    if (!confirm("Excluir esta mídia?")) return;
+    const confirmado = await confirm({
+      title: "Excluir esta mídia?",
+      confirmLabel: "Excluir",
+      destructive: true,
+    });
+    if (!confirmado) return;
     if (item.storage_path) {
       await supabase.storage.from("property-media").remove([item.storage_path]);
     }

@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CheckCircle2, Clock, Download, Image as ImageIcon, SearchCheck, Video, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { PageHeader } from "@/components/common/PageHeader";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as any;
@@ -153,19 +154,21 @@ const BrandTrackEvidence = () => {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Evidências & Revisão</h1>
-          <p className="text-muted-foreground">Valide aparições por timestamp, confirme, corrija ou remova falsos positivos.</p>
-        </div>
-        <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as "all" | ReviewStatus)}>
-          <SelectTrigger className="w-full md:w-52"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os status</SelectItem>
-            {Object.entries(statusLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
+      <PageHeader
+        title="Evidências & Revisão"
+        description="Valide aparições por timestamp, confirme, corrija ou remova falsos positivos."
+        actions={
+          <>
+            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as "all" | ReviewStatus)}>
+              <SelectTrigger className="w-full md:w-52"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                {Object.entries(statusLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </>
+        }
+      />
 
       <div className="grid gap-3 md:grid-cols-4">
         {(Object.keys(statusLabels) as ReviewStatus[]).map((status) => (

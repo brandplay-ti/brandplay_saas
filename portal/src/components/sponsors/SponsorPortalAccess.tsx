@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface Props {
   sponsorId: string;
@@ -42,6 +43,7 @@ interface Access {
 }
 
 export function SponsorPortalAccess({ sponsorId }: Props) {
+  const confirm = useConfirm();
   const { user } = useAuth();
   const [invites, setInvites] = useState<Invite[]>([]);
   const [accesses, setAccesses] = useState<Access[]>([]);
@@ -161,7 +163,12 @@ export function SponsorPortalAccess({ sponsorId }: Props) {
   };
 
   const removeAccess = async (id: string) => {
-    if (!confirm("Remover acesso deste usuário ao portal?")) return;
+    const confirmado = await confirm({
+      title: "Remover acesso deste usuário ao portal?",
+      confirmLabel: "Remover",
+      destructive: true,
+    });
+    if (!confirmado) return;
     try {
       await callManage("revoke", { access_id: id });
       toast.success("Acesso removido");
@@ -244,7 +251,7 @@ export function SponsorPortalAccess({ sponsorId }: Props) {
                           variant="outline"
                           className={
                             a.status === "ativo"
-                              ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
+                              ? "bg-success/15 text-success-strong border-success/30"
                               : "bg-muted"
                           }
                         >
@@ -296,9 +303,9 @@ export function SponsorPortalAccess({ sponsorId }: Props) {
                           variant="outline"
                           className={
                             i.status === "pendente"
-                              ? "bg-amber-500/15 text-amber-600 border-amber-500/30"
+                              ? "bg-warning/15 text-warning-strong border-warning/30"
                               : i.status === "aceito"
-                                ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
+                                ? "bg-success/15 text-success-strong border-success/30"
                                 : "bg-muted"
                           }
                         >

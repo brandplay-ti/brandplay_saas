@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { FileUp, Download, Trash2, Sparkles, Loader2, FileText } from "lucide-react";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const db = supabase as any;
 const BUCKET = "sponsor-documents";
@@ -68,7 +69,7 @@ interface Props {
 }
 
 export function SponsorDocumentsPanel({ sponsorId, organizationId, editable }: Props) {
-  const { toast } = useToast();
+  const confirm = useConfirm();
   const [docs, setDocs] = useState<SponsorDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -103,11 +104,11 @@ export function SponsorDocumentsPanel({ sponsorId, organizationId, editable }: P
 
   const handleUpload = async () => {
     if (!file) {
-      toast({ title: "Selecione um arquivo", variant: "destructive" });
+      toast.error("Selecione um arquivo");
       return;
     }
     if (file.size > MAX_SIZE) {
-      toast({ title: "Arquivo muito grande", description: "Limite de 20 MB por arquivo.", variant: "destructive" });
+      toast.error("Arquivo muito grande", { description: "Limite de 20 MB por arquivo." });
       return;
     }
     setSaving(true);
@@ -118,7 +119,7 @@ export function SponsorDocumentsPanel({ sponsorId, organizationId, editable }: P
     });
     if (upErr) {
       setSaving(false);
-      toast({ title: "Falha no upload", description: upErr.message, variant: "destructive" });
+      toast.error("Falha no upload", { description: upErr.message });
       return;
     }
     const { data: { user } } = await supabase.auth.getUser();
@@ -139,10 +140,10 @@ export function SponsorDocumentsPanel({ sponsorId, organizationId, editable }: P
     setSaving(false);
     if (error) {
       await supabase.storage.from(BUCKET).remove([path]);
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      toast.error("Erro ao salvar", { description: error.message });
       return;
     }
-    toast({ title: "Arquivo enviado" });
+    toast.success("Arquivo enviado");
     setOpen(false);
     resetForm();
     load();
@@ -151,21 +152,26 @@ export function SponsorDocumentsPanel({ sponsorId, organizationId, editable }: P
   const handleDownload = async (doc: SponsorDocument) => {
     const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(doc.file_path, 60 * 10);
     if (error || !data?.signedUrl) {
-      toast({ title: "Não foi possível abrir o arquivo", variant: "destructive" });
+      toast.error("Não foi possível abrir o arquivo");
       return;
     }
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleDelete = async (doc: SponsorDocument) => {
-    if (!confirm(`Excluir "${doc.title}"?`)) return;
+    const confirmado = await confirm({
+      title: `Excluir "${doc.title}"?`,
+      confirmLabel: "Excluir",
+      destructive: true,
+    });
+    if (!confirmado) return;
     const { error } = await db.from("sponsor_documents").delete().eq("id", doc.id);
     if (error) {
-      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+      toast.error("Erro ao excluir", { description: error.message });
       return;
     }
     await supabase.storage.from(BUCKET).remove([doc.file_path]);
-    toast({ title: "Arquivo excluído" });
+    toast.success("Arquivo excluído");
     load();
   };
 
@@ -173,7 +179,7 @@ export function SponsorDocumentsPanel({ sponsorId, organizationId, editable }: P
     setDocs((prev) => prev.map((d) => (d.id === doc.id ? { ...d, ai_enabled: value } : d)));
     const { error } = await db.from("sponsor_documents").update({ ai_enabled: value }).eq("id", doc.id);
     if (error) {
-      toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
+      toast.error("Erro ao atualizar", { description: error.message });
       load();
     }
   };

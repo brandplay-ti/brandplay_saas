@@ -169,7 +169,7 @@ const FieldEventChecklist = () => {
                       {savingId === item.id ? (
                         <Loader2 className="w-6 h-6 animate-spin text-primary" />
                       ) : done ? (
-                        <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
+                        <CheckCircle2 className="w-6 h-6 text-success-strong" />
                       ) : (
                         <Circle className="w-6 h-6 text-muted-foreground" />
                       )}

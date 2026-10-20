@@ -44,8 +44,8 @@ export function ROIWidget({ sponsorId, compact }: Props) {
   useEffect(() => { load(); }, [sponsorId]);
 
   const roiBadge = (roi: number) => {
-    if (roi >= 100) return "bg-emerald-500/15 text-emerald-700 border-emerald-500/30";
-    if (roi >= 0) return "bg-sky-500/15 text-sky-700 border-sky-500/30";
+    if (roi >= 100) return "bg-success/15 text-success-strong border-success/30";
+    if (roi >= 0) return "bg-info/15 text-info-strong border-info/30";
     return "bg-destructive/15 text-destructive border-destructive/30";
   };
 

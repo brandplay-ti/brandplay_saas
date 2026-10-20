@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/common/StatusBadge";
+import { type StatusTone } from "@/lib/statusTone";
 import {
   Table,
   TableBody,
@@ -41,6 +43,7 @@ import {
   Legend,
 } from "recharts";
 import { dataLocal } from "@/lib/datas";
+import { PageHeader } from "@/components/common/PageHeader";
 
 type InstallmentStatus = "pendente" | "pago" | "atrasado" | "cancelado";
 
@@ -70,16 +73,15 @@ const fmtBRL = (v: number) =>
 const fmtDate = (d: string | null) =>
   d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR") : "—";
 
-const statusConfig: Record<InstallmentStatus, { label: string; className: string }> = {
-  pendente: { label: "Pendente", className: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
-  pago: { label: "Pago", className: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
-  atrasado: { label: "Atrasado", className: "bg-destructive/15 text-destructive border-destructive/30" },
-  cancelado: { label: "Cancelado", className: "bg-muted text-muted-foreground border-border" },
+const statusConfig: Record<InstallmentStatus, { label: string; tone: StatusTone }> = {
+  pendente: { label: "Pendente", tone: "warning" },
+  pago: { label: "Pago", tone: "success" },
+  atrasado: { label: "Atrasado", tone: "danger" },
+  cancelado: { label: "Cancelado", tone: "neutral" },
 };
 
 export default function Finance() {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -100,7 +102,7 @@ export default function Finance() {
       .order("due_date", { ascending: true });
 
     if (error) {
-      toast({ title: "Erro ao carregar parcelas", description: error.message, variant: "destructive" });
+      toast.error("Erro ao carregar parcelas", { description: error.message });
       setLoading(false);
       return;
     }
@@ -199,10 +201,10 @@ export default function Finance() {
       })
       .eq("id", selected.id);
     if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      toast.error("Erro", { description: error.message });
       return;
     }
-    toast({ title: "Parcela marcada como paga" });
+    toast.success("Parcela marcada como paga");
     setSelected(null);
     load();
   };
@@ -219,31 +221,29 @@ export default function Finance() {
       })
       .eq("id", selected.id);
     if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      toast.error("Erro", { description: error.message });
       return;
     }
-    toast({ title: "Parcela reaberta" });
+    toast.success("Parcela reaberta");
     setSelected(null);
     load();
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Wallet className="h-6 w-6 text-primary" />
-            Financeiro
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Parcelas a receber geradas automaticamente a partir dos contratos ativos.
-          </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-          Atualizar
-        </Button>
-      </div>
+      <PageHeader
+        title="Financeiro"
+        description="Parcelas a receber geradas automaticamente a partir dos contratos ativos."
+        icon={Wallet}
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+              Atualizar
+            </Button>
+          </>
+        }
+      />
 
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -260,21 +260,21 @@ export default function Finance() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Recebido
+              <CheckCircle2 className="h-4 w-4 text-success-strong" /> Recebido
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-600">{fmtBRL(kpis.recebido)}</div>
+            <div className="text-2xl font-bold text-success-strong">{fmtBRL(kpis.recebido)}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
-              <Clock className="h-4 w-4 text-amber-600" /> Pendente
+              <Clock className="h-4 w-4 text-warning-strong" /> Pendente
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-600">{fmtBRL(kpis.pendente)}</div>
+            <div className="text-2xl font-bold text-warning-strong">{fmtBRL(kpis.pendente)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -405,9 +405,9 @@ export default function Finance() {
                       <TableCell>{fmtDate(r.due_date)}</TableCell>
                       <TableCell className="font-medium">{fmtBRL(r.amount)}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={statusConfig[r.status].className}>
+                        <StatusBadge tone={statusConfig[r.status].tone}>
                           {statusConfig[r.status].label}
-                        </Badge>
+                        </StatusBadge>
                       </TableCell>
                       <TableCell className="text-right">
                         <Button
@@ -456,9 +456,9 @@ export default function Finance() {
                   <div>
                     <Label className="text-xs text-muted-foreground">Status</Label>
                     <div>
-                      <Badge variant="outline" className={statusConfig[selected.status].className}>
+                      <StatusBadge tone={statusConfig[selected.status].tone}>
                         {statusConfig[selected.status].label}
-                      </Badge>
+                      </StatusBadge>
                     </div>
                   </div>
                   <div>

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import {
   CalendarClock, Sparkles, Loader2, Copy, Plus, AlertTriangle, ThumbsUp, HelpCircle, Info,
 } from "lucide-react";
@@ -42,12 +42,11 @@ interface Result {
 
 const PRIO_CLS: Record<string, string> = {
   alta: "bg-destructive/15 text-destructive border-destructive/30",
-  media: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+  media: "bg-warning/15 text-warning-strong border-warning/30",
   baixa: "bg-muted text-muted-foreground border-border",
 };
 
 export const MeetingPrepAI = ({ sponsorId, onTaskCreated }: { sponsorId: string; onTaskCreated?: () => void }) => {
-  const { toast } = useToast();
   const [objective, setObjective] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
@@ -63,11 +62,7 @@ export const MeetingPrepAI = ({ sponsorId, onTaskCreated }: { sponsorId: string;
       if ((data as any)?.error) throw new Error((data as any).error);
       setResult(data as Result);
     } catch (e) {
-      toast({
-        title: "Não foi possível preparar a reunião",
-        description: e instanceof Error ? e.message : "Erro desconhecido",
-        variant: "destructive",
-      });
+      toast.error("Não foi possível preparar a reunião", { description: e instanceof Error ? e.message : "Erro desconhecido" });
     } finally {
       setLoading(false);
     }
@@ -87,14 +82,10 @@ export const MeetingPrepAI = ({ sponsorId, onTaskCreated }: { sponsorId: string;
         source: "ia",
       });
       if (error) throw error;
-      toast({ title: "Tarefa criada" });
+      toast.success("Tarefa criada");
       onTaskCreated?.();
     } catch (e) {
-      toast({
-        title: "Erro ao criar tarefa",
-        description: e instanceof Error ? e.message : "Erro desconhecido",
-        variant: "destructive",
-      });
+      toast.error("Erro ao criar tarefa", { description: e instanceof Error ? e.message : "Erro desconhecido" });
     } finally {
       setCreating(null);
     }
@@ -126,7 +117,7 @@ export const MeetingPrepAI = ({ sponsorId, onTaskCreated }: { sponsorId: string;
       ...(b.dados_ausentes.length ? ["", "Dados ausentes:", ...b.dados_ausentes.map((p) => `- ${p}`)] : []),
     ].join("\n");
     await navigator.clipboard.writeText(text);
-    toast({ title: "Briefing copiado" });
+    toast.success("Briefing copiado");
   };
 
   const totalMin = result?.briefing.agenda.reduce((s, a) => s + (Number(a.minutos) || 0), 0) ?? 0;

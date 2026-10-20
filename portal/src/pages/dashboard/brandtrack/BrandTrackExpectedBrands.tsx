@@ -15,6 +15,8 @@ import { ImagePlus, Plus, Search, Trash2, Users, WandSparkles } from "lucide-rea
 import { LogoFrame, logoFrameIconClass } from "@/components/LogoFrame";
 import { toast } from "sonner";
 import { validateLogoFile, LOGO_ACCEPT, LOGO_HINT } from "@/lib/logoValidation";
+import { useConfirm } from "@/hooks/useConfirm";
+import { PageHeader } from "@/components/common/PageHeader";
 
 type EventRow = { id: string; name: string };
 type SponsorRow = { id: string; name: string; logo_path: string | null; tags: string[]; score: string; segment: string | null };
@@ -76,6 +78,7 @@ const LogoPlaceholder = ({ className = "h-4 w-4" }: { className?: string }) => (
 );
 
 const BrandTrackExpectedBrands = () => {
+  const confirm = useConfirm();
   const { user } = useAuth();
   const { orgId } = useOrganization();
   const [events, setEvents] = useState<EventRow[]>([]);
@@ -304,7 +307,12 @@ const BrandTrackExpectedBrands = () => {
   };
 
   const remove = async (item: ExpectedBrand) => {
-    if (!confirm(`Remover ${item.display_name} deste evento?`)) return;
+    const confirmado = await confirm({
+      title: `Remover ${item.display_name} deste evento?`,
+      confirmLabel: "Remover",
+      destructive: true,
+    });
+    if (!confirmado) return;
     const { error } = await db.from("brandtrack_event_brands").delete().eq("id", item.id);
     if (error) return toast.error(error.message);
     toast.success("Marca removida");
@@ -315,20 +323,22 @@ const BrandTrackExpectedBrands = () => {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold">Marcas esperadas</h1>
-          <p className="text-muted-foreground">Cadastre patrocinadores, aliases e concorrentes para orientar a IA por evento.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={importSponsors} disabled={!eventId || sponsors.length === 0}>
-            <Users className="mr-2 h-4 w-4" /> Importar patrocinadores
-          </Button>
-          <Button onClick={openCreate} disabled={!eventId}>
-            <Plus className="mr-2 h-4 w-4" /> Nova marca
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Marcas esperadas"
+        description="Cadastre patrocinadores, aliases e concorrentes para orientar a IA por evento."
+        actions={
+          <>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={importSponsors} disabled={!eventId || sponsors.length === 0}>
+                <Users className="mr-2 h-4 w-4" /> Importar patrocinadores
+              </Button>
+              <Button onClick={openCreate} disabled={!eventId}>
+                <Plus className="mr-2 h-4 w-4" /> Nova marca
+              </Button>
+            </div>
+          </>
+        }
+      />
 
       <Card>
         <CardHeader>
@@ -476,8 +486,14 @@ const BrandTrackExpectedBrands = () => {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => {
-                      if (!confirm("Remover o logo esperado desta marca? A exclusão será aplicada ao salvar.")) return;
+                    onClick={async () => {
+                      const confirmado = await confirm({
+                        title: "Remover o logo esperado desta marca?",
+                        description: "A exclusão será aplicada ao salvar.",
+                        confirmLabel: "Remover",
+                        destructive: true,
+                      });
+                      if (!confirmado) return;
                       setLogoFile(null);
                       setLogoPreview(null);
                       setLogoRemoved(true);

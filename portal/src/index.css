@@ -14,7 +14,10 @@
        2026-10-02: roxo do logo como principal, verde esmeralda, sidebar clara).
        Contrastes AA medidos sobre branco: primary 8,8:1, muted-foreground 6,2:1,
        success-strong 5,3:1. #00C48C (success) e #7B8194 (chart-5) NÃO servem
-       como cor de texto sobre branco: use success-strong / muted-foreground. */
+       como cor de texto sobre branco: use success-strong / muted-foreground.
+       Os tons *-strong são a cor de TEXTO de cada estado e passam no AA também
+       sobre o fundo suave do StatusBadge (bg-<tom>/15): success-strong 4,6:1,
+       warning-strong 6,4:1, info-strong 5,9:1, destructive 4,7:1. */
 
     /* Surfaces */
     --background: 0 0% 100%;
@@ -49,12 +52,14 @@
 
     --info: 224 100% 58%;                /* azul acento #2962FF */
     --info-foreground: 0 0% 100%;
+    --info-strong: 224 85% 48%;          /* texto azul (o #2962FF dá 4,0:1 sobre o fundo suave) */
     --success: 163 100% 38%;             /* verde sucesso #00C48C: fundos, pontos, gráficos */
     --success-foreground: 230 38% 9%;
     --success-strong: 164 100% 24%;      /* #007A5A: texto verde sobre fundo claro */
     --warning: 38 95% 50%;
     --warning-foreground: 230 38% 9%;
-    --destructive: 0 78% 55%;
+    --warning-strong: 23 83% 31%;        /* texto âmbar: o âmbar puro não passa como texto */
+    --destructive: 0 74% 46%;            /* 5,5:1 sobre branco (o anterior, 55%, dava 4,3:1) */
     --destructive-foreground: 0 0% 100%;
 
     --border: 222 29% 91%;
@@ -122,6 +127,9 @@
     --accent: 266 50% 18%;
     --accent-foreground: 265 84% 82%;
     --info: 224 100% 66%;
+    --info-strong: 224 100% 75%;
+    --warning-strong: 43 96% 56%;
+    --destructive: 0 84% 65%;
     --success: 163 70% 48%;
     --success-strong: 163 70% 55%;
     --border: 230 20% 20%;

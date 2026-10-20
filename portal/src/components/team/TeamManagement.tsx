@@ -32,9 +32,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization, type OrgRole } from "@/hooks/useOrganization";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const ROLE_LABEL: Record<OrgRole, string> = {
   owner: "Proprietário",
@@ -75,7 +76,7 @@ type Invite = {
 };
 
 export const TeamManagement = () => {
-  const { toast } = useToast();
+  const confirm = useConfirm();
   const { orgId, isAdmin, role: myRole, loading: orgLoading } = useOrganization();
   const avisarLimiteDoPlano = usePlanLimitNotice();
 
@@ -142,11 +143,7 @@ export const TeamManagement = () => {
       // "non-2xx status code".
       const corpo = await readEdgeFunctionError(error, data);
       if (avisarLimiteDoPlano(corpo)) return false;
-      toast({
-        title: "Erro",
-        description: corpo.error || "Falha na operação",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: corpo.error || "Falha na operação" });
       return false;
     }
     return true;
@@ -161,7 +158,7 @@ export const TeamManagement = () => {
       organization_id: orgId,
     });
     if (ok) {
-      toast({ title: "Convite enviado" });
+      toast.success("Convite enviado");
       setInviteEmail("");
       setInviteOpen(false);
       load();
@@ -170,7 +167,7 @@ export const TeamManagement = () => {
 
   const handleCreate = async () => {
     if (!createEmail.trim() || createPassword.length < 6) {
-      toast({ title: "Preencha e-mail e senha (mín. 6)", variant: "destructive" });
+      toast.error("Preencha e-mail e senha (mín. 6)");
       return;
     }
     const ok = await callFn({
@@ -182,7 +179,7 @@ export const TeamManagement = () => {
       organization_id: orgId,
     });
     if (ok) {
-      toast({ title: "Usuário criado", description: "E-mail enviado com credenciais." });
+      toast.success("Usuário criado", { description: "E-mail enviado com credenciais." });
       setCreateEmail("");
       setCreateName("");
       setCreatePassword("");
@@ -199,20 +196,25 @@ export const TeamManagement = () => {
       organization_id: orgId,
     });
     if (ok) {
-      toast({ title: "Papel atualizado" });
+      toast.success("Papel atualizado");
       load();
     }
   };
 
   const handleRevoke = async (memberId: string) => {
-    if (!confirm("Revogar acesso deste membro?")) return;
+    const confirmado = await confirm({
+      title: "Revogar acesso deste membro?",
+      confirmLabel: "Revogar acesso",
+      destructive: true,
+    });
+    if (!confirmado) return;
     const ok = await callFn({
       action: "revoke",
       member_id: memberId,
       organization_id: orgId,
     });
     if (ok) {
-      toast({ title: "Acesso revogado" });
+      toast.success("Acesso revogado");
       load();
     }
   };
@@ -224,7 +226,7 @@ export const TeamManagement = () => {
       organization_id: orgId,
     });
     if (ok) {
-      toast({ title: "Acesso reativado" });
+      toast.success("Acesso reativado");
       load();
     }
   };
@@ -236,20 +238,26 @@ export const TeamManagement = () => {
       organization_id: orgId,
     });
     if (ok) {
-      toast({ title: "Convite reenviado" });
+      toast.success("Convite reenviado");
       load();
     }
   };
 
   const handleRevokeInvite = async (inviteId: string) => {
-    if (!confirm("Cancelar este convite?")) return;
+    const confirmado = await confirm({
+      title: "Cancelar este convite?",
+      confirmLabel: "Cancelar convite",
+      cancelLabel: "Voltar",
+      destructive: true,
+    });
+    if (!confirmado) return;
     const ok = await callFn({
       action: "revoke_invite",
       invite_id: inviteId,
       organization_id: orgId,
     });
     if (ok) {
-      toast({ title: "Convite cancelado" });
+      toast.success("Convite cancelado");
       load();
     }
   };

@@ -39,7 +39,7 @@ export function TicketBenchmarkWidget() {
         <div>
           <CardTitle className="flex items-center gap-2 text-base">
             <Scale className="h-4 w-4 text-primary" /> Benchmark de ticket médio
-            <Sparkles className="h-3 w-3 text-amber-500" />
+            <Sparkles className="h-3 w-3 text-warning-strong" />
           </CardTitle>
           <p className="text-xs text-muted-foreground mt-1">Sua média por segmento vs. estimativa de mercado (IA)</p>
         </div>
@@ -87,7 +87,7 @@ export function TicketBenchmarkWidget() {
                           variant="outline"
                           className={
                             i.variance_percent >= 0
-                              ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/30"
+                              ? "bg-success/10 text-success-strong border-success/30"
                               : "bg-destructive/10 text-destructive border-destructive/30"
                           }
                         >

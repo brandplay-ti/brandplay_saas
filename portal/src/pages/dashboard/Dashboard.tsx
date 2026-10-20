@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ResponsiveContainer,
@@ -112,7 +112,6 @@ const DEFAULT_WIDGETS: { id: WidgetId; visible: boolean }[] = [
 const Dashboard = () => {
   const { user } = useAuth();
   const { orgId } = useOrganization();
-  const { toast } = useToast();
   const [counts, setCounts] = useState({
     properties: 0, assets: 0, sponsors: 0, proposals: 0, contracts: 0, opportunities: 0,
   });
@@ -192,7 +191,7 @@ const Dashboard = () => {
     const { error } = await supabase
       .from("user_dashboard_preferences")
       .upsert([{ user_id: user.id, organization_id: orgId, widgets: next as any }], { onConflict: "user_id,organization_id" });
-    if (error) toast({ title: "Erro ao salvar preferências", description: error.message, variant: "destructive" });
+    if (error) toast.error("Erro ao salvar preferências", { description: error.message });
   };
 
   const toggleVisible = (id: WidgetId) => {
@@ -481,7 +480,7 @@ const Dashboard = () => {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <p className="text-sm text-muted-foreground">Olá, {firstName} 👋</p>
-          <h1 className="text-3xl font-bold tracking-tight mt-1">Visão geral</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight mt-1">Visão geral</h1>
           <p className="text-muted-foreground mt-1">Resumo de cada módulo da operação.</p>
         </div>
         <div className="flex gap-2">

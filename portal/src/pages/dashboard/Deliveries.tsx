@@ -75,6 +75,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import type { Database } from "@/integrations/supabase/types";
+import { PageHeader } from "@/components/common/PageHeader";
 
 type Status = Database["public"]["Enums"]["delivery_status"];
 type Approval = Database["public"]["Enums"]["delivery_approval"];
@@ -104,11 +105,11 @@ type ViewMode = "kanban" | "list" | "compact";
 
 
 const STATUSES: { id: Status; label: string; color: string }[] = [
-  { id: "pendente", label: "Pendente", color: "bg-slate-500" },
-  { id: "em_producao", label: "Em produção", color: "bg-blue-500" },
-  { id: "entregue", label: "Entregue", color: "bg-amber-500" },
-  { id: "aprovada", label: "Aprovada", color: "bg-emerald-500" },
-  { id: "atrasada", label: "Atrasada", color: "bg-rose-500" },
+  { id: "pendente", label: "Pendente", color: "bg-muted-foreground" },
+  { id: "em_producao", label: "Em produção", color: "bg-info" },
+  { id: "entregue", label: "Entregue", color: "bg-warning" },
+  { id: "aprovada", label: "Aprovada", color: "bg-success" },
+  { id: "atrasada", label: "Atrasada", color: "bg-destructive" },
 ];
 
 const ASSET_TYPES = ["Naming", "Placa de campo", "Post nas redes", "Camisa", "Backdrop", "LED", "Ativação", "Outro"];
@@ -698,117 +699,117 @@ export default function Deliveries() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Entregas</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Acompanhe a execução dos ativos patrocinados em tempo real.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline"><Sparkles className="h-4 w-4 mr-2" />Sugestões IA</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Próximos passos sugeridos por IA</DialogTitle>
-                <DialogDescription>
-                  Para entregas atrasadas e próximas do prazo: como destravar (cobrar arte, agendar produção, alinhar com patrocinador).
-                </DialogDescription>
-              </DialogHeader>
-              <NextStepsAI context="delivery" />
-            </DialogContent>
-          </Dialog>
-          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Button onClick={() => resetForm()}><Plus className="h-4 w-4 mr-2" />Nova entrega</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editId ? "Editar entrega" : "Nova entrega"}</DialogTitle>
-              <DialogDescription>
-                {editId ? "Atualize os dados desta entrega." : "Cadastre um ativo a ser executado para o patrocinador."}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-2">
-              <div className="grid gap-2">
-                <Label htmlFor="title">Título *</Label>
-                <Input id="title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex.: Placa de campo - rodada 1" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="brand">Marca *</Label>
-                  <Input id="brand" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} placeholder="Nike" />
+      <PageHeader
+        title="Entregas"
+        description="Acompanhe a execução dos ativos patrocinados em tempo real."
+        actions={
+          <>
+            <div className="flex gap-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline"><Sparkles className="h-4 w-4 mr-2" />Sugestões IA</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Próximos passos sugeridos por IA</DialogTitle>
+                    <DialogDescription>
+                      Para entregas atrasadas e próximas do prazo: como destravar (cobrar arte, agendar produção, alinhar com patrocinador).
+                    </DialogDescription>
+                  </DialogHeader>
+                  <NextStepsAI context="delivery" />
+                </DialogContent>
+              </Dialog>
+              <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
+                <DialogTrigger asChild>
+                  <Button onClick={() => resetForm()}><Plus className="h-4 w-4 mr-2" />Nova entrega</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>{editId ? "Editar entrega" : "Nova entrega"}</DialogTitle>
+                  <DialogDescription>
+                    {editId ? "Atualize os dados desta entrega." : "Cadastre um ativo a ser executado para o patrocinador."}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="title">Título *</Label>
+                    <Input id="title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex.: Placa de campo - rodada 1" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="brand">Marca *</Label>
+                      <Input id="brand" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} placeholder="Nike" />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="asset">Tipo de ativo</Label>
+                      <Select value={form.asset_type} onValueChange={(v) => setForm({ ...form, asset_type: v })}>
+                        <SelectTrigger id="asset"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          {ASSET_TYPES.map((t) => (<SelectItem key={t} value={t}>{t}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="qty">Quantidade</Label>
+                      <Input id="qty" type="number" min="1" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="due">Data prevista</Label>
+                      <Input id="due" type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="status">Status</Label>
+                      <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as Status })}>
+                        <SelectTrigger id="status"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {STATUSES.map((s) => (<SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="prop">Propriedade</Label>
+                      <Select value={form.property_id} onValueChange={(v) => setForm({ ...form, property_id: v })}>
+                        <SelectTrigger id="prop"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Nenhuma</SelectItem>
+                          {properties.map((p) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="opp">Oportunidade</Label>
+                      <Select value={form.opportunity_id} onValueChange={(v) => setForm({ ...form, opportunity_id: v })}>
+                        <SelectTrigger id="opp"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Nenhuma</SelectItem>
+                          {opportunities.map((o) => (<SelectItem key={o.id} value={o.id}>{o.brand}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="evidence">URL de evidência</Label>
+                    <Input id="evidence" value={form.evidence_url} onChange={(e) => setForm({ ...form, evidence_url: e.target.value })} placeholder="https://..." />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="desc">Descrição</Label>
+                    <Textarea id="desc" rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                  </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="asset">Tipo de ativo</Label>
-                  <Select value={form.asset_type} onValueChange={(v) => setForm({ ...form, asset_type: v })}>
-                    <SelectTrigger id="asset"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      {ASSET_TYPES.map((t) => (<SelectItem key={t} value={t}>{t}</SelectItem>))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="qty">Quantidade</Label>
-                  <Input id="qty" type="number" min="1" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="due">Data prevista</Label>
-                  <Input id="due" type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as Status })}>
-                    <SelectTrigger id="status"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {STATUSES.map((s) => (<SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="prop">Propriedade</Label>
-                  <Select value={form.property_id} onValueChange={(v) => setForm({ ...form, property_id: v })}>
-                    <SelectTrigger id="prop"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Nenhuma</SelectItem>
-                      {properties.map((p) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="opp">Oportunidade</Label>
-                  <Select value={form.opportunity_id} onValueChange={(v) => setForm({ ...form, opportunity_id: v })}>
-                    <SelectTrigger id="opp"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Nenhuma</SelectItem>
-                      {opportunities.map((o) => (<SelectItem key={o.id} value={o.id}>{o.brand}</SelectItem>))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="evidence">URL de evidência</Label>
-                <Input id="evidence" value={form.evidence_url} onChange={(e) => setForm({ ...form, evidence_url: e.target.value })} placeholder="https://..." />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="desc">Descrição</Label>
-                <Textarea id="desc" rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-              </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+                  <Button onClick={handleSave}>{editId ? "Salvar" : "Criar"}</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={handleSave}>{editId ? "Salvar" : "Criar"}</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <Card className="p-3 space-y-3 sticky top-0 z-20 bg-card shadow-sm">
         <div className="flex items-center justify-between gap-2">
@@ -1249,11 +1250,11 @@ function DeliveryCard({
 }) {
   const approvalBadge =
     item.approval === "aprovada" ? (
-      <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/15 border-emerald-500/30 text-[10px]">
+      <Badge className="bg-success/15 text-success-strong hover:bg-success/15 border-success/30 text-[10px]">
         <CheckCircle2 className="h-3 w-3 mr-1" />Aprovada
       </Badge>
     ) : item.approval === "reprovada" ? (
-      <Badge className="bg-rose-500/15 text-rose-700 hover:bg-rose-500/15 border-rose-500/30 text-[10px]">
+      <Badge className="bg-destructive/15 text-destructive hover:bg-destructive/15 border-destructive/30 text-[10px]">
         <XCircle className="h-3 w-3 mr-1" />Reprovada
       </Badge>
     ) : (

@@ -174,7 +174,7 @@ const UsageMeter = ({ label, uso, limite, unidade, semPlano, nota }: UsageMeterP
         <Progress
           value={percentual}
           aria-label={`${label}: ${usageLabel(uso, limite, unidade)}`}
-          className={percentual >= 100 ? "[&>div]:bg-amber-500" : undefined}
+          className={percentual >= 100 ? "[&>div]:bg-warning" : undefined}
         />
       )}
       <p className="text-xs text-muted-foreground">{nota}</p>

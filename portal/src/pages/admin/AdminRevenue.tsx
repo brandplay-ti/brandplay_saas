@@ -22,6 +22,7 @@ import { StatTile } from "@/components/admin/StatTile";
 import { useAdminProjection, useAdminRevenue } from "@/hooks/usePlatformAdmin";
 import { formatCents } from "@/lib/billing";
 import { formatMonth, formatPercent } from "@/lib/platformAdmin";
+import { PageHeader } from "@/components/common/PageHeader";
 
 const PERIODOS = [6, 12, 24];
 
@@ -258,13 +259,10 @@ const Projetado = () => {
 
 const AdminRevenue = () => (
   <div className="space-y-6 animate-fade-in">
-    <div>
-      <h1 className="text-3xl font-bold tracking-tight">Faturamento</h1>
-      <p className="mt-1 max-w-3xl text-muted-foreground">
-        Lido da projeção do Stripe (faturas e assinaturas). Realizado é caixa: o que foi pago, no mês do pagamento.
-        MRR conta assinaturas ativas e em atraso, pelo preço atual do catálogo.
-      </p>
-    </div>
+    <PageHeader
+      title="Faturamento"
+      description="Lido da projeção do Stripe (faturas e assinaturas). Realizado é caixa: o que foi pago, no mês do pagamento. MRR conta assinaturas ativas e em atraso, pelo preço atual do catálogo."
+    />
     <Tabs defaultValue="realizado" className="space-y-4">
       <TabsList>
         <TabsTrigger value="realizado">Realizado</TabsTrigger>

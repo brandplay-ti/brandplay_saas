@@ -46,6 +46,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/common/StatusBadge";
+import { type StatusTone } from "@/lib/statusTone";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
@@ -82,6 +84,7 @@ import { dataLocal } from "@/lib/datas";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { SponsorSocialDashboard } from "@/components/sponsors/SponsorProfileFields";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const fmtBRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -249,12 +252,13 @@ const EVENT_TYPES = [
 ];
 
 const ASSET_STATUS_COLOR: Record<string, string> = {
-  ativo: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
-  inativo: "bg-slate-500/10 text-slate-700 border-slate-500/30",
-  manutencao: "bg-amber-500/10 text-amber-700 border-amber-500/30",
+  ativo: "bg-success/10 text-success-strong border-success/30",
+  inativo: "bg-muted text-muted-foreground border-border",
+  manutencao: "bg-warning/10 text-warning-strong border-warning/30",
 };
 
 export default function PropertyDetail() {
+  const confirm = useConfirm();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -332,12 +336,12 @@ export default function PropertyDetail() {
     return map;
   }, [assetDeliveries]);
 
-  const DELIVERY_STATUS_META: Record<string, { label: string; className: string }> = {
-    pendente: { label: "Pendente", className: "bg-muted text-muted-foreground border-transparent" },
-    em_producao: { label: "Em produção", className: "bg-blue-500/10 text-blue-700 border-blue-500/30" },
-    entregue: { label: "Entregue", className: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30" },
-    aprovada: { label: "Aprovada", className: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30" },
-    atrasada: { label: "Atrasada", className: "bg-destructive/10 text-destructive border-destructive/30" },
+  const DELIVERY_STATUS_META: Record<string, { label: string; tone: StatusTone }> = {
+    pendente: { label: "Pendente", tone: "neutral" },
+    em_producao: { label: "Em produção", tone: "info" },
+    entregue: { label: "Entregue", tone: "success" },
+    aprovada: { label: "Aprovada", tone: "success" },
+    atrasada: { label: "Atrasada", tone: "danger" },
   };
 
   const STATUS_ORDER = ["atrasada", "pendente", "em_producao", "entregue", "aprovada"];
@@ -384,9 +388,9 @@ export default function PropertyDetail() {
               className="inline-flex items-center gap-1 rounded-md border bg-card/50 px-1.5 py-0.5 hover:underline"
               title={`${g.label} · abrir no módulo de Entregas`}
             >
-              <Badge variant="outline" className={`text-[10px] px-1.5 ${meta.className}`}>
+              <StatusBadge tone={meta.tone} className="text-[10px] px-1.5">
                 {meta.label}
-              </Badge>
+              </StatusBadge>
               <span className="text-[10px] font-medium truncate max-w-[110px]">{g.label}</span>
               {!compact && (
                 <span className="text-[10px] text-muted-foreground">
@@ -1196,7 +1200,13 @@ export default function PropertyDetail() {
 
 
   const deleteTier = async (tierId: string) => {
-    if (!confirm("Excluir esta cota? Vendas associadas serão removidas.")) return;
+    const confirmado = await confirm({
+      title: "Excluir esta cota?",
+      description: "Vendas associadas serão removidas.",
+      confirmLabel: "Excluir",
+      destructive: true,
+    });
+    if (!confirmado) return;
     const { error } = await supabase.from("sponsorship_tiers").delete().eq("id", tierId);
     if (error) return toast.error(error.message);
     toast.success("Cota excluída");
@@ -1252,7 +1262,12 @@ export default function PropertyDetail() {
   };
 
   const deleteEvent = async (evId: string) => {
-    if (!confirm("Excluir este evento?")) return;
+    const confirmado = await confirm({
+      title: "Excluir este evento?",
+      confirmLabel: "Excluir",
+      destructive: true,
+    });
+    if (!confirmado) return;
     const { error } = await supabase.from("property_events").delete().eq("id", evId);
     if (error) return toast.error(error.message);
     toast.success("Evento excluído");
@@ -1338,7 +1353,7 @@ export default function PropertyDetail() {
               <Trophy className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">{property.name}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{property.name}</h1>
               <p className="text-sm text-muted-foreground">
                 {property.category}
                 {property.season_year && ` · Temporada ${property.season_year}`}
@@ -1621,7 +1636,7 @@ export default function PropertyDetail() {
                   <div className="grid grid-cols-3 gap-3">
                     <div className="rounded-md border border-border p-3">
                       <p className="text-xs text-muted-foreground">Concluídas</p>
-                      <p className="text-xl font-bold text-emerald-600">{checklistSummary.done}</p>
+                      <p className="text-xl font-bold text-success-strong">{checklistSummary.done}</p>
                     </div>
                     <div className="rounded-md border border-border p-3">
                       <p className="text-xs text-muted-foreground">Pendentes</p>
@@ -1746,7 +1761,7 @@ export default function PropertyDetail() {
                       <div>
                         <div className="flex justify-between text-xs mb-1">
                           <span>Disponibilidade</span>
-                          <span className={available === 0 ? "text-destructive font-medium" : "text-emerald-600 font-medium"}>
+                          <span className={available === 0 ? "text-destructive font-medium" : "text-success-strong font-medium"}>
                             {available === 0 ? "Esgotada" : `${available} vaga(s) livre(s)`}
                           </span>
                         </div>
@@ -1979,7 +1994,7 @@ export default function PropertyDetail() {
         <TabsContent value="assets" className="space-y-4 mt-4">
           <div className="flex items-center gap-3 text-xs flex-wrap">
             <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Disponível
+              <span className="h-2.5 w-2.5 rounded-full bg-success" /> Disponível
             </span>
             <span className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-primary" /> Em cota
@@ -2113,7 +2128,7 @@ export default function PropertyDetail() {
                           ? "bg-destructive"
                           : a.in_tier
                           ? "bg-primary"
-                          : "bg-emerald-500";
+                          : "bg-success";
                         return (
                           <Card
                             key={a.id}
@@ -2122,7 +2137,7 @@ export default function PropertyDetail() {
                             className={`relative overflow-hidden cursor-pointer ${
                               a.sold ? "opacity-60" : ""
                             } ${
-                              a.is_exclusive ? "ring-2 ring-amber-500/60 border-amber-500/40 bg-amber-500/[0.04]" : ""
+                              a.is_exclusive ? "ring-2 ring-warning/60 border-warning/40 bg-warning/[0.04]" : ""
                             } hover:shadow-md transition`}
                           >
                             <div className="aspect-video bg-muted overflow-hidden">
@@ -2149,7 +2164,7 @@ export default function PropertyDetail() {
                               <div className="flex gap-1 mt-2 flex-wrap items-center">
                                 {a.is_exclusive && (
                                   <Badge
-                                    className="text-[10px] px-1.5 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40"
+                                    className="text-[10px] px-1.5 bg-warning/15 text-warning-strong border-warning/40"
                                     variant="outline"
                                     title={(a.exclusivity_terms ?? []).join(", ") || "Ativo exclusivo"}
                                   >
@@ -2179,7 +2194,7 @@ export default function PropertyDetail() {
                   {mapView === "list" && (
                     <div className="border rounded-md divide-y">
                       {list.map((a) => (
-                        <div key={a.id} onClick={() => openMapAssetEditor(a)} title="Clique para editar o ativo e as quantidades por cota" className={`flex items-center gap-3 p-2.5 cursor-pointer hover:bg-muted/50 transition ${a.sold ? "opacity-60" : ""} ${a.is_exclusive ? "bg-amber-500/[0.06] border-l-2 border-l-amber-500" : ""}`}>
+                        <div key={a.id} onClick={() => openMapAssetEditor(a)} title="Clique para editar o ativo e as quantidades por cota" className={`flex items-center gap-3 p-2.5 cursor-pointer hover:bg-muted/50 transition ${a.sold ? "opacity-60" : ""} ${a.is_exclusive ? "bg-warning/[0.06] border-l-2 border-l-amber-500" : ""}`}>
                           <div className="h-10 w-14 rounded bg-muted overflow-hidden shrink-0">
                             {a.cover_url ? (
                               <img src={a.cover_url} alt={a.name} className="w-full h-full object-cover" />
@@ -2191,7 +2206,7 @@ export default function PropertyDetail() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate flex items-center gap-1">
-                              {a.is_exclusive && <Crown className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
+                              {a.is_exclusive && <Crown className="h-3.5 w-3.5 text-warning-strong shrink-0" />}
                               <span className="truncate">{a.name}</span>
                             </p>
                             <p className="text-xs text-muted-foreground">
@@ -2207,7 +2222,7 @@ export default function PropertyDetail() {
                           {a.is_exclusive && (
                             <Badge
                               variant="outline"
-                              className="text-[10px] px-1.5 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40"
+                              className="text-[10px] px-1.5 bg-warning/15 text-warning-strong border-warning/40"
                               title={(a.exclusivity_terms ?? []).join(", ") || "Ativo exclusivo"}
                             >
                               <Crown className="h-2.5 w-2.5 mr-1" /> Exclusivo
@@ -2228,14 +2243,14 @@ export default function PropertyDetail() {
                   {mapView === "compact" && (
                     <div className="border rounded-md divide-y">
                       {list.map((a) => (
-                        <div key={a.id} onClick={() => openMapAssetEditor(a)} title="Clique para editar o ativo e as quantidades por cota" className={`flex items-center gap-2 px-2.5 py-1.5 text-xs cursor-pointer hover:bg-muted/50 transition ${a.sold ? "opacity-60" : ""} ${a.is_exclusive ? "bg-amber-500/[0.06] border-l-2 border-l-amber-500" : ""}`}>
+                        <div key={a.id} onClick={() => openMapAssetEditor(a)} title="Clique para editar o ativo e as quantidades por cota" className={`flex items-center gap-2 px-2.5 py-1.5 text-xs cursor-pointer hover:bg-muted/50 transition ${a.sold ? "opacity-60" : ""} ${a.is_exclusive ? "bg-warning/[0.06] border-l-2 border-l-amber-500" : ""}`}>
                           <span
                             className={`h-2 w-2 rounded-full shrink-0 ${
-                              a.sold ? "bg-destructive" : a.in_tier ? "bg-primary" : "bg-emerald-500"
+                              a.sold ? "bg-destructive" : a.in_tier ? "bg-primary" : "bg-success"
                             }`}
                           />
                           {a.is_exclusive && (
-                            <Crown className="h-3 w-3 text-amber-500 shrink-0" aria-label="Ativo exclusivo" />
+                            <Crown className="h-3 w-3 text-warning-strong shrink-0" aria-label="Ativo exclusivo" />
                           )}
                           <span className="flex-1 min-w-0 truncate">{a.name}</span>
                           <span className="text-muted-foreground">×{a.quantity}</span>
@@ -2460,7 +2475,7 @@ export default function PropertyDetail() {
               </div>
 
               {pubForm.is_published && pubForm.public_slug && (
-                <div className="p-3 bg-emerald-500/10 text-emerald-700 rounded-md text-sm border border-emerald-500/30">
+                <div className="p-3 bg-success/10 text-success-strong rounded-md text-sm border border-success/30">
                   ✅ Página publicada em <strong>{window.location.origin}/p/{pubForm.public_slug}</strong>
                 </div>
               )}

@@ -1,11 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GlobalErrorReporter } from "@/components/GlobalErrorReporter";
 import { DocumentTitle } from "@/components/DocumentTitle";
+import { ConfirmProvider } from "@/hooks/useConfirm";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import EsqueciSenha from "./pages/EsqueciSenha";
@@ -66,8 +66,10 @@ const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
+        <ConfirmProvider>
+        {/* Tema fixo enquanto o app não tem modo escuro: com "system", o toast
+            ficava escuro sobre a interface clara em quem usa o SO no escuro. */}
+        <Sonner theme="light" />
         <GlobalErrorReporter />
         <BrowserRouter>
         <DocumentTitle />
@@ -148,6 +150,7 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         </Routes>
         </BrowserRouter>
+        </ConfirmProvider>
       </TooltipProvider>
     </QueryClientProvider>
   </ErrorBoundary>

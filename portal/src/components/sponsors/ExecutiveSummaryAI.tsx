@@ -3,12 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, RefreshCw } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface Highlight { label: string; value: string }
 
 export const ExecutiveSummaryAI = ({ sponsorId }: { sponsorId: string }) => {
-  const { toast } = useToast();
   const [summary, setSummary] = useState<string>("");
   const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
@@ -26,7 +25,7 @@ export const ExecutiveSummaryAI = ({ sponsorId }: { sponsorId: string }) => {
       setHighlights(data.highlights ?? []);
       setGeneratedAt(data.generated_at ?? null);
     } catch (e: any) {
-      toast({ title: "Erro ao gerar resumo", description: e.message, variant: "destructive" });
+      toast.error("Erro ao gerar resumo", { description: e.message });
     } finally {
       setLoading(false);
     }

@@ -28,7 +28,7 @@ export function RevenueForecastWidget() {
         <div>
           <CardTitle className="flex items-center gap-2 text-base">
             <TrendingUp className="h-4 w-4 text-primary" /> Forecast de receita (12m)
-            <Sparkles className="h-3 w-3 text-amber-500" />
+            <Sparkles className="h-3 w-3 text-warning-strong" />
           </CardTitle>
           <p className="text-xs text-muted-foreground mt-1">Confirmado (parcelas) + ponderado (pipeline × probabilidade)</p>
         </div>

@@ -10,6 +10,7 @@ import { useBillingSettings } from "@/hooks/useBilling";
 import { useAdminPlans, useSavePlan } from "@/hooks/usePlatformAdmin";
 import { formatCents } from "@/lib/billing";
 import { stripeSyncNotice } from "@/lib/platformAdmin";
+import { PageHeader } from "@/components/common/PageHeader";
 
 const limite = (n: number | null) => (n == null ? "Sem limite" : String(n));
 
@@ -35,23 +36,22 @@ const AdminPlans = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Planos</h1>
-          <p className="mt-1 max-w-3xl text-muted-foreground">
-            O catálogo do banco é a regra comercial: preço e limites valem na hora, e o Stripe recebe produto e preço
-            ao salvar. Plano não é apagado — tire de venda; quem assina continua nele.
-          </p>
-        </div>
-        <PlanFormDialog
-          plan={null}
-          trigger={
-            <Button>
-              <Plus /> Novo plano
-            </Button>
-          }
-        />
-      </div>
+      <PageHeader
+        title="Planos"
+        description="O catálogo do banco é a regra comercial: preço e limites valem na hora, e o Stripe recebe produto e preço ao salvar. Plano não é apagado — tire de venda; quem assina continua nele."
+        actions={
+          <>
+            <PlanFormDialog
+              plan={null}
+              trigger={
+                <Button>
+                  <Plus /> Novo plano
+                </Button>
+              }
+            />
+          </>
+        }
+      />
 
       {planos.isLoading ? (
         <div className="flex justify-center py-20">
@@ -86,7 +86,7 @@ const AdminPlans = () => {
                     <TableCell>
                       <div className="flex items-center gap-1.5 font-medium">
                         {p.name}
-                        {p.highlight && <Star className="h-3.5 w-3.5 fill-current text-amber-500" aria-label="Em destaque" />}
+                        {p.highlight && <Star className="h-3.5 w-3.5 fill-current text-warning-strong" aria-label="Em destaque" />}
                       </div>
                       <p className="text-xs text-muted-foreground">
                         <code>{p.id}</code>
