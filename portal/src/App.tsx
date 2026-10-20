@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GlobalErrorReporter } from "@/components/GlobalErrorReporter";
+import { DocumentTitle } from "@/components/DocumentTitle";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import EsqueciSenha from "./pages/EsqueciSenha";
@@ -69,6 +70,7 @@ const App = () => (
         <Sonner />
         <GlobalErrorReporter />
         <BrowserRouter>
+        <DocumentTitle />
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />

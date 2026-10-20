@@ -63,7 +63,7 @@ export function RevenueForecastWidget() {
                 <Tooltip formatter={(v: any) => fmt(Number(v))} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Bar dataKey="confirmado" stackId="a" fill="hsl(var(--primary))" name="Confirmado" />
-                <Bar dataKey="ponderado" stackId="a" fill="hsl(var(--accent))" name="Ponderado" />
+                <Bar dataKey="ponderado" stackId="a" fill="hsl(var(--chart-2))" name="Ponderado" />
               </BarChart>
             </ResponsiveContainer>
           </>

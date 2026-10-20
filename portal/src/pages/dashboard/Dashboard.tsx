@@ -316,7 +316,7 @@ const Dashboard = () => {
                   <Tooltip formatter={(v: number) => fmtMoney(v)} />
                   <Legend />
                   <Bar dataKey="recebido" stackId="a" fill="hsl(var(--primary))" name="Recebido" />
-                  <Bar dataKey="previsto" stackId="a" fill="hsl(var(--accent))" name="Previsto" />
+                  <Bar dataKey="previsto" stackId="a" fill="hsl(var(--chart-2))" name="Previsto" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>

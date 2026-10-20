@@ -82,7 +82,7 @@ const SCORE_LABELS: Record<string, string> = {
   frio: "Frio",
 };
 
-const PIE_COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "hsl(var(--muted-foreground))", "hsl(var(--destructive))", "hsl(var(--secondary))", "hsl(var(--ring))"];
+const PIE_COLORS = [1, 2, 3, 4, 5, 6].map((n) => `hsl(var(--chart-${n}))`);
 
 interface Property { id: string; name: string }
 interface Sponsor { id: string; name: string; score: string; segment: string | null }
@@ -523,7 +523,7 @@ export default function Reports() {
                   <Tooltip formatter={(v: number) => fmtMoney(v)} />
                   <Legend />
                   <Bar dataKey="recebido" stackId="a" fill="hsl(var(--primary))" name="Recebido" />
-                  <Bar dataKey="previsto" stackId="a" fill="hsl(var(--accent))" name="Previsto" />
+                  <Bar dataKey="previsto" stackId="a" fill="hsl(var(--chart-2))" name="Previsto" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -613,7 +613,7 @@ export default function Reports() {
                   <Tooltip formatter={(v: number) => fmtMoney(v)} />
                   <Legend />
                   <Line type="monotone" dataKey="recebido" stroke="hsl(var(--primary))" name="Recebido" />
-                  <Line type="monotone" dataKey="previsto" stroke="hsl(var(--accent))" name="Previsto" />
+                  <Line type="monotone" dataKey="previsto" stroke="hsl(var(--chart-2))" name="Previsto" />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
@@ -674,7 +674,7 @@ export default function Reports() {
                   <Tooltip formatter={(v: number, n) => (n === "Valor" ? fmtMoney(v) : v)} />
                   <Legend />
                   <Bar yAxisId="left" dataKey="count" fill="hsl(var(--primary))" name="Qtd" />
-                  <Bar yAxisId="right" dataKey="value" fill="hsl(var(--accent))" name="Valor" />
+                  <Bar yAxisId="right" dataKey="value" fill="hsl(var(--chart-2))" name="Valor" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
