@@ -54,8 +54,10 @@ Critérios de aceite:
 - `ai_usage_events` imutável (sem update/delete para ninguém além de
   `service_role`); índices por `(organization_id, created_at)` e
   `(organization_id, user_id, created_at)` para orçamento e limite de taxa.
-- `ai_model_prices` com preços iniciais dos modelos padrão, com comentário
-  "conferir na página oficial" (preços do plano §2.1 são de agregadores).
+- `ai_model_prices` em **reais** por 1M de tokens (o orçamento é em R$),
+  **sem carga inicial**: os preços do plano §2.1 são de agregadores, não das
+  páginas oficiais. Quem opera cadastra antes de ligar a IA (IA-34); modelo
+  sem preço grava custo nulo e mantém os tokens.
 - Padrão das tabelas: `created_at`/`updated_at`, gatilho de `updated_at`.
 - Policy restritiva `billing_access_restrictive` aplicada ou tabela listada
   nas exceções do teste `(m)` de `supabase/tests/cobranca.sql`, com motivo.
@@ -380,7 +382,9 @@ Dependências: IA-02.
 
 Runbook seguido: backup, migration `0031` à mão em homologação, variáveis
 `AI_KEYS_MASTER_KEY` e semente (`AI_DEFAULT_*`) no Dockploy de homologação,
-publicar, `npm run supabase:checar`, testar as funções; depois produção.
+preços dos modelos em uso cadastrados em `ai_model_prices` (página oficial de
+cada fornecedor, convertidos para reais), publicar, `npm run supabase:checar`,
+testar as funções; depois produção.
 Registro em `docs/runbooks/deployment.md`.
 
 Dependências: IA-22. **Exige autorização explícita** para acessar

@@ -282,7 +282,7 @@ de `supabase/tests/cobranca.sql` (dado da plataforma), exceto o que o owner lê
 
 | Fase | Entrega | Arquivos principais |
 |---|---|---|
-| **A. Fundação** | Migration `0031` (tabelas, RLS, funções `admin_ia_*` de leitura, preços iniciais, colunas em `billing_plans`); testes SQL | `0031_ia_por_organizacao.sql`, `tests/ia.sql` |
+| **A. Fundação** | Migration `0031` (tabelas, RLS, funções `admin_ia_*` de leitura, colunas em `billing_plans`; preços em reais, sem carga inicial); testes SQL | `0031_ia_por_organizacao.sql`, `tests/ia.sql` |
 | **B. Camada de IA** | `_shared/ai.ts` (interface, resolução da credencial, orçamento, limite de taxa, medição), `_shared/ai-crypto.ts`, adaptadores `openai_compat` e `anthropic`; `deno test` dos adaptadores com `fetch` simulado; passo novo no `ci.yml` | `functions/_shared/`, `.github/workflows/ci.yml` |
 | **B2. Avaliação de fornecedores** (roda depois da fase C) | Script que roda as 13 funções com dados fictícios (seed local) em OpenAI, Gemini e Anthropic e gera tabela de qualidade, JSON inválido, latência e custo medido. Decide o fornecedor e os modelos padrão por nível. **Precisa das chaves de teste do usuário** | `supabase/tools/avaliar-ia/` |
 | **C. Migração das funções** | Em 4 lotes, do mais simples ao mais delicado: (1) texto/JSON — `sponsor-executive-summary`, `generate-sellout-report`, `detect-churn-risk`, `ticket-benchmark-ai`, `prepare-meeting-ai`, `task-insights`; (2) tool forçada — `score-leads`, `generate-proposal-ai`, `generate-proposal-wizard`, `suggest-next-steps`, `summarize-contract`; (3) `ai-assistant` (loop + histórico neutro); (4) `brandtrack-detect-image` (visão). Correção da organização em cada uma | 13 funções, chamadas no portal |
