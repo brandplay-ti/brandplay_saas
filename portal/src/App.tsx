@@ -7,6 +7,8 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GlobalErrorReporter } from "@/components/GlobalErrorReporter";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
+import EsqueciSenha from "./pages/EsqueciSenha";
+import ResetarSenha from "./pages/ResetarSenha";
 import OrganizationSetup from "./pages/onboarding/OrganizationSetup";
 import PublicMediaKit from "./pages/PublicMediaKit";
 import DashboardLayout from "./pages/dashboard/DashboardLayout";
@@ -70,6 +72,8 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+          <Route path="/resetar-senha" element={<ResetarSenha />} />
           <Route path="/onboarding/organizacao" element={<OrganizationSetup />} />
           <Route path="/p/:slug" element={<PublicMediaKit />} />
           <Route path="/portal/login" element={<PortalLogin />} />
