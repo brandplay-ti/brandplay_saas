@@ -184,7 +184,7 @@ const FieldEventChecklist = () => {
                       )}
                     </div>
                     {!done && (
-                      <Button size="icon" variant="outline" className="flex-shrink-0" onClick={() => triggerCamera(item.id)}>
+                      <Button aria-label="Tirar foto" size="icon" variant="outline" className="flex-shrink-0" onClick={() => triggerCamera(item.id)}>
                         <Camera className="w-4 h-4" />
                       </Button>
                     )}

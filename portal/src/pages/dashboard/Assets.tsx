@@ -849,10 +849,11 @@ export default function Assets() {
                           </Badge>
                         )}
                         <Button
+                          aria-label="Remover foto"
                           type="button"
                           size="icon"
                           variant="destructive"
-                          className="absolute top-1 right-1 h-7 w-7 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-1 right-1 h-7 w-7 shadow-sm opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
                           onClick={() => setCreateFiles((prev) => prev.filter((_, i) => i !== idx))}
                           title="Remover foto"
                         >
@@ -1043,10 +1044,11 @@ export default function Assets() {
                               <Star className={`h-4 w-4 ${p.is_cover ? "fill-current text-warning" : ""}`} />
                             </Button>
                             <Button
+                              aria-label="Remover foto"
                               type="button"
                               size="icon"
                               variant="destructive"
-                              className="h-7 w-7 shadow-sm pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="h-7 w-7 shadow-sm pointer-events-auto opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
                               onClick={(e) => { e.preventDefault(); e.stopPropagation(); deletePhoto(p); }}
                               title="Remover foto"
                             >
@@ -1144,6 +1146,7 @@ export default function Assets() {
                   <span className="text-sm">{c}</span>
                   {customCategories.includes(c) ? (
                     <Button
+                      aria-label="Excluir categoria"
                       size="icon"
                       variant="ghost"
                       className="h-7 w-7 text-muted-foreground hover:text-destructive"

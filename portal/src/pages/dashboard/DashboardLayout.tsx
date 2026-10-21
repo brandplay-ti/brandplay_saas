@@ -21,6 +21,7 @@ import {
 import { AIAssistantTrigger } from "@/components/ai/AIAssistantTrigger";
 import { NotificationsBell } from "@/components/notifications/NotificationsBell";
 import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
+import { CommandMenu } from "@/components/CommandMenu";
 import { OrganizationProvider } from "@/hooks/useOrganization";
 import { BillingGate } from "@/components/billing/BillingGate";
 
@@ -50,6 +51,7 @@ const DashboardLayoutInner = () => {
             <div className="flex items-center gap-3">
               <SidebarTrigger />
               <Logo showWordmark={false} sizeClassName="h-8 md:hidden" />
+              <CommandMenu />
             </div>
             <div className="flex items-center gap-1">
               <OrganizationSwitcher />

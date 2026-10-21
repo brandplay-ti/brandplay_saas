@@ -25,10 +25,12 @@ import {
   Clock,
   CreditCard,
   HeadphonesIcon,
+  Menu,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { PublicPricing } from "@/components/billing/PublicPricing";
 
 const stats = [
@@ -162,6 +164,13 @@ const faqs = [
   },
 ];
 
+const NAV_LINKS = [
+  { href: "#how", label: "Como funciona" },
+  { href: "#features", label: "Funcionalidades" },
+  { href: "#planos", label: "Planos" },
+  { href: "#faq", label: "FAQ" },
+];
+
 const Landing = () => {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
@@ -171,19 +180,49 @@ const Landing = () => {
       <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-lg">
         <div className="container flex h-16 items-center justify-between">
           <Logo sizeClassName="h-8" />
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
-            <a href="#how" className="hover:text-foreground transition-colors">Como funciona</a>
-            <a href="#features" className="hover:text-foreground transition-colors">Funcionalidades</a>
-            <a href="#planos" className="hover:text-foreground transition-colors">Planos</a>
-            <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
+          <nav aria-label="Seções da página" className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
+            {NAV_LINKS.map((l) => (
+              <a key={l.href} href={l.href} className="hover:text-foreground transition-colors">{l.label}</a>
+            ))}
           </nav>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" asChild>
+            <Button variant="ghost" asChild className="hidden sm:inline-flex">
               <Link to="/auth">Entrar</Link>
             </Button>
             <Button asChild className="bg-gradient-brand hover:opacity-90 transition-opacity shadow-glow">
               <Link to="/auth?mode=signup">Teste grátis</Link>
             </Button>
+            {/* Celular: as seções (e o "Entrar", que não cabe no cabeçalho) num menu lateral. */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden" aria-label="Abrir menu">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-72">
+                <SheetHeader className="text-left">
+                  <SheetTitle>Menu</SheetTitle>
+                  <SheetDescription className="sr-only">Seções da página e acesso à conta</SheetDescription>
+                </SheetHeader>
+                <nav aria-label="Seções da página" className="mt-6 flex flex-col">
+                  {NAV_LINKS.map((l) => (
+                    <SheetClose asChild key={l.href}>
+                      <a href={l.href} className="rounded-md px-3 py-3 text-base font-medium hover:bg-muted">
+                        {l.label}
+                      </a>
+                    </SheetClose>
+                  ))}
+                </nav>
+                <div className="mt-6 flex flex-col gap-2 border-t pt-6">
+                  <Button variant="outline" asChild>
+                    <Link to="/auth">Entrar</Link>
+                  </Button>
+                  <Button asChild className="bg-gradient-brand">
+                    <Link to="/auth?mode=signup">Teste grátis</Link>
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </header>
@@ -427,6 +466,7 @@ const Landing = () => {
             {faqs.map((f, i) => (
               <div key={i} className="rounded-xl border border-border bg-card overflow-hidden">
                 <button
+                  aria-expanded={openFaq === i}
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
                   className="w-full px-6 py-5 flex items-center justify-between text-left hover:bg-surface-soft transition-colors"
                 >

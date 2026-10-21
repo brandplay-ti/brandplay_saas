@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  ArrowLeft, Mail, Phone, Globe, Activity, ShieldCheck, Users as UsersIcon, Sparkles,
+  Mail, Phone, Globe, Activity, ShieldCheck, Users as UsersIcon, Sparkles,
   Handshake, FileText, Package, ListChecks, Tag, AlertTriangle, RefreshCw, FolderUp,
 } from "lucide-react";
 import { LogoFrame, logoFrameIconClass } from "@/components/LogoFrame";
@@ -35,6 +35,7 @@ import {
   PRIORITY_LABEL, computeAccountFit, formatBRL, formatDate, daysSince,
   type Health, type Lifecycle, type Priority,
 } from "@/lib/crmAccount";
+import { Breadcrumbs } from "@/components/common/Breadcrumbs";
 
 const db = supabase as any;
 
@@ -165,9 +166,9 @@ export default function SponsorDetail() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" asChild>
-          <Link to="/dashboard/patrocinadores"><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Link>
-        </Button>
+        <Breadcrumbs
+          items={[{ label: "Patrocinadores", to: "/dashboard/patrocinadores" }, { label: sponsor.trade_name || sponsor.name }]}
+        />
         {sponsor.archived_at && <Badge variant="outline">Conta arquivada</Badge>}
       </div>
 

@@ -84,6 +84,7 @@ import { generateContractDocx, downloadBlob } from "@/lib/contractDocx";
 
 import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/common/PageHeader";
+import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 
 type Status = Database["public"]["Enums"]["contract_status"];
 type PayMethod = Database["public"]["Enums"]["payment_method"];
@@ -550,8 +551,8 @@ export default function Contracts() {
                 {filtered.map((c) => (
                   <TableRow
                     key={c.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => setDetailId(c.id)}
+                    className={`cursor-pointer hover:bg-muted/50 ${FOCO_CLICAVEL}`}
+                    {...clicavel(() => setDetailId(c.id), { linha: true })}
                   >
                     <TableCell className="font-mono text-xs text-muted-foreground">{c.contract_number ?? "—"}</TableCell>
                     <TableCell className="font-medium">{c.title}</TableCell>

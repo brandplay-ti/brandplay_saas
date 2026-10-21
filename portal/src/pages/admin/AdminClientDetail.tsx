@@ -26,6 +26,7 @@ import {
   usageLabel,
 } from "@/lib/billing";
 import { auditActionLabel, GRANT_KIND_LABEL } from "@/lib/platformAdmin";
+import { Breadcrumbs } from "@/components/common/Breadcrumbs";
 
 const Campo = ({ rotulo, valor }: { rotulo: string; valor: ReactNode }) => (
   <div>
@@ -82,11 +83,7 @@ const AdminClientDetail = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="space-y-3">
-        <Button variant="ghost" size="sm" asChild className="-ml-2">
-          <Link to="/admin/clientes">
-            <ArrowLeft /> Clientes
-          </Link>
-        </Button>
+        <Breadcrumbs items={[{ label: "Clientes", to: "/admin/clientes" }, { label: org.name }]} />
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">

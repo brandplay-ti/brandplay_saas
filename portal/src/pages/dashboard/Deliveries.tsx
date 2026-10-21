@@ -76,6 +76,7 @@ import {
 } from "@dnd-kit/core";
 import type { Database } from "@/integrations/supabase/types";
 import { PageHeader } from "@/components/common/PageHeader";
+import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 
 type Status = Database["public"]["Enums"]["delivery_status"];
 type Approval = Database["public"]["Enums"]["delivery_approval"];
@@ -1094,7 +1095,7 @@ function DeliveriesTableView({
         </TableHeader>
         <TableBody>
           {items.map((d) => (
-            <TableRow key={d.id} className="cursor-pointer" onClick={() => onOpen(d)}>
+            <TableRow key={d.id} className={`cursor-pointer ${FOCO_CLICAVEL}`} {...clicavel(() => onOpen(d), { linha: true })}>
               <TableCell className="font-medium">
                 {d.title}
                 {d.quantity > 1 && <span className="text-muted-foreground text-xs"> ×{d.quantity}</span>}
@@ -1145,8 +1146,8 @@ function DeliveriesCompactView({
       {items.map((d) => (
         <div
           key={d.id}
-          className="flex items-center gap-3 px-3 py-2 hover:bg-muted/50 cursor-pointer"
-          onClick={() => onOpen(d)}
+          className={`flex items-center gap-3 px-3 py-2 hover:bg-muted/50 cursor-pointer ${FOCO_CLICAVEL}`}
+          {...clicavel(() => onOpen(d))}
         >
           <StatusBadge status={d.status} />
           <span className="text-sm font-medium truncate flex-1">{d.title}</span>
@@ -1274,8 +1275,8 @@ function DeliveryCard({
           <GripVertical className="h-4 w-4" />
         </button>
         <div
-          className="flex-1 min-w-0 cursor-pointer"
-          onClick={() => onOpen?.(item)}
+          className={`flex-1 min-w-0 cursor-pointer ${FOCO_CLICAVEL}`}
+          {...clicavel(() => onOpen?.(item))}
         >
           <div className="flex items-start justify-between gap-2">
             <h4 className="font-semibold text-sm break-words">{item.title}</h4>

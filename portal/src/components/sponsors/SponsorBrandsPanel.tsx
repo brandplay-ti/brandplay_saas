@@ -88,7 +88,7 @@ export const SponsorBrandsPanel = ({ sponsorId }: { sponsorId: string }) => {
                   <Button size="sm" variant="ghost" onClick={() => toggleActive(b)}>
                     {b.is_active ? "Desativar" : "Ativar"}
                   </Button>
-                  <Button size="icon" variant="ghost" onClick={() => remove(b)}><Trash2 className="h-4 w-4" /></Button>
+                  <Button aria-label="Remover marca" size="icon" variant="ghost" onClick={() => remove(b)}><Trash2 className="h-4 w-4" /></Button>
                 </div>
               )}
             </CardContent>

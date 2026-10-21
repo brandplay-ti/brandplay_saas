@@ -1,5 +1,5 @@
-import { LayoutDashboard, Trophy, Boxes, Briefcase, FileText, FileSignature, FileBarChart, Truck, Wallet, BarChart3, Users, UserCog, ShieldCheck, Settings as SettingsIcon, Sparkles, Camera, Eye, Upload, Tag, ListChecks, Image as ImageIcon, AlertTriangle, Bell, CalendarDays, CreditCard, ShieldEllipsis } from "lucide-react";
 import { useOrganization } from "@/hooks/useOrganization";
+import { gruposVisiveis, urlAtiva } from "@/lib/navegacao";
 import { useIsPlatformAdmin } from "@/hooks/usePlatformAdmin";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -18,77 +18,6 @@ import {
 import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/utils";
 
-type NavItem = { title: string; url: string; icon: typeof BarChart3; modules?: ("crm" | "operacional" | "financeiro" | "team")[] };
-type NavGroup = { label: string; items: NavItem[] };
-
-const NAV_GROUPS: NavGroup[] = [
-  {
-    label: "Visão Geral",
-    items: [
-      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-      { title: "Calendário", url: "/dashboard/calendario", icon: CalendarDays },
-      { title: "Notificações", url: "/dashboard/notificacoes", icon: Bell },
-    ],
-  },
-  {
-    label: "CRM",
-    items: [
-      { title: "Pipeline", url: "/dashboard/pipeline", icon: Briefcase, modules: ["crm"] },
-      { title: "Propostas", url: "/dashboard/propostas", icon: FileText, modules: ["crm"] },
-      { title: "Patrocinadores", url: "/dashboard/patrocinadores", icon: Users, modules: ["crm"] },
-      { title: "Lead Scoring IA", url: "/dashboard/lead-scoring", icon: Sparkles, modules: ["crm"] },
-    ],
-  },
-  {
-    label: "Deals",
-    items: [
-      { title: "Contratos", url: "/dashboard/contratos", icon: FileSignature, modules: ["crm", "financeiro"] },
-      { title: "Financeiro", url: "/dashboard/financeiro", icon: Wallet, modules: ["financeiro"] },
-    ],
-  },
-  {
-    label: "Plays",
-    items: [
-      { title: "Propriedades", url: "/dashboard/propriedades", icon: Trophy, modules: ["crm", "operacional"] },
-      { title: "Ativos", url: "/dashboard/ativos", icon: Boxes, modules: ["crm", "operacional"] },
-    ],
-  },
-  {
-    label: "Delivery",
-    items: [
-      { title: "Entregas", url: "/dashboard/entregas", icon: Truck, modules: ["operacional", "crm"] },
-      { title: "App de Campo", url: "/campo", icon: Camera, modules: ["operacional", "crm"] },
-    ],
-  },
-  {
-    label: "BrandTrack",
-    items: [
-      { title: "Painel BrandTrack", url: "/dashboard/brandtrack", icon: Eye },
-      { title: "Uploads", url: "/dashboard/brandtrack/uploads", icon: Upload },
-      { title: "Marcas esperadas", url: "/dashboard/brandtrack/marcas-esperadas", icon: ListChecks },
-      { title: "Análise por patrocinador", url: "/dashboard/brandtrack/marcas", icon: Tag },
-      { title: "Evidências", url: "/dashboard/brandtrack/evidencias", icon: ImageIcon },
-      { title: "Relatórios BrandTrack", url: "/dashboard/brandtrack/relatorios", icon: FileBarChart },
-    ],
-  },
-  {
-    label: "Reports",
-    items: [
-      { title: "Relatórios", url: "/dashboard/relatorios", icon: BarChart3 },
-    ],
-  },
-  {
-    label: "Administração",
-    items: [
-      { title: "Equipe", url: "/dashboard/equipe", icon: UserCog, modules: ["team"] },
-      { title: "Acessos ao Portal", url: "/dashboard/portal-access", icon: ShieldCheck, modules: ["team"] },
-      { title: "Logs de Falhas", url: "/dashboard/logs-falhas", icon: AlertTriangle, modules: ["team"] },
-      { title: "Configurações", url: "/dashboard/configuracoes", icon: SettingsIcon, modules: ["team"] },
-      { title: "Plano e cobrança", url: "/dashboard/plano", icon: CreditCard, modules: ["team"] },
-    ],
-  },
-];
-
 export const AppSidebar = () => {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -97,30 +26,8 @@ export const AppSidebar = () => {
   // Só o atalho: a área /admin se protege sozinha (layout + banco).
   const { isPlatformAdmin } = useIsPlatformAdmin();
 
-  const filterItem = (item: NavItem) => {
-    if (!item.modules) return true;
-    if (loading) return true;
-    if (isAdmin) return true;
-    return item.modules.some((m) => can(m));
-  };
-
-  const visibleGroups = NAV_GROUPS
-    .map((g) => ({ ...g, items: g.items.filter(filterItem) }))
-    .filter((g) => g.items.length > 0);
-  if (isPlatformAdmin) {
-    visibleGroups.push({
-      label: "Plataforma",
-      items: [{ title: "Admin da plataforma", url: "/admin", icon: ShieldEllipsis }],
-    });
-  }
-
-  // Ativo é só o item de URL mais longa que contém a rota atual: com prefixo
-  // simples, "Painel BrandTrack" (/dashboard/brandtrack) ficava aceso junto
-  // com qualquer subpágina do BrandTrack.
-  const activeUrl = visibleGroups
-    .flatMap((g) => g.items.map((i) => i.url))
-    .filter((url) => location.pathname === url || location.pathname.startsWith(`${url}/`))
-    .reduce<string | null>((best, url) => (best && best.length >= url.length ? best : url), null);
+  const visibleGroups = gruposVisiveis({ can, isAdmin, loading, isPlatformAdmin });
+  const activeUrl = urlAtiva(visibleGroups, location.pathname);
 
   return (
     <Sidebar collapsible="icon">

@@ -291,6 +291,7 @@ export function SponsorProfileFields({ value, onChange, showRegistration = true 
                     placeholder={n.placeholder}
                   />
                   <Button
+                    aria-label="Atualizar números desta rede"
                     type="button"
                     size="icon"
                     variant="ghost"

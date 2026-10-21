@@ -24,6 +24,7 @@ import {
   formatBRL, formatDate, daysSince, toCsv, downloadCsv,
 } from "@/lib/crmAccount";
 import { PageHeader } from "@/components/common/PageHeader";
+import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 
 const db = supabase as any;
 const VIEW_KEY = "crm_sponsors_view_v1";
@@ -343,7 +344,7 @@ export default function Sponsors() {
                 <Archive className="h-4 w-4 mr-2" /> Arquivadas
               </Button>
               <Button variant="outline" size="sm" onClick={exportCsv}><Download className="h-4 w-4 mr-2" /> CSV</Button>
-              <Button variant="outline" size="icon" onClick={() => setLayout(layout === "table" ? "cards" : "table")} title="Alternar visualização">
+              <Button aria-label={layout === "table" ? "Ver em cartões" : "Ver em tabela"} variant="outline" size="icon" onClick={() => setLayout(layout === "table" ? "cards" : "table")} title="Alternar visualização">
                 {layout === "table" ? <LayoutGrid className="h-4 w-4" /> : <Rows3 className="h-4 w-4" />}
               </Button>
             </div>
@@ -428,7 +429,7 @@ export default function Sponsors() {
                   {filtered.map((s) => {
                     const d = daysSince(s.last_contact_at);
                     return (
-                      <TableRow key={s.id} className="cursor-pointer" onClick={() => navigate(`/dashboard/patrocinadores/${s.id}`)}>
+                      <TableRow key={s.id} className={`cursor-pointer ${FOCO_CLICAVEL}`} {...clicavel(() => navigate(`/dashboard/patrocinadores/${s.id}`), { linha: true })}>
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           <Checkbox
                             checked={selectedIds.includes(s.id)}

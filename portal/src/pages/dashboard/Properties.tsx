@@ -43,6 +43,7 @@ import {
   type SponsorProfileValue,
 } from "@/components/sponsors/SponsorProfileFields";
 import { PageHeader } from "@/components/common/PageHeader";
+import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 
 interface AllocatedAsset {
   id: string;
@@ -365,8 +366,8 @@ const Properties = () => {
             return (
               <Card
                 key={p.id}
-                onClick={() => navigate(`/dashboard/propriedades/${p.id}`)}
-                className="hover:shadow-md hover:border-primary/40 transition-all cursor-pointer"
+                {...clicavel(() => navigate(`/dashboard/propriedades/${p.id}`))}
+                className={`hover:shadow-md hover:border-primary/40 transition-all cursor-pointer ${FOCO_CLICAVEL}`}
               >
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between mb-3">

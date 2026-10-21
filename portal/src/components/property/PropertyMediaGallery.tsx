@@ -266,6 +266,7 @@ export default function PropertyMediaGallery({ propertyId, ownerId }: Props) {
                   <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
                     {m.media_type !== "link" && (
                       <Button
+                        aria-label={m.is_cover ? "Remover capa" : "Definir como capa"}
                         size="icon"
                         variant="secondary"
                         className="h-7 w-7"
@@ -276,6 +277,7 @@ export default function PropertyMediaGallery({ propertyId, ownerId }: Props) {
                       </Button>
                     )}
                     <Button
+                      aria-label="Excluir mídia"
                       size="icon"
                       variant="destructive"
                       className="h-7 w-7"

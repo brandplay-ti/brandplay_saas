@@ -349,6 +349,7 @@ export default function PropertyChecklist({ propertyId, ownerId }: Props) {
                       </SelectContent>
                     </Select>
                     <Button
+                      aria-label="Excluir item"
                       size="icon"
                       variant="ghost"
                       onClick={() => remove(it.id)}
