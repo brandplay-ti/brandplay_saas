@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, RefreshCw, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PageHeader } from "@/components/common/PageHeader";
 
 type BackendErrorLog = {
   id: string;
@@ -66,7 +67,6 @@ const getErrorMessage = (error: unknown) =>
 
 export default function FailureLogs() {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [logs, setLogs] = useState<BackendErrorLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [userFilter, setUserFilter] = useState("");
@@ -95,11 +95,11 @@ export default function FailureLogs() {
       if (error) throw error;
       setLogs((data ?? []) as BackendErrorLog[]);
     } catch (error) {
-      toast({ title: "Erro ao carregar logs", description: getErrorMessage(error), variant: "destructive" });
+      toast.error("Erro ao carregar logs", { description: getErrorMessage(error) });
     } finally {
       setLoading(false);
     }
-  }, [actionFilter, tableFilter, toast, user, userFilter]);
+  }, [actionFilter, tableFilter, user, userFilter]);
 
   useEffect(() => {
     loadLogs();
@@ -118,15 +118,17 @@ export default function FailureLogs() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Logs de falhas</h1>
-          <p className="text-muted-foreground mt-1">Falhas recentes em organizações e negociações.</p>
-        </div>
-        <Button onClick={loadLogs} disabled={loading} className="gap-2 self-start md:self-auto">
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Atualizar
-        </Button>
-      </div>
+      <PageHeader
+        title="Logs de falhas"
+        description="Falhas recentes em organizações e negociações."
+        actions={
+          <>
+            <Button onClick={loadLogs} disabled={loading} className="gap-2 self-start md:self-auto">
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Atualizar
+            </Button>
+          </>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>

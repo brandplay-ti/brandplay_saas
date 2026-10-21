@@ -4,14 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Sparkles, Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 
 interface Property { id: string; name: string }
 interface Report { id: string; title: string; content: string; metrics: any; created_at: string }
 
 export const SelloutReportGenerator = () => {
-  const { toast } = useToast();
   const [properties, setProperties] = useState<Property[]>([]);
   const [propertyId, setPropertyId] = useState<string>("");
   const [reports, setReports] = useState<Report[]>([]);
@@ -33,7 +32,7 @@ export const SelloutReportGenerator = () => {
 
   const generate = async () => {
     if (!propertyId) {
-      toast({ title: "Selecione uma propriedade", variant: "destructive" });
+      toast.error("Selecione uma propriedade");
       return;
     }
     setLoading(true);
@@ -45,9 +44,9 @@ export const SelloutReportGenerator = () => {
       if (data?.error) throw new Error(data.error);
       setSelected(data.report);
       await loadReports();
-      toast({ title: "Relatório gerado!" });
+      toast.success("Relatório gerado!");
     } catch (e: any) {
-      toast({ title: "Erro", description: e.message, variant: "destructive" });
+      toast.error("Erro", { description: e.message });
     } finally {
       setLoading(false);
     }

@@ -123,7 +123,7 @@ const OrganizationSetup = () => {
     <main className="min-h-screen bg-surface-soft px-4 py-8 md:py-12">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
         <div className="flex items-center justify-between gap-4">
-          <Logo sizeClassName="h-12" />
+          <Logo sizeClassName="h-8" />
           <Button variant="ghost" onClick={signOut} className="gap-2">
             <LogOut className="h-4 w-4" /> Sair
           </Button>

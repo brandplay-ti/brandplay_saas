@@ -1,4 +1,6 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
+import { Suspense } from "react";
+import { PageLoader } from "@/components/PageLoader";
 import { useQuery } from "@tanstack/react-query";
 import { BarChart3, Building2, LayoutDashboard, Loader2, LogOut, Package, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
@@ -68,7 +70,7 @@ const AdminLayout = () => {
             <CardDescription>
               {error
                 ? "Não foi possível verificar o acesso. Tente recarregar a página."
-                : "A administração da plataforma é exclusiva da equipe do BrandPlay."}
+                : "A administração da plataforma é exclusiva da equipe do Brandplay."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -86,7 +88,7 @@ const AdminLayout = () => {
       <header className="sticky top-0 z-30 border-b border-border bg-background">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
           <div className="flex items-center gap-3 min-w-0">
-            <Logo showWordmark={false} sizeClassName="h-9 w-9" />
+            <Logo showWordmark={false} sizeClassName="h-8" />
             <div className="min-w-0">
               <p className="text-sm font-semibold leading-tight">Administração da plataforma</p>
               <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
@@ -122,7 +124,9 @@ const AdminLayout = () => {
         </nav>
       </header>
       <main className="mx-auto max-w-7xl p-4 md:p-8">
-        <Outlet />
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   );

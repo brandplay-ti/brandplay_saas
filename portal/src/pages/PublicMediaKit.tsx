@@ -593,7 +593,7 @@ export default function PublicMediaKit() {
             <CardContent className="p-6 md:p-8">
               {submitted ? (
                 <div className="text-center py-8">
-                  <CheckCircle2 className="h-14 w-14 mx-auto text-emerald-500 mb-4" />
+                  <CheckCircle2 className="h-14 w-14 mx-auto text-success-strong mb-4" />
                   <h3 className="text-2xl font-bold">Recebemos sua mensagem!</h3>
                   <p className="text-muted-foreground mt-2">
                     Em breve nossa equipe entrará em contato para apresentar uma proposta.

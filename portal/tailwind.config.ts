@@ -21,6 +21,8 @@ export default {
           "Roboto",
           "sans-serif",
         ],
+        // Poppins: títulos e marketing (identidade visual); Inter segue na UI e nos dados.
+        display: ["Poppins", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -30,11 +32,13 @@ export default {
         foreground: "hsl(var(--foreground))",
         "surface-soft": "hsl(var(--surface-soft))",
         "surface-muted": "hsl(var(--surface-muted))",
+        brand: "hsl(var(--brand))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
           glow: "hsl(var(--primary-glow))",
           soft: "hsl(var(--primary-soft))",
+          strong: "hsl(var(--primary-strong))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -47,10 +51,17 @@ export default {
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
+          strong: "hsl(var(--success-strong))",
+        },
+        info: {
+          DEFAULT: "hsl(var(--info))",
+          foreground: "hsl(var(--info-foreground))",
+          strong: "hsl(var(--info-strong))",
         },
         warning: {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
+          strong: "hsl(var(--warning-strong))",
         },
         muted: {
           DEFAULT: "hsl(var(--muted))",

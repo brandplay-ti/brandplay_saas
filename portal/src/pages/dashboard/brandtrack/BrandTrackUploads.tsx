@@ -12,6 +12,8 @@ import { Upload, Image as ImageIcon, Video, Loader2, CheckCircle2, AlertCircle, 
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import FieldEvidenceImportDialog from "@/components/brandtrack/FieldEvidenceImportDialog";
+import { useConfirm } from "@/hooks/useConfirm";
+import { PageHeader } from "@/components/common/PageHeader";
 
 type Media = {
   id: string;
@@ -57,6 +59,7 @@ const exposureLabels: Record<string, string> = {
 };
 
 const BrandTrackUploads = () => {
+  const confirm = useConfirm();
   const { user } = useAuth();
   const [medias, setMedias] = useState<Media[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
@@ -332,7 +335,12 @@ const BrandTrackUploads = () => {
   };
 
   const removeMedia = async (id: string, path: string | null) => {
-    if (!confirm("Remover este arquivo e suas detecções?")) return;
+    const confirmado = await confirm({
+      title: "Remover este arquivo e suas detecções?",
+      confirmLabel: "Remover",
+      destructive: true,
+    });
+    if (!confirmado) return;
     if (path) await supabase.storage.from("brandtrack-media").remove([path]);
     await supabase.from("brandtrack_media").delete().eq("id", id);
     toast.success("Removido");
@@ -376,7 +384,12 @@ const BrandTrackUploads = () => {
 
   const bulkDelete = async () => {
     if (selectedIds.length === 0) return;
-    if (!confirm(`Remover ${selectedIds.length} mídia(s) e suas detecções?`)) return;
+    const confirmado = await confirm({
+      title: `Remover ${selectedIds.length} mídia(s) e suas detecções?`,
+      confirmLabel: "Remover",
+      destructive: true,
+    });
+    if (!confirmado) return;
     setBulkBusy(true);
     const paths = medias.filter((m) => selectedIds.includes(m.id) && m.storage_path).map((m) => m.storage_path as string);
     if (paths.length > 0) await supabase.storage.from("brandtrack-media").remove(paths);
@@ -462,10 +475,10 @@ const BrandTrackUploads = () => {
 
   return (
     <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-3xl font-bold">Uploads & Processamento</h1>
-        <p className="text-muted-foreground">Envie imagens ou vídeos para análise automática de marcas.</p>
-      </div>
+      <PageHeader
+        title="Uploads & Processamento"
+        description="Envie imagens ou vídeos para análise automática de marcas."
+      />
 
       <Card>
         <CardHeader>

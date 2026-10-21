@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 type Row = {
   id: string;
@@ -24,7 +24,6 @@ const fmtDate = (iso: string) => {
 const isOverdue = (iso: string) => new Date(iso).getTime() < Date.now();
 
 export const NextActionsWidget = () => {
-  const { toast } = useToast();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState<string | null>(null);
@@ -39,7 +38,7 @@ export const NextActionsWidget = () => {
       .order("next_action_at", { ascending: true })
       .limit(8);
     if (error) {
-      toast({ title: "Erro ao carregar ações", description: error.message, variant: "destructive" });
+      toast.error("Erro ao carregar ações", { description: error.message });
     } else {
       setRows((data ?? []) as any);
     }
@@ -58,11 +57,11 @@ export const NextActionsWidget = () => {
       .eq("id", id);
     setCompleting(null);
     if (error) {
-      toast({ title: "Erro ao concluir", description: error.message, variant: "destructive" });
+      toast.error("Erro ao concluir", { description: error.message });
       return;
     }
     setRows((prev) => prev.filter((r) => r.id !== id));
-    toast({ title: "Ação concluída" });
+    toast.success("Ação concluída");
   };
 
   return (
@@ -82,7 +81,7 @@ export const NextActionsWidget = () => {
           </div>
         ) : rows.length === 0 ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-            <CheckCircle2 className="h-4 w-4 text-success" /> Nenhuma ação pendente.
+            <CheckCircle2 className="h-4 w-4 text-success-strong" /> Nenhuma ação pendente.
           </div>
         ) : (
           rows.map((r) => {

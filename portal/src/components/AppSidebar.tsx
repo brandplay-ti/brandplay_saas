@@ -1,4 +1,4 @@
-import { LayoutDashboard, Trophy, Boxes, Briefcase, FileText, FileSignature, Truck, Wallet, BarChart3, Users, ShieldCheck, Settings as SettingsIcon, Sparkles, Camera, Eye, Upload, Tag, Image as ImageIcon, AlertTriangle, Bell, CalendarDays, CreditCard, ShieldEllipsis } from "lucide-react";
+import { LayoutDashboard, Trophy, Boxes, Briefcase, FileText, FileSignature, FileBarChart, Truck, Wallet, BarChart3, Users, UserCog, ShieldCheck, Settings as SettingsIcon, Sparkles, Camera, Eye, Upload, Tag, ListChecks, Image as ImageIcon, AlertTriangle, Bell, CalendarDays, CreditCard, ShieldEllipsis } from "lucide-react";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useIsPlatformAdmin } from "@/hooks/usePlatformAdmin";
 import { NavLink } from "@/components/NavLink";
@@ -16,6 +16,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/Logo";
+import { cn } from "@/lib/utils";
 
 type NavItem = { title: string; url: string; icon: typeof BarChart3; modules?: ("crm" | "operacional" | "financeiro" | "team")[] };
 type NavGroup = { label: string; items: NavItem[] };
@@ -56,18 +57,18 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Delivery",
     items: [
       { title: "Entregas", url: "/dashboard/entregas", icon: Truck, modules: ["operacional", "crm"] },
-      { title: "App de Campo 📸", url: "/campo", icon: Camera, modules: ["operacional", "crm"] },
+      { title: "App de Campo", url: "/campo", icon: Camera, modules: ["operacional", "crm"] },
     ],
   },
   {
     label: "BrandTrack",
     items: [
-      { title: "Visão Geral", url: "/dashboard/brandtrack", icon: Eye },
+      { title: "Painel BrandTrack", url: "/dashboard/brandtrack", icon: Eye },
       { title: "Uploads", url: "/dashboard/brandtrack/uploads", icon: Upload },
-      { title: "Marcas esperadas", url: "/dashboard/brandtrack/marcas-esperadas", icon: Sparkles },
-      { title: "Patrocinadores", url: "/dashboard/brandtrack/marcas", icon: Tag },
+      { title: "Marcas esperadas", url: "/dashboard/brandtrack/marcas-esperadas", icon: ListChecks },
+      { title: "Análise por patrocinador", url: "/dashboard/brandtrack/marcas", icon: Tag },
       { title: "Evidências", url: "/dashboard/brandtrack/evidencias", icon: ImageIcon },
-      { title: "Relatórios", url: "/dashboard/brandtrack/relatorios", icon: FileText },
+      { title: "Relatórios BrandTrack", url: "/dashboard/brandtrack/relatorios", icon: FileBarChart },
     ],
   },
   {
@@ -77,9 +78,9 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: "Admin",
+    label: "Administração",
     items: [
-      { title: "Equipe", url: "/dashboard/equipe", icon: Users, modules: ["team"] },
+      { title: "Equipe", url: "/dashboard/equipe", icon: UserCog, modules: ["team"] },
       { title: "Acessos ao Portal", url: "/dashboard/portal-access", icon: ShieldCheck, modules: ["team"] },
       { title: "Logs de Falhas", url: "/dashboard/logs-falhas", icon: AlertTriangle, modules: ["team"] },
       { title: "Configurações", url: "/dashboard/configuracoes", icon: SettingsIcon, modules: ["team"] },
@@ -109,17 +110,25 @@ export const AppSidebar = () => {
   if (isPlatformAdmin) {
     visibleGroups.push({
       label: "Plataforma",
-      items: [{ title: "Administração", url: "/admin", icon: ShieldEllipsis }],
+      items: [{ title: "Admin da plataforma", url: "/admin", icon: ShieldEllipsis }],
     });
   }
+
+  // Ativo é só o item de URL mais longa que contém a rota atual: com prefixo
+  // simples, "Painel BrandTrack" (/dashboard/brandtrack) ficava aceso junto
+  // com qualquer subpágina do BrandTrack.
+  const activeUrl = visibleGroups
+    .flatMap((g) => g.items.map((i) => i.url))
+    .filter((url) => location.pathname === url || location.pathname.startsWith(`${url}/`))
+    .reduce<string | null>((best, url) => (best && best.length >= url.length ? best : url), null);
 
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border h-20 flex items-center justify-center px-4">
         {collapsed ? (
-          <Logo showWordmark={false} sizeClassName="h-12 w-12" />
+          <Logo showWordmark={false} sizeClassName="h-7" />
         ) : (
-          <Logo sizeClassName="h-14" />
+          <Logo sizeClassName="h-8" />
         )}
       </SidebarHeader>
       <SidebarContent>
@@ -129,21 +138,17 @@ export const AppSidebar = () => {
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => {
-                  const isActive =
-                    item.url === "/dashboard"
-                      ? location.pathname === "/dashboard"
-                      : location.pathname.startsWith(item.url);
+                  const isActive = item.url === activeUrl;
                   return (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild isActive={isActive}>
+                    <SidebarMenuItem key={item.url}>
+                      {/* O tooltip só aparece com a barra recolhida (só ícones). */}
+                      <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
                         <NavLink
                           to={item.url}
-                          end={item.url === "/dashboard"}
-                          className="flex items-center gap-2"
-                          activeClassName="text-primary"
+                          className={cn("flex items-center gap-2", isActive && "text-primary")}
                         >
                           <item.icon className="h-4 w-4" />
-                          {!collapsed && <span>{item.title}</span>}
+                          <span>{item.title}</span>
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

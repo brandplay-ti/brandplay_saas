@@ -38,7 +38,7 @@ const TYPE_ICONS = {
 
 const PRIO_CLS = {
   alta: "bg-destructive/15 text-destructive border-destructive/30",
-  media: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+  media: "bg-warning/15 text-warning-strong border-warning/30",
   baixa: "bg-muted text-muted-foreground border-border",
 };
 

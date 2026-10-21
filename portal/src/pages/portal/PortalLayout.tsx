@@ -1,4 +1,6 @@
 import { Link, NavLink, Navigate, Outlet, useNavigate } from "react-router-dom";
+import { Suspense } from "react";
+import { PageLoader } from "@/components/PageLoader";
 import { useAuth } from "@/hooks/useAuth";
 import { useSponsorAccess } from "@/hooks/useSponsorAccess";
 import { Logo } from "@/components/Logo";
@@ -22,7 +24,7 @@ export default function PortalLayout() {
   if (loading || accessLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
-        <Logo showWordmark={false} sizeClassName="h-16 w-16" />
+        <Logo showWordmark={false} sizeClassName="h-14" />
       </div>
     );
   }
@@ -64,7 +66,7 @@ export default function PortalLayout() {
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <Link to="/portal" className="flex items-center gap-2">
-            <Logo showWordmark={false} sizeClassName="h-9 w-9" />
+            <Logo showWordmark={false} sizeClassName="h-8" />
             <div className="leading-tight">
               <p className="text-xs text-muted-foreground">Portal</p>
               <p className="text-sm font-semibold">Patrocinador</p>
@@ -107,7 +109,9 @@ export default function PortalLayout() {
         </nav>
       </header>
       <main className="flex-1 container mx-auto px-4 py-6">
-        <Outlet />
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   );

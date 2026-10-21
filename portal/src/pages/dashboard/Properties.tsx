@@ -42,6 +42,7 @@ import {
   sponsorProfileToPayloadBase,
   type SponsorProfileValue,
 } from "@/components/sponsors/SponsorProfileFields";
+import { PageHeader } from "@/components/common/PageHeader";
 
 interface AllocatedAsset {
   id: string;
@@ -218,108 +219,108 @@ const Properties = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Propriedades esportivas</h1>
-          <p className="text-muted-foreground mt-1">
-            Eventos, campeonatos e projetos que você comercializa.
-          </p>
-        </div>
-        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreate} className="bg-gradient-brand hover:opacity-90 shadow-glow">
-              <Plus className="h-4 w-4 mr-2" /> Nova propriedade
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editing ? "Editar propriedade esportiva" : "Nova propriedade esportiva"}</DialogTitle>
-              <DialogDescription>
-                {editing
-                  ? "Atualize as informações desta propriedade."
-                  : "Estruture um evento, campeonato ou projeto patrocinável."}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome *</Label>
-                <Input
-                  id="name"
-                  required
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Ex: Copa Sul 2025"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Categoria</Label>
-                  <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="planejamento">Planejamento</SelectItem>
-                      <SelectItem value="ativo">Ativo</SelectItem>
-                      <SelectItem value="encerrado">Encerrado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="start_date">Início</Label>
-                  <Input id="start_date" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="end_date">Fim</Label>
-                  <Input id="end_date" type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="audience">Público estimado</Label>
-                <Input
-                  id="audience"
-                  type="number"
-                  min="0"
-                  value={form.audience_estimate}
-                  onChange={(e) => setForm({ ...form, audience_estimate: e.target.value })}
-                  placeholder="Ex: 25000"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Descrição</Label>
-                <Textarea
-                  id="description"
-                  rows={3}
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="Breve descrição da propriedade..."
-                />
-              </div>
-
-              <div className="pt-2 border-t">
-                <SponsorProfileFields showRegistration={false} value={profile} onChange={setProfile} />
-              </div>
-
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-                <Button type="submit" disabled={submitting} className="bg-gradient-brand hover:opacity-90">
-                  {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  {editing ? "Salvar alterações" : "Criar propriedade"}
+      <PageHeader
+        title="Propriedades esportivas"
+        description="Eventos, campeonatos e projetos que você comercializa."
+        actions={
+          <>
+            <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
+              <DialogTrigger asChild>
+                <Button onClick={openCreate} className="bg-gradient-brand hover:opacity-90 shadow-glow">
+                  <Plus className="h-4 w-4 mr-2" /> Nova propriedade
                 </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>{editing ? "Editar propriedade esportiva" : "Nova propriedade esportiva"}</DialogTitle>
+                  <DialogDescription>
+                    {editing
+                      ? "Atualize as informações desta propriedade."
+                      : "Estruture um evento, campeonato ou projeto patrocinável."}
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSave} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Nome *</Label>
+                    <Input
+                      id="name"
+                      required
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      placeholder="Ex: Copa Sul 2025"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Categoria</Label>
+                      <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="planejamento">Planejamento</SelectItem>
+                          <SelectItem value="ativo">Ativo</SelectItem>
+                          <SelectItem value="encerrado">Encerrado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="start_date">Início</Label>
+                      <Input id="start_date" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="end_date">Fim</Label>
+                      <Input id="end_date" type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="audience">Público estimado</Label>
+                    <Input
+                      id="audience"
+                      type="number"
+                      min="0"
+                      value={form.audience_estimate}
+                      onChange={(e) => setForm({ ...form, audience_estimate: e.target.value })}
+                      placeholder="Ex: 25000"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Descrição</Label>
+                    <Textarea
+                      id="description"
+                      rows={3}
+                      value={form.description}
+                      onChange={(e) => setForm({ ...form, description: e.target.value })}
+                      placeholder="Breve descrição da propriedade..."
+                    />
+                  </div>
+
+                  <div className="pt-2 border-t">
+                    <SponsorProfileFields showRegistration={false} value={profile} onChange={setProfile} />
+                  </div>
+
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+                    <Button type="submit" disabled={submitting} className="bg-gradient-brand hover:opacity-90">
+                      {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      {editing ? "Salvar alterações" : "Criar propriedade"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </>
+        }
+      />
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

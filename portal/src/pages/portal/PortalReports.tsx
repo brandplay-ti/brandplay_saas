@@ -5,6 +5,7 @@ import { useSponsorAccess } from "@/hooks/useSponsorAccess";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Briefcase, ExternalLink } from "lucide-react";
+import { PageHeader } from "@/components/common/PageHeader";
 
 interface Property {
   id: string;
@@ -61,14 +62,11 @@ export default function PortalReports() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Briefcase className="h-6 w-6 text-primary" /> Relatórios e mídia kit
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Acesse os mídia kits e materiais das propriedades onde você é patrocinador.
-        </p>
-      </div>
+      <PageHeader
+        title="Relatórios e mídia kit"
+        description="Acesse os mídia kits e materiais das propriedades onde você é patrocinador."
+        icon={Briefcase}
+      />
 
       {loading ? (
         <p className="text-sm text-muted-foreground py-8 text-center">Carregando…</p>

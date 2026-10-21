@@ -4,8 +4,10 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/common/StatusBadge";
+import { type StatusTone } from "@/lib/statusTone";
 import { AlertTriangle, RefreshCw, TrendingDown } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface Risk {
   contract_id: string;
@@ -19,15 +21,14 @@ interface Risk {
   total_value: number;
 }
 
-const levelCls: Record<string, string> = {
-  critico: "bg-destructive/15 text-destructive border-destructive/30",
-  alto: "bg-amber-500/15 text-amber-600 border-amber-500/30",
-  medio: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30",
-  baixo: "bg-muted text-muted-foreground border-border",
+const levelTone: Record<string, StatusTone> = {
+  critico: "danger",
+  alto: "warning",
+  medio: "neutral",
+  baixo: "success",
 };
 
 export const ChurnRiskWidget = () => {
-  const { toast } = useToast();
   const [risks, setRisks] = useState<Risk[]>([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -41,7 +42,7 @@ export const ChurnRiskWidget = () => {
       setRisks(data.risks ?? []);
       setLoaded(true);
     } catch (e: any) {
-      toast({ title: "Erro ao analisar risco", description: e.message, variant: "destructive" });
+      toast.error("Erro ao analisar risco", { description: e.message });
     } finally {
       setLoading(false);
     }
@@ -76,9 +77,9 @@ export const ChurnRiskWidget = () => {
                   <p className="text-sm font-medium truncate">{r.sponsor_name}</p>
                   <p className="text-xs text-muted-foreground truncate">{r.contract_title}</p>
                 </div>
-                <Badge variant="outline" className={levelCls[r.risk_level]}>
+                <StatusBadge tone={levelTone[r.risk_level] ?? "neutral"}>
                   {r.risk_level} · {r.risk_score}
-                </Badge>
+                </StatusBadge>
               </div>
               <div className="flex flex-wrap gap-1">
                 {r.signals.map((s, i) => (

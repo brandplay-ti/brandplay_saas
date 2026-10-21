@@ -1,4 +1,6 @@
 import { Outlet, useNavigate } from "react-router-dom";
+import { Suspense } from "react";
+import { PageLoader } from "@/components/PageLoader";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Logo } from "@/components/Logo";
@@ -47,7 +49,7 @@ const DashboardLayoutInner = () => {
           <header className="h-16 flex items-center justify-between border-b border-border bg-background px-4 md:px-6 sticky top-0 z-30">
             <div className="flex items-center gap-3">
               <SidebarTrigger />
-              <Logo showWordmark={false} sizeClassName="h-9 w-9 md:hidden" />
+              <Logo showWordmark={false} sizeClassName="h-8 md:hidden" />
             </div>
             <div className="flex items-center gap-1">
               <OrganizationSwitcher />
@@ -82,7 +84,9 @@ const DashboardLayoutInner = () => {
           </header>
           <main className="flex-1 p-4 md:p-8">
             <BillingGate>
-              <Outlet />
+              <Suspense fallback={<PageLoader />}>
+                <Outlet />
+              </Suspense>
             </BillingGate>
           </main>
         </div>

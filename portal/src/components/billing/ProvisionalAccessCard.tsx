@@ -59,7 +59,7 @@ export const ProvisionalAccessCard = ({ orgId, hours, pending, onRequest }: Prop
   const ocupado = enviando || pending;
 
   return (
-    <Card className="border-amber-500/40">
+    <Card className="border-warning/40">
       <form onSubmit={enviar}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">

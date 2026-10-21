@@ -11,6 +11,7 @@ import { AccessSourceBadge } from "@/components/admin/AccessSourceBadge";
 import { useAdminClients, useAdminPlans } from "@/hooks/usePlatformAdmin";
 import { formatCents, formatDate, SUBSCRIPTION_STATUS_LABEL } from "@/lib/billing";
 import { ACCESS_SOURCE_LABEL, filterClients, type AccessSource, type ClientFilters } from "@/lib/platformAdmin";
+import { PageHeader } from "@/components/common/PageHeader";
 
 const SITUACOES: AccessSource[] = ["subscription", "trial", "provisional", "none"];
 
@@ -23,13 +24,10 @@ const AdminClients = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Clientes</h1>
-        <p className="mt-1 text-muted-foreground">
-          Organizações da plataforma, com a situação da cobrança e o uso. Dados de domínio (patrocinadores,
-          contratos, propostas) não aparecem aqui.
-        </p>
-      </div>
+      <PageHeader
+        title="Clientes"
+        description="Organizações da plataforma, com a situação da cobrança e o uso. Dados de domínio (patrocinadores, contratos, propostas) não aparecem aqui."
+      />
 
       <div className="flex flex-col gap-3 md:flex-row md:items-end">
         <div className="flex-1 space-y-1.5">

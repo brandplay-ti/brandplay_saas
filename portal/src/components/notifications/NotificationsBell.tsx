@@ -24,7 +24,7 @@ const ICON: Record<string, any> = {
 
 const PRIORITY: Record<string, string> = {
   alta: "text-destructive",
-  media: "text-amber-600",
+  media: "text-warning-strong",
   baixa: "text-muted-foreground",
 };
 

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { OrganizationForm } from "@/components/organization/OrganizationForm";
 import { CreateOrganizationDialog } from "@/components/organization/CreateOrganizationDialog";
+import { PageHeader } from "@/components/common/PageHeader";
 
 const Settings = () => {
   const { orgId, isAdmin } = useOrganization();
@@ -34,13 +35,15 @@ const Settings = () => {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto animate-fade-in">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
-          <p className="text-muted-foreground mt-1">Gerencie sua organização e equipe.</p>
-        </div>
-        <CreateOrganizationDialog />
-      </div>
+      <PageHeader
+        title="Configurações"
+        description="Gerencie sua organização e equipe."
+        actions={
+          <>
+            <CreateOrganizationDialog />
+          </>
+        }
+      />
 
       <Tabs defaultValue="organization" className="space-y-4">
         <TabsList>
