@@ -74,6 +74,11 @@ Dependências: nenhuma.
 - `admin_ia_consumo(_meses)`: custo por mês e top 10 organizações.
 - `ia_consumo_organizacao(_org_id)`: resumo do mês para owner/admin da
   própria organização (Q7).
+- `admin_ia_padrao()` (metadados da chave padrão) e `admin_ia_precos()`
+  (tabela de preços), para as telas de IA-26 e IA-28.
+- Internas, só service role: `ia_parametros(_org_id)` (parâmetros efetivos e
+  gasto do mês) e `ia_consumo_detalhado(_org_id)` (por funcionalidade e por
+  dia), compartilhadas pelas demais.
 - `ia_situacao(_org_id, _user_id)`: usada pelo servidor antes de cada chamada
   — IA habilitada, cobrança liberada, gasto do mês × orçamento (orçamento da
   organização, senão o do plano em `billing_plans`), requisições no último

@@ -5215,6 +5215,72 @@ export type Database = {
           revenue_cents: number
         }[]
       }
+      admin_ia_cliente_detalhe: { Args: { _org_id: string }; Returns: Json }
+      admin_ia_clientes: {
+        Args: never
+        Returns: {
+          ai_enabled: boolean
+          alert_threshold_pct: number
+          budget_cents: number
+          hard_limit: boolean
+          input_tokens_month: number
+          key_hint: string
+          last_call_at: string
+          last_call_error: string
+          last_call_status: string
+          last_error: string
+          last_error_at: string
+          mode: string
+          model_padrao: string
+          name: string
+          organization_id: string
+          output_tokens_month: number
+          pct_used: number
+          plan_id: string
+          provider: string
+          requests_month: number
+          spent_brl: number
+          via_padrao_month: number
+        }[]
+      }
+      admin_ia_consumo: { Args: { _meses?: number }; Returns: Json }
+      admin_ia_padrao: {
+        Args: never
+        Returns: {
+          created_at: string
+          created_by: string
+          credential_id: string
+          key_hint: string
+          last_error: string
+          last_error_at: string
+          last_validated_at: string
+          model_padrao: string
+          model_rapido: string
+          model_visao: string
+          provider: string
+        }[]
+      }
+      admin_ia_precos: {
+        Args: never
+        Returns: {
+          cache_write_input_brl_per_mtok: number | null
+          cached_input_brl_per_mtok: number | null
+          created_at: string
+          id: string
+          input_brl_per_mtok: number
+          model: string
+          output_brl_per_mtok: number
+          provider: string
+          updated_at: string
+          valid_from: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ai_model_prices"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       admin_liberar_acesso: {
         Args: { _comentario: string; _horas: number; _org_id: string }
         Returns: Json
@@ -5416,6 +5482,25 @@ export type Database = {
       has_sponsor_portal_access: {
         Args: { target_sponsor_id: string }
         Returns: boolean
+      }
+      ia_consumo_detalhado: { Args: { _org_id: string }; Returns: Json }
+      ia_consumo_organizacao: { Args: { _org_id: string }; Returns: Json }
+      ia_parametros: {
+        Args: { _org_id: string }
+        Returns: {
+          ai_enabled: boolean
+          alert_threshold_pct: number
+          budget_cents: number
+          hard_limit: boolean
+          has_exclusive: boolean
+          plan_id: string
+          requests_month: number
+          spent_brl: number
+        }[]
+      }
+      ia_situacao: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: Json
       }
       is_asset_publicly_visible: {
         Args: { target_asset_id: string }

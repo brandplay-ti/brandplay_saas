@@ -575,3 +575,35 @@ Suposições registradas:
   e o histórico de uso só tem sentido com ela.
 - `last_error` guarda só a categoria neutra (`chave_invalida`, `sem_saldo`...),
   nunca a mensagem crua do fornecedor, que pode ecoar a chave.
+
+### Leitura e guardas (0032, backlog IA-02)
+
+| Função                        | Quem executa              | O que devolve |
+| ----------------------------- | ------------------------- | ------------- |
+| `ia_parametros(org)`          | service role (interna)    | parâmetros efetivos e gasto do mês |
+| `ia_consumo_detalhado(org)`   | service role (interna)    | mês por funcionalidade, 30 dias por dia |
+| `ia_situacao(org, user)`      | service role              | bloqueio, orçamento, contagens do limite de taxa |
+| `ia_consumo_organizacao(org)` | owner/admin da organização | resumo do mês, sem fornecedor nem chave |
+| `admin_ia_padrao()`, `admin_ia_clientes()`, `admin_ia_cliente_detalhe(org)`, `admin_ia_consumo(meses)`, `admin_ia_precos()` | superadmin (`platform_admin_require()`) | metadados, consumo e preços — nunca `key_ciphertext`/`key_iv` |
+
+Suposições registradas:
+
+- **Parâmetro efetivo**: a linha de `ai_org_settings`, quando existe,
+  prevalece campo a campo; sem ela, vale o plano com acesso
+  (`billing_access_plan`). Organização sem plano (cobrança bloqueada) aparece
+  com IA habilitada e é barrada por `cobranca_bloqueada`, não por
+  `ia_desabilitada` — o motivo certo para a mensagem ao usuário.
+- **Ordem do bloqueio** em `ia_situacao`: `ia_desabilitada` →
+  `cobranca_bloqueada` → `orcamento_esgotado`.
+- **Mês** = `date_trunc('month', now())` do servidor, como o faturamento da
+  0028. Gasto do mês inclui eventos `via_padrao` (decisão Q4: custo do
+  cliente); evento sem preço conta zero.
+- **Requisições** e limite de taxa contam só eventos que chegaram ao
+  fornecedor (`status <> 'bloqueado'`).
+- `ia_situacao` recusa usuário que não é membro ativo da organização, mesmo a
+  Edge Function já tendo validado (defesa em profundidade). `_user_id` nulo =
+  rotina sem usuário.
+- `ia_consumo_organizacao` segue a policy restritiva da 0026: organização sem
+  acesso não lê o próprio uso.
+- Auditoria da IA em `platform_admin_audit_log` com `target_type`
+  `ai_credential` e `ai_org_settings` (gravada a partir da IA-23).
