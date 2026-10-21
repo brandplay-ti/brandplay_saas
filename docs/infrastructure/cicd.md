@@ -53,8 +53,9 @@ workspace `portal`.
 3. **Idempotência** — roda o runner de novo e exige "nenhuma migration
    pendente".
 4. **Seed + testes de segurança** — `supabase:seed` exercita os gatilhos de
-   cadastro (`handle_new_user`) e `supabase:test` roda
-   `supabase/tests/seguranca.sql` (RLS para `anon`).
+   cadastro (`handle_new_user`) e `supabase:test` roda as suítes de
+   `supabase/tests/`: `seguranca.sql` (RLS e isolamento), `cobranca.sql`,
+   `superadmin.sql` e `ia.sql` (chaves, uso e guardas da IA).
 
 O que o CI **não** cobre hoje: testes E2E (dependem do stack completo e de
 dados) e isolamento entre organizações com usuários reais (roteiro comentado em
