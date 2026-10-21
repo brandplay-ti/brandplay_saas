@@ -230,7 +230,9 @@ const Landing = () => {
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-hero">
         <div className="container py-20 md:py-28">
-          <div className="mx-auto max-w-3xl text-center animate-fade-in">
+          {/* Sem animação de entrada: o título é a primeira coisa que a pessoa
+              precisa ler (e o maior elemento da tela, o LCP). */}
+          <div className="mx-auto max-w-3xl text-center">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary-soft px-4 py-1.5 text-xs font-semibold text-primary mb-8">
               <Sparkles className="h-3.5 w-3.5" />
               Plataforma #1 de gestão de patrocínio esportivo

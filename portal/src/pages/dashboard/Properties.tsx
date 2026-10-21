@@ -44,6 +44,7 @@ import {
 } from "@/components/sponsors/SponsorProfileFields";
 import { PageHeader } from "@/components/common/PageHeader";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 interface AllocatedAsset {
   id: string;
@@ -334,9 +335,7 @@ const Properties = () => {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
+        <LoadingSkeleton variant="cards" />
       ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center">

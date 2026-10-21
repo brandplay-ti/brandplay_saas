@@ -1,4 +1,4 @@
-import { AlertTriangle, Loader2, Pencil, Plus, RefreshCw, Star } from "lucide-react";
+import { AlertTriangle, Pencil, Plus, RefreshCw, Star } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { useAdminPlans, useSavePlan } from "@/hooks/usePlatformAdmin";
 import { formatCents } from "@/lib/billing";
 import { stripeSyncNotice } from "@/lib/platformAdmin";
 import { PageHeader } from "@/components/common/PageHeader";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 const limite = (n: number | null) => (n == null ? "Sem limite" : String(n));
 
@@ -54,9 +55,7 @@ const AdminPlans = () => {
       />
 
       {planos.isLoading ? (
-        <div className="flex justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-label="Carregando planos" />
-        </div>
+        <LoadingSkeleton variant="cards" count={3} />
       ) : planos.isError ? (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />

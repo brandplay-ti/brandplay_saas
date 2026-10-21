@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import mammoth from "mammoth";
 import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -39,6 +38,8 @@ export function ContractFileViewer({ filePath, fileName }: Props) {
         } else if (isDocx) {
           const res = await fetch(data.signedUrl);
           const buffer = await res.arrayBuffer();
+          // mammoth só é usado para .docx: carregado sob demanda.
+          const { default: mammoth } = await import("mammoth");
           const result = await mammoth.convertToHtml({ arrayBuffer: buffer });
           if (!cancelled) setDocxHtml(result.value || "<p>Documento vazio.</p>");
         } else {

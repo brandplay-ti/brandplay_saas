@@ -77,6 +77,7 @@ import {
 import type { Database } from "@/integrations/supabase/types";
 import { PageHeader } from "@/components/common/PageHeader";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 type Status = Database["public"]["Enums"]["delivery_status"];
 type Approval = Database["public"]["Enums"]["delivery_approval"];
@@ -959,7 +960,7 @@ export default function Deliveries() {
 
 
       {loading ? (
-        <div className="text-sm text-muted-foreground">Carregando entregas...</div>
+        <LoadingSkeleton />
       ) : viewMode === "list" ? (
         <DeliveriesTableView
           items={filtered}

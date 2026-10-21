@@ -22,6 +22,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { dataLocal } from "@/lib/datas";
 import { PageHeader } from "@/components/common/PageHeader";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 interface Delivery {
   id: string;
@@ -192,7 +193,7 @@ export default function PortalDeliveries() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">Carregando…</p>
+            <LoadingSkeleton count={4} />
           ) : deliveries.length === 0 ? (
             <p className="py-12 text-center text-sm text-muted-foreground">
               Nenhuma entrega disponível.

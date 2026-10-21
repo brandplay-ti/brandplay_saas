@@ -86,6 +86,7 @@ import { SponsorSocialDashboard } from "@/components/sponsors/SponsorProfileFiel
 import { useConfirm } from "@/hooks/useConfirm";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 import { Breadcrumbs } from "@/components/common/Breadcrumbs";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 const fmtBRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -1331,11 +1332,7 @@ export default function PropertyDetail() {
   };
 
   if (loading || !property) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingSkeleton variant="detalhe" className="mx-auto max-w-7xl" />;
   }
 
   const upcomingEvents = events.filter((e) => new Date(e.starts_at) >= new Date());

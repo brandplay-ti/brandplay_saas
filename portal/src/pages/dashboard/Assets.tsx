@@ -37,6 +37,7 @@ import AssetBulkImportDialog from "@/components/assets/AssetBulkImportDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useConfirm } from "@/hooks/useConfirm";
 import { PageHeader } from "@/components/common/PageHeader";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 
 interface Asset {
@@ -543,7 +544,7 @@ export default function Assets() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">Carregando…</p>
+            <LoadingSkeleton variant="cards" />
           ) : filtered.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">
               Nenhum ativo cadastrado. Clique em "Novo ativo" para começar.

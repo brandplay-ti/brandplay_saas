@@ -25,6 +25,7 @@ import {
 } from "@/lib/crmAccount";
 import { PageHeader } from "@/components/common/PageHeader";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 const db = supabase as any;
 const VIEW_KEY = "crm_sponsors_view_v1";
@@ -384,7 +385,7 @@ export default function Sponsors() {
 
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">Carregando…</p>
+            <LoadingSkeleton />
           ) : filtered.length === 0 ? (
             <p className="py-12 text-center text-sm text-muted-foreground">Nenhuma conta encontrada com os filtros atuais.</p>
           ) : layout === "cards" ? (

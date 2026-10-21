@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Briefcase, ExternalLink } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 interface Property {
   id: string;
@@ -69,7 +70,7 @@ export default function PortalReports() {
       />
 
       {loading ? (
-        <p className="text-sm text-muted-foreground py-8 text-center">Carregando…</p>
+        <LoadingSkeleton variant="cards" count={3} />
       ) : properties.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-muted-foreground">

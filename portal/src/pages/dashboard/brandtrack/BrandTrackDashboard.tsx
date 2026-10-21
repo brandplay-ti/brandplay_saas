@@ -20,6 +20,7 @@ import {
   Line,
 } from "recharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 type BrandAgg = {
   name: string;
@@ -194,7 +195,7 @@ const BrandTrackDashboard = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-muted-foreground text-sm">Carregando…</p>
+            <LoadingSkeleton variant="cards" count={3} />
           ) : brands.length === 0 ? (
             <EmptyState />
           ) : (
