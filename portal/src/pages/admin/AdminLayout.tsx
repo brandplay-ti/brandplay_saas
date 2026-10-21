@@ -1,4 +1,6 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
+import { Suspense } from "react";
+import { PageLoader } from "@/components/PageLoader";
 import { useQuery } from "@tanstack/react-query";
 import { BarChart3, Building2, LayoutDashboard, Loader2, LogOut, Package, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
@@ -122,7 +124,9 @@ const AdminLayout = () => {
         </nav>
       </header>
       <main className="mx-auto max-w-7xl p-4 md:p-8">
-        <Outlet />
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   );

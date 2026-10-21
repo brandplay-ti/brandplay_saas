@@ -1,4 +1,6 @@
 import { Link, NavLink, Navigate, Outlet, useNavigate } from "react-router-dom";
+import { Suspense } from "react";
+import { PageLoader } from "@/components/PageLoader";
 import { useAuth } from "@/hooks/useAuth";
 import { useSponsorAccess } from "@/hooks/useSponsorAccess";
 import { Logo } from "@/components/Logo";
@@ -107,7 +109,9 @@ export default function PortalLayout() {
         </nav>
       </header>
       <main className="flex-1 container mx-auto px-4 py-6">
-        <Outlet />
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   );

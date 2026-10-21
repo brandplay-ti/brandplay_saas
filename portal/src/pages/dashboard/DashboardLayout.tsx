@@ -1,4 +1,6 @@
 import { Outlet, useNavigate } from "react-router-dom";
+import { Suspense } from "react";
+import { PageLoader } from "@/components/PageLoader";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Logo } from "@/components/Logo";
@@ -82,7 +84,9 @@ const DashboardLayoutInner = () => {
           </header>
           <main className="flex-1 p-4 md:p-8">
             <BillingGate>
-              <Outlet />
+              <Suspense fallback={<PageLoader />}>
+                <Outlet />
+              </Suspense>
             </BillingGate>
           </main>
         </div>
