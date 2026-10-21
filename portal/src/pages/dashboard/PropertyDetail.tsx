@@ -2,7 +2,6 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { LogoFrame, logoFrameIconClass } from "@/components/LogoFrame";
 import {
-  ArrowLeft,
   Trophy,
   Calendar,
   Users,
@@ -86,6 +85,7 @@ import { toast } from "sonner";
 import { SponsorSocialDashboard } from "@/components/sponsors/SponsorProfileFields";
 import { useConfirm } from "@/hooks/useConfirm";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
+import { Breadcrumbs } from "@/components/common/Breadcrumbs";
 
 const fmtBRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -1344,10 +1344,8 @@ export default function PropertyDetail() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
       {/* HEADER */}
+      <Breadcrumbs items={[{ label: "Propriedades", to: "/dashboard/propriedades" }, { label: property.name }]} />
       <div className="flex items-start gap-4">
-        <Button aria-label="Voltar para propriedades" variant="ghost" size="icon" onClick={() => navigate("/dashboard/propriedades")}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
             <div className="h-12 w-12 rounded-lg bg-gradient-brand text-primary-foreground flex items-center justify-center">
