@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Upload as TusUpload } from "tus-js-client";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -80,11 +79,11 @@ import { ContractAISummary } from "@/components/contracts/ContractAISummary";
 import { NextStepsAI } from "@/components/pipeline/NextStepsAI";
 import { AssetCatalogToolbar, filterAndSortAssets, type AssetSortBy } from "@/components/assets/AssetCatalogToolbar";
 import { buildContractClauses, CONTRACT_SECTION_TITLES } from "@/lib/contractClauseTemplates";
-import { generateContractDocx, downloadBlob } from "@/lib/contractDocx";
 
 import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/common/PageHeader";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 type Status = Database["public"]["Enums"]["contract_status"];
 type PayMethod = Database["public"]["Enums"]["payment_method"];
@@ -525,7 +524,7 @@ export default function Contracts() {
 
       {/* Lista */}
       {loading ? (
-        <div className="text-sm text-muted-foreground">Carregando contratos...</div>
+        <LoadingSkeleton />
       ) : filtered.length === 0 ? (
         <Card className="p-12 text-center">
           <FileSignature className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
@@ -969,6 +968,8 @@ function ContractDetail({
       }
 
       const projectUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL as string;
+      // Carregado só no upload: fica fora do chunk da página de contratos.
+      const { Upload: TusUpload } = await import("tus-js-client");
 
       await new Promise<void>((resolve, reject) => {
         const upload = new TusUpload(file, {
@@ -1043,6 +1044,8 @@ function ContractDetail({
     }
     setGeneratingDocx(true);
     try {
+      // A biblioteca docx pesa centenas de kB: só baixa quando alguém exporta.
+      const { generateContractDocx, downloadBlob } = await import("@/lib/contractDocx");
       const blob = await generateContractDocx({
         title: contract.title,
         contractNumber: contract.contract_number,

@@ -63,6 +63,7 @@ import { cn } from "@/lib/utils";
 import { dataLocal } from "@/lib/datas";
 import { PageHeader } from "@/components/common/PageHeader";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 type Stage = Database["public"]["Enums"]["opportunity_stage"];
 
@@ -1415,7 +1416,7 @@ export default function Pipeline() {
       </Card>
 
       {loading ? (
-        <div className="text-sm text-muted-foreground">Carregando pipeline...</div>
+        <LoadingSkeleton variant="quadro" />
       ) : viewMode === "kanban" ? (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="flex gap-4 overflow-x-auto pb-4 -mx-2 px-2">

@@ -28,6 +28,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useConfirm } from "@/hooks/useConfirm";
 import { PageHeader } from "@/components/common/PageHeader";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 interface Sponsor {
   id: string;
@@ -300,7 +301,7 @@ export default function PortalAccess() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground">Carregando…</p>
+            <LoadingSkeleton count={3} />
           ) : filteredAccesses.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum acesso.</p>
           ) : (
@@ -357,7 +358,7 @@ export default function PortalAccess() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground">Carregando…</p>
+            <LoadingSkeleton count={3} />
           ) : filteredInvites.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum convite.</p>
           ) : (

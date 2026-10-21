@@ -36,6 +36,7 @@ import {
   type Health, type Lifecycle, type Priority,
 } from "@/lib/crmAccount";
 import { Breadcrumbs } from "@/components/common/Breadcrumbs";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 const db = supabase as any;
 
@@ -154,7 +155,7 @@ export default function SponsorDetail() {
   };
 
 
-  if (loading) return <p className="text-sm text-muted-foreground">Carregando…</p>;
+  if (loading) return <LoadingSkeleton variant="detalhe" />;
   if (!sponsor) return <p className="text-sm text-muted-foreground">Patrocinador não encontrado.</p>;
 
   const logoUrl = sponsor.logo_path

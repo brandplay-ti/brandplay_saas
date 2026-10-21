@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { captureGeo, compressImage, detectKind } from "@/lib/fieldUtils";
 import { dataLocal } from "@/lib/datas";
 import { useConfirm } from "@/hooks/useConfirm";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 const MAX_ATTACHMENTS = 10;
 
@@ -214,7 +215,7 @@ const FieldDeliveryDetail = () => {
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-muted-foreground">Carregando…</div>;
+  if (loading) return <LoadingSkeleton variant="detalhe" className="p-4" />;
   if (!delivery) return <div className="p-8 text-center">Entrega não encontrada</div>;
 
   const isDone = delivery.status === "entregue" || delivery.status === "aprovada";

@@ -195,3 +195,10 @@
     box-shadow: var(--shadow-lg);
   }
 }
+
+/* Quem pediu menos movimento no sistema não recebe animação de entrada. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in {
+    animation: none;
+  }
+}

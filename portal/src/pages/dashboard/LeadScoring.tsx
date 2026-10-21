@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useOrganization } from "@/hooks/useOrganization";
 import { PageHeader } from "@/components/common/PageHeader";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 interface Property { id: string; name: string; }
 interface Score {
@@ -142,7 +143,7 @@ export default function LeadScoring() {
       />
 
       {loading ? (
-        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        <LoadingSkeleton variant="cards" count={3} />
       ) : scores.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">

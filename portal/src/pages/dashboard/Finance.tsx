@@ -45,6 +45,7 @@ import {
 import { dataLocal } from "@/lib/datas";
 import { PageHeader } from "@/components/common/PageHeader";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 type InstallmentStatus = "pendente" | "pago" | "atrasado" | "cancelado";
 
@@ -371,7 +372,7 @@ export default function Finance() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">Carregando…</p>
+            <LoadingSkeleton />
           ) : filtered.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">
               Nenhuma parcela encontrada. Ative um contrato para gerar parcelas automaticamente.
