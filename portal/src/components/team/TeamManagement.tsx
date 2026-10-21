@@ -445,12 +445,12 @@ export const TeamManagement = () => {
                   </TableCell>
                   <TableCell>
                     {m.role !== "owner" && m.status === "ativo" && (
-                      <Button size="icon" variant="ghost" onClick={() => handleRevoke(m.id)} disabled={busy} title="Desativar acesso">
+                      <Button aria-label="Desativar acesso" size="icon" variant="ghost" onClick={() => handleRevoke(m.id)} disabled={busy} title="Desativar acesso">
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     )}
                     {m.role !== "owner" && m.status !== "ativo" && (
-                      <Button size="icon" variant="ghost" onClick={() => handleReactivate(m.id)} disabled={busy} title="Reativar acesso">
+                      <Button aria-label="Reativar acesso" size="icon" variant="ghost" onClick={() => handleReactivate(m.id)} disabled={busy} title="Reativar acesso">
                         <RotateCcw className="h-4 w-4 text-primary" />
                       </Button>
                     )}

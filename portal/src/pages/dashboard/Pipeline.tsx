@@ -62,6 +62,7 @@ import {
 import { cn } from "@/lib/utils";
 import { dataLocal } from "@/lib/datas";
 import { PageHeader } from "@/components/common/PageHeader";
+import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 
 type Stage = Database["public"]["Enums"]["opportunity_stage"];
 
@@ -1964,8 +1965,8 @@ function PipelineTableView({
               return (
                 <tr
                   key={opp.id}
-                  className="border-b border-border/70 hover:bg-muted/40 cursor-pointer transition-colors"
-                  onClick={() => onOpen(opp.id)}
+                  className={`border-b border-border/70 hover:bg-muted/40 cursor-pointer transition-colors ${FOCO_CLICAVEL}`}
+                  {...clicavel(() => onOpen(opp.id), { linha: true })}
                 >
                   <td className="px-4 py-3 font-medium min-w-[180px]">{opp.brand}</td>
                   <td className="px-4 py-3 min-w-[150px]">
@@ -1992,6 +1993,7 @@ function PipelineTableView({
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Button
+                      aria-label="Excluir oportunidade"
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-muted-foreground hover:text-destructive"
@@ -2049,8 +2051,8 @@ function PipelineCompactView({
         return (
           <Card
             key={opp.id}
-            className={`p-3 cursor-pointer hover:bg-muted/30 transition-colors ${stale ? "border-warning/60" : ""}`}
-            onClick={() => onOpen(opp.id)}
+            className={`p-3 cursor-pointer hover:bg-muted/30 transition-colors ${stale ? "border-warning/60" : ""} ${FOCO_CLICAVEL}`}
+            {...clicavel(() => onOpen(opp.id))}
           >
             <div className="flex items-center gap-3 min-w-0">
               <span className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${stage.color}`} />
@@ -2098,6 +2100,7 @@ function PipelineCompactView({
                   <PanelRightOpen className="h-4 w-4" />
                 </Button>
                 <Button
+                  aria-label="Excluir oportunidade"
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 text-muted-foreground hover:text-destructive"
@@ -2279,8 +2282,8 @@ function OpportunityCard({
     <Card
       className={`p-3 group hover:shadow-md transition-shadow cursor-pointer ${
         dragging ? "shadow-lg rotate-2" : ""
-      } ${isStale ? "border-warning/60" : ""}`}
-      onClick={() => onOpen?.(opp.id)}
+      } ${isStale ? "border-warning/60" : ""} ${FOCO_CLICAVEL}`}
+      {...clicavel(() => onOpen?.(opp.id))}
     >
       <div className="flex items-start gap-2">
         <button

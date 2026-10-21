@@ -274,6 +274,7 @@ export function SponsorPortalAccess({ sponsorId }: Props) {
                         {a.status === "ativo" ? "Bloquear" : "Reativar"}
                       </Button>
                       <Button
+                        aria-label="Remover acesso ao portal"
                         size="icon"
                         variant="ghost"
                         onClick={() => removeAccess(a.id)}
@@ -332,6 +333,7 @@ export function SponsorPortalAccess({ sponsorId }: Props) {
                           <Copy className="h-4 w-4 mr-1" /> Link
                         </Button>
                         <Button
+                          aria-label="Cancelar convite"
                           size="icon"
                           variant="ghost"
                           onClick={() => cancelInvite(i.id)}

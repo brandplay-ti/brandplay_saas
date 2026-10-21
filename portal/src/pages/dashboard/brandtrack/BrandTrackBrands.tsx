@@ -155,7 +155,7 @@ const BrandTrackBrands = () => {
                     <div className="text-2xl font-bold">{Math.round(r.bes)}</div>
                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground">BES</div>
                   </div>
-                  <Button asChild variant="ghost" size="icon">
+                  <Button aria-label={`Ver detalhes de ${r.brand_name}`} asChild variant="ghost" size="icon">
                     <Link to={`/dashboard/brandtrack/marcas/${encodeURIComponent(r.brand_name)}`}><ChevronRight className="h-4 w-4" /></Link>
                   </Button>
                 </div>

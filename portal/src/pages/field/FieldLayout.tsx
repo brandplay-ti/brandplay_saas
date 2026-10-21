@@ -41,10 +41,10 @@ const FieldLayout = () => {
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} title="Voltar ao dashboard">
+            <Button aria-label="Voltar ao dashboard" variant="ghost" size="icon" onClick={() => navigate("/dashboard")} title="Voltar ao dashboard">
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={handleLogout} title="Sair">
+            <Button aria-label="Sair" variant="ghost" size="icon" onClick={handleLogout} title="Sair">
               <LogOut className="w-4 h-4" />
             </Button>
           </div>

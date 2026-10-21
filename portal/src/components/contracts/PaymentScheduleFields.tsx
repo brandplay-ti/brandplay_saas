@@ -74,6 +74,7 @@ export function PaymentScheduleFields({
               <Input type="date" value={d} onChange={(e) => update(i, e.target.value)} />
               <span className="text-xs text-muted-foreground hidden sm:block w-24">{fmt(d)}</span>
               <Button
+                aria-label="Remover data"
                 type="button"
                 variant="ghost"
                 size="icon"

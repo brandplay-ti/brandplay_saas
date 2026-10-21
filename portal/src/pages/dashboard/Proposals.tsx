@@ -26,6 +26,7 @@ import { NextStepsAI } from "@/components/pipeline/NextStepsAI";
 import { AssetCatalogToolbar, type AssetSortBy } from "@/components/assets/AssetCatalogToolbar";
 import { useConfirm } from "@/hooks/useConfirm";
 import { PageHeader } from "@/components/common/PageHeader";
+import { ativarComTeclado } from "@/lib/clicavel";
 
 
 type Status = "rascunho" | "enviada" | "aceita" | "recusada" | "expirada";
@@ -1146,11 +1147,11 @@ export default function Proposals() {
                               {itemView === "grid" ? (
                                 <div className="grid grid-cols-2 gap-2">
                                   {group.list.map((it) => (
-                                    <div key={it.id} role="button" tabIndex={0} onClick={() => setEditingItem({ ...it })} onKeyDown={(e) => e.key === "Enter" && setEditingItem({ ...it })}
+                                    <div key={it.id} role="button" tabIndex={0} onClick={() => setEditingItem({ ...it })} onKeyDown={ativarComTeclado(() => setEditingItem({ ...it }))}
                                       className="rounded-md border p-3 cursor-pointer hover:border-primary/60 hover:bg-muted/40 transition-colors">
                                       <div className="flex items-start justify-between gap-2">
                                         <span className="text-sm font-medium line-clamp-2">{it.name}</span>
-                                        <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={(e) => { e.stopPropagation(); removeItem(it); }}><Trash2 className="h-4 w-4" /></Button>
+                                        <Button aria-label="Remover item da proposta" size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={(e) => { e.stopPropagation(); removeItem(it); }}><Trash2 className="h-4 w-4" /></Button>
                                       </div>
                                       <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                                         <span>{it.quantity}x{useFlat ? "" : ` ${fmtBRL(Number(it.unit_value))}`}</span>
@@ -1165,13 +1166,13 @@ export default function Proposals() {
                               ) : itemView === "compact" ? (
                                 <div className="rounded-md border divide-y">
                                   {group.list.map((it) => (
-                                    <div key={it.id} role="button" tabIndex={0} onClick={() => setEditingItem({ ...it })} onKeyDown={(e) => e.key === "Enter" && setEditingItem({ ...it })}
+                                    <div key={it.id} role="button" tabIndex={0} onClick={() => setEditingItem({ ...it })} onKeyDown={ativarComTeclado(() => setEditingItem({ ...it }))}
                                       className="px-3 py-1.5 text-sm cursor-pointer hover:bg-muted/40">
                                       <div className="flex items-center justify-between gap-2">
                                         <span className="truncate">{it.quantity}x {it.name}</span>
                                         <div className="flex items-center gap-1 shrink-0">
                                           {!useFlat && <span className="text-xs font-medium">{fmtBRL(it.quantity * Number(it.unit_value))}</span>}
-                                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); removeItem(it); }}><Trash2 className="h-4 w-4" /></Button>
+                                          <Button aria-label="Remover item da proposta" size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); removeItem(it); }}><Trash2 className="h-4 w-4" /></Button>
                                         </div>
                                       </div>
                                       {it.description && <p className="text-xs text-muted-foreground whitespace-pre-wrap">{it.description}</p>}
@@ -1182,7 +1183,7 @@ export default function Proposals() {
                               ) : (
                                 <div className="space-y-2">
                                   {group.list.map((it) => (
-                                    <div key={it.id} role="button" tabIndex={0} onClick={() => setEditingItem({ ...it })} onKeyDown={(e) => e.key === "Enter" && setEditingItem({ ...it })}
+                                    <div key={it.id} role="button" tabIndex={0} onClick={() => setEditingItem({ ...it })} onKeyDown={ativarComTeclado(() => setEditingItem({ ...it }))}
                                       className="flex items-center gap-3 rounded-md border p-3 cursor-pointer hover:border-primary/60 hover:bg-muted/40 transition-colors">
                                       <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2">
@@ -1195,7 +1196,7 @@ export default function Proposals() {
                                       </div>
                                       {!useFlat && <span className="text-sm font-semibold">{fmtBRL(it.quantity * Number(it.unit_value))}</span>}
                                       <Pencil className="h-4 w-4 text-muted-foreground" />
-                                      <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); removeItem(it); }}><Trash2 className="h-4 w-4" /></Button>
+                                      <Button aria-label="Remover item da proposta" size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); removeItem(it); }}><Trash2 className="h-4 w-4" /></Button>
                                     </div>
                                   ))}
                                 </div>

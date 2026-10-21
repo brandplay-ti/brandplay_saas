@@ -8,6 +8,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNotifications } from "@/hooks/useNotifications";
 import { cn } from "@/lib/utils";
+import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 
 const ICON: Record<string, any> = {
   installment_due: Clock,
@@ -94,9 +95,8 @@ export function NotificationsBell() {
                     key={n.id}
                     className={cn(
                       "p-3 hover:bg-muted/40 cursor-pointer flex gap-3 group",
-                      !n.read_at && "bg-primary/5"
-                    )}
-                    onClick={() => handleClick(n)}
+                      !n.read_at && "bg-primary/5", FOCO_CLICAVEL)}
+                    {...clicavel(() => handleClick(n))}
                   >
                     <Icon className={cn("h-4 w-4 mt-0.5 shrink-0", PRIORITY[n.priority])} />
                     <div className="flex-1 min-w-0">
@@ -109,9 +109,10 @@ export function NotificationsBell() {
                       )}
                     </div>
                     <Button
+                      aria-label="Excluir notificação"
                       size="icon"
                       variant="ghost"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                       onClick={(e) => { e.stopPropagation(); remove(n.id); }}
                     >
                       <Trash2 className="h-3 w-3" />

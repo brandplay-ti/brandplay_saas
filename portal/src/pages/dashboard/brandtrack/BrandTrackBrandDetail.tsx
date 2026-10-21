@@ -50,7 +50,7 @@ const BrandTrackBrandDetail = () => {
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center gap-3">
-        <Button asChild variant="ghost" size="icon">
+        <Button aria-label="Voltar para análise por patrocinador" asChild variant="ghost" size="icon">
           <Link to="/dashboard/brandtrack/marcas"><ArrowLeft className="h-4 w-4" /></Link>
         </Button>
         <div>

@@ -280,6 +280,7 @@ export const OpportunityContactsPanel = ({
                     </div>
                   </div>
                   <Button
+                    aria-label="Remover contato"
                     size="icon"
                     variant="ghost"
                     className="h-7 w-7 text-destructive hover:text-destructive"

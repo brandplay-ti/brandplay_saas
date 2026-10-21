@@ -302,7 +302,7 @@ export function SponsorTimeline({ sponsorId }: Props) {
                       )}
                     </div>
                     {it.source === "manual" && (
-                      <Button size="icon" variant="ghost" className="h-7 w-7"
+                      <Button aria-label="Excluir interação" size="icon" variant="ghost" className="h-7 w-7"
                         onClick={() => remove(it.id)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>

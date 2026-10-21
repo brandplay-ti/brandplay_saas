@@ -85,6 +85,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { SponsorSocialDashboard } from "@/components/sponsors/SponsorProfileFields";
 import { useConfirm } from "@/hooks/useConfirm";
+import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 
 const fmtBRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -1344,7 +1345,7 @@ export default function PropertyDetail() {
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
       {/* HEADER */}
       <div className="flex items-start gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/propriedades")}>
+        <Button aria-label="Voltar para propriedades" variant="ghost" size="icon" onClick={() => navigate("/dashboard/propriedades")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
@@ -1749,10 +1750,10 @@ export default function PropertyDetail() {
                           <p className="text-xs text-muted-foreground">por vaga</p>
                         </div>
                         <div className="flex gap-1">
-                          <Button size="icon" variant="ghost" onClick={() => openTierDialog(t)}>
+                          <Button aria-label="Editar cota" size="icon" variant="ghost" onClick={() => openTierDialog(t)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button size="icon" variant="ghost" onClick={() => deleteTier(t.id)}>
+                          <Button aria-label="Excluir cota" size="icon" variant="ghost" onClick={() => deleteTier(t.id)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
@@ -1857,7 +1858,7 @@ export default function PropertyDetail() {
                     <ClipboardPaste className="h-4 w-4 mr-1.5" />
                     Colar
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => setShowTierMap((v) => !v)}>
+                  <Button aria-label={showTierMap ? "Ocultar mapa das cotas" : "Mostrar mapa das cotas"} aria-pressed={showTierMap} variant="ghost" size="icon" onClick={() => setShowTierMap((v) => !v)}>
                     {showTierMap ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
@@ -1906,8 +1907,8 @@ export default function PropertyDetail() {
                                   return (
                                     <tr
                                       key={a.id}
-                                      className="border-b last:border-0 cursor-pointer hover:bg-muted/40"
-                                      onClick={() => openMapAssetEditor(a)}
+                                      className={`border-b last:border-0 cursor-pointer hover:bg-muted/40 ${FOCO_CLICAVEL}`}
+                                      {...clicavel(() => openMapAssetEditor(a), { linha: true })}
                                       title="Clique para editar o ativo e as quantidades por cota"
                                     >
                                       <td className="py-1.5 pr-3">
@@ -2058,6 +2059,7 @@ export default function PropertyDetail() {
                 ["compact", Rows3],
               ] as const).map(([mode, Icon]) => (
                 <Button
+                  aria-label={{ grid: "Ver em grade", list: "Ver em lista", compact: "Ver compacto" }[mode]} aria-pressed={mapView === mode}
                   key={mode}
                   variant={mapView === mode ? "secondary" : "ghost"}
                   size="icon"
@@ -2132,13 +2134,13 @@ export default function PropertyDetail() {
                         return (
                           <Card
                             key={a.id}
-                            onClick={() => openMapAssetEditor(a)}
+                            {...clicavel(() => openMapAssetEditor(a))}
                             title="Clique para editar o ativo e as quantidades por cota"
                             className={`relative overflow-hidden cursor-pointer ${
                               a.sold ? "opacity-60" : ""
                             } ${
                               a.is_exclusive ? "ring-2 ring-warning/60 border-warning/40 bg-warning/[0.04]" : ""
-                            } hover:shadow-md transition`}
+                            } hover:shadow-md transition ${FOCO_CLICAVEL}`}
                           >
                             <div className="aspect-video bg-muted overflow-hidden">
                               {a.cover_url ? (
@@ -2194,7 +2196,7 @@ export default function PropertyDetail() {
                   {mapView === "list" && (
                     <div className="border rounded-md divide-y">
                       {list.map((a) => (
-                        <div key={a.id} onClick={() => openMapAssetEditor(a)} title="Clique para editar o ativo e as quantidades por cota" className={`flex items-center gap-3 p-2.5 cursor-pointer hover:bg-muted/50 transition ${a.sold ? "opacity-60" : ""} ${a.is_exclusive ? "bg-warning/[0.06] border-l-2 border-l-amber-500" : ""}`}>
+                        <div key={a.id} {...clicavel(() => openMapAssetEditor(a))} title="Clique para editar o ativo e as quantidades por cota" className={`flex items-center gap-3 p-2.5 cursor-pointer hover:bg-muted/50 transition ${a.sold ? "opacity-60" : ""} ${a.is_exclusive ? "bg-warning/[0.06] border-l-2 border-l-amber-500" : ""} ${FOCO_CLICAVEL}`}>
                           <div className="h-10 w-14 rounded bg-muted overflow-hidden shrink-0">
                             {a.cover_url ? (
                               <img src={a.cover_url} alt={a.name} className="w-full h-full object-cover" />
@@ -2243,7 +2245,7 @@ export default function PropertyDetail() {
                   {mapView === "compact" && (
                     <div className="border rounded-md divide-y">
                       {list.map((a) => (
-                        <div key={a.id} onClick={() => openMapAssetEditor(a)} title="Clique para editar o ativo e as quantidades por cota" className={`flex items-center gap-2 px-2.5 py-1.5 text-xs cursor-pointer hover:bg-muted/50 transition ${a.sold ? "opacity-60" : ""} ${a.is_exclusive ? "bg-warning/[0.06] border-l-2 border-l-amber-500" : ""}`}>
+                        <div key={a.id} {...clicavel(() => openMapAssetEditor(a))} title="Clique para editar o ativo e as quantidades por cota" className={`flex items-center gap-2 px-2.5 py-1.5 text-xs cursor-pointer hover:bg-muted/50 transition ${a.sold ? "opacity-60" : ""} ${a.is_exclusive ? "bg-warning/[0.06] border-l-2 border-l-amber-500" : ""} ${FOCO_CLICAVEL}`}>
                           <span
                             className={`h-2 w-2 rounded-full shrink-0 ${
                               a.sold ? "bg-destructive" : a.in_tier ? "bg-primary" : "bg-success"
@@ -2309,7 +2311,7 @@ export default function PropertyDetail() {
                           <p className="text-xs text-muted-foreground">📍 {e.location}</p>
                         )}
                       </div>
-                      <Button variant="ghost" size="icon" onClick={() => deleteEvent(e.id)}>
+                      <Button aria-label="Excluir evento" variant="ghost" size="icon" onClick={() => deleteEvent(e.id)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -2355,10 +2357,10 @@ export default function PropertyDetail() {
             {seasons.map((s) => (
               <Card
                 key={s.id}
-                onClick={() => s.id !== property.id && navigate(`/dashboard/propriedades/${s.id}`)}
+                {...clicavel(() => s.id !== property.id && navigate(`/dashboard/propriedades/${s.id}`))}
                 className={`cursor-pointer hover:border-primary/40 transition ${
                   s.id === property.id ? "border-primary ring-1 ring-primary" : ""
-                }`}
+                } ${FOCO_CLICAVEL}`}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
@@ -2641,8 +2643,8 @@ export default function PropertyDetail() {
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {activeSponsors.map((sp) => (
-                <Card key={sp.id} className="hover:shadow-md transition cursor-pointer"
-                  onClick={() => navigate("/dashboard/patrocinadores")}>
+                <Card key={sp.id} className={`hover:shadow-md transition cursor-pointer ${FOCO_CLICAVEL}`}
+                  {...clicavel(() => navigate("/dashboard/patrocinadores"))}>
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
                       <LogoFrame src={sp.logo_url} alt={sp.name} size="md" fallback={<Building2 className={`${logoFrameIconClass("md")} text-muted-foreground`} />} />

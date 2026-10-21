@@ -138,6 +138,7 @@ export function AIAssistantDrawer({
             </SheetTitle>
             <div className="flex gap-1">
               <Button
+                aria-label="Histórico de conversas" aria-pressed={showHistory}
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowHistory((v) => !v)}
@@ -146,6 +147,7 @@ export function AIAssistantDrawer({
                 <MessageSquare className="h-4 w-4" />
               </Button>
               <Button
+                aria-label="Nova conversa"
                 variant="ghost"
                 size="icon"
                 onClick={() => {
@@ -271,7 +273,7 @@ export function AIAssistantDrawer({
                 disabled={sending}
                 autoFocus
               />
-              <Button type="submit" size="icon" disabled={sending || !input.trim()}>
+              <Button aria-label="Enviar mensagem" type="submit" size="icon" disabled={sending || !input.trim()}>
                 <Send className="h-4 w-4" />
               </Button>
             </form>

@@ -259,13 +259,13 @@ const CalendarPage = () => {
               {cursor.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
             </CardTitle>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>
+              <Button aria-label="Mês anterior" variant="ghost" size="icon" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <Button variant="outline" size="sm" onClick={() => { const d = new Date(); setCursor(new Date(d.getFullYear(), d.getMonth(), 1)); setSelected(toKey(d)); }}>
                 Hoje
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}>
+              <Button aria-label="Próximo mês" variant="ghost" size="icon" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
@@ -337,7 +337,7 @@ const CalendarPage = () => {
                         {i.description && <p className="text-xs text-muted-foreground line-clamp-3">{i.description}</p>}
                       </div>
                       {!i.done && (
-                        <Button size="icon" variant="ghost" title="Concluir" onClick={() => complete(i)}>
+                        <Button aria-label="Concluir" size="icon" variant="ghost" title="Concluir" onClick={() => complete(i)}>
                           <CheckCircle2 className="h-4 w-4" />
                         </Button>
                       )}

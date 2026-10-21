@@ -109,6 +109,7 @@ export const NextActionsWidget = () => {
                     </div>
                   </div>
                   <Button
+                    aria-label="Marcar como concluída"
                     size="icon"
                     variant="ghost"
                     className="h-7 w-7 shrink-0"

@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import FieldEvidenceImportDialog from "@/components/brandtrack/FieldEvidenceImportDialog";
 import { useConfirm } from "@/hooks/useConfirm";
 import { PageHeader } from "@/components/common/PageHeader";
+import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 
 type Media = {
   id: string;
@@ -529,16 +530,16 @@ const BrandTrackUploads = () => {
               setDragOver(false);
               void handleFiles(e.dataTransfer.files);
             }}
-            onClick={() => {
+            {...clicavel(() => {
               if (!eventId) {
                 toast.error("Escolha uma propriedade antes de selecionar arquivos.");
                 return;
               }
               inputRef.current?.click();
-            }}
+            })}
             className={`border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors ${
               dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
-            }`}
+            } ${FOCO_CLICAVEL}`}
           >
             <Upload className="h-10 w-10 mx-auto mb-2 text-muted-foreground" />
             <p className="font-medium">Arraste arquivos aqui ou clique para selecionar</p>
@@ -681,13 +682,14 @@ const BrandTrackUploads = () => {
                         {editingId === m.id ? (
                           <div className="flex items-center gap-2">
                             <Input value={editingTitle} onChange={(e) => setEditingTitle(e.target.value)} className="h-8" />
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => void saveTitle(m.id)}><Check className="h-4 w-4" /></Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingId(null)}><X className="h-4 w-4" /></Button>
+                            <Button aria-label="Salvar título" size="icon" variant="ghost" className="h-8 w-8" onClick={() => void saveTitle(m.id)}><Check className="h-4 w-4" /></Button>
+                            <Button aria-label="Cancelar edição" size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingId(null)}><X className="h-4 w-4" /></Button>
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
                             <div className="truncate font-medium">{m.title}</div>
                             <Button
+                              aria-label="Editar título"
                               size="icon"
                               variant="ghost"
                               className="h-6 w-6 shrink-0"
@@ -723,7 +725,7 @@ const BrandTrackUploads = () => {
                         <BarChart3 className="h-4 w-4" />
                         Análise
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => void removeMedia(m.id, m.storage_path)}>
+                      <Button aria-label="Remover mídia" variant="ghost" size="icon" onClick={() => void removeMedia(m.id, m.storage_path)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>

@@ -44,6 +44,7 @@ import {
 } from "recharts";
 import { dataLocal } from "@/lib/datas";
 import { PageHeader } from "@/components/common/PageHeader";
+import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 
 type InstallmentStatus = "pendente" | "pago" | "atrasado" | "cancelado";
 
@@ -391,7 +392,7 @@ export default function Finance() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((r) => (
-                    <TableRow key={r.id} className="cursor-pointer" onClick={() => openDetail(r)}>
+                    <TableRow key={r.id} className={`cursor-pointer ${FOCO_CLICAVEL}`} {...clicavel(() => openDetail(r), { linha: true })}>
                       <TableCell className="font-medium">
                         {r.contract_title}
                         {r.contract_number && (

@@ -260,11 +260,11 @@ export const CrmTasksPanel = ({ sponsorId, opportunityId }: { sponsorId: string;
                   {editable && (
                     <div className="flex flex-col gap-1">
                       {t.status !== "concluida" && (
-                        <Button size="icon" variant="ghost" title="Concluir" onClick={() => complete(t)}>
+                        <Button aria-label="Concluir tarefa" size="icon" variant="ghost" title="Concluir" onClick={() => complete(t)}>
                           <CheckCircle2 className="h-4 w-4" />
                         </Button>
                       )}
-                      <Button size="icon" variant="ghost" title="Excluir" onClick={() => remove(t)}>
+                      <Button aria-label="Excluir tarefa" size="icon" variant="ghost" title="Excluir" onClick={() => remove(t)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
