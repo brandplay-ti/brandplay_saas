@@ -464,6 +464,12 @@ services:
       EMAIL_FROM: ${EMAIL_FROM:-}
       # IA (ADR-0003): as Edge Functions chamam a API da Anthropic direto.
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Chave mestra que cifra as chaves de IA guardadas no banco
+      # (`ai_credentials`, `_shared/ai-crypto.ts`). Perdê-la inutiliza todas as
+      # chaves cadastradas: guarde cópia fora do servidor (runbook de IA).
+      AI_KEYS_MASTER_KEY: ${AI_KEYS_MASTER_KEY:-}
+      AI_KEYS_MASTER_KEY_VERSION: ${AI_KEYS_MASTER_KEY_VERSION:-1}
+      AI_KEYS_PREVIOUS_MASTER_KEYS: ${AI_KEYS_PREVIOUS_MASTER_KEYS:-}
       # Cobranca (ADR-0007). Sem elas, `manage-billing` responde "cobranca nao
       # configurada" e `billing-webhook` recusa todo evento.
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}

@@ -107,6 +107,8 @@ Dependências: IA-01, IA-02.
 
 - AES-GCM via Web Crypto; IV aleatório por gravação; `key_version` para
   rotação (aceita decifrar versões anteriores listadas em ambiente).
+- A cifra leva como dado autenticado (AAD) o dono da chave — organização ou
+  `padrao`: uma linha copiada para outra organização no banco não decifra.
 - Variável `AI_KEYS_MASTER_KEY` no compose e no `.env.example` (sem valor);
   `npm run supabase:chaves` passa a gerar uma para o ambiente local.
 - Teste: cifra/decifra; IV diferente a cada gravação; chave mestra errada
@@ -276,7 +278,7 @@ qualidade em português (amostra revisada por pessoa), taxa de JSON/tool
 inválido, latência e custo medido em `ai_usage_events`.
 
 Critérios: relatório anexado ao PR; fornecedor padrão e modelos por nível
-decididos e gravados em IA-08 e na ADR-0009.
+decididos e gravados em IA-08 e na ADR da IA (IA-35).
 
 **Bloqueio**: precisa de chaves de teste de OpenAI, Gemini (plano pago) e
 Anthropic fornecidas pelo usuário. Dependências: IA-14 a IA-21.
@@ -395,9 +397,9 @@ Registro em `docs/runbooks/deployment.md`.
 Dependências: IA-22. **Exige autorização explícita** para acessar
 homologação/produção.
 
-### IA-35 · ADR-0009 e atualização das regras — M
+### IA-35 · ADR da IA e atualização das regras — M
 
-ADR-0009 (IA multi-fornecedor com chave por organização; substitui a
+ADR da IA — próximo número livre; a 0009 já é a de backup (`0009-backup-externo-com-restic.md`) — (IA multi-fornecedor com chave por organização; substitui a
 ADR-0003), `SECURITY.md`, `.claude/rules/security.md` (superfície nova),
 `.claude/rules/supabase.md` (padrão das tabelas de IA), `CLAUDE.md` §3
 (integrações e variáveis), `supabase/functions/MIGRATION_NOTES.md`.

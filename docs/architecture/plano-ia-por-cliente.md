@@ -2,7 +2,7 @@
 
 - **Data**: 2026-10-20
 - **Status**: **aprovado em 2026-10-20**, com todas as decisões da seção 7.
-  Backlog em `docs/architecture/backlog-ia-por-cliente.md`. A ADR-0009, que
+  Backlog em `docs/architecture/backlog-ia-por-cliente.md`. A ADR da IA (próximo número livre), que
   substitui a ADR-0003, é uma das histórias do backlog.
 - **Pedido**: IA compatível com vários fornecedores; uma chave padrão da
   plataforma usada por todos os clientes; o superadmin troca a chave de um
@@ -289,7 +289,7 @@ de `supabase/tests/cobranca.sql` (dado da plataforma), exceto o que o owner lê
 | **D. `admin-ai`** | Edge Function administrativa: chave padrão, chave por cliente, teste de conexão, revogação, orçamento, preços; auditoria | `functions/admin-ai/`, compose e `.env.example` (variável `AI_KEYS_MASTER_KEY`) |
 | **E. Tela `/admin/ia`** | F1 completa, item no menu do admin | `portal/src/pages/admin/AdminAi*.tsx`, hook `useAdminAi.ts` |
 | **F. Controles** | Alertas de 80%/100% (notificação + e-mail via `_shared/email.ts`), card de custo na visão geral, opcional: consumo em Configurações | `check-notifications` ou função nova, `AdminOverview.tsx` |
-| **G. Documentação** | ADR-0009 (substitui ADR-0003), `SECURITY.md`, `.claude/rules/security.md` e `supabase.md` (padrão novo), `CLAUDE.md` §3, runbook `docs/runbooks/ia.md` (gerar chave mestra, cadastrar chave padrão, criar Project na OpenAI por cliente, rotação), `MIGRATION_NOTES.md` | docs |
+| **G. Documentação** | ADR da IA, próximo número livre (substitui ADR-0003), `SECURITY.md`, `.claude/rules/security.md` e `supabase.md` (padrão novo), `CLAUDE.md` §3, runbook `docs/runbooks/ia.md` (gerar chave mestra, cadastrar chave padrão, criar Project na OpenAI por cliente, rotação), `MIGRATION_NOTES.md` | docs |
 
 - **Marco 1 — IA volta a funcionar** (A + B + B2 + C + chave padrão via
   variável de ambiente como semente): todos os clientes no fornecedor padrão
