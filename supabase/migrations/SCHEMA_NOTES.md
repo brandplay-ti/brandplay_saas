@@ -531,3 +531,79 @@ segue o Lovable.
 - **Contrato**: `_contract_id` precisa ser da própria oportunidade; se não
   for, a função devolve `null` e a Edge Function responde 404. Sem contrato
   informado, vale o mais recente da oportunidade, como no Lovable.
+
+## IA por organização (0031, plano `docs/architecture/plano-ia-por-cliente.md`)
+
+Tabelas novas, não vindas do Lovable. Backlog IA-01.
+
+| Tabela             | O que é                                                        | Leitura                        | Escrita          |
+| ------------------ | -------------------------------------------------------------- | ------------------------------ | ---------------- |
+| `ai_credentials`   | chave de API cifrada; `organization_id` nulo = chave padrão     | ninguém pela API               | só service role  |
+| `ai_org_settings`  | por organização: IA habilitada, orçamento, % de alerta, corte  | owner/admin                    | só service role  |
+| `ai_usage_events`  | uma linha por chamada: tokens, custo estimado, resultado       | owner/admin                    | só service role; imutável pela API |
+| `ai_model_prices`  | preço por 1M de tokens, por modelo e vigência                   | ninguém pela API               | só service role  |
+
+`billing_plans` ganhou `ai_enabled` (padrão `true`) e
+`ai_monthly_budget_cents` (padrão nulo = sem teto): o padrão de IA do plano
+para organizações sem `ai_org_settings`. Monetização fica para depois.
+
+Segue o padrão 8 (cobrança): leitura `has_org_role(organization_id,
+['owner','admin'])`, nenhuma policy de escrita, `insert/update/delete`
+revogados de `authenticated`. O superadmin lê pelas funções `admin_ia_*`
+(IA-02), nunca por policy.
+
+Suposições registradas:
+
+- **A chave nunca chega ao banco em claro.** A Edge Function cifra com
+  AES-GCM e a chave mestra do ambiente (`AI_KEYS_MASTER_KEY`); o banco guarda
+  cifra, IV, versão da chave mestra e os últimos caracteres (`key_hint`).
+- `ai_credentials` fica **fora** da policy restritiva de cobrança e na lista
+  de exceções do teste `(m)`: é dado da plataforma e `authenticated` não tem
+  nenhum privilégio nela. `ai_org_settings` e `ai_usage_events` têm a policy.
+- **Custo em reais.** O orçamento é em R$ (decisão Q5), então os preços em
+  `ai_model_prices` são cadastrados em reais, convertidos por quem opera. Os
+  fornecedores cobram em dólar: o custo é estimativa e o câmbio da conversão
+  fica a cargo de quem cadastra o preço.
+- **Sem preço inicial.** Os preços disponíveis no planejamento vinham de
+  agregadores, não das páginas oficiais. Modelo sem preço grava
+  `estimated_cost_brl` nulo; os tokens ficam e o custo pode ser recalculado.
+- `ai_usage_events` sem `updated_at`, como `platform_admin_audit_log`:
+  imutável. `user_id` sem FK (como `platform_admin_audit_log.admin_user_id`),
+  nulo para rotina sem usuário.
+- Organização apagada leva credenciais, configuração e uso junto
+  (`on delete cascade`): não há fluxo de exclusão de organização no produto,
+  e o histórico de uso só tem sentido com ela.
+- `last_error` guarda só a categoria neutra (`chave_invalida`, `sem_saldo`...),
+  nunca a mensagem crua do fornecedor, que pode ecoar a chave.
+
+### Leitura e guardas (0032, backlog IA-02)
+
+| Função                        | Quem executa              | O que devolve |
+| ----------------------------- | ------------------------- | ------------- |
+| `ia_parametros(org)`          | service role (interna)    | parâmetros efetivos e gasto do mês |
+| `ia_consumo_detalhado(org)`   | service role (interna)    | mês por funcionalidade, 30 dias por dia |
+| `ia_situacao(org, user)`      | service role              | bloqueio, orçamento, contagens do limite de taxa |
+| `ia_consumo_organizacao(org)` | owner/admin da organização | resumo do mês, sem fornecedor nem chave |
+| `admin_ia_padrao()`, `admin_ia_clientes()`, `admin_ia_cliente_detalhe(org)`, `admin_ia_consumo(meses)`, `admin_ia_precos()` | superadmin (`platform_admin_require()`) | metadados, consumo e preços — nunca `key_ciphertext`/`key_iv` |
+
+Suposições registradas:
+
+- **Parâmetro efetivo**: a linha de `ai_org_settings`, quando existe,
+  prevalece campo a campo; sem ela, vale o plano com acesso
+  (`billing_access_plan`). Organização sem plano (cobrança bloqueada) aparece
+  com IA habilitada e é barrada por `cobranca_bloqueada`, não por
+  `ia_desabilitada` — o motivo certo para a mensagem ao usuário.
+- **Ordem do bloqueio** em `ia_situacao`: `ia_desabilitada` →
+  `cobranca_bloqueada` → `orcamento_esgotado`.
+- **Mês** = `date_trunc('month', now())` do servidor, como o faturamento da
+  0028. Gasto do mês inclui eventos `via_padrao` (decisão Q4: custo do
+  cliente); evento sem preço conta zero.
+- **Requisições** e limite de taxa contam só eventos que chegaram ao
+  fornecedor (`status <> 'bloqueado'`).
+- `ia_situacao` recusa usuário que não é membro ativo da organização, mesmo a
+  Edge Function já tendo validado (defesa em profundidade). `_user_id` nulo =
+  rotina sem usuário.
+- `ia_consumo_organizacao` segue a policy restritiva da 0026: organização sem
+  acesso não lê o próprio uso.
+- Auditoria da IA em `platform_admin_audit_log` com `target_type`
+  `ai_credential` e `ai_org_settings` (gravada a partir da IA-23).

@@ -162,7 +162,7 @@ npm run supabase:up            # sobe o Supabase local (Docker)
 npm run supabase:migrate       # aplica migrations pendentes
 npm run supabase:migrate:status
 npm run supabase:seed          # usuário de exemplo (só local)
-npm run supabase:test          # testes de segurança/RLS, cobrança e superadmin (supabase/tests/)
+npm run supabase:test          # testes de segurança/RLS, cobrança, superadmin e IA (supabase/tests/)
 npm run supabase:superadmin -- -v email=<e-mail> -v comentario=<motivo>   # concede superadmin (local)
 npm run supabase:down / :reset
 npm run supabase:bundle        # migrations achatadas para o SQL Editor do Studio
