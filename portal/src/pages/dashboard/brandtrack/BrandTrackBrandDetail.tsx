@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Video } from "lucide-react";
+import { Video } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Breadcrumbs } from "@/components/common/Breadcrumbs";
 
 const TYPES = ["all", "uniforme", "placa", "backdrop", "led", "transmissao", "outro"] as const;
 
@@ -49,12 +49,16 @@ const BrandTrackBrandDetail = () => {
 
   return (
     <div className="space-y-6 p-6">
+      <Breadcrumbs
+        items={[
+          { label: "BrandTrack", to: "/dashboard/brandtrack" },
+          { label: "Análise por patrocinador", to: "/dashboard/brandtrack/marcas" },
+          { label: brandName },
+        ]}
+      />
       <div className="flex items-center gap-3">
-        <Button asChild variant="ghost" size="icon">
-          <Link to="/dashboard/brandtrack/marcas"><ArrowLeft className="h-4 w-4" /></Link>
-        </Button>
         <div>
-          <h1 className="text-3xl font-bold">{brandName}</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{brandName}</h1>
           <p className="text-muted-foreground text-sm">Detalhes de aparições e evidências.</p>
         </div>
       </div>

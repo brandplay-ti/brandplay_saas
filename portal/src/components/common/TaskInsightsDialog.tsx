@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +39,6 @@ export const TaskInsightsDialog = ({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) => {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<Payload | null>(null);
 
@@ -50,11 +49,7 @@ export const TaskInsightsDialog = ({
     const { data: res, error } = await supabase.functions.invoke("task-insights", { body: { task_id: taskId, source } });
     setLoading(false);
     if (error || (res as any)?.error) {
-      toast({
-        title: "Não foi possível gerar os insights",
-        description: (res as any)?.error ?? error?.message,
-        variant: "destructive",
-      });
+      toast.error("Não foi possível gerar os insights", { description: (res as { error?: string } | null)?.error ?? error?.message });
       return;
     }
     setData(res as Payload);
@@ -68,7 +63,7 @@ export const TaskInsightsDialog = ({
 
   const copy = async (text: string) => {
     await navigator.clipboard.writeText(text);
-    toast({ title: "Copiado" });
+    toast.success("Copiado");
   };
 
   const i = data?.insights;
@@ -162,7 +157,7 @@ export const TaskInsightsDialog = ({
               <>
                 <Separator />
                 <div>
-                  <p className="font-medium mb-1">Dados que faltam no BrandPlay</p>
+                  <p className="font-medium mb-1">Dados que faltam no Brandplay</p>
                   <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
                     {i.dados_ausentes.map((d, idx) => <li key={idx}>{d}</li>)}
                   </ul>

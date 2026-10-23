@@ -1,5 +1,6 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
+import { PageLoader } from "@/components/PageLoader";
 import { useAuth } from "@/hooks/useAuth";
 import { Truck, ListChecks, ArrowLeft, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -40,10 +41,10 @@ const FieldLayout = () => {
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} title="Voltar ao dashboard">
+            <Button aria-label="Voltar ao dashboard" variant="ghost" size="icon" onClick={() => navigate("/dashboard")} title="Voltar ao dashboard">
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={handleLogout} title="Sair">
+            <Button aria-label="Sair" variant="ghost" size="icon" onClick={handleLogout} title="Sair">
               <LogOut className="w-4 h-4" />
             </Button>
           </div>
@@ -51,7 +52,9 @@ const FieldLayout = () => {
       </header>
 
       <main className="flex-1 pb-20">
-        <Outlet />
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
       </main>
 
       <nav className="fixed bottom-0 inset-x-0 z-40 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">

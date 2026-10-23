@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 export type LogoFrameSize = "xs" | "sm" | "md" | "lg" | "xl";
 
-/** Tamanhos e espaçamentos padronizados dos containers de logo do BrandPlay. */
+/** Tamanhos e espaçamentos padronizados dos containers de logo do Brandplay. */
 const sizeMap: Record<LogoFrameSize, { box: string; pad: string; icon: string }> = {
   xs: { box: "h-8 w-8", pad: "p-1", icon: "h-3.5 w-3.5" },
   sm: { box: "h-10 w-10", pad: "p-1.5", icon: "h-4 w-4" },

@@ -26,6 +26,9 @@ import {
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useConfirm } from "@/hooks/useConfirm";
+import { PageHeader } from "@/components/common/PageHeader";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 interface Sponsor {
   id: string;
@@ -51,6 +54,7 @@ interface InviteRow {
 }
 
 export default function PortalAccess() {
+  const confirm = useConfirm();
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [selectedSponsor, setSelectedSponsor] = useState<string>("");
   const [email, setEmail] = useState("");
@@ -154,8 +158,12 @@ export default function PortalAccess() {
   };
 
   const revoke = async (a: AccessRow) => {
-    if (!confirm(`Remover acesso de ${a.profiles?.full_name ?? "usuário"}?`))
-      return;
+    const confirmado = await confirm({
+      title: `Remover acesso de ${a.profiles?.full_name ?? "usuário"}?`,
+      confirmLabel: "Remover",
+      destructive: true,
+    });
+    if (!confirmado) return;
     try {
       await callManage("revoke", {
         sponsor_id: a.sponsor_id,
@@ -197,14 +205,11 @@ export default function PortalAccess() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <ShieldCheck className="h-6 w-6" /> Acessos ao Portal
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Autorize patrocinadores a acessar entregas, contratos e relatórios.
-        </p>
-      </div>
+      <PageHeader
+        title="Acessos ao Portal"
+        description="Autorize patrocinadores a acessar entregas, contratos e relatórios."
+        icon={ShieldCheck}
+      />
 
       <Card>
         <CardHeader>
@@ -296,7 +301,7 @@ export default function PortalAccess() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground">Carregando…</p>
+            <LoadingSkeleton count={3} />
           ) : filteredAccesses.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum acesso.</p>
           ) : (
@@ -316,7 +321,7 @@ export default function PortalAccess() {
                         variant="outline"
                         className={
                           a.status === "ativo"
-                            ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
+                            ? "bg-success/15 text-success-strong border-success/30"
                             : "bg-muted"
                         }
                       >
@@ -353,7 +358,7 @@ export default function PortalAccess() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground">Carregando…</p>
+            <LoadingSkeleton count={3} />
           ) : filteredInvites.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum convite.</p>
           ) : (
@@ -371,9 +376,9 @@ export default function PortalAccess() {
                         variant="outline"
                         className={
                           i.status === "pendente"
-                            ? "bg-amber-500/15 text-amber-600 border-amber-500/30"
+                            ? "bg-warning/15 text-warning-strong border-warning/30"
                             : i.status === "aceito"
-                              ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
+                              ? "bg-success/15 text-success-strong border-success/30"
                               : "bg-muted"
                         }
                       >

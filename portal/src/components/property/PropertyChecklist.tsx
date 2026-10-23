@@ -16,6 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/common/StatusBadge";
+import { type StatusTone } from "@/lib/statusTone";
 import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
@@ -38,6 +40,7 @@ import { ActivityContextLinks } from "@/components/common/ActivityContextLinks";
 import { DueDateEditor } from "@/components/common/DueDateEditor";
 import { TaskInsightsButton } from "@/components/common/TaskInsightsButton";
 import { dataLocal } from "@/lib/datas";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface ChecklistItem {
   id: string;
@@ -87,16 +90,17 @@ interface Props {
   ownerId: string;
 }
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  pendente: { label: "Pendente", color: "bg-slate-500/10 text-slate-700 border-slate-500/30" },
-  em_andamento: { label: "Em andamento", color: "bg-amber-500/10 text-amber-700 border-amber-500/30" },
-  concluido: { label: "Concluído", color: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30" },
+const STATUS_LABELS: Record<string, { label: string; tone: StatusTone }> = {
+  pendente: { label: "Pendente", tone: "neutral" },
+  em_andamento: { label: "Em andamento", tone: "warning" },
+  concluido: { label: "Concluído", tone: "success" },
 };
 
 const fmtDate = (s?: string | null) =>
   s ? dataLocal(s).toLocaleDateString("pt-BR") : "—";
 
 export default function PropertyChecklist({ propertyId, ownerId }: Props) {
+  const confirm = useConfirm();
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [deliveries, setDeliveries] = useState<DeliveryRef[]>([]);
   const [events, setEvents] = useState<EventRef[]>([]);
@@ -201,7 +205,7 @@ export default function PropertyChecklist({ propertyId, ownerId }: Props) {
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Excluir este item?")) return;
+    if (!(await confirm({ title: "Excluir este item?", confirmLabel: "Excluir", destructive: true }))) return;
     const { error } = await (supabase as any)
       .from("property_checklist_items")
       .delete()
@@ -274,7 +278,7 @@ export default function PropertyChecklist({ propertyId, ownerId }: Props) {
                     aria-label="Alternar conclusão"
                   >
                     {it.status === "concluido" ? (
-                      <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                      <CheckCircle2 className="h-5 w-5 text-success-strong" />
                     ) : (
                       <Circle className="h-5 w-5 text-muted-foreground hover:text-primary transition" />
                     )}
@@ -288,9 +292,9 @@ export default function PropertyChecklist({ propertyId, ownerId }: Props) {
                       >
                         {it.title}
                       </p>
-                      <Badge variant="outline" className={STATUS_LABELS[it.status].color}>
+                      <StatusBadge tone={STATUS_LABELS[it.status].tone}>
                         {STATUS_LABELS[it.status].label}
-                      </Badge>
+                      </StatusBadge>
                       {overdue && (
                         <Badge variant="destructive" className="text-[10px]">
                           Atrasada
@@ -345,6 +349,7 @@ export default function PropertyChecklist({ propertyId, ownerId }: Props) {
                       </SelectContent>
                     </Select>
                     <Button
+                      aria-label="Excluir item"
                       size="icon"
                       variant="ghost"
                       onClick={() => remove(it.id)}

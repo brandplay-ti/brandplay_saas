@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/common/StatusBadge";
+import { type StatusTone } from "@/lib/statusTone";
 import {
   Select,
   SelectContent,
@@ -26,10 +28,10 @@ type OpportunityContact = {
   is_primary: boolean;
 };
 
-const TYPE_META: Record<ContactType, { label: string; className: string }> = {
-  geral: { label: "Contato", className: "bg-muted text-muted-foreground border-border" },
-  contrato: { label: "Contrato", className: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
-  financeiro: { label: "Financeiro", className: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+const TYPE_META: Record<ContactType, { label: string; tone: StatusTone }> = {
+  geral: { label: "Contato", tone: "neutral" },
+  contrato: { label: "Contrato", tone: "success" },
+  financeiro: { label: "Financeiro", tone: "warning" },
 };
 
 const emptyForm = {
@@ -154,10 +156,10 @@ export const OpportunityContactsPanel = ({
       </p>
 
       {(missingContract || missingFinance) && (
-        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 space-y-2 text-xs">
+        <div className="rounded-md border border-warning/30 bg-warning/10 p-2.5 space-y-2 text-xs">
           {missingContract && (
             <div className="flex items-center justify-between gap-2">
-              <span className="flex items-center gap-1.5 text-amber-700">
+              <span className="flex items-center gap-1.5 text-warning-strong">
                 <AlertCircle className="h-3.5 w-3.5" />
                 Contrato criado: informe o contato responsável pelo contrato.
               </span>
@@ -168,7 +170,7 @@ export const OpportunityContactsPanel = ({
           )}
           {missingFinance && (
             <div className="flex items-center justify-between gap-2">
-              <span className="flex items-center gap-1.5 text-amber-700">
+              <span className="flex items-center gap-1.5 text-warning-strong">
                 <AlertCircle className="h-3.5 w-3.5" />
                 Parcelas geradas: informe o contato financeiro.
               </span>
@@ -259,9 +261,9 @@ export const OpportunityContactsPanel = ({
                   <div className="min-w-0 text-sm">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium">{c.name}</span>
-                      <Badge variant="outline" className={TYPE_META[c.contact_type].className}>
+                      <StatusBadge tone={TYPE_META[c.contact_type].tone}>
                         {TYPE_META[c.contact_type].label}
-                      </Badge>
+                      </StatusBadge>
                       {c.role && <span className="text-xs text-muted-foreground">{c.role}</span>}
                     </div>
                     <div className="text-xs text-muted-foreground flex flex-wrap gap-3 mt-0.5">
@@ -278,6 +280,7 @@ export const OpportunityContactsPanel = ({
                     </div>
                   </div>
                   <Button
+                    aria-label="Remover contato"
                     size="icon"
                     variant="ghost"
                     className="h-7 w-7 text-destructive hover:text-destructive"

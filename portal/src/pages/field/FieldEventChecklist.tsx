@@ -169,7 +169,7 @@ const FieldEventChecklist = () => {
                       {savingId === item.id ? (
                         <Loader2 className="w-6 h-6 animate-spin text-primary" />
                       ) : done ? (
-                        <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
+                        <CheckCircle2 className="w-6 h-6 text-success-strong" />
                       ) : (
                         <Circle className="w-6 h-6 text-muted-foreground" />
                       )}
@@ -184,7 +184,7 @@ const FieldEventChecklist = () => {
                       )}
                     </div>
                     {!done && (
-                      <Button size="icon" variant="outline" className="flex-shrink-0" onClick={() => triggerCamera(item.id)}>
+                      <Button aria-label="Tirar foto" size="icon" variant="outline" className="flex-shrink-0" onClick={() => triggerCamera(item.id)}>
                         <Camera className="w-4 h-4" />
                       </Button>
                     )}

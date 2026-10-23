@@ -3,13 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/common/StatusBadge";
+import { type StatusTone } from "@/lib/statusTone";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -22,6 +24,9 @@ import { ProposalWizardDialog } from "@/components/proposals/ProposalWizardDialo
 import { ProposalVersionsEditor } from "@/components/proposals/ProposalVersionsEditor";
 import { NextStepsAI } from "@/components/pipeline/NextStepsAI";
 import { AssetCatalogToolbar, type AssetSortBy } from "@/components/assets/AssetCatalogToolbar";
+import { useConfirm } from "@/hooks/useConfirm";
+import { PageHeader } from "@/components/common/PageHeader";
+import { ativarComTeclado } from "@/lib/clicavel";
 
 
 type Status = "rascunho" | "enviada" | "aceita" | "recusada" | "expirada";
@@ -44,12 +49,12 @@ const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", cur
 const formatConversionValidationMessage = (missing: string[]) =>
   `Complete antes de converter: ${missing.join(", ")}.`;
 
-const statusUI: Record<Status, { label: string; cls: string }> = {
-  rascunho: { label: "Rascunho", cls: "bg-muted text-muted-foreground border-border" },
-  enviada: { label: "Enviada", cls: "bg-sky-500/15 text-sky-600 border-sky-500/30" },
-  aceita: { label: "Aceita", cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
-  recusada: { label: "Recusada", cls: "bg-destructive/15 text-destructive border-destructive/30" },
-  expirada: { label: "Expirada", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+const statusUI: Record<Status, { label: string; tone: StatusTone }> = {
+  rascunho: { label: "Rascunho", tone: "neutral" },
+  enviada: { label: "Enviada", tone: "info" },
+  aceita: { label: "Aceita", tone: "success" },
+  recusada: { label: "Recusada", tone: "danger" },
+  expirada: { label: "Expirada", tone: "warning" },
 };
 
 type ProposalTemplateKey = "initial" | "meeting_followup" | "renewal";
@@ -70,9 +75,9 @@ const formatDateBR = (value: string | null) => value ? new Date(`${value}T00:00:
 const escapeHtml = (value: string | number) => String(value ?? "").replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char] ?? char));
 
 export default function Proposals() {
+  const confirm = useConfirm();
   const { user } = useAuth();
   const { orgId } = useOrganization();
-  const { toast } = useToast();
   const navigate = useNavigate();
 
   const [proposals, setProposals] = useState<Proposal[]>([]);
@@ -252,7 +257,7 @@ export default function Proposals() {
       property_id: form.property_id || null, valid_until: form.valid_until || null,
       message: form.message || null,
     }).select().single();
-    if (error) return toast({ title: "Erro", description: error.message, variant: "destructive" });
+    if (error) return toast.error("Erro", { description: error.message });
     const sponsor = sponsors.find((s) => s.id === form.sponsor_id);
     const property = properties.find((p) => p.id === form.property_id);
     const brand = form.brand || sponsor?.name || "Marca";
@@ -275,7 +280,7 @@ export default function Proposals() {
         metadata: { template: templateKey },
       },
     ]);
-    toast({ title: "Proposta criada" });
+    toast.success("Proposta criada");
     setOpen(false);
     setForm({ title: "", brand: "", sponsor_id: "", property_id: "", valid_until: "", message: "" });
     setTemplateKey("initial");
@@ -431,7 +436,7 @@ export default function Proposals() {
       await supabase.from("proposal_items").insert(rows);
     }
     await supabase.from("proposals").update({ total_value: Number(tier.value) || 0 }).eq("id", selected.id);
-    toast({ title: "Cota aplicada", description: `${tier.name} adicionada à proposta.` });
+    toast.success("Cota aplicada", { description: `${tier.name} adicionada à proposta.` });
     openDetail(selected);
   };
 
@@ -457,8 +462,8 @@ export default function Proposals() {
     setGenerating(true);
     const { data, error } = await supabase.functions.invoke("generate-proposal-pdf", { body: { proposal_id: selected.id } });
     setGenerating(false);
-    if (error) return toast({ title: "Erro ao gerar PDF", description: error.message, variant: "destructive" });
-    toast({ title: "PDF gerado" });
+    if (error) return toast.error("Erro ao gerar PDF", { description: error.message });
+    toast.success("PDF gerado");
     if (data?.pdf_path) {
       const { data: signed } = await supabase.storage.from("proposals").createSignedUrl(data.pdf_path, 60);
       if (signed?.signedUrl) window.open(signed.signedUrl, "_blank");
@@ -491,19 +496,15 @@ export default function Proposals() {
       .select()
       .maybeSingle();
     if (error) {
-      toast({ title: "Não foi possível salvar o status", description: error.message, variant: "destructive" });
+      toast.error("Não foi possível salvar o status", { description: error.message });
       return;
     }
     if (!data) {
-      toast({
-        title: "Sem permissão para alterar esta proposta",
-        description: "Você precisa de acesso de escrita ao CRM desta organização.",
-        variant: "destructive",
-      });
+      toast.error("Sem permissão para alterar esta proposta", { description: "Você precisa de acesso de escrita ao CRM desta organização." });
       return;
     }
     setSelected({ ...selected, ...(data as any) });
-    toast({ title: `Status atualizado para ${status}` });
+    toast.success(`Status atualizado para ${status}`);
     load();
   };
 
@@ -553,12 +554,12 @@ export default function Proposals() {
         if (error) throw error;
         await supabase.from("proposals").update({ converted_opportunity_id: (data as any).id }).eq("id", funnelTarget.id);
       }
-      toast({ title: "Proposta enviada ao funil", description: funnels.find((f) => f.id === funnelChoice)?.name ?? "" });
+      toast.success("Proposta enviada ao funil", { description: funnels.find((f) => f.id === funnelChoice)?.name ?? "" });
       setFunnelMandatory(false);
       setFunnelTarget(null);
       load();
     } catch (e: any) {
-      toast({ title: "Erro", description: e.message, variant: "destructive" });
+      toast.error("Erro", { description: e.message });
     } finally {
       setSendingFunnel(false);
     }
@@ -577,9 +578,9 @@ export default function Proposals() {
       value: total,
       stage: "proposta_enviada",
     }).select().single();
-    if (error) return toast({ title: "Erro", description: error.message, variant: "destructive" });
+    if (error) return toast.error("Erro", { description: error.message });
     await supabase.from("proposals").update({ converted_opportunity_id: data!.id }).eq("id", selected.id);
-    toast({ title: "Oportunidade criada", description: "Disponível em /dashboard/pipeline" });
+    toast.success("Oportunidade criada", { description: "Disponível em /dashboard/pipeline" });
     setSelected({ ...selected, converted_opportunity_id: data!.id });
     load();
   };
@@ -587,7 +588,7 @@ export default function Proposals() {
   const updateProposalField = async (field: "sponsor_id" | "property_id" | "valid_until", value: string | null) => {
     if (!selected) return;
     const { error } = await supabase.from("proposals").update({ [field]: value } as any).eq("id", selected.id);
-    if (error) return toast({ title: "Erro", description: error.message, variant: "destructive" });
+    if (error) return toast.error("Erro", { description: error.message });
     setSelected({ ...selected, [field]: value } as Proposal);
     load();
   };
@@ -655,7 +656,7 @@ export default function Proposals() {
       flat_value: useFlat ? total : 0,
       status: "rascunho",
     }).select().single();
-    if (error) return toast({ title: "Erro", description: error.message, variant: "destructive" });
+    if (error) return toast.error("Erro", { description: error.message });
     if (items.length > 0) {
       const { error: copyError } = await supabase.rpc("copy_proposal_items_to_contract", {
         _contract_id: c!.id,
@@ -678,7 +679,14 @@ export default function Proposals() {
 
   const deleteProposal = async (p?: Proposal) => {
     const target = p ?? selected;
-    if (!target || !confirm("Excluir esta proposta? Esta ação não pode ser desfeita.")) return;
+    if (!target) return;
+    const confirmado = await confirm({
+      title: "Excluir esta proposta?",
+      description: "Esta ação não pode ser desfeita.",
+      confirmLabel: "Excluir",
+      destructive: true,
+    });
+    if (!confirmado) return;
     await supabase.from("proposals").delete().eq("id", target.id);
     if (selected?.id === target.id) setSelected(null);
     load();
@@ -686,50 +694,53 @@ export default function Proposals() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><FileText className="h-6 w-6 text-primary" /> Propostas</h1>
-          <p className="text-sm text-muted-foreground">Builder a partir de ativos, com PDF e conversão para pipeline/contrato.</p>
-        </div>
-        <div className="flex gap-2">
-          <GenerateProposalAIDialog
-            sponsors={sponsors}
-            properties={properties}
-            onGenerated={async (g) => {
-              if (!user || !orgId) return;
-              const total = g.items.reduce((s, i) => s + i.quantity * Number(i.unit_value), 0);
-              const sponsor = sponsors.find((s) => s.id === g.sponsor_id);
-              const { data, error } = await supabase.from("proposals").insert({
-                owner_id: user.id,
-                organization_id: orgId,
-                title: g.title,
-                brand: sponsor?.name ?? null,
-                sponsor_id: g.sponsor_id,
-                property_id: g.property_id,
-                message: g.message,
-                total_value: total,
-              }).select().single();
-              if (error) return toast({ title: "Erro", description: error.message, variant: "destructive" });
-              if (data && g.items.length > 0) {
-                await supabase.from("proposal_items").insert(
-                  g.items.map((it, idx) => ({
-                    proposal_id: data.id,
-                    name: it.name,
-                    description: it.description ?? null,
-                    quantity: it.quantity,
-                    unit_value: it.unit_value,
-                    position: idx,
-                  }))
-                );
-              }
-              await load();
-              if (data) openDetail(data as Proposal);
-            }}
-          />
-          <ProposalWizardDialog sponsors={sponsors} properties={properties} onSaved={load} />
-          <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-2" /> Nova proposta</Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Propostas"
+        description="Builder a partir de ativos, com PDF e conversão para pipeline/contrato."
+        icon={FileText}
+        actions={
+          <>
+            <div className="flex gap-2">
+              <GenerateProposalAIDialog
+                sponsors={sponsors}
+                properties={properties}
+                onGenerated={async (g) => {
+                  if (!user || !orgId) return;
+                  const total = g.items.reduce((s, i) => s + i.quantity * Number(i.unit_value), 0);
+                  const sponsor = sponsors.find((s) => s.id === g.sponsor_id);
+                  const { data, error } = await supabase.from("proposals").insert({
+                    owner_id: user.id,
+                    organization_id: orgId,
+                    title: g.title,
+                    brand: sponsor?.name ?? null,
+                    sponsor_id: g.sponsor_id,
+                    property_id: g.property_id,
+                    message: g.message,
+                    total_value: total,
+                  }).select().single();
+                  if (error) return toast.error("Erro", { description: error.message });
+                  if (data && g.items.length > 0) {
+                    await supabase.from("proposal_items").insert(
+                      g.items.map((it, idx) => ({
+                        proposal_id: data.id,
+                        name: it.name,
+                        description: it.description ?? null,
+                        quantity: it.quantity,
+                        unit_value: it.unit_value,
+                        position: idx,
+                      }))
+                    );
+                  }
+                  await load();
+                  if (data) openDetail(data as Proposal);
+                }}
+              />
+              <ProposalWizardDialog sponsors={sponsors} properties={properties} onSaved={load} />
+              <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-2" /> Nova proposta</Button>
+            </div>
+          </>
+        }
+      />
 
       <Card>
         <CardHeader className="space-y-3">
@@ -867,7 +878,7 @@ export default function Proposals() {
                           <div className="font-medium text-sm">{fmtBRL(Number(p.total_value))}</div>
                           {p.valid_until && <div className="text-[10px] text-muted-foreground">até {p.valid_until}</div>}
                         </div>
-                        <Badge variant="outline" className={statusUI[p.status].cls}>{statusUI[p.status].label}</Badge>
+                        <StatusBadge tone={statusUI[p.status].tone}>{statusUI[p.status].label}</StatusBadge>
                         <span
                           role="button"
                           tabIndex={0}
@@ -978,7 +989,7 @@ export default function Proposals() {
               <SheetHeader>
                 <SheetTitle className="flex items-center justify-between gap-3">
                   <span>{selected.title}</span>
-                  <Badge variant="outline" className={statusUI[selected.status].cls}>{statusUI[selected.status].label}</Badge>
+                  <StatusBadge tone={statusUI[selected.status].tone}>{statusUI[selected.status].label}</StatusBadge>
                 </SheetTitle>
                 <SheetDescription>
                   {selected.proposal_number && `#${selected.proposal_number} · `}
@@ -1049,7 +1060,7 @@ export default function Proposals() {
                   ) : (
                     <div className="space-y-3">
                       {useFlat && (
-                        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700">
+                        <div className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning-strong">
                           Valor geral ativo: os custos por item ficam ocultos — apenas os ativos entregues são exibidos.
                         </div>
                       )}
@@ -1136,11 +1147,11 @@ export default function Proposals() {
                               {itemView === "grid" ? (
                                 <div className="grid grid-cols-2 gap-2">
                                   {group.list.map((it) => (
-                                    <div key={it.id} role="button" tabIndex={0} onClick={() => setEditingItem({ ...it })} onKeyDown={(e) => e.key === "Enter" && setEditingItem({ ...it })}
+                                    <div key={it.id} role="button" tabIndex={0} onClick={() => setEditingItem({ ...it })} onKeyDown={ativarComTeclado(() => setEditingItem({ ...it }))}
                                       className="rounded-md border p-3 cursor-pointer hover:border-primary/60 hover:bg-muted/40 transition-colors">
                                       <div className="flex items-start justify-between gap-2">
                                         <span className="text-sm font-medium line-clamp-2">{it.name}</span>
-                                        <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={(e) => { e.stopPropagation(); removeItem(it); }}><Trash2 className="h-4 w-4" /></Button>
+                                        <Button aria-label="Remover item da proposta" size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={(e) => { e.stopPropagation(); removeItem(it); }}><Trash2 className="h-4 w-4" /></Button>
                                       </div>
                                       <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                                         <span>{it.quantity}x{useFlat ? "" : ` ${fmtBRL(Number(it.unit_value))}`}</span>
@@ -1155,13 +1166,13 @@ export default function Proposals() {
                               ) : itemView === "compact" ? (
                                 <div className="rounded-md border divide-y">
                                   {group.list.map((it) => (
-                                    <div key={it.id} role="button" tabIndex={0} onClick={() => setEditingItem({ ...it })} onKeyDown={(e) => e.key === "Enter" && setEditingItem({ ...it })}
+                                    <div key={it.id} role="button" tabIndex={0} onClick={() => setEditingItem({ ...it })} onKeyDown={ativarComTeclado(() => setEditingItem({ ...it }))}
                                       className="px-3 py-1.5 text-sm cursor-pointer hover:bg-muted/40">
                                       <div className="flex items-center justify-between gap-2">
                                         <span className="truncate">{it.quantity}x {it.name}</span>
                                         <div className="flex items-center gap-1 shrink-0">
                                           {!useFlat && <span className="text-xs font-medium">{fmtBRL(it.quantity * Number(it.unit_value))}</span>}
-                                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); removeItem(it); }}><Trash2 className="h-4 w-4" /></Button>
+                                          <Button aria-label="Remover item da proposta" size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); removeItem(it); }}><Trash2 className="h-4 w-4" /></Button>
                                         </div>
                                       </div>
                                       {it.description && <p className="text-xs text-muted-foreground whitespace-pre-wrap">{it.description}</p>}
@@ -1172,7 +1183,7 @@ export default function Proposals() {
                               ) : (
                                 <div className="space-y-2">
                                   {group.list.map((it) => (
-                                    <div key={it.id} role="button" tabIndex={0} onClick={() => setEditingItem({ ...it })} onKeyDown={(e) => e.key === "Enter" && setEditingItem({ ...it })}
+                                    <div key={it.id} role="button" tabIndex={0} onClick={() => setEditingItem({ ...it })} onKeyDown={ativarComTeclado(() => setEditingItem({ ...it }))}
                                       className="flex items-center gap-3 rounded-md border p-3 cursor-pointer hover:border-primary/60 hover:bg-muted/40 transition-colors">
                                       <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2">
@@ -1185,7 +1196,7 @@ export default function Proposals() {
                                       </div>
                                       {!useFlat && <span className="text-sm font-semibold">{fmtBRL(it.quantity * Number(it.unit_value))}</span>}
                                       <Pencil className="h-4 w-4 text-muted-foreground" />
-                                      <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); removeItem(it); }}><Trash2 className="h-4 w-4" /></Button>
+                                      <Button aria-label="Remover item da proposta" size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); removeItem(it); }}><Trash2 className="h-4 w-4" /></Button>
                                     </div>
                                   ))}
                                 </div>
@@ -1317,7 +1328,7 @@ export default function Proposals() {
               variant="outline"
               onClick={() => {
                 setContractChoice({ open: false, contractId: null });
-                toast({ title: "Continuando na proposta" });
+                toast("Continuando na proposta");
               }}
             >
               Continuar na proposta

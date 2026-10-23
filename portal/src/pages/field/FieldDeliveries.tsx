@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/common/StatusBadge";
+import { type StatusTone } from "@/lib/statusTone";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,12 +27,12 @@ type Delivery = {
   asset_type: string | null;
 };
 
-const statusConfig: Record<string, { label: string; icon: typeof Clock; className: string }> = {
-  pendente: { label: "Pendente", icon: Clock, className: "bg-muted text-muted-foreground" },
-  em_producao: { label: "Em produção", icon: Clock, className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-  entregue: { label: "Entregue", icon: CheckCircle2, className: "bg-green-500/10 text-green-600 dark:text-green-400" },
-  aprovada: { label: "Aprovada", icon: CheckCircle2, className: "bg-green-500/10 text-green-600 dark:text-green-400" },
-  atrasada: { label: "Atrasada", icon: AlertCircle, className: "bg-red-500/10 text-red-600 dark:text-red-400" },
+const statusConfig: Record<string, { label: string; icon: typeof Clock; tone: StatusTone }> = {
+  pendente: { label: "Pendente", icon: Clock, tone: "neutral" },
+  em_producao: { label: "Em produção", icon: Clock, tone: "info" },
+  entregue: { label: "Entregue", icon: CheckCircle2, tone: "success" },
+  aprovada: { label: "Aprovada", icon: CheckCircle2, tone: "success" },
+  atrasada: { label: "Atrasada", icon: AlertCircle, tone: "danger" },
 };
 
 const FieldDeliveries = () => {
@@ -168,12 +170,12 @@ const FieldDeliveries = () => {
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant="secondary" className={`text-[10px] ${cfg.className}`}>
+                        <StatusBadge tone={cfg.tone} className="text-[10px]">
                           <Icon className="w-3 h-3 mr-1" />
                           {cfg.label}
-                        </Badge>
+                        </StatusBadge>
                         {d.due_date && (
-                          <span className={`text-[10px] flex items-center gap-1 ${overdue ? "text-red-600 dark:text-red-400 font-semibold" : "text-muted-foreground"}`}>
+                          <span className={`text-[10px] flex items-center gap-1 ${overdue ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
                             <Calendar className="w-3 h-3" />
                             {dataLocal(d.due_date).toLocaleDateString("pt-BR")}
                           </span>

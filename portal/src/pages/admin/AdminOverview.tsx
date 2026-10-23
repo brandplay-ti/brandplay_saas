@@ -7,6 +7,7 @@ import { StatTile } from "@/components/admin/StatTile";
 import { useAdminClients, useAdminProjection, useAdminRevenue } from "@/hooks/usePlatformAdmin";
 import { formatCents, formatDate, SUBSCRIPTION_STATUS_LABEL } from "@/lib/billing";
 import { summarizeClients, type AdminClient } from "@/lib/platformAdmin";
+import { PageHeader } from "@/components/common/PageHeader";
 
 const ListaDeClientes = ({ clientes, vazio, detalhe }: {
   clientes: AdminClient[];
@@ -64,10 +65,7 @@ const AdminOverview = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Visão geral</h1>
-        <p className="mt-1 text-muted-foreground">Clientes, receita e o que pede atenção na plataforma.</p>
-      </div>
+      <PageHeader title="Visão geral" description="Clientes, receita e o que pede atenção na plataforma." />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatTile

@@ -90,7 +90,7 @@ const BillingNotice = ({ status }: { status: BillingStatus }) => {
         <AlertDescription>
           {sub?.status === "incompleta"
             ? "Liberado enquanto o boleto compensa. Quando o pagamento for confirmado, a assinatura fica ativa sozinha."
-            : "Liberado pela equipe do BrandPlay. Assine um plano para manter o acesso depois do prazo."}
+            : "Liberado pela equipe do Brandplay. Assine um plano para manter o acesso depois do prazo."}
         </AlertDescription>
       </Alert>
     );

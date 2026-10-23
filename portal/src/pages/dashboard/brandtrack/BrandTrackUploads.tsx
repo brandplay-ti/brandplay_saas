@@ -12,6 +12,9 @@ import { Upload, Image as ImageIcon, Video, Loader2, CheckCircle2, AlertCircle, 
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import FieldEvidenceImportDialog from "@/components/brandtrack/FieldEvidenceImportDialog";
+import { useConfirm } from "@/hooks/useConfirm";
+import { PageHeader } from "@/components/common/PageHeader";
+import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 
 type Media = {
   id: string;
@@ -57,6 +60,7 @@ const exposureLabels: Record<string, string> = {
 };
 
 const BrandTrackUploads = () => {
+  const confirm = useConfirm();
   const { user } = useAuth();
   const [medias, setMedias] = useState<Media[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
@@ -332,7 +336,12 @@ const BrandTrackUploads = () => {
   };
 
   const removeMedia = async (id: string, path: string | null) => {
-    if (!confirm("Remover este arquivo e suas detecções?")) return;
+    const confirmado = await confirm({
+      title: "Remover este arquivo e suas detecções?",
+      confirmLabel: "Remover",
+      destructive: true,
+    });
+    if (!confirmado) return;
     if (path) await supabase.storage.from("brandtrack-media").remove([path]);
     await supabase.from("brandtrack_media").delete().eq("id", id);
     toast.success("Removido");
@@ -376,7 +385,12 @@ const BrandTrackUploads = () => {
 
   const bulkDelete = async () => {
     if (selectedIds.length === 0) return;
-    if (!confirm(`Remover ${selectedIds.length} mídia(s) e suas detecções?`)) return;
+    const confirmado = await confirm({
+      title: `Remover ${selectedIds.length} mídia(s) e suas detecções?`,
+      confirmLabel: "Remover",
+      destructive: true,
+    });
+    if (!confirmado) return;
     setBulkBusy(true);
     const paths = medias.filter((m) => selectedIds.includes(m.id) && m.storage_path).map((m) => m.storage_path as string);
     if (paths.length > 0) await supabase.storage.from("brandtrack-media").remove(paths);
@@ -462,10 +476,10 @@ const BrandTrackUploads = () => {
 
   return (
     <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-3xl font-bold">Uploads & Processamento</h1>
-        <p className="text-muted-foreground">Envie imagens ou vídeos para análise automática de marcas.</p>
-      </div>
+      <PageHeader
+        title="Uploads & Processamento"
+        description="Envie imagens ou vídeos para análise automática de marcas."
+      />
 
       <Card>
         <CardHeader>
@@ -516,16 +530,16 @@ const BrandTrackUploads = () => {
               setDragOver(false);
               void handleFiles(e.dataTransfer.files);
             }}
-            onClick={() => {
+            {...clicavel(() => {
               if (!eventId) {
                 toast.error("Escolha uma propriedade antes de selecionar arquivos.");
                 return;
               }
               inputRef.current?.click();
-            }}
+            })}
             className={`border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors ${
               dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
-            }`}
+            } ${FOCO_CLICAVEL}`}
           >
             <Upload className="h-10 w-10 mx-auto mb-2 text-muted-foreground" />
             <p className="font-medium">Arraste arquivos aqui ou clique para selecionar</p>
@@ -668,13 +682,14 @@ const BrandTrackUploads = () => {
                         {editingId === m.id ? (
                           <div className="flex items-center gap-2">
                             <Input value={editingTitle} onChange={(e) => setEditingTitle(e.target.value)} className="h-8" />
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => void saveTitle(m.id)}><Check className="h-4 w-4" /></Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingId(null)}><X className="h-4 w-4" /></Button>
+                            <Button aria-label="Salvar título" size="icon" variant="ghost" className="h-8 w-8" onClick={() => void saveTitle(m.id)}><Check className="h-4 w-4" /></Button>
+                            <Button aria-label="Cancelar edição" size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingId(null)}><X className="h-4 w-4" /></Button>
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
                             <div className="truncate font-medium">{m.title}</div>
                             <Button
+                              aria-label="Editar título"
                               size="icon"
                               variant="ghost"
                               className="h-6 w-6 shrink-0"
@@ -710,7 +725,7 @@ const BrandTrackUploads = () => {
                         <BarChart3 className="h-4 w-4" />
                         Análise
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => void removeMedia(m.id, m.storage_path)}>
+                      <Button aria-label="Remover mídia" variant="ghost" size="icon" onClick={() => void removeMedia(m.id, m.storage_path)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>

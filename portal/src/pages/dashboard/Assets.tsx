@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,9 @@ import {
 import { Boxes, Plus, Search, Star, Trash2, ImagePlus, Upload, X, Settings, FileSpreadsheet, LayoutGrid, List, Rows3, Lock, MapPin } from "lucide-react";
 import AssetBulkImportDialog from "@/components/assets/AssetBulkImportDialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useConfirm } from "@/hooks/useConfirm";
+import { PageHeader } from "@/components/common/PageHeader";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 
 interface Asset {
@@ -85,9 +88,9 @@ const loadCustomCategories = (): string[] => {
 };
 
 export default function Assets() {
+  const confirm = useConfirm();
   const { user } = useAuth();
   const { orgId } = useOrganization();
-  const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -168,16 +171,21 @@ export default function Assets() {
     setNewCategoryOpen(false);
   };
 
-  const deleteCategory = (name: string) => {
+  const deleteCategory = async (name: string) => {
     if (!customCategories.includes(name)) return;
-    if (!confirm(`Excluir a categoria "${name}"?`)) return;
+    const confirmado = await confirm({
+      title: `Excluir a categoria "${name}"?`,
+      confirmLabel: "Excluir",
+      destructive: true,
+    });
+    if (!confirmado) return;
     const next = customCategories.filter((c) => c !== name);
     setCustomCategories(next);
     try { localStorage.setItem(CATEGORIES_KEY, JSON.stringify(next)); } catch { /* ignore */ }
     if (categoryFilter === name) setCategoryFilter("all");
     if (form.category === name) setForm((f) => ({ ...f, category: "Outro" }));
     if (editForm.category === name) setEditForm((f) => ({ ...f, category: "Outro" }));
-    toast({ title: "Categoria removida", description: `"${name}" foi excluída.` });
+    toast.success("Categoria removida", { description: `"${name}" foi excluída.` });
   };
 
   const openNewCategory = (target: "create" | "edit") => {
@@ -275,7 +283,7 @@ export default function Assets() {
 
     if (error || !inserted) {
       setSaving(false);
-      return toast({ title: "Erro", description: error?.message || "Falha ao criar ativo", variant: "destructive" });
+      return toast.error("Erro", { description: error?.message || "Falha ao criar ativo" });
     }
 
     if (form.property_id && form.property_id !== "__none__") {
@@ -292,7 +300,7 @@ export default function Assets() {
       const path = `${user.id}/${inserted.id}/${crypto.randomUUID()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("asset-photos").upload(path, file);
       if (upErr) {
-        toast({ title: "Falha no upload", description: upErr.message, variant: "destructive" });
+        toast.error("Falha no upload", { description: upErr.message });
         continue;
       }
       await supabase.from("asset_photos" as any).insert({
@@ -305,7 +313,7 @@ export default function Assets() {
     }
 
     setSaving(false);
-    toast({ title: "Ativo criado" });
+    toast.success("Ativo criado");
     setDialogOpen(false);
     setForm({ name: "", category: CATEGORIES[0], unit_value: "0", quantity: "1", notes: "", property_id: "__none__", is_exclusive: false, exclusivity_terms: [], exclusive_sponsor_id: "__none__" });
     setCreateFiles([]);
@@ -345,7 +353,7 @@ export default function Assets() {
       const path = `${user.id}/${selected.id}/${crypto.randomUUID()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("asset-photos").upload(path, file);
       if (upErr) {
-        toast({ title: "Falha no upload", description: upErr.message, variant: "destructive" });
+        toast.error("Falha no upload", { description: upErr.message });
         continue;
       }
       const isFirst = photos.length === 0;
@@ -374,9 +382,9 @@ export default function Assets() {
       .eq("id", photo.id);
     const error = clearErr || setErr;
     if (error) {
-      toast({ title: "Erro ao definir capa", description: error.message, variant: "destructive" });
+      toast.error("Erro ao definir capa", { description: error.message });
     } else {
-      toast({ title: "Capa atualizada" });
+      toast.success("Capa atualizada");
     }
     openDetail(selected);
     load();
@@ -416,44 +424,48 @@ export default function Assets() {
     };
     const { error } = await supabase.from("assets").update(payload as any).eq("id", selected.id);
     setSaving(false);
-    if (error) return toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    if (error) return toast.error("Erro ao salvar", { description: error.message });
     setSelected({ ...selected, ...payload });
-    toast({ title: "Ativo atualizado" });
+    toast.success("Ativo atualizado");
     load();
   };
 
 
   const deleteAsset = async () => {
     if (!selected) return;
-    if (!confirm("Excluir este ativo? Essa ação remove fotos e alocações.")) return;
+    const confirmado = await confirm({
+      title: "Excluir este ativo?",
+      description: "Essa ação remove fotos e alocações.",
+      confirmLabel: "Excluir",
+      destructive: true,
+    });
+    if (!confirmado) return;
     const { error } = await supabase.from("assets").delete().eq("id", selected.id);
-    if (error) return toast({ title: "Erro", description: error.message, variant: "destructive" });
+    if (error) return toast.error("Erro", { description: error.message });
     setSelected(null);
-    toast({ title: "Ativo excluído" });
+    toast.success("Ativo excluído");
     load();
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Boxes className="h-6 w-6 text-primary" /> Ativos
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Catálogo global de ativos patrocináveis. Aloque em propriedades e use em contratos.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setBulkOpen(true)}>
-            <FileSpreadsheet className="h-4 w-4 mr-2" /> Importar CSV
-          </Button>
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" /> Novo ativo
-          </Button>
-        </div>
-
-      </div>
+      <PageHeader
+        title="Ativos"
+        description="Catálogo global de ativos patrocináveis. Aloque em propriedades e use em contratos."
+        icon={Boxes}
+        actions={
+          <>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setBulkOpen(true)}>
+                <FileSpreadsheet className="h-4 w-4 mr-2" /> Importar CSV
+              </Button>
+              <Button onClick={() => setDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" /> Novo ativo
+              </Button>
+            </div>
+          </>
+        }
+      />
 
       <Card>
         <CardHeader>
@@ -532,7 +544,7 @@ export default function Assets() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">Carregando…</p>
+            <LoadingSkeleton variant="cards" />
           ) : filtered.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">
               Nenhum ativo cadastrado. Clique em "Novo ativo" para começar.
@@ -570,8 +582,8 @@ export default function Assets() {
                       ) : null;
                     })()}
                     {a.is_exclusive && (
-                      <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 space-y-1">
-                        <p className="text-xs font-medium flex items-center gap-1 text-amber-700 dark:text-amber-400">
+                      <div className="rounded-md border border-warning/40 bg-warning/10 p-2 space-y-1">
+                        <p className="text-xs font-medium flex items-center gap-1 text-warning-strong">
                           <Lock className="h-3 w-3" /> Exclusivo para uma única marca
                         </p>
                         <p className="text-xs text-muted-foreground truncate">
@@ -607,7 +619,7 @@ export default function Assets() {
                     <div className="flex items-center gap-2 min-w-0">
                       <h3 className="font-medium truncate">{a.name}</h3>
                       {a.is_exclusive && (
-                        <Badge variant="outline" className="shrink-0 border-amber-500/50 text-amber-700 dark:text-amber-400 gap-1">
+                        <Badge variant="outline" className="shrink-0 border-warning/50 text-warning-strong gap-1">
                           <Lock className="h-3 w-3" /> Exclusivo{sponsorName(a.exclusive_sponsor_id) ? ` · ${sponsorName(a.exclusive_sponsor_id)}` : ""}
                         </Badge>
                       )}
@@ -650,10 +662,10 @@ export default function Assets() {
                   className="w-full text-left flex items-center gap-3 px-3 py-1.5 text-sm hover:bg-muted/50 transition-colors"
                 >
                   <span className="flex-1 truncate flex items-center gap-1.5">
-                    {a.is_exclusive && <Lock className="h-3 w-3 shrink-0 text-amber-600" aria-label="Exclusivo" />}
+                    {a.is_exclusive && <Lock className="h-3 w-3 shrink-0 text-warning-strong" aria-label="Exclusivo" />}
                     <span className="truncate">{a.name}</span>
                     {a.is_exclusive && sponsorName(a.exclusive_sponsor_id) && (
-                      <span className="text-xs text-amber-700 dark:text-amber-400 shrink-0 hidden md:inline">({sponsorName(a.exclusive_sponsor_id)})</span>
+                      <span className="text-xs text-warning-strong shrink-0 hidden md:inline">({sponsorName(a.exclusive_sponsor_id)})</span>
                     )}
                   </span>
                   <span className="text-xs text-muted-foreground shrink-0 hidden sm:inline">{a.category}</span>
@@ -838,10 +850,11 @@ export default function Assets() {
                           </Badge>
                         )}
                         <Button
+                          aria-label="Remover foto"
                           type="button"
                           size="icon"
                           variant="destructive"
-                          className="absolute top-1 right-1 h-7 w-7 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-1 right-1 h-7 w-7 shadow-sm opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
                           onClick={() => setCreateFiles((prev) => prev.filter((_, i) => i !== idx))}
                           title="Remover foto"
                         >
@@ -1029,13 +1042,14 @@ export default function Assets() {
                               title={p.is_cover ? "Esta é a capa" : "Definir como capa"}
                               aria-label={p.is_cover ? "Foto de capa" : "Definir como capa"}
                             >
-                              <Star className={`h-4 w-4 ${p.is_cover ? "fill-current text-yellow-500" : ""}`} />
+                              <Star className={`h-4 w-4 ${p.is_cover ? "fill-current text-warning" : ""}`} />
                             </Button>
                             <Button
+                              aria-label="Remover foto"
                               type="button"
                               size="icon"
                               variant="destructive"
-                              className="h-7 w-7 shadow-sm pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="h-7 w-7 shadow-sm pointer-events-auto opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
                               onClick={(e) => { e.preventDefault(); e.stopPropagation(); deletePhoto(p); }}
                               title="Remover foto"
                             >
@@ -1133,6 +1147,7 @@ export default function Assets() {
                   <span className="text-sm">{c}</span>
                   {customCategories.includes(c) ? (
                     <Button
+                      aria-label="Excluir categoria"
                       size="icon"
                       variant="ghost"
                       className="h-7 w-7 text-muted-foreground hover:text-destructive"

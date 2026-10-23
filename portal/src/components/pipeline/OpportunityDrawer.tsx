@@ -129,12 +129,12 @@ type TimelineCategory = "oportunidade" | "historico" | "comentario" | "atividade
 const TIMELINE_META: Record<TimelineCategory, { label: string; icon: typeof Route; color: string }> = {
   oportunidade: { label: "Oportunidade", icon: Route, color: "text-primary" },
   historico: { label: "Histórico", icon: Clock, color: "text-muted-foreground" },
-  comentario: { label: "Comentário", icon: MessageSquare, color: "text-blue-600" },
-  atividade: { label: "Atividade", icon: ListChecks, color: "text-amber-600" },
-  proposta: { label: "Proposta", icon: FileText, color: "text-indigo-600" },
-  contrato: { label: "Contrato", icon: FileSignature, color: "text-emerald-600" },
-  entrega: { label: "Entrega", icon: CheckCircle2, color: "text-teal-600" },
-  financeiro: { label: "Financeiro", icon: AlertCircle, color: "text-rose-600" },
+  comentario: { label: "Comentário", icon: MessageSquare, color: "text-info-strong" },
+  atividade: { label: "Atividade", icon: ListChecks, color: "text-warning-strong" },
+  proposta: { label: "Proposta", icon: FileText, color: "text-primary" },
+  contrato: { label: "Contrato", icon: FileSignature, color: "text-success-strong" },
+  entrega: { label: "Entrega", icon: CheckCircle2, color: "text-success-strong" },
+  financeiro: { label: "Financeiro", icon: AlertCircle, color: "text-destructive" },
 };
 
 type TimelineEvent = {
@@ -1090,7 +1090,7 @@ export function OpportunityDrawer({
     const completed = steps.filter((s) => s.done).length;
     const progressPct = Math.round((completed / steps.length) * 100);
     const toneClass = (tone?: StepInfo["tone"]) =>
-      tone === "warn" ? "text-amber-600" : tone === "ok" ? "text-emerald-600" : "text-foreground";
+      tone === "warn" ? "text-warning-strong" : tone === "ok" ? "text-success-strong" : "text-foreground";
 
     return (
       <div className="space-y-4">
@@ -1115,18 +1115,18 @@ export function OpportunityDrawer({
           <div className="h-full bg-primary transition-all" style={{ width: `${progressPct}%` }} />
         </div>
         {warnings.length > 0 && (
-          <div className="text-xs bg-amber-50 text-amber-800 border border-amber-200 rounded-md p-2">
+          <div className="text-xs bg-warning/10 text-warning-strong border border-warning/40 rounded-md p-2">
             Campos recomendados para preencher: {warnings.join(", ")}
           </div>
         )}
         <div className="relative border rounded-lg p-4 space-y-4">
           {steps.map((step, idx) => {
             const Icon = step.done ? CheckCircle2 : Circle;
-            const color = step.done ? "text-emerald-600" : step.active ? "text-primary" : "text-muted-foreground";
+            const color = step.done ? "text-success-strong" : step.active ? "text-primary" : "text-muted-foreground";
             return (
               <div key={step.id} className="flex items-start gap-3 relative">
                 {idx < steps.length - 1 && (
-                  <div className={`absolute left-[11px] top-6 w-0.5 h-full ${step.done ? "bg-emerald-500" : "bg-muted"}`} />
+                  <div className={`absolute left-[11px] top-6 w-0.5 h-full ${step.done ? "bg-success" : "bg-muted"}`} />
                 )}
                 <Icon className={`h-5 w-5 mt-0.5 shrink-0 ${color}`} />
                 <div className="flex-1 min-w-0">

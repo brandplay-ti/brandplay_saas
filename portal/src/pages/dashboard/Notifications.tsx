@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNotifications } from "@/hooks/useNotifications";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/common/PageHeader";
 
 const CATEGORY_LABELS: Record<string, string> = {
   installment_due: "Parcela a vencer",
@@ -55,20 +56,22 @@ export default function Notifications() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Notificações</h1>
-          <p className="text-sm text-muted-foreground mt-1">Visualize alertas internos e acompanhe o que ainda precisa de atenção.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={checkNow} disabled={loading}>
-            <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} /> Atualizar
-          </Button>
-          <Button variant="outline" size="sm" onClick={markAllRead} disabled={unread === 0}>
-            <CheckCheck className="h-4 w-4 mr-2" /> Marcar todas como lidas
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Notificações"
+        description="Visualize alertas internos e acompanhe o que ainda precisa de atenção."
+        actions={
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" onClick={checkNow} disabled={loading}>
+                <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} /> Atualizar
+              </Button>
+              <Button variant="outline" size="sm" onClick={markAllRead} disabled={unread === 0}>
+                <CheckCheck className="h-4 w-4 mr-2" /> Marcar todas como lidas
+              </Button>
+            </div>
+          </>
+        }
+      />
 
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-3">

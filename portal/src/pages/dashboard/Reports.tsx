@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +59,7 @@ import { QuotaHeatmapWidget } from "@/components/dashboard/QuotaHeatmapWidget";
 import { TicketBenchmarkWidget } from "@/components/dashboard/TicketBenchmarkWidget";
 import { ROIWidget } from "@/components/dashboard/ROIWidget";
 import { dataLocal } from "@/lib/datas";
+import { PageHeader } from "@/components/common/PageHeader";
 
 
 const fmtMoney = (n: number) =>
@@ -82,7 +83,7 @@ const SCORE_LABELS: Record<string, string> = {
   frio: "Frio",
 };
 
-const PIE_COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "hsl(var(--muted-foreground))", "hsl(var(--destructive))", "hsl(var(--secondary))", "hsl(var(--ring))"];
+const PIE_COLORS = [1, 2, 3, 4, 5, 6].map((n) => `hsl(var(--chart-${n}))`);
 
 interface Property { id: string; name: string }
 interface Sponsor { id: string; name: string; score: string; segment: string | null }
@@ -138,7 +139,6 @@ const downloadCSV = (filename: string, rows: (string | number)[][]) => {
 export default function Reports() {
   const { user } = useAuth();
   const { orgId } = useOrganization();
-  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [exportingPdf, setExportingPdf] = useState(false);
 
@@ -186,7 +186,7 @@ export default function Reports() {
       setOpportunities(oppR.data ?? []);
       setDeliveries(delR.data ?? []);
     } catch (e: any) {
-      toast({ title: "Erro ao carregar relatório", description: e.message, variant: "destructive" });
+      toast.error("Erro ao carregar relatório", { description: e.message });
     } finally {
       setLoading(false);
     }
@@ -390,7 +390,7 @@ export default function Reports() {
       funnel,
       topSponsors,
     });
-    if (!ok) toast({ title: "Permita pop-ups para gerar o relatório", variant: "destructive" });
+    if (!ok) toast.error("Permita pop-ups para gerar o relatório");
   };
 
   const exportPDF = async () => {
@@ -422,9 +422,9 @@ export default function Reports() {
       a.download = `relatorio_${from}_${to}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-      toast({ title: "PDF gerado com sucesso" });
+      toast.success("PDF gerado com sucesso");
     } catch (e: any) {
-      toast({ title: "Erro ao gerar PDF", description: e.message, variant: "destructive" });
+      toast.error("Erro ao gerar PDF", { description: e.message });
     } finally {
       setExportingPdf(false);
     }
@@ -432,24 +432,26 @@ export default function Reports() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">Relatórios</h1>
-          <p className="text-sm text-muted-foreground">Visão executiva e detalhada da operação.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Atualizar
-          </Button>
-          <Button variant="outline" size="sm" onClick={exportFullReport}>
-            <FileText className="h-4 w-4 mr-2" /> Relatório completo
-          </Button>
-          <Button size="sm" onClick={exportPDF} disabled={exportingPdf}>
-            <FileText className="h-4 w-4 mr-2" /> {exportingPdf ? "Gerando..." : "Exportar PDF"}
-          </Button>
+      <PageHeader
+        title="Relatórios"
+        description="Visão executiva e detalhada da operação."
+        actions={
+          <>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Atualizar
+              </Button>
+              <Button variant="outline" size="sm" onClick={exportFullReport}>
+                <FileText className="h-4 w-4 mr-2" /> Relatório completo
+              </Button>
+              <Button size="sm" onClick={exportPDF} disabled={exportingPdf}>
+                <FileText className="h-4 w-4 mr-2" /> {exportingPdf ? "Gerando..." : "Exportar PDF"}
+              </Button>
 
-        </div>
-      </div>
+            </div>
+          </>
+        }
+      />
 
       {/* Filters */}
       <Card>
@@ -523,7 +525,7 @@ export default function Reports() {
                   <Tooltip formatter={(v: number) => fmtMoney(v)} />
                   <Legend />
                   <Bar dataKey="recebido" stackId="a" fill="hsl(var(--primary))" name="Recebido" />
-                  <Bar dataKey="previsto" stackId="a" fill="hsl(var(--accent))" name="Previsto" />
+                  <Bar dataKey="previsto" stackId="a" fill="hsl(var(--chart-2))" name="Previsto" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -613,7 +615,7 @@ export default function Reports() {
                   <Tooltip formatter={(v: number) => fmtMoney(v)} />
                   <Legend />
                   <Line type="monotone" dataKey="recebido" stroke="hsl(var(--primary))" name="Recebido" />
-                  <Line type="monotone" dataKey="previsto" stroke="hsl(var(--accent))" name="Previsto" />
+                  <Line type="monotone" dataKey="previsto" stroke="hsl(var(--chart-2))" name="Previsto" />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
@@ -674,7 +676,7 @@ export default function Reports() {
                   <Tooltip formatter={(v: number, n) => (n === "Valor" ? fmtMoney(v) : v)} />
                   <Legend />
                   <Bar yAxisId="left" dataKey="count" fill="hsl(var(--primary))" name="Qtd" />
-                  <Bar yAxisId="right" dataKey="value" fill="hsl(var(--accent))" name="Valor" />
+                  <Bar yAxisId="right" dataKey="value" fill="hsl(var(--chart-2))" name="Valor" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>

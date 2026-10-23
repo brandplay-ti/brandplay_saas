@@ -53,11 +53,11 @@ export function QuotaHeatmapWidget() {
   }, [tiers, properties, sales]);
 
   const colorFor = (ratio: number) => {
-    if (ratio >= 1) return "bg-emerald-500/90 text-white border-emerald-600";
-    if (ratio >= 0.75) return "bg-emerald-500/60 text-white border-emerald-500";
-    if (ratio >= 0.5) return "bg-amber-500/60 text-white border-amber-500";
-    if (ratio >= 0.25) return "bg-amber-500/30 border-amber-400";
-    if (ratio > 0) return "bg-sky-500/20 border-sky-400";
+    if (ratio >= 1) return "bg-success/90 text-foreground border-success";
+    if (ratio >= 0.75) return "bg-success/60 text-foreground border-success";
+    if (ratio >= 0.5) return "bg-warning/60 text-foreground border-warning";
+    if (ratio >= 0.25) return "bg-warning/30 border-warning";
+    if (ratio > 0) return "bg-info/20 border-info";
     return "bg-muted border-border";
   };
 
@@ -104,11 +104,11 @@ export function QuotaHeatmapWidget() {
             <div className="flex items-center gap-3 text-[10px] text-muted-foreground pt-2 border-t flex-wrap">
               <span>Legenda:</span>
               <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 bg-muted border" /> 0%</span>
-              <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 bg-sky-500/20 border border-sky-400" /> &lt;25%</span>
-              <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 bg-amber-500/30 border border-amber-400" /> 25-50%</span>
-              <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 bg-amber-500/60 border border-amber-500" /> 50-75%</span>
-              <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 bg-emerald-500/60 border border-emerald-500" /> 75-99%</span>
-              <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 bg-emerald-500/90 border border-emerald-600" /> 100%</span>
+              <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 bg-info/20 border border-info" /> &lt;25%</span>
+              <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 bg-warning/30 border border-warning" /> 25-50%</span>
+              <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 bg-warning/60 border border-warning" /> 50-75%</span>
+              <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 bg-success/60 border border-success" /> 75-99%</span>
+              <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 bg-success/90 border border-success" /> 100%</span>
             </div>
           </div>
         )}

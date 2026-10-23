@@ -3,11 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/common/StatusBadge";
+import { type StatusTone } from "@/lib/statusTone";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sparkles, Loader2, Flame, Snowflake, ThermometerSun, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useOrganization } from "@/hooks/useOrganization";
+import { PageHeader } from "@/components/common/PageHeader";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 interface Property { id: string; name: string; }
 interface Score {
@@ -26,10 +30,10 @@ interface Score {
 }
 interface NameMap { [id: string]: string; }
 
-const classUI: Record<Score["classification"], { label: string; cls: string; Icon: typeof Flame }> = {
-  quente: { label: "Quente", cls: "bg-destructive/15 text-destructive border-destructive/30", Icon: Flame },
-  morno: { label: "Morno", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30", Icon: ThermometerSun },
-  frio: { label: "Frio", cls: "bg-sky-500/15 text-sky-600 border-sky-500/30", Icon: Snowflake },
+const classUI: Record<Score["classification"], { label: string; tone: StatusTone; Icon: typeof Flame }> = {
+  quente: { label: "Quente", tone: "danger", Icon: Flame },
+  morno: { label: "Morno", tone: "warning", Icon: ThermometerSun },
+  frio: { label: "Frio", tone: "info", Icon: Snowflake },
 };
 
 export default function LeadScoring() {
@@ -107,36 +111,39 @@ export default function LeadScoring() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Sparkles className="h-6 w-6 text-primary" /> Prospecção Inteligente</h1>
-          <p className="text-sm text-muted-foreground">Ranking de leads por probabilidade de fechamento, gerado por IA.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={scopeMode} onValueChange={(v) => setScopeMode(v as any)}>
-            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="global">Score global</SelectItem>
-              <SelectItem value="property">Por propriedade</SelectItem>
-            </SelectContent>
-          </Select>
-          {scopeMode === "property" && (
-            <Select value={propertyId} onValueChange={setPropertyId}>
-              <SelectTrigger className="w-[220px]"><SelectValue placeholder="Selecione propriedade" /></SelectTrigger>
-              <SelectContent>
-                {properties.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          )}
-          <Button onClick={runScoring} disabled={scoring}>
-            {scoring ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
-            Gerar / Atualizar com IA
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Prospecção Inteligente"
+        description="Ranking de leads por probabilidade de fechamento, gerado por IA."
+        icon={Sparkles}
+        actions={
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={scopeMode} onValueChange={(v) => setScopeMode(v as "global" | "property")}>
+                <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="global">Score global</SelectItem>
+                  <SelectItem value="property">Por propriedade</SelectItem>
+                </SelectContent>
+              </Select>
+              {scopeMode === "property" && (
+                <Select value={propertyId} onValueChange={setPropertyId}>
+                  <SelectTrigger className="w-[220px]"><SelectValue placeholder="Selecione propriedade" /></SelectTrigger>
+                  <SelectContent>
+                    {properties.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+              <Button onClick={runScoring} disabled={scoring}>
+                {scoring ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
+                Gerar / Atualizar com IA
+              </Button>
+            </div>
+          </>
+        }
+      />
 
       {loading ? (
-        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        <LoadingSkeleton variant="cards" count={3} />
       ) : scores.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
@@ -146,7 +153,7 @@ export default function LeadScoring() {
       ) : (
         <div className="grid gap-4 md:grid-cols-3">
           {(["quente", "morno", "frio"] as const).map((cls) => {
-            const { Icon, label, cls: badgeCls } = classUI[cls];
+            const { Icon, label, tone } = classUI[cls];
             const list = grouped[cls];
             return (
               <Card key={cls}>
@@ -167,7 +174,7 @@ export default function LeadScoring() {
                             {s.target_type === "sponsor" ? "Patrocinador" : "Oportunidade"}
                           </div>
                         </div>
-                        <Badge className={badgeCls}>{s.score}</Badge>
+                        <StatusBadge tone={tone}>{s.score}</StatusBadge>
                       </div>
                       {s.approach_argument && (
                         <p className="text-xs text-foreground/80 italic">"{s.approach_argument}"</p>

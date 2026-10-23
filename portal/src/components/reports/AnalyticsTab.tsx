@@ -204,7 +204,7 @@ export const AnalyticsTab = (props: AnalyticsInput) => {
                 <Tooltip />
                 <Legend />
                 <Line type="monotone" dataKey="novas" stroke="hsl(var(--primary))" name="Novas" />
-                <Line type="monotone" dataKey="ganhas" stroke="hsl(var(--accent))" name="Ganhas" />
+                <Line type="monotone" dataKey="ganhas" stroke="hsl(var(--chart-3))" name="Ganhas" />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>

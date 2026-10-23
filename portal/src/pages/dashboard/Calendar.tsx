@@ -12,6 +12,7 @@ import { toast } from "sonner";
 
 import { DueDateEditor } from "@/components/common/DueDateEditor";
 import { TaskInsightsButton } from "@/components/common/TaskInsightsButton";
+import { PageHeader } from "@/components/common/PageHeader";
 
 const db = supabase as any;
 
@@ -49,8 +50,8 @@ const SOURCE_ICON = {
 
 const SOURCE_CLS: Record<Source, string> = {
   crm: "bg-primary/15 text-primary border-primary/30",
-  atividade: "bg-amber-500/15 text-amber-600 border-amber-500/30",
-  checklist: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
+  atividade: "bg-warning/15 text-warning-strong border-warning/30",
+  checklist: "bg-success/15 text-success-strong border-success/30",
 };
 
 const toKey = (d: Date) =>
@@ -221,28 +222,29 @@ const CalendarPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <CalendarDays className="h-6 w-6 text-primary" /> Calendário
-          </h1>
-          <p className="text-sm text-muted-foreground">Todas as tarefas, atividades e checklists a fazer</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Select value={filterSource} onValueChange={setFilterSource}>
-            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os tipos</SelectItem>
-              <SelectItem value="crm">Tarefas CRM</SelectItem>
-              <SelectItem value="atividade">Atividades</SelectItem>
-              <SelectItem value="checklist">Checklists</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="sm" onClick={() => setShowDone((v) => !v)}>
-            {showDone ? "Ocultar concluídas" : "Mostrar concluídas"}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Calendário"
+        description="Todas as tarefas, atividades e checklists a fazer"
+        icon={CalendarDays}
+        actions={
+          <>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Select value={filterSource} onValueChange={setFilterSource}>
+                <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os tipos</SelectItem>
+                  <SelectItem value="crm">Tarefas CRM</SelectItem>
+                  <SelectItem value="atividade">Atividades</SelectItem>
+                  <SelectItem value="checklist">Checklists</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" onClick={() => setShowDone((v) => !v)}>
+                {showDone ? "Ocultar concluídas" : "Mostrar concluídas"}
+              </Button>
+            </div>
+          </>
+        }
+      />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Itens no mês</p><p className="text-2xl font-bold">{visible.length}</p></CardContent></Card>
@@ -257,13 +259,13 @@ const CalendarPage = () => {
               {cursor.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
             </CardTitle>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>
+              <Button aria-label="Mês anterior" variant="ghost" size="icon" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <Button variant="outline" size="sm" onClick={() => { const d = new Date(); setCursor(new Date(d.getFullYear(), d.getMonth(), 1)); setSelected(toKey(d)); }}>
                 Hoje
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}>
+              <Button aria-label="Próximo mês" variant="ghost" size="icon" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
@@ -335,7 +337,7 @@ const CalendarPage = () => {
                         {i.description && <p className="text-xs text-muted-foreground line-clamp-3">{i.description}</p>}
                       </div>
                       {!i.done && (
-                        <Button size="icon" variant="ghost" title="Concluir" onClick={() => complete(i)}>
+                        <Button aria-label="Concluir" size="icon" variant="ghost" title="Concluir" onClick={() => complete(i)}>
                           <CheckCircle2 className="h-4 w-4" />
                         </Button>
                       )}

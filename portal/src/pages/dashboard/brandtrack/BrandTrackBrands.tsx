@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, ChevronRight, Tag, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
+import { PageHeader } from "@/components/common/PageHeader";
 
 type Row = {
   brand_name: string;
@@ -102,10 +103,10 @@ const BrandTrackBrands = () => {
 
   return (
     <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-3xl font-bold">Análise por Patrocinador</h1>
-        <p className="text-muted-foreground">Marcas detectadas, esperadas e inesperadas com métricas agregadas.</p>
-      </div>
+      <PageHeader
+        title="Análise por Patrocinador"
+        description="Marcas detectadas, esperadas e inesperadas com métricas agregadas."
+      />
 
       <div className="grid gap-3 md:grid-cols-3">
         <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><CheckCircle2 className="h-4 w-4" /> Esperadas detectadas</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{rows.filter((r) => r.expected).length}</div></CardContent></Card>
@@ -154,7 +155,7 @@ const BrandTrackBrands = () => {
                     <div className="text-2xl font-bold">{Math.round(r.bes)}</div>
                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground">BES</div>
                   </div>
-                  <Button asChild variant="ghost" size="icon">
+                  <Button aria-label={`Ver detalhes de ${r.brand_name}`} asChild variant="ghost" size="icon">
                     <Link to={`/dashboard/brandtrack/marcas/${encodeURIComponent(r.brand_name)}`}><ChevronRight className="h-4 w-4" /></Link>
                   </Button>
                 </div>
