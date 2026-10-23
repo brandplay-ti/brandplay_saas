@@ -71,6 +71,7 @@ export interface PedidoDeIA {
 }
 
 export interface UsoDeTokens {
+  /** Entrada cobrada a preço cheio (sem a parte lida do cache). */
   entrada: number;
   saida: number;
   /** Entrada lida do cache do fornecedor (cobrada mais barato). */
@@ -97,6 +98,27 @@ export interface ContextoDeIA {
   /** Nulo = rotina sem usuário. */
   usuarioId: string | null;
 }
+
+/** O que a camada entrega a um adaptador: a credencial já decifrada e o modelo escolhido. */
+export interface ChamadaAoFornecedor {
+  fornecedor: Fornecedor;
+  chave: string;
+  modelo: string;
+  pedido: PedidoDeIA;
+  /** Injetável nos testes; padrão, o `fetch` global. */
+  fetch?: typeof fetch;
+  /** Tempo máximo da chamada; estourar vira `indisponivel`. */
+  timeoutMs?: number;
+}
+
+/**
+ * Um adaptador traduz o pedido, chama o fornecedor uma vez e traduz a
+ * resposta. Não tenta de novo nem grava nada: isso é da camada (IA-09/IA-11).
+ * Falha sempre como `ErroDeIA`.
+ */
+export type Adaptador = (chamada: ChamadaAoFornecedor) => Promise<RespostaDeIA>;
+
+export const TIMEOUT_PADRAO_MS = 60_000;
 
 export const LIMITE_MAX_TOKENS = 32_000;
 

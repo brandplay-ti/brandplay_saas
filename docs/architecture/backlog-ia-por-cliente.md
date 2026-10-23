@@ -145,6 +145,19 @@ erro (`insufficient_quota` → `sem_saldo`, etc.). URL base fixa por fornecedor.
 Critérios: testes com `fetch` simulado para cada linha da tabela, nos dois
 fornecedores.
 
+Feito em `_shared/ai/openai.ts`. Decisões tomadas na implementação:
+- saída JSON por `response_format: json_schema` **sem** `strict` (os esquemas
+  das funções não seguem as regras do modo estrito) e reforço no `system`; a
+  garantia vem do parse — o que não for objeto JSON é `resposta_invalida`;
+- `uso.entrada` exclui a parte lida do cache (`prompt_tokens` da OpenAI
+  inclui), para o custo usar o preço certo de cada parte;
+- chamada de ferramenta é reconhecida pelas `tool_calls`, não só pelo
+  `finish_reason` (o Gemini pode responder `stop` mesmo chamando);
+- ferramenta obrigatória não chamada e argumentos que não são objeto JSON
+  viram `resposta_invalida`.
+A avaliação (IA-22) confirma com chamadas reais o `json_schema` e a
+ferramenta obrigatória no endpoint compatível do Gemini.
+
 Dependências: IA-05.
 
 ### IA-07 · Adaptador `anthropic` — M
