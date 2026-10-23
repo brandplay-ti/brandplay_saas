@@ -61,6 +61,12 @@ export class ErroDeIA extends Error {
     detalheInterno: string,
     /** Só falhas transitórias do fornecedor; bloqueio das guardas nunca. */
     readonly tentarDeNovo = false,
+    /**
+     * Quem falhou: o fornecedor (resposta da API) ou a própria plataforma
+     * (guardas, configuração). O limite de taxa interno, por exemplo, usa o
+     * código `limite_taxa` mas não é falha da credencial.
+     */
+    readonly origem: "fornecedor" | "plataforma" = "fornecedor",
   ) {
     super(`${codigo}: ${detalheInterno}`);
     this.name = "ErroDeIA";
@@ -68,9 +74,9 @@ export class ErroDeIA extends Error {
     this.mensagemAoUsuario = CATALOGO[codigo].mensagem;
   }
 
-  /** Se a falha é da credencial (vai para `ai_credentials.last_error`). */
+  /** Se a falha é da credencial no fornecedor (vai para `ai_credentials.last_error`). */
   get daCredencial(): boolean {
-    return (ERROS_DO_FORNECEDOR as readonly string[]).includes(this.codigo);
+    return this.origem === "fornecedor" && (ERROS_DO_FORNECEDOR as readonly string[]).includes(this.codigo);
   }
 }
 
@@ -80,7 +86,7 @@ export function ehBloqueio(codigo: string): codigo is Bloqueio {
 
 /** Bloqueio devolvido por `ia_situacao` como erro da camada. */
 export function erroDeBloqueio(bloqueio: Bloqueio): ErroDeIA {
-  return new ErroDeIA(bloqueio, "bloqueado pela guarda ia_situacao");
+  return new ErroDeIA(bloqueio, "bloqueado pela guarda ia_situacao", false, "plataforma");
 }
 
 /**

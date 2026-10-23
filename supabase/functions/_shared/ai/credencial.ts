@@ -77,7 +77,7 @@ export function repositorioSupabase(admin: SupabaseClient): RepositorioDeCredenc
   const consulta = () => admin.from("ai_credentials").select(COLUNAS).eq("status", "ativa");
   const primeira = async (filtro: (q: ReturnType<typeof consulta>) => ReturnType<typeof consulta>) => {
     const { data, error } = await filtro(consulta()).limit(1).maybeSingle();
-    if (error) throw new ErroDeIA("indisponivel", `leitura de ai_credentials falhou: ${error.code ?? "?"}`, true);
+    if (error) throw new ErroDeIA("indisponivel", `leitura de ai_credentials falhou: ${error.code ?? "?"}`, true, "plataforma");
     return (data ?? null) as LinhaDeCredencial | null;
   };
 
@@ -110,7 +110,7 @@ async function chaveDaLinha(linha: LinhaDeCredencial, dono: string | null, chave
     // Chave mestra errada, versão não configurada ou linha adulterada:
     // problema de configuração da plataforma, tratado como chave inválida.
     const codigo = e instanceof ErroDeCifra ? e.codigo : "desconhecido";
-    throw new ErroDeIA("chave_invalida", `credencial ${linha.id} não decifra (${codigo})`);
+    throw new ErroDeIA("chave_invalida", `credencial ${linha.id} não decifra (${codigo})`, false, "plataforma");
   }
 }
 
@@ -119,7 +119,7 @@ function sementeDoAmbiente(ler: (nome: string) => string | undefined): { fornece
   const chave = ler("AI_DEFAULT_API_KEY")?.trim();
   if (!fornecedor || !chave) return null;
   if (!(FORNECEDORES as readonly string[]).includes(fornecedor)) {
-    throw new ErroDeIA("indisponivel", `AI_DEFAULT_PROVIDER inválido: ${fornecedor}`);
+    throw new ErroDeIA("indisponivel", `AI_DEFAULT_PROVIDER inválido: ${fornecedor}`, false, "plataforma");
   }
   const padrao = MODELOS_PADRAO[fornecedor as Fornecedor];
   return {
@@ -153,7 +153,7 @@ export async function resolverCredencial(
   const exclusiva = await deps.repositorio.ativaDaOrganizacao(organizacaoId);
   // Defesa em profundidade: a consulta já filtra, a cifra também amarra.
   if (exclusiva && exclusiva.organization_id !== organizacaoId) {
-    throw new ErroDeIA("chave_invalida", `credencial ${exclusiva.id} não pertence à organização`);
+    throw new ErroDeIA("chave_invalida", `credencial ${exclusiva.id} não pertence à organização`, false, "plataforma");
   }
   let escopoDaPadrao: EscopoDaCredencial = "padrao";
   if (exclusiva) {
@@ -175,10 +175,10 @@ export async function resolverCredencial(
   const padrao = await deps.repositorio.padraoAtiva();
   if (padrao) {
     if (padrao.organization_id !== null) {
-      throw new ErroDeIA("chave_invalida", `credencial ${padrao.id} não é a padrão da plataforma`);
+      throw new ErroDeIA("chave_invalida", `credencial ${padrao.id} não é a padrão da plataforma`, false, "plataforma");
     }
     const modelo = modeloDoNivel(modelosDaLinha(padrao), nivel);
-    if (!modelo) throw new ErroDeIA("indisponivel", `chave padrão sem modelo para o nível ${nivel}`);
+    if (!modelo) throw new ErroDeIA("indisponivel", `chave padrão sem modelo para o nível ${nivel}`, false, "plataforma");
     return {
       fornecedor: padrao.provider,
       chave: await chaveDaLinha(padrao, null, chaves),
@@ -192,7 +192,7 @@ export async function resolverCredencial(
   const semente = sementeDoAmbiente(ler);
   if (semente) {
     const modelo = modeloDoNivel(semente.modelos, nivel);
-    if (!modelo) throw new ErroDeIA("indisponivel", `semente sem modelo para o nível ${nivel}`);
+    if (!modelo) throw new ErroDeIA("indisponivel", `semente sem modelo para o nível ${nivel}`, false, "plataforma");
     return {
       fornecedor: semente.fornecedor,
       chave: semente.chave,
@@ -204,7 +204,7 @@ export async function resolverCredencial(
     };
   }
 
-  throw new ErroDeIA("indisponivel", "nenhuma credencial de IA configurada (banco nem ambiente)");
+  throw new ErroDeIA("indisponivel", "nenhuma credencial de IA configurada (banco nem ambiente)", false, "plataforma");
 }
 
 // ─── Chamada com nova tentativa ──────────────────────────────────────

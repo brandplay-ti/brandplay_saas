@@ -247,6 +247,20 @@ bloqueada, orçamento esgotado (Q5: corte na chave padrão, só alerta na
 exclusiva), limite de taxa por organização e por usuário (valores em
 constante, revisáveis).
 
+Feito em `_shared/ai/guardas.ts`. Decisões tomadas na implementação:
+- limites iniciais: 60 chamadas/min por organização e 20 por usuário
+  (contam só as que chegaram ao fornecedor);
+- **falha fechada**: consulta que falha ou responde fora do formato barra a
+  chamada (`indisponivel`) — sem saber o orçamento, não se gasta;
+- quem não é membro ativo sobe como `AcessoNegadoAIA` (403), separado da
+  falta de permissão na função (cliente sem service role), que é erro de
+  configuração (`indisponivel`);
+- `ErroDeIA` ganhou `origem` (`fornecedor`/`plataforma`): o limite interno
+  usa o código `limite_taxa`, mas não é falha da credencial e não vai para
+  `last_error`.
+Exercitado contra o stack isolado: membro passa, não membro é recusado,
+cliente com a chave anon falha fechado.
+
 Dependências: IA-02, IA-09.
 
 ### IA-11 · Medição de uso — P
