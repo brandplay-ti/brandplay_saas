@@ -21,6 +21,26 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   Funções de IA (`ai-assistant`, `score-leads`, `generate-proposal-ai`, entre
   outras) chamam a Anthropic API diretamente (ADR-0003) —
   `ANTHROPIC_API_KEY` só existe nesse ambiente server-side.
+
+  O despachante `main` **não** verifica JWT (nada lê `VERIFY_JWT`, e o runtime
+  sobe sem `--verify-jwt`): cada função valida o usuário por conta própria com
+  `auth.getUser()`. Verificar no despachante não substituiria isso — a anon
+  key é um JWT válido e está no bundle do portal, então "ter um JWT" não
+  significa "estar logado". Sem usuário, de propósito, só três:
+  `billing-webhook` (autentica pela assinatura do Stripe), `saude`
+  (healthcheck, não lê nada) e `report-error` (aceita relato de erro anônimo).
+  Função nova começa com `getUser()`; ficar fora dessa lista exige o motivo
+  registrado aqui.
+
+- **Busca de URL externa** (`fetch-social-stats`). Única função que faz
+  requisição para uma URL vinda do usuário. Ela roda dentro da rede Docker do
+  Supabase, então aceitar "qualquer http(s)" seria SSRF contra `kong`, `rest`,
+  `meta`, `db`. Exige usuário logado e só busca `https://`, na porta padrão,
+  em host do domínio da rede declarada ou subdomínio dele (lista em
+  `supabase/functions/fetch-social-stats/busca.ts`); redirect é seguido à mão
+  e revalidado a cada salto, com no máximo 2,5 MB e 10 s por link, e o erro
+  volta como frase fixa, sem a mensagem do runtime. Função nova que busque
+  URL externa segue o mesmo modelo: lista de hosts, nunca "qualquer URL".
 - **Portal do patrocinador.** Usuários com `sponsor_portal_access` ativo
   acessam contratos, entregas, parcelas, propostas e documentos de **um**
   patrocinador específico, sem serem membros da organização dona dele. É um
