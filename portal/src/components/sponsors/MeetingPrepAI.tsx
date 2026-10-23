@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { avisarErroDeIA } from "@/lib/erroDeIA";
 import {
   CalendarClock, Sparkles, Loader2, Copy, Plus, AlertTriangle, ThumbsUp, HelpCircle, Info,
 } from "lucide-react";
@@ -58,11 +59,11 @@ export const MeetingPrepAI = ({ sponsorId, onTaskCreated }: { sponsorId: string;
       const { data, error } = await supabase.functions.invoke("prepare-meeting-ai", {
         body: { sponsor_id: sponsorId, objective },
       });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
+      if (error || data?.error) {
+        await avisarErroDeIA(error, data, "Não foi possível preparar a reunião");
+        return;
+      }
       setResult(data as Result);
-    } catch (e) {
-      toast.error("Não foi possível preparar a reunião", { description: e instanceof Error ? e.message : "Erro desconhecido" });
     } finally {
       setLoading(false);
     }

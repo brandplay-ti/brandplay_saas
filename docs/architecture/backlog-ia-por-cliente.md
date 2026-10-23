@@ -388,6 +388,18 @@ Decisões tomadas na implementação:
 Já determinam a organização; JSON passa a usar o modo JSON da camada
 (`MeetingPrepAI.tsx`, `TaskInsightsDialog.tsx`).
 
+Feito. As duas usam `gerar()` com `json` (esquema de sempre, que a camada
+fecha por fornecedor) no lugar do parse do texto, e o apoio de
+`_shared/ai/funcao.ts`. Decisões tomadas na implementação:
+- a checagem de acesso que já existia virou `exigirModulo`: `crm` na
+  preparação de reunião e nas tarefas do CRM e atividades de oportunidade,
+  `operacional` nos itens de checklist; dados do patrocinador continuam só
+  com acesso ao CRM, financeiros só com acesso ao financeiro;
+- as consultas ganharam o filtro pela organização do registro, além do
+  `sponsor_id`/`contract_id`;
+- `source` desconhecido continua tratado como tarefa do CRM; ids passam a
+  ser validados como uuid (400).
+
 ### IA-17 · `score-leads` — M
 
 Recebe a organização ativa (`LeadScoring.tsx`), valida e filtra
