@@ -31,7 +31,7 @@ import { ativarComTeclado } from "@/lib/clicavel";
 
 type Status = "rascunho" | "enviada" | "aceita" | "recusada" | "expirada";
 interface Proposal {
-  id: string; title: string; proposal_number: string | null; brand: string | null;
+  id: string; organization_id: string; title: string; proposal_number: string | null; brand: string | null;
   sponsor_id: string | null; property_id: string | null; total_value: number;
   status: Status; valid_until: string | null; message: string | null; pdf_path: string | null;
   converted_opportunity_id: string | null; converted_contract_id: string | null;
@@ -266,6 +266,7 @@ export default function Proposals() {
       {
         proposal_id: data.id,
         owner_id: user.id,
+        organization_id: orgId,
         channel: "email",
         title: `Proposta ${property?.name ?? "de patrocínio"} para ${brand}`,
         content: `<p>Olá, ${escapeHtml(sponsor?.name ?? brand)}.</p><p>${escapeHtml(form.message || `Segue rascunho da proposta para ${template.tone} com a ${property?.name ?? "propriedade selecionada"}.`)}</p><p>Prazo de validade: <strong>${escapeHtml(formatDateBR(form.valid_until || null))}</strong>.</p><p>Posso ajustar qualquer ponto antes do envio final.</p>`,
@@ -274,6 +275,7 @@ export default function Proposals() {
       {
         proposal_id: data.id,
         owner_id: user.id,
+        organization_id: orgId,
         channel: "whatsapp",
         title: "WhatsApp",
         content: `Olá, ${sponsor?.name ?? brand}. Preparei a proposta ${property?.name ? `para ${property.name}` : "de patrocínio"}, válida até ${formatDateBR(form.valid_until || null)}. Posso te enviar agora para revisão?`,
@@ -1217,7 +1219,7 @@ export default function Proposals() {
                 </TabsContent>
 
                 <TabsContent value="versions" className="pt-4">
-                  <ProposalVersionsEditor proposalId={selected.id} />
+                  <ProposalVersionsEditor proposalId={selected.id} organizationId={selected.organization_id} />
                 </TabsContent>
 
                 <TabsContent value="actions" className="space-y-3 pt-4">

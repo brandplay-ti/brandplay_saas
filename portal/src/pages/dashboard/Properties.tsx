@@ -33,6 +33,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useOrganization } from "@/hooks/useOrganization";
 import { usePlanLimitNotice } from "@/hooks/usePlanLimitNotice";
 import { toast } from "sonner";
 import {
@@ -79,6 +80,7 @@ const STATUSES: Record<string, { label: string; variant: "default" | "secondary"
 
 const Properties = () => {
   const { user } = useAuth();
+  const { orgId } = useOrganization();
   const navigate = useNavigate();
   const avisarLimiteDoPlano = usePlanLimitNotice();
   const [properties, setProperties] = useState<Property[]>([]);
@@ -188,7 +190,7 @@ const Properties = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || !orgId) return;
     setSubmitting(true);
     const payload = {
       name: form.name,
@@ -202,7 +204,7 @@ const Properties = () => {
     };
     const { error } = editing
       ? await supabase.from("sports_properties").update(payload).eq("id", editing.id)
-      : await supabase.from("sports_properties").insert({ owner_id: user.id, ...payload });
+      : await supabase.from("sports_properties").insert({ owner_id: user.id, organization_id: orgId, ...payload });
     setSubmitting(false);
     if (error) {
       if (!avisarLimiteDoPlano(error)) toast.error(error.message);

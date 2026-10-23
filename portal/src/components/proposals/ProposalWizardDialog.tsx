@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,6 +39,7 @@ const sanitizeEmailHtml = (html: string) => DOMPurify.sanitize(html, {
 });
 
 export function ProposalWizardDialog({ sponsors, properties, onSaved }: Props) {
+  const { orgId } = useOrganization();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -84,7 +86,7 @@ export function ProposalWizardDialog({ sponsors, properties, onSaved }: Props) {
   };
 
   const save = async () => {
-    if (!out) return;
+    if (!out || !orgId) return;
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -93,6 +95,7 @@ export function ProposalWizardDialog({ sponsors, properties, onSaved }: Props) {
       const total = out.items.reduce((s, i) => s + i.quantity * i.unit_value, 0);
       const { data: prop, error: pErr } = await supabase.from("proposals").insert({
         owner_id: user.id,
+        organization_id: orgId,
         title: out.title,
         brand,
         sponsor_id: sponsorId === "none" ? null : sponsorId,
@@ -126,6 +129,7 @@ export function ProposalWizardDialog({ sponsors, properties, onSaved }: Props) {
       await supabase.from("proposal_versions").insert(versions.map((v) => ({
         proposal_id: proposalId,
         owner_id: user.id,
+        organization_id: orgId,
         ...v,
         model: "google/gemini-2.5-pro",
       })));
