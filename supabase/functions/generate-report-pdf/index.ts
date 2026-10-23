@@ -51,9 +51,10 @@ Deno.serve(async (req) => {
     const font = await pdf.embedFont(StandardFonts.Helvetica);
     const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
 
-    const PRIMARY = rgb(0.13, 0.32, 0.85);
+    const PRIMARY = rgb(0.384, 0.024, 0.784); // #6206C8
     const MUTED = rgb(0.45, 0.45, 0.5);
-    const TEXT = rgb(0.1, 0.1, 0.15);
+    const TEXT = rgb(0.059, 0.071, 0.129); // #0F1221
+    const PREVISTO = rgb(0.161, 0.384, 1); // #2962FF
 
     let page = pdf.addPage([595, 842]); // A4
     let y = 800;
@@ -145,12 +146,12 @@ Deno.serve(async (req) => {
       const recH = (m.recebido / maxVal) * chartH;
       const prevH = (m.previsto / maxVal) * chartH;
       page.drawRectangle({ x, y: baseY, width: barW, height: recH, color: PRIMARY });
-      page.drawRectangle({ x, y: baseY + recH, width: barW, height: prevH, color: rgb(0.55, 0.7, 0.95) });
+      page.drawRectangle({ x, y: baseY + recH, width: barW, height: prevH, color: PREVISTO });
       page.drawText(sanitize(m.label), { x, y: baseY - 10, size: 6, font, color: MUTED });
     });
     y = baseY - 24;
     text("- Recebido", { color: PRIMARY, size: 8 });
-    text("- Previsto", { x: left + 70, color: rgb(0.55, 0.7, 0.95), size: 8 });
+    text("- Previsto", { x: left + 70, color: PREVISTO, size: 8 });
     y -= 18;
 
     // Funnel table

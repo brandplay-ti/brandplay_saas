@@ -257,7 +257,7 @@ ${JSON.stringify(schema, null, 2)}`;
         max_tokens: 4096,
         system: jsonInstructions,
         messages: [
-          { role: "user", content: `Contexto real no BrandPlay:\n${JSON.stringify(ctx, null, 2)}` },
+          { role: "user", content: `Contexto real no Brandplay:\n${JSON.stringify(ctx, null, 2)}` },
         ],
       }),
     });

@@ -59,8 +59,8 @@ Deno.serve(async (req) => {
     const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
     let page = pdf.addPage([595, 842]);
     const { width, height } = page.getSize();
-    const primary = rgb(0.18, 0.43, 0.95);
-    const text = rgb(0.1, 0.12, 0.16);
+    const primary = rgb(0.384, 0.024, 0.784); // #6206C8
+    const text = rgb(0.059, 0.071, 0.129); // #0F1221
     const muted = rgb(0.42, 0.45, 0.52);
     let y = height - 60;
 
@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
     page.drawRectangle({ x: 0, y: height - 80, width, height: 80, color: primary });
     page.drawText("PROPOSTA COMERCIAL", { x: 40, y: height - 38, size: 18, font: fontBold, color: rgb(1, 1, 1) });
     if (proposal.proposal_number) {
-      page.drawText(`Nº ${proposal.proposal_number}`, { x: 40, y: height - 60, size: 10, font, color: rgb(0.9, 0.95, 1) });
+      page.drawText(`Nº ${proposal.proposal_number}`, { x: 40, y: height - 60, size: 10, font, color: rgb(0.93, 0.89, 1) });
     }
 
     // Sponsor logo — centered and proportional inside a fixed white frame
@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
     for (const [category, groupItems] of orderedGroups) {
       if (y < 140) { page = pdf.addPage([595, 842]); y = height - 60; }
       let groupTotal = 0;
-      page.drawRectangle({ x: 40, y: y - 5, width: width - 80, height: 18, color: rgb(0.93, 0.95, 1) });
+      page.drawRectangle({ x: 40, y: y - 5, width: width - 80, height: 18, color: rgb(0.957, 0.933, 0.992) });
       page.drawText(truncate(category.toUpperCase(), 60), { x: 48, y, size: 9, font: fontBold, color: primary });
       y -= 22;
 
@@ -187,7 +187,7 @@ Deno.serve(async (req) => {
     page.drawText(fmtBRL(grandTotal), { x: 490, y, size: 12, font: fontBold, color: primary });
 
     // Footer
-    page.drawText("Gerado por BrandPlay", { x: 40, y: 30, size: 8, font, color: muted });
+    page.drawText("Gerado por Brandplay", { x: 40, y: 30, size: 8, font, color: muted });
 
     const bytes = await pdf.save();
     const path = `${user.id}/${proposal_id}/proposta-${Date.now()}.pdf`;
