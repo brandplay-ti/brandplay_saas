@@ -1,22 +1,35 @@
-// Adaptador da Anthropic (Messages API) — backlog IA-07, plano §3.1.
+// Adaptador da Anthropic (Messages API) — backlog IA-07, ajustado na IA-08.
 //
 // Sai do formato que as 13 funções já usavam (MIGRATION_NOTES.md): `system`
 // de nível superior, blocos `tool_use`/`tool_result`, imagem em
 // `source.base64`. URL fixa aqui, como no openai_compat.
 //
-// Saída JSON: a Anthropic não tem um modo JSON equivalente ao
-// `response_format`. O pedido `json` vira uma ferramenta obrigatória com o
-// esquema, e a resposta é o `input` dela — mais firme que pedir JSON no
-// texto, como as funções faziam. Essa ferramenta é interna: não aparece em
-// `chamadas`.
+// Saída JSON e ferramenta obrigatória (matriz em modelos.ts):
+//
+// - JSON pedido: saída estruturada (`output_config.format`), o caminho
+//   oficial e o único que funciona em todos os modelos atuais.
+// - Ferramenta obrigatória, modelo que aceita `tool_choice` com nome: vai
+//   assim.
+// - Ferramenta obrigatória, modelo que recusa (Opus 5.5, Sonnet 5.5,
+//   Fable 5.1 dão 400): se é a única ferramenta — o caso das funções que só
+//   querem os dados no formato da ferramenta —, vira saída estruturada com o
+//   esquema dela e volta como uma chamada; com outras ferramentas junto, vai
+//   `auto` com instrução no `system`, e a falta da chamada é
+//   `resposta_invalida`.
+//
+// A saída estruturada exige `additionalProperties: false` em todo objeto e
+// não aceita limites numéricos e de tamanho: o esquema é ajustado aqui.
 //
 // Nada daqui registra corpo de pedido ou de resposta.
 
 import { ErroDeIA, erroPorStatusHttp } from "./erros.ts";
+import { aceitaFerramentaObrigatoria, limiteDeSaida } from "./modelos.ts";
 import {
   type Adaptador,
   type ChamadaAoFornecedor,
   type ChamadaDeFerramenta,
+  type EsquemaJson,
+  extrairObjetoJson,
   type PedidoDeIA,
   type RespostaDeIA,
   TIMEOUT_PADRAO_MS,
@@ -26,6 +39,62 @@ import {
 
 export const URL_ANTHROPIC = "https://api.anthropic.com/v1/messages";
 export const VERSAO_API_ANTHROPIC = "2023-06-01";
+
+/** Id da chamada sintética quando a ferramenta obrigatória vira saída estruturada. */
+export const ID_SAIDA_ESTRUTURADA = "saida_estruturada";
+
+type Modo =
+  | { tipo: "livre" }
+  | { tipo: "json" }
+  | { tipo: "ferramenta_forcada"; nome: string }
+  | { tipo: "ferramenta_como_saida"; nome: string; esquema: EsquemaJson }
+  | { tipo: "ferramenta_por_instrucao"; nome: string };
+
+export function modoDoPedido(pedido: PedidoDeIA, modelo: string): Modo {
+  if (pedido.json) return { tipo: "json" };
+  const nome = pedido.ferramentaObrigatoria;
+  if (!nome) return { tipo: "livre" };
+  if (aceitaFerramentaObrigatoria("anthropic", modelo)) return { tipo: "ferramenta_forcada", nome };
+  const ferramentas = pedido.ferramentas ?? [];
+  if (ferramentas.length === 1) return { tipo: "ferramenta_como_saida", nome, esquema: ferramentas[0].parametros };
+  return { tipo: "ferramenta_por_instrucao", nome };
+}
+
+// ─── Esquema para saída estruturada ──────────────────────────────────
+
+const RESTRICOES_NAO_ACEITAS = [
+  "minimum",
+  "maximum",
+  "exclusiveMinimum",
+  "exclusiveMaximum",
+  "multipleOf",
+  "minLength",
+  "maxLength",
+  "minItems",
+  "maxItems",
+  "uniqueItems",
+];
+
+/** Copia o esquema fechando os objetos e tirando as restrições que a saída estruturada recusa. */
+export function esquemaParaSaidaEstruturada(no: unknown): unknown {
+  if (Array.isArray(no)) return no.map((item) => esquemaParaSaidaEstruturada(item));
+  if (no === null || typeof no !== "object") return no;
+
+  const saida: Record<string, unknown> = {};
+  for (const [chave, valor] of Object.entries(no as Record<string, unknown>)) {
+    if (RESTRICOES_NAO_ACEITAS.includes(chave)) continue;
+    if (chave === "properties" || chave === "$defs" || chave === "definitions") {
+      // Mapa de nome → esquema: não confundir os nomes com palavras-chave.
+      saida[chave] = Object.fromEntries(
+        Object.entries(valor as Record<string, unknown>).map(([nome, esq]) => [nome, esquemaParaSaidaEstruturada(esq)]),
+      );
+    } else {
+      saida[chave] = esquemaParaSaidaEstruturada(valor);
+    }
+  }
+  if (saida.type === "object" || "properties" in saida) saida.additionalProperties = false;
+  return saida;
+}
 
 // ─── Pedido ──────────────────────────────────────────────────────────
 
@@ -44,8 +113,8 @@ export function blocoDeImagem(dataUrl: string): Bloco {
 
 function mensagensAnthropic(pedido: PedidoDeIA): MensagemAnthropic[] {
   const saida: MensagemAnthropic[] = [];
-  // A Anthropic exige papéis alternados: blocos seguidos do mesmo papel (ex.:
-  // resultados de ferramenta e a próxima pergunta do usuário) vão juntos.
+  // Papéis alternados: blocos seguidos do mesmo papel (ex.: resultados de
+  // ferramenta e a próxima pergunta do usuário) vão juntos.
   const acrescentar = (role: MensagemAnthropic["role"], blocos: Bloco[]) => {
     if (blocos.length === 0) return;
     const ultima = saida[saida.length - 1];
@@ -78,28 +147,29 @@ function mensagensAnthropic(pedido: PedidoDeIA): MensagemAnthropic[] {
 }
 
 export function montarCorpo(pedido: PedidoDeIA, modelo: string): Record<string, unknown> {
+  const modo = modoDoPedido(pedido, modelo);
+  let sistema = pedido.sistema?.trim() ?? "";
+  if (modo.tipo === "ferramenta_por_instrucao") {
+    sistema = `${sistema}\n\nResponda chamando a ferramenta ${modo.nome}.`.trim();
+  }
+
   const corpo: Record<string, unknown> = {
     model: modelo,
-    max_tokens: pedido.maxTokens,
+    // O limite inclui o raciocínio do modelo: vai com folga (modelos.ts).
+    max_tokens: limiteDeSaida(pedido.maxTokens),
     messages: mensagensAnthropic(pedido),
   };
-  if (pedido.sistema?.trim()) corpo.system = pedido.sistema;
+  if (sistema) corpo.system = sistema;
 
-  if (pedido.json) {
-    corpo.tools = [{
-      name: pedido.json.nome,
-      description: pedido.json.descricao ?? "Devolve a resposta no formato pedido.",
-      input_schema: pedido.json.esquema,
-    }];
-    corpo.tool_choice = { type: "tool", name: pedido.json.nome };
+  if (modo.tipo === "json" || modo.tipo === "ferramenta_como_saida") {
+    const esquema = modo.tipo === "json" ? pedido.json!.esquema : modo.esquema;
+    corpo.output_config = { format: { type: "json_schema", schema: esquemaParaSaidaEstruturada(esquema) } };
     return corpo;
   }
   if (pedido.ferramentas?.length) {
     corpo.tools = pedido.ferramentas.map((f) => ({ name: f.nome, description: f.descricao, input_schema: f.parametros }));
   }
-  if (pedido.ferramentaObrigatoria) {
-    corpo.tool_choice = { type: "tool", name: pedido.ferramentaObrigatoria };
-  }
+  if (modo.tipo === "ferramenta_forcada") corpo.tool_choice = { type: "tool", name: modo.nome };
   return corpo;
 }
 
@@ -127,6 +197,8 @@ export function lerResposta(dados: unknown, pedido: PedidoDeIA, modelo: string):
   const invalida = (motivo: string) => new ErroDeIA("resposta_invalida", `anthropic/${modelo}: ${motivo}`);
   const corpo = dados as { content?: unknown; stop_reason?: unknown; usage?: Record<string, unknown> };
   if (!Array.isArray(corpo?.content)) throw invalida("resposta sem content");
+  // Recusa dos classificadores de segurança: o conteúdo pode não seguir o pedido.
+  if (corpo.stop_reason === "refusal") throw invalida("o modelo recusou o pedido");
 
   const textos: string[] = [];
   const chamadas: ChamadaDeFerramenta[] = [];
@@ -139,20 +211,21 @@ export function lerResposta(dados: unknown, pedido: PedidoDeIA, modelo: string):
       chamadas.push({ id: bruto.id, nome: bruto.name, argumentos: bruto.input });
     }
   }
+  const texto = textos.join("");
   const uso = usoAnthropic(corpo.usage);
   const limite = corpo.stop_reason === "max_tokens";
+  const base = { fornecedor: "anthropic" as const, modelo, uso };
+  const modo = modoDoPedido(pedido, modelo);
 
-  if (pedido.json) {
-    const saida = chamadas.find((c) => c.nome === pedido.json!.nome);
-    if (!saida) throw invalida(limite ? "saída JSON cortada pelo limite de tokens" : "não devolveu a saída JSON pedida");
+  if (modo.tipo === "json" || modo.tipo === "ferramenta_como_saida") {
+    const objeto = extrairObjetoJson(texto);
+    if (!objeto) throw invalida(limite ? "saída estruturada cortada pelo limite de tokens" : "saída estruturada não é um objeto JSON");
+    if (modo.tipo === "json") return { ...base, texto, chamadas: [], json: objeto, fimPor: "fim" };
     return {
-      texto: textos.join(""),
-      chamadas: [],
-      json: saida.argumentos,
-      fimPor: limite ? "limite" : "fim",
-      fornecedor: "anthropic",
-      modelo,
-      uso,
+      ...base,
+      texto: "",
+      chamadas: [{ id: ID_SAIDA_ESTRUTURADA, nome: modo.nome, argumentos: objeto }],
+      fimPor: "ferramenta",
     };
   }
 
@@ -161,12 +234,10 @@ export function lerResposta(dados: unknown, pedido: PedidoDeIA, modelo: string):
   }
 
   return {
-    texto: textos.join(""),
+    ...base,
+    texto,
     chamadas,
     fimPor: limite ? "limite" : chamadas.length > 0 || corpo.stop_reason === "tool_use" ? "ferramenta" : "fim",
-    fornecedor: "anthropic",
-    modelo,
-    uso,
   };
 }
 

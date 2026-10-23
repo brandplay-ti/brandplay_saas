@@ -170,8 +170,9 @@ Erro 529 → `indisponivel`.
 Critérios: testes com `fetch` simulado equivalentes aos de IA-06.
 
 Feito em `_shared/ai/anthropic.ts`. Decisões tomadas na implementação:
-- a ferramenta que carrega a saída JSON é interna: o objeto volta em
-  `json`, nunca em `chamadas`;
+- (revisto na IA-08) saída JSON por saída estruturada
+  (`output_config.format`), não por ferramenta obrigatória: Claude Opus 5.5,
+  Sonnet 5.5 e Fable 5.1 recusam `tool_choice` com nome (400);
 - mensagens seguidas do mesmo papel (resultados de ferramenta e a próxima
   pergunta) vão juntas, porque a API exige papéis alternados; texto vazio do
   assistente não vira bloco;
@@ -186,6 +187,22 @@ Dependências: IA-05.
 Tabela no código: fornecedor → modelos padrão de `rapido`/`padrao`/`visao` e
 capacidades (visão, tool obrigatória, JSON). Valores iniciais provisórios;
 os definitivos saem da avaliação (IA-22).
+
+Feito em `_shared/ai/modelos.ts`. Padrões provisórios: OpenAI `gpt-5.4-mini`
+nos três níveis; Gemini `gemini-3.5-flash-lite` / `gemini-3.6-flash`;
+Anthropic `claude-haiku-5-5` / `claude-sonnet-5-5`. Descobertas que mudaram
+os adaptadores:
+- **Ferramenta obrigatória na Anthropic**: Opus 5.5, Sonnet 5.5 e Fable 5.1
+  recusam `tool_choice` com nome. A matriz lista os modelos que sabidamente
+  aceitam; nos demais, ferramenta única vira saída estruturada (volta como
+  chamada `saida_estruturada`) e várias ferramentas vão `auto` com instrução.
+  Saída estruturada exige `additionalProperties: false` e não aceita limites
+  numéricos/de tamanho: o adaptador ajusta o esquema.
+- **Raciocínio consome o limite de saída** nos três fornecedores: os
+  adaptadores somam `FOLGA_DE_RACIOCINIO` (8.000, teto 32.000) ao
+  `maxTokens` pedido. Só o gerado é cobrado.
+- Esforço/raciocínio por nível (custo e latência) fica para a avaliação
+  (IA-22): hoje os modelos rodam no esforço padrão de cada um.
 
 Dependências: IA-05.
 

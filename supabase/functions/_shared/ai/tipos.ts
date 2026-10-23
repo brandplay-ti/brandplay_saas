@@ -124,6 +124,17 @@ export const LIMITE_MAX_TOKENS = 32_000;
 
 const NOME_VALIDO = /^[a-zA-Z0-9_-]{1,64}$/;
 
+/** Tira cercas de markdown (```json ... ```) e faz o parse de um objeto JSON. */
+export function extrairObjetoJson(texto: string): Record<string, unknown> | null {
+  const semCerca = texto.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+  try {
+    const valor = JSON.parse(semCerca);
+    return valor !== null && typeof valor === "object" && !Array.isArray(valor) ? valor : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Se o pedido manda imagem: só um modelo com visão atende. */
 export function exigeVisao(pedido: PedidoDeIA): boolean {
   return pedido.mensagens.some((m) =>

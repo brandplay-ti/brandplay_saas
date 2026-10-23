@@ -5,7 +5,8 @@
 //   deno test --allow-read supabase/functions/_shared/ai/
 
 import { assert, assertEquals, assertRejects } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { chamarOpenAICompat, extrairObjetoJson } from "./openai.ts";
+import { chamarOpenAICompat } from "./openai.ts";
+import { extrairObjetoJson } from "./tipos.ts";
 import { ErroDeIA } from "./erros.ts";
 import type { Fornecedor, PedidoDeIA } from "./tipos.ts";
 
@@ -67,9 +68,10 @@ Deno.test("URL base fixa e autenticação Bearer, por fornecedor", async () => {
   assertEquals(cap[1].url, "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions");
   for (const c of cap) assertEquals(c.headers.get("Authorization"), `Bearer ${CHAVE}`);
   // Limite de saída: OpenAI recusa `max_tokens` nos modelos novos.
-  assertEquals(cap[0].corpo.max_completion_tokens, 512);
+  // Limite com a folga de raciocínio (512 + 8000).
+  assertEquals(cap[0].corpo.max_completion_tokens, 8512);
   assertEquals(cap[0].corpo.max_tokens, undefined);
-  assertEquals(cap[1].corpo.max_tokens, 512);
+  assertEquals(cap[1].corpo.max_tokens, 8512);
   assertEquals(cap[0].corpo.temperature, undefined);
 });
 

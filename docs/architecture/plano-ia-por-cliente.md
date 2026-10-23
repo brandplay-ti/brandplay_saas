@@ -208,12 +208,12 @@ A interface neutra de `_shared/ai.ts` esconde estas diferenças das funções:
 |---|---|---|---|
 | Autenticação | `Authorization: Bearer` | `Authorization: Bearer` (chave da API Gemini) | `x-api-key` + `anthropic-version` |
 | Instrução de sistema | mensagem `role: "system"` | mensagem `role: "system"` | campo `system` de nível superior |
-| Tool obrigatória | `tool_choice: {type:"function", function:{name}}` | idem | `tool_choice: {type:"tool", name}` |
+| Tool obrigatória | `tool_choice: {type:"function", function:{name}}` | idem | `tool_choice: {type:"tool", name}` só nos modelos que aceitam (Opus 5.5, Sonnet 5.5 e Fable 5.1 recusam); nos demais, saída estruturada (ferramenta única) ou `auto` com instrução |
 | Definição de tool | `{type:"function", function:{name, description, parameters}}` | idem | `{name, description, input_schema}` |
 | Resposta com tool | `choices[0].message.tool_calls[].function.arguments` (string JSON) | idem | blocos `tool_use` em `content` (objeto) |
-| JSON garantido | `response_format` (`json_object` ou `json_schema`) | `response_format` | sem modo JSON equivalente: a camada usa **tool obrigatória com o schema** — mais robusto que o parse por prompt de hoje |
+| JSON garantido | `response_format` (`json_schema`) | `response_format` | saída estruturada (`output_config.format`), com o esquema fechado (`additionalProperties: false`) |
 | Imagem | `image_url` com data URL | `image_url` com data URL | bloco `image` com `source.base64` (função `dataUrlToBase64Source` atual) |
-| Limite de saída | `max_completion_tokens` nos modelos novos (`max_tokens` está obsoleto) | `max_tokens` | `max_tokens` (obrigatório) |
+| Limite de saída | `max_completion_tokens` nos modelos novos (`max_tokens` está obsoleto) | `max_tokens` | `max_tokens` (obrigatório) — nos três, com folga para o raciocínio do modelo |
 | Parâmetros recusados | modelos de raciocínio recusam `temperature` | — | — |
 | Uso (medição) | `usage.prompt_tokens` / `completion_tokens` / `prompt_tokens_details.cached_tokens` | `usage.prompt_tokens` / `completion_tokens` | `usage.input_tokens` / `output_tokens` / `cache_read_input_tokens` / `cache_creation_input_tokens` |
 | Erros a mapear | 401, 429 (`rate_limit` × `insufficient_quota`), 5xx | 400 (chave), 429, 5xx | 401, 429, 529 (sobrecarregado), 5xx |

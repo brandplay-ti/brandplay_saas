@@ -15,10 +15,12 @@
 // e status HTTP vão para a mensagem interna do erro.
 
 import { ErroDeIA, erroPorStatusHttp } from "./erros.ts";
+import { limiteDeSaida } from "./modelos.ts";
 import {
   type Adaptador,
   type ChamadaAoFornecedor,
   type ChamadaDeFerramenta,
+  extrairObjetoJson,
   type Mensagem,
   type PedidoDeIA,
   type RespostaDeIA,
@@ -91,7 +93,8 @@ export function montarCorpo(pedido: PedidoDeIA, modelo: string, fornecedor: Forn
   const corpo: Record<string, unknown> = {
     model: modelo,
     messages: mensagensCompat(pedido),
-    [PERFIS[fornecedor].campoMaxTokens]: pedido.maxTokens,
+    // O limite inclui o raciocínio do modelo: vai com folga (modelos.ts).
+    [PERFIS[fornecedor].campoMaxTokens]: limiteDeSaida(pedido.maxTokens),
   };
   if (pedido.ferramentas?.length) {
     corpo.tools = pedido.ferramentas.map((f) => ({
@@ -127,17 +130,6 @@ function usoCompat(usage: Record<string, unknown> | undefined): UsoDeTokens {
   // `prompt_tokens` inclui a parte lida do cache; separa para o preço certo.
   const entradaCache = Math.min(numero(detalhes.cached_tokens), entradaTotal);
   return { entrada: entradaTotal - entradaCache, saida: numero(usage?.completion_tokens), entradaCache, escritaCache: 0 };
-}
-
-/** Tira cercas de markdown (```json ... ```) e faz o parse de um objeto JSON. */
-export function extrairObjetoJson(texto: string): Record<string, unknown> | null {
-  const semCerca = texto.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
-  try {
-    const valor = JSON.parse(semCerca);
-    return valor !== null && typeof valor === "object" && !Array.isArray(valor) ? valor : null;
-  } catch {
-    return null;
-  }
 }
 
 export function lerResposta(
