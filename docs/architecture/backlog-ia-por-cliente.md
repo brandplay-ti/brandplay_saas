@@ -336,6 +336,29 @@ Dependências: IA-05.
 Organização do patrocinador / da propriedade ou evento. Componentes:
 `ExecutiveSummaryAI.tsx`, `SelloutReportGenerator.tsx`.
 
+Feito. A IA-14 criou o apoio comum das funções do épico, em
+`_shared/ai/funcao.ts` (com teste): `autenticar` (usuário do JWT, client sob
+RLS), `exigirModulo` (`is_org_member` + `can_access_module`),
+`organizacaoDoCorpo`/`uuidDoCorpo`, `dependenciasDaCamada` (service role só
+para a camada) e `respostaDeFalha` (`{ error, codigo }` para erro de IA;
+falha inesperada vira 500 sem detalhe, e o log não leva conteúdo).
+Decisões tomadas na implementação:
+- mesmo com a organização vinda do recurso, a função passa por
+  `exigirModulo` (módulo `crm`, leitura): usuário do portal do patrocinador,
+  que lê o próprio patrocinador pelo RLS, não gera resumo interno;
+- **mistura de organizações corrigida também aqui**: as entregas do resumo
+  eram buscadas só pelo nome da marca, em todas as organizações do usuário;
+  agora todas as consultas filtram pela organização do recurso;
+- os caches (`sponsor_executive_summaries`, `sellout_reports`) passam a
+  gravar `organization_id`. Antes o gatilho preenchia com `get_user_org`, que
+  para quem está em várias organizações podia gravar o resumo na errada;
+- o evento do relatório precisa ser da mesma propriedade (senão 404);
+- relatório que não grava volta mesmo assim (`saved: false`), com aviso na
+  tela: a chamada já foi feita e medida;
+- `SelloutReportGenerator` lista propriedades e relatórios só da organização
+  ativa (antes, de todas as organizações do usuário);
+- modelo gravado no cache é o da resposta, não mais um nome fixo.
+
 ### IA-15 · `detect-churn-risk` e `ticket-benchmark-ai` — M
 
 Passam a receber a organização ativa (`ChurnRiskWidget.tsx`,

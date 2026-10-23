@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+import { avisarErroDeIA } from "@/lib/erroDeIA";
 
 interface Highlight { label: string; value: string }
 
@@ -19,13 +19,13 @@ export const ExecutiveSummaryAI = ({ sponsorId }: { sponsorId: string }) => {
       const { data, error } = await supabase.functions.invoke("sponsor-executive-summary", {
         body: { sponsor_id: sponsorId, force },
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (error || data?.error) {
+        await avisarErroDeIA(error, data, "Erro ao gerar resumo");
+        return;
+      }
       setSummary(data.summary ?? "");
       setHighlights(data.highlights ?? []);
       setGeneratedAt(data.generated_at ?? null);
-    } catch (e: any) {
-      toast.error("Erro ao gerar resumo", { description: e.message });
     } finally {
       setLoading(false);
     }
