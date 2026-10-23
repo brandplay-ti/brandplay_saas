@@ -29,7 +29,7 @@ No Dockploy, serviço **Compose do Supabase** do ambiente:
 
 ```
 RESEND_API_KEY=re_...
-EMAIL_FROM=BrandPlay <nao-responda@mail.brandplay.com.br>
+EMAIL_FROM=Brandplay <nao-responda@mail.brandplay.com.br>
 APP_URL=https://app.brandplay.com.br        # base dos links de convite e notificação
 PORTAL_URL=                                  # vazio = SITE_URL
 ```

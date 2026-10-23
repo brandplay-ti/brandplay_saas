@@ -35,7 +35,7 @@ const inviteEmail = (orgName: string, role: string, link: string) => `
   <div style="font-family:system-ui,sans-serif;max-width:520px;margin:auto">
     <h2>Você foi convidado para <strong>${escapeHtml(orgName)}</strong></h2>
     <p>Você foi convidado como <strong>${escapeHtml(ROLE_LABEL[role] ?? role)}</strong>. Clique abaixo para criar sua conta e aceitar o convite.</p>
-    <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#3b82f6;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none">Aceitar convite</a></p>
+    <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#6206C8;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none">Aceitar convite</a></p>
     <p style="color:#64748b;font-size:13px">Este convite expira em 14 dias.</p>
   </div>`;
 
@@ -44,7 +44,7 @@ const welcomeEmail = (orgName: string, role: string, email: string, password: st
     <h2>Bem-vindo a <strong>${escapeHtml(orgName)}</strong></h2>
     <p>Sua conta foi criada como <strong>${escapeHtml(ROLE_LABEL[role] ?? role)}</strong>.</p>
     <p><strong>E-mail:</strong> ${escapeHtml(email)}<br/><strong>Senha temporária:</strong> ${escapeHtml(password)}</p>
-    <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#3b82f6;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none">Acessar plataforma</a></p>
+    <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#6206C8;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none">Acessar plataforma</a></p>
     <p style="color:#64748b;font-size:13px">Recomendamos alterar sua senha no primeiro acesso.</p>
   </div>`;
 

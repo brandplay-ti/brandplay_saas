@@ -118,9 +118,9 @@ Deno.serve(async (req) => {
     const pdf = await PDFDocument.create();
     const font = await pdf.embedFont(StandardFonts.Helvetica);
     const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-    const PRIMARY = rgb(0.13, 0.32, 0.85);
+    const PRIMARY = rgb(0.384, 0.024, 0.784); // #6206C8
     const MUTED = rgb(0.45, 0.45, 0.5);
-    const TEXT = rgb(0.1, 0.1, 0.15);
+    const TEXT = rgb(0.059, 0.071, 0.129); // #0F1221
 
     let page = pdf.addPage([595, 842]);
     let y = 800;
@@ -214,7 +214,7 @@ Deno.serve(async (req) => {
     // Footer
     y -= 20;
     newPageIfNeeded(30);
-    text(`Relatório gerado em ${new Date().toLocaleString("pt-BR")} — BrandPlay`, { color: MUTED, size: 8 });
+    text(`Relatório gerado em ${new Date().toLocaleString("pt-BR")} — Brandplay`, { color: MUTED, size: 8 });
 
     const pdfBytes = await pdf.save();
     const base64 = btoa(String.fromCharCode(...new Uint8Array(pdfBytes)));

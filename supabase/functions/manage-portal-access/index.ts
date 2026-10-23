@@ -180,12 +180,12 @@ Deno.serve(async (req) => {
       const emailRes = await sendEmail({
         to: email,
         subject: `Acesso liberado: Portal ${sponsor.name}`,
-        html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a">
-          <h2 style="color:#0f172a">Seu acesso foi ativado 🎉</h2>
+        html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0F1221">
+          <h2 style="color:#0F1221">Seu acesso foi ativado 🎉</h2>
           <p>Você agora tem acesso ao <strong>Portal do Patrocinador</strong> de <strong>${escHtml(sponsor.name)}</strong>.</p>
           <p>Faça login com este e-mail (<strong>${escHtml(email)}</strong>) para acompanhar entregas, contratos e relatórios.</p>
           <p style="margin:32px 0">
-            <a href="${escHtml(loginUrl)}" style="background:#0f172a;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">Acessar o Portal</a>
+            <a href="${escHtml(loginUrl)}" style="background:#6206C8;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">Acessar o Portal</a>
           </p>
           <p style="color:#64748b;font-size:13px">Se o botão não funcionar, copie e cole: ${escHtml(loginUrl)}</p>
         </div>`,
@@ -238,12 +238,12 @@ Deno.serve(async (req) => {
       const emailRes = await sendEmail({
         to: email,
         subject: `Convite: Portal ${sponsor.name}`,
-        html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a">
-          <h2 style="color:#0f172a">Você foi convidado 🤝</h2>
+        html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0F1221">
+          <h2 style="color:#0F1221">Você foi convidado 🤝</h2>
           <p>Você foi convidado para acessar o <strong>Portal do Patrocinador</strong> de <strong>${escHtml(sponsor.name)}</strong>.</p>
           <p>Clique no botão abaixo para criar sua conta e começar.</p>
           <p style="margin:32px 0">
-            <a href="${escHtml(inviteUrl)}" style="background:#0f172a;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">Aceitar convite</a>
+            <a href="${escHtml(inviteUrl)}" style="background:#6206C8;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">Aceitar convite</a>
           </p>
           <p style="color:#64748b;font-size:13px">Se o botão não funcionar, copie e cole: ${escHtml(inviteUrl)}</p>
           <p style="color:#94a3b8;font-size:12px">Este convite expira em 14 dias.</p>

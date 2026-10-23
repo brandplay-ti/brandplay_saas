@@ -87,8 +87,8 @@ Deno.serve(async (req) => {
     let page = pdf.addPage(PAGE);
     const width = PAGE[0];
     const height = PAGE[1];
-    const primary = rgb(0.18, 0.43, 0.95);
-    const text = rgb(0.1, 0.12, 0.16);
+    const primary = rgb(0.384, 0.024, 0.784); // #6206C8
+    const text = rgb(0.059, 0.071, 0.129); // #0F1221
     const muted = rgb(0.42, 0.45, 0.52);
     let y = height - 60;
 
@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
     const section = (title: string) => {
       ensure(140);
       y -= 10;
-      page.drawRectangle({ x: 40, y: y - 5, width: width - 80, height: 18, color: rgb(0.93, 0.95, 1) });
+      page.drawRectangle({ x: 40, y: y - 5, width: width - 80, height: 18, color: rgb(0.957, 0.933, 0.992) });
       draw(title.toUpperCase(), { x: 48, size: 9, bold: true, color: primary });
       y -= 26;
     };
@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
     page.drawText("CONTRATO DE PATROCÍNIO", { x: 40, y: height - 38, size: 18, font: fontBold, color: rgb(1, 1, 1) });
     page.drawText(
       `${contract.contract_number ? `Nº ${contract.contract_number} · ` : ""}${STATUS_LABELS[contract.status] ?? contract.status}`,
-      { x: 40, y: height - 60, size: 10, font, color: rgb(0.9, 0.95, 1) },
+      { x: 40, y: height - 60, size: 10, font, color: rgb(0.93, 0.89, 1) },
     );
 
     const logoBytes = await fetchLogoBytes(
@@ -311,7 +311,7 @@ Deno.serve(async (req) => {
     draw(truncate(contract.sponsor?.name ?? contract.brand ?? "Patrocinador", 34), { x: 330, size: 9, color: muted });
 
     for (const p of pdf.getPages()) {
-      p.drawText(`Gerado por BrandPlay · ${new Date().toLocaleDateString("pt-BR")}`, {
+      p.drawText(`Gerado por Brandplay · ${new Date().toLocaleDateString("pt-BR")}`, {
         x: 40,
         y: 28,
         size: 8,
