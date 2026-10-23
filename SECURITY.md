@@ -24,9 +24,10 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
 
   O despachante `main` **não** verifica JWT (nada lê `VERIFY_JWT`, e o runtime
   sobe sem `--verify-jwt`): cada função valida o usuário por conta própria com
-  `auth.getUser()`. Verificar no despachante não substituiria isso — a anon
-  key é um JWT válido e está no bundle do portal, então "ter um JWT" não
-  significa "estar logado". Sem usuário, de propósito, só três:
+  `auth.getUser()` — direto, ou pelo `autenticar()` de
+  `supabase/functions/_shared/ai/funcao.ts` nas funções de IA. Verificar no
+  despachante não substituiria isso — a anon key é um JWT válido e está no
+  bundle do portal, então "ter um JWT" não significa "estar logado". Sem usuário, de propósito, só três:
   `billing-webhook` (autentica pela assinatura do Stripe), `saude`
   (healthcheck, não lê nada) e `report-error` (aceita relato de erro anônimo).
   Função nova começa com `getUser()`; ficar fora dessa lista exige o motivo
