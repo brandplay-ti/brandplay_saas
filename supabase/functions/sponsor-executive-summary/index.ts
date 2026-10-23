@@ -1,133 +1,132 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+// Resumo executivo de um patrocinador (IA-14). A organização é a do
+// patrocinador, lido sob RLS; todas as consultas e o cache ficam nela.
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { gerar } from "../_shared/ai/camada.ts";
+import {
+  autenticar,
+  CORS,
+  dependenciasDaCamada,
+  ErroDaRequisicao,
+  exigirModulo,
+  json,
+  respostaDeFalha,
+  uuidDoCorpo,
+} from "../_shared/ai/funcao.ts";
+
+const FUNCIONALIDADE = "sponsor-executive-summary";
+const VALIDADE_DO_CACHE_MS = 24 * 3600 * 1000;
+
+interface Valor {
+  total_value?: number | string | null;
+  amount?: number | string | null;
+}
+
+const numero = (v: number | string | null | undefined) => Number(v || 0);
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const { usuario, cliente } = await autenticar(req);
+    const corpo = await req.json().catch(() => ({}));
+    const sponsorId = uuidDoCorpo(corpo, "sponsor_id");
+    const force = corpo?.force === true;
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    const { data: sponsor } = await cliente
+      .from("sponsors")
+      .select("id,organization_id,name,segment,score,last_contact_at")
+      .eq("id", sponsorId)
+      .maybeSingle();
+    if (!sponsor?.organization_id) throw new ErroDaRequisicao(404, "Patrocinador não encontrado");
+    const org: string = sponsor.organization_id;
+    await exigirModulo(cliente, usuario.id, org, "crm");
 
-    const { sponsor_id, force } = await req.json();
-    if (!sponsor_id) return new Response(JSON.stringify({ error: "sponsor_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
-    // cache (24h)
     if (!force) {
-      const { data: cached } = await supabase
+      const { data: cached } = await cliente
         .from("sponsor_executive_summaries")
-        .select("*")
-        .eq("sponsor_id", sponsor_id)
+        .select("summary,highlights,generated_at")
+        .eq("sponsor_id", sponsorId)
+        .eq("organization_id", org)
         .maybeSingle();
-      if (cached && Date.now() - new Date(cached.generated_at).getTime() < 24 * 3600 * 1000) {
-        return new Response(JSON.stringify({ summary: cached.summary, highlights: cached.highlights, generated_at: cached.generated_at, cached: true }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      if (cached && Date.now() - new Date(cached.generated_at).getTime() < VALIDADE_DO_CACHE_MS) {
+        return json({ summary: cached.summary, highlights: cached.highlights, generated_at: cached.generated_at, cached: true });
       }
     }
 
-    const [sp, contracts, opps, deliveries, installments, interactions] = await Promise.all([
-      supabase.from("sponsors").select("*").eq("id", sponsor_id).maybeSingle(),
-      supabase.from("contracts").select("title,status,total_value,start_date,end_date").eq("sponsor_id", sponsor_id),
-      supabase.from("opportunities").select("brand,stage,value,expected_close_date").eq("sponsor_id", sponsor_id),
-      supabase.from("deliveries").select("title,status,approval,due_date,delivered_at").eq("brand", ""),
-      supabase.from("installments").select("amount,status,due_date,paid_at").in("contract_id", []),
-      supabase.from("sponsor_interactions").select("type,title,occurred_at,description").eq("sponsor_id", sponsor_id).order("occurred_at", { ascending: false }).limit(20),
+    const [contratosR, oportunidadesR, interacoesR, entregasR] = await Promise.all([
+      cliente.from("contracts").select("id,total_value").eq("sponsor_id", sponsorId).eq("organization_id", org),
+      cliente.from("opportunities").select("stage").eq("sponsor_id", sponsorId).eq("organization_id", org),
+      cliente.from("sponsor_interactions").select("title,occurred_at").eq("sponsor_id", sponsorId).eq("organization_id", org)
+        .order("occurred_at", { ascending: false }).limit(8),
+      // Entregas são ligadas ao patrocinador pelo nome da marca — só nesta organização.
+      cliente.from("deliveries").select("status").eq("brand", sponsor.name).eq("organization_id", org),
     ]);
 
-    const sponsor = sp.data;
-    if (!sponsor) return new Response(JSON.stringify({ error: "Not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
-    // Buscar deliveries/installments via brand/contract_ids
-    const contractList = contracts.data ?? [];
-    const contractIds = (await supabase.from("contracts").select("id").eq("sponsor_id", sponsor_id)).data?.map((c: any) => c.id) ?? [];
-    const realInstallments = contractIds.length
-      ? (await supabase.from("installments").select("amount,status,due_date,paid_at").in("contract_id", contractIds)).data ?? []
+    const contratos: (Valor & { id: string })[] = contratosR.data ?? [];
+    const contractIds = contratos.map((c) => c.id);
+    const parcelas: (Valor & { status: string })[] = contractIds.length
+      ? (await cliente.from("installments").select("amount,status").in("contract_id", contractIds).eq("organization_id", org)).data ?? []
       : [];
-    const realDeliveries = (await supabase.from("deliveries").select("title,status,approval,due_date,delivered_at").eq("brand", sponsor.name)).data ?? [];
+    const entregas: { status: string }[] = entregasR.data ?? [];
 
-    const totalContracted = contractList.reduce((s, c: any) => s + Number(c.total_value || 0), 0);
-    const totalPaid = realInstallments.filter((i: any) => i.status === "pago").reduce((s, i: any) => s + Number(i.amount || 0), 0);
-    const overdue = realInstallments.filter((i: any) => i.status === "atrasado").length;
-    const deliveredCount = realDeliveries.filter((d: any) => d.status === "entregue" || d.status === "aprovada").length;
-    const pendingDeliveries = realDeliveries.filter((d: any) => d.status === "pendente" || d.status === "em_producao").length;
+    const totalContratado = contratos.reduce((s, c) => s + numero(c.total_value), 0);
+    const totalPago = parcelas.filter((i) => i.status === "pago").reduce((s, i) => s + numero(i.amount), 0);
+    const atrasadas = parcelas.filter((i) => i.status === "atrasado").length;
+    const entregues = entregas.filter((d) => d.status === "entregue" || d.status === "aprovada").length;
+    const pendentes = entregas.filter((d) => d.status === "pendente" || d.status === "em_producao").length;
 
     const ctx = {
       patrocinador: sponsor.name,
       segmento: sponsor.segment,
       score: sponsor.score,
       ultimo_contato: sponsor.last_contact_at,
-      contratos: contractList.length,
-      valor_total_contratado: totalContracted,
-      valor_pago: totalPaid,
-      parcelas_atrasadas: overdue,
-      entregas_realizadas: deliveredCount,
-      entregas_pendentes: pendingDeliveries,
-      oportunidades_ativas: (opps.data ?? []).filter((o: any) => o.stage !== "fechado" && o.stage !== "perdido").length,
-      ultimas_interacoes: (interactions.data ?? []).slice(0, 8).map((i: any) => `${i.occurred_at?.slice(0, 10)}: ${i.title}`),
+      contratos: contratos.length,
+      valor_total_contratado: totalContratado,
+      valor_pago: totalPago,
+      parcelas_atrasadas: atrasadas,
+      entregas_realizadas: entregues,
+      entregas_pendentes: pendentes,
+      oportunidades_ativas: (oportunidadesR.data ?? []).filter((o: { stage: string }) => o.stage !== "fechado" && o.stage !== "perdido").length,
+      ultimas_interacoes: (interacoesR.data ?? []).map((i: { title: string; occurred_at: string | null }) =>
+        `${i.occurred_at?.slice(0, 10)}: ${i.title}`
+      ),
     };
 
-    const prompt = `Você é um analista de patrocínios esportivos. Gere um resumo executivo conciso (máx 4 linhas, em português brasileiro) sobre a relação com este patrocinador, destacando saúde do relacionamento, situação financeira e próximos passos. Use linguagem direta de C-level.\n\nDados:\n${JSON.stringify(ctx, null, 2)}`;
+    const resposta = await gerar({ organizacaoId: org, usuarioId: usuario.id }, {
+      funcionalidade: FUNCIONALIDADE,
+      nivel: "padrao",
+      sistema: "Responda apenas com o parágrafo executivo, sem títulos ou markdown.",
+      mensagens: [{
+        papel: "usuario",
+        conteudo:
+          `Você é um analista de patrocínios esportivos. Gere um resumo executivo conciso (máx 4 linhas, em português brasileiro) sobre a relação com este patrocinador, destacando saúde do relacionamento, situação financeira e próximos passos. Use linguagem direta de C-level.\n\nDados:\n${JSON.stringify(ctx, null, 2)}`,
+      }],
+      maxTokens: 1024,
+    }, dependenciasDaCamada());
 
-    const AI_MODEL = "claude-sonnet-5";
-    const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": Deno.env.get("ANTHROPIC_API_KEY") ?? "",
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: AI_MODEL,
-        max_tokens: 1024,
-        system: "Responda apenas com o parágrafo executivo, sem títulos ou markdown.",
-        messages: [
-          { role: "user", content: prompt },
-        ],
-      }),
-    });
-
-    if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Limite de requisições. Tente novamente em instantes." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    if (!aiResp.ok) throw new Error(`AI error: ${await aiResp.text()}`);
-
-    const data = await aiResp.json();
-    const summary = data.content?.find((b: any) => b.type === "text")?.text?.trim() ?? "";
-
+    const summary = resposta.texto.trim();
     const highlights = [
-      { label: "Contratado", value: `R$ ${totalContracted.toLocaleString("pt-BR")}` },
-      { label: "Pago", value: `R$ ${totalPaid.toLocaleString("pt-BR")}` },
-      { label: "Entregas OK", value: `${deliveredCount}/${realDeliveries.length}` },
-      { label: "Atrasos", value: `${overdue}` },
+      { label: "Contratado", value: `R$ ${totalContratado.toLocaleString("pt-BR")}` },
+      { label: "Pago", value: `R$ ${totalPago.toLocaleString("pt-BR")}` },
+      { label: "Entregas OK", value: `${entregues}/${entregas.length}` },
+      { label: "Atrasos", value: `${atrasadas}` },
     ];
+    const generatedAt = new Date().toISOString();
 
-    await supabase.from("sponsor_executive_summaries").upsert({
-      sponsor_id,
-      owner_id: user.id,
+    // O cache é auxiliar: se não gravar, o resumo volta mesmo assim.
+    const { error: erroDoCache } = await cliente.from("sponsor_executive_summaries").upsert({
+      sponsor_id: sponsorId,
+      organization_id: org,
+      owner_id: usuario.id,
       summary,
       highlights,
-      model: AI_MODEL,
-      generated_at: new Date().toISOString(),
+      model: resposta.modelo,
+      generated_at: generatedAt,
     });
+    if (erroDoCache) console.error(`${FUNCIONALIDADE}: cache não gravado (${erroDoCache.code ?? "?"})`);
 
-    return new Response(JSON.stringify({ summary, highlights, generated_at: new Date().toISOString(), cached: false }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ summary, highlights, generated_at: generatedAt, cached: false });
   } catch (e) {
-    console.error(e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return respostaDeFalha(e, FUNCIONALIDADE);
   }
 });

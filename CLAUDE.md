@@ -162,7 +162,7 @@ npm run supabase:up            # sobe o Supabase local (Docker)
 npm run supabase:migrate       # aplica migrations pendentes
 npm run supabase:migrate:status
 npm run supabase:seed          # usuário de exemplo (só local)
-npm run supabase:test          # testes de segurança/RLS, cobrança e superadmin (supabase/tests/)
+npm run supabase:test          # testes de segurança/RLS, cobrança, superadmin e IA (supabase/tests/)
 npm run supabase:superadmin -- -v email=<e-mail> -v comentario=<motivo>   # concede superadmin (local)
 npm run supabase:down / :reset
 npm run supabase:bundle        # migrations achatadas para o SQL Editor do Studio
@@ -394,7 +394,8 @@ feature/* → PR → dev → PR → hml (homologação) → PR → main (produç
 ```
 
 - **CI** (`.github/workflows/ci.yml`): portal (lint não bloqueante por dívida
-  herdada, type-check, test, build) e migrations (guarda destrutiva, banco
+  herdada, type-check, test, build), funcoes (`deno test` de
+  `supabase/functions/_shared/`) e migrations (guarda destrutiva, banco
   limpo, idempotência, seed, testes de RLS).
 - **CD**: o Dockploy publica cada ambiente a partir da branch dele. O
   workflow `Deploy (VPS)` é manual e **não escreve no banco** — só lista

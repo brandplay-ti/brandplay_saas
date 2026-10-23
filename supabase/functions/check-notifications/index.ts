@@ -409,19 +409,19 @@ Deno.serve(async (req) => {
         .join("");
       const html = `
           <div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;padding:24px">
-            <h2 style="color:#0f172a">Você tem ${emailQueue.length} novidade(s) no BrandPlay</h2>
+            <h2 style="color:#0F1221">Você tem ${emailQueue.length} novidade(s) no Brandplay</h2>
             <ul style="line-height:1.7;padding-left:18px">${items}</ul>
             <p style="margin-top:24px">
               <a href="${escapeHtml(appUrl() || "#")}/dashboard"
-                 style="background:hsl(217 91% 60%);color:white;padding:10px 18px;border-radius:8px;text-decoration:none;display:inline-block">
-                 Abrir o BrandPlay
+                 style="background:#6206C8;color:white;padding:10px 18px;border-radius:8px;text-decoration:none;display:inline-block">
+                 Abrir o Brandplay
               </a>
             </p>
             <p style="color:#94a3b8;font-size:12px;margin-top:32px">Você está recebendo este e-mail porque ativou notificações em sua conta. Ajuste em Configurações.</p>
           </div>`;
       const envio = await sendEmail({
         to: user.email,
-        subject: `BrandPlay: ${emailQueue.length} novidade(s) precisam da sua atenção`,
+        subject: `Brandplay: ${emailQueue.length} novidade(s) precisam da sua atenção`,
         html,
       });
       if (envio.sent) {

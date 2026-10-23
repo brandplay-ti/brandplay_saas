@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { avisarErroDeIA } from "@/lib/erroDeIA";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,8 +49,8 @@ export const TaskInsightsDialog = ({
     setData(null);
     const { data: res, error } = await supabase.functions.invoke("task-insights", { body: { task_id: taskId, source } });
     setLoading(false);
-    if (error || (res as any)?.error) {
-      toast.error("Não foi possível gerar os insights", { description: (res as { error?: string } | null)?.error ?? error?.message });
+    if (error || res?.error) {
+      await avisarErroDeIA(error, res, "Não foi possível gerar os insights");
       return;
     }
     setData(res as Payload);

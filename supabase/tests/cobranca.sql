@@ -506,7 +506,10 @@ begin
        'billing_accounts', 'billing_subscriptions', 'billing_invoices', 'billing_access_grants',
        'organization_members', 'organization_invites', 'backend_error_logs', 'error_reports',
        -- Dado da plataforma, não da organização: só o superadmin lê (0027).
-       'platform_admin_audit_log'
+       'platform_admin_audit_log',
+       -- Chaves de IA cifradas: dado da plataforma, sem acesso nenhum pela
+       -- API — nem do owner (0031).
+       'ai_credentials'
      ])
      and not exists (
        select 1 from pg_policy p

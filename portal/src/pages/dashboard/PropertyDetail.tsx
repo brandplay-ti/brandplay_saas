@@ -97,6 +97,7 @@ const fmtDateTime = (s?: string | null) =>
 
 interface Property {
   id: string;
+  organization_id: string;
   name: string;
   category: string;
   status: string;
@@ -796,7 +797,7 @@ export default function PropertyDetail() {
 
   const saveTier = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !id) return;
+    if (!user || !id || !property) return;
 
     const payload = {
       property_id: id,
@@ -821,7 +822,7 @@ export default function PropertyDetail() {
     } else {
       const { data, error } = await supabase
         .from("sponsorship_tiers")
-        .insert(payload)
+        .insert({ ...payload, organization_id: property.organization_id })
         .select("id")
         .single();
       if (error) return toast.error(error.message);
@@ -1315,6 +1316,7 @@ export default function PropertyDetail() {
       .from("sports_properties")
       .insert({
         owner_id: user.id,
+        organization_id: property.organization_id,
         name: seasonForm.name || `${property.name} ${seasonForm.season_year}`,
         category: property.category,
         status: "planejamento",

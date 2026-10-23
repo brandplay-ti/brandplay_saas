@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,29 +6,46 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileText, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import { useOrganization } from "@/hooks/useOrganization";
+import { avisarErroDeIA } from "@/lib/erroDeIA";
 
 interface Property { id: string; name: string }
 interface Report { id: string; title: string; content: string; metrics: any; created_at: string }
 
 export const SelloutReportGenerator = () => {
+  const { orgId } = useOrganization();
   const [properties, setProperties] = useState<Property[]>([]);
   const [propertyId, setPropertyId] = useState<string>("");
   const [reports, setReports] = useState<Report[]>([]);
   const [selected, setSelected] = useState<Report | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Propriedades e relatórios só da organização ativa.
+  const loadReports = useCallback(async () => {
+    if (!orgId) return;
+    const { data } = await supabase
+      .from("sellout_reports")
+      .select("*")
+      .eq("organization_id", orgId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    setReports(data ?? []);
+  }, [orgId]);
+
   useEffect(() => {
+    setPropertyId("");
+    setSelected(null);
+    if (!orgId) {
+      setProperties([]);
+      setReports([]);
+      return;
+    }
     (async () => {
-      const { data } = await supabase.from("sports_properties").select("id,name").order("name");
+      const { data } = await supabase.from("sports_properties").select("id,name").eq("organization_id", orgId).order("name");
       setProperties(data ?? []);
     })();
     loadReports();
-  }, []);
-
-  const loadReports = async () => {
-    const { data } = await supabase.from("sellout_reports").select("*").order("created_at", { ascending: false }).limit(20);
-    setReports(data ?? []);
-  };
+  }, [orgId, loadReports]);
 
   const generate = async () => {
     if (!propertyId) {
@@ -40,13 +57,17 @@ export const SelloutReportGenerator = () => {
       const { data, error } = await supabase.functions.invoke("generate-sellout-report", {
         body: { property_id: propertyId },
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (error || data?.error) {
+        await avisarErroDeIA(error, data, "Erro ao gerar relatório");
+        return;
+      }
       setSelected(data.report);
       await loadReports();
-      toast.success("Relatório gerado!");
-    } catch (e: any) {
-      toast.error("Erro", { description: e.message });
+      if (data.saved === false) {
+        toast.warning("Relatório gerado, mas não foi salvo", { description: "Copie o conteúdo antes de sair da página." });
+      } else {
+        toast.success("Relatório gerado!");
+      }
     } finally {
       setLoading(false);
     }

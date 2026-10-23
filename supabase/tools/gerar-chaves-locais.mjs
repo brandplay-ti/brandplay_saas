@@ -84,6 +84,10 @@ const valores = {
   PG_META_CRYPTO_KEY: aleatorio(32),
   REALTIME_DB_ENC_KEY: aleatorio(16),
   POOLER_TENANT_ID: randomUUID(),
+  // Chave mestra das chaves de IA (`_shared/ai-crypto.ts`): 32 bytes em
+  // base64. Trocá-la torna ilegíveis as chaves de IA já cadastradas no banco
+  // local — cadastre de novo.
+  AI_KEYS_MASTER_KEY: randomBytes(32).toString('base64'),
 };
 
 // `--env`: só as atribuições, sem a prosa. É o que o CI acrescenta ao `.env`

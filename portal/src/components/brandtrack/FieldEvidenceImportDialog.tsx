@@ -42,6 +42,8 @@ type LinkedAsset = { id: string | null; name: string; category: string | null };
 
 type Props = {
   eventId: string;
+  /** Organização do evento: as mídias importadas são gravadas nela. */
+  organizationId: string | null;
   /** IDs of delivery_attachments that should be disabled (already imported). */
   excludedIds?: string[];
   /** Called for each imported media so the parent can trigger the proper analysis. */
@@ -49,7 +51,7 @@ type Props = {
   onFinished?: () => void;
 };
 
-const FieldEvidenceImportDialog = ({ eventId, excludedIds = [], onImported, onFinished }: Props) => {
+const FieldEvidenceImportDialog = ({ eventId, organizationId, excludedIds = [], onImported, onFinished }: Props) => {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -168,6 +170,7 @@ const FieldEvidenceImportDialog = ({ eventId, excludedIds = [], onImported, onFi
           .from("brandtrack_media")
           .insert({
             owner_id: user.id,
+            organization_id: organizationId,
             event_id: eventId,
             title,
             media_type: isImage ? "image" : "video",

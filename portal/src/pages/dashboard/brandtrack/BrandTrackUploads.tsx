@@ -44,7 +44,7 @@ type MediaDetection = {
   review_status: string;
 };
 
-type EventRow = { id: string; name: string; property_id?: string | null };
+type EventRow = { id: string; name: string; property_id?: string | null; organization_id?: string | null };
 const FILTERS_KEY = "brandtrack-uploads-filters";
 
 type ExpectedBrand = { id: string; display_name: string; aliases: string[]; sponsor_status: string; priority: number; is_active: boolean };
@@ -67,6 +67,8 @@ const BrandTrackUploads = () => {
   const [properties, setProperties] = useState<EventRow[]>([]);
   const [expectedBrands, setExpectedBrands] = useState<ExpectedBrand[]>([]);
   const [eventId, setEventId] = useState<string>("");
+  // Organização do evento selecionado: as mídias novas são gravadas nela.
+  const [eventOrgId, setEventOrgId] = useState<string | null>(null);
   const [propertyId, setPropertyId] = useState<string>("");
   const [resolvingProperty, setResolvingProperty] = useState(false);
 
@@ -138,7 +140,7 @@ const BrandTrackUploads = () => {
     const [{ data: m }, { data: ev }, { data: props }] = await Promise.all([
       db.from("brandtrack_media").select("*, detections:brandtrack_detections(id,brand_name,corrected_brand_name,bes_score,confidence,screen_percentage,exposure_type,start_time,evidence_path,review_status)").order("created_at", { ascending: false }),
       supabase.from("brandtrack_events").select("id,name,property_id").order("created_at", { ascending: false }),
-      supabase.from("sports_properties").select("id,name").order("name", { ascending: true }),
+      supabase.from("sports_properties").select("id,name,organization_id").order("name", { ascending: true }),
     ]);
     setMedias(m ?? []);
     setEvents((ev ?? []) as any);
@@ -159,28 +161,34 @@ const BrandTrackUploads = () => {
   }, [eventId]);
 
   /** Finds (or creates) the BrandTrack workspace linked to a registered property. */
-  const resolveEventForProperty = async (propId: string): Promise<string | null> => {
+  const resolveEventForProperty = async (propId: string): Promise<EventRow | null> => {
     if (!user) return null;
     const { data: existing } = await db
       .from("brandtrack_events")
-      .select("id")
+      .select("id,name,property_id,organization_id")
       .eq("property_id", propId)
       .limit(1)
       .maybeSingle();
-    if (existing?.id) return existing.id as string;
+    if (existing?.id) return existing as EventRow;
 
+    // O evento fica na organização da propriedade, não na mais antiga do usuário.
     const property = properties.find((p) => p.id === propId);
     const { data, error } = await db
       .from("brandtrack_events")
-      .insert({ name: property?.name ?? "Propriedade", owner_id: user.id, property_id: propId })
-      .select("id,name,property_id")
+      .insert({
+        name: property?.name ?? "Propriedade",
+        owner_id: user.id,
+        organization_id: property?.organization_id,
+        property_id: propId,
+      })
+      .select("id,name,property_id,organization_id")
       .single();
     if (error) {
       toast.error(error.message);
       return null;
     }
     setEvents((p) => [data as any, ...p]);
-    return data.id as string;
+    return data as EventRow;
   };
 
   const selectProperty = async (propId: string) => {
@@ -188,7 +196,8 @@ const BrandTrackUploads = () => {
     setResolvingProperty(true);
     const resolved = await resolveEventForProperty(propId);
     setResolvingProperty(false);
-    setEventId(resolved ?? "");
+    setEventId(resolved?.id ?? "");
+    setEventOrgId(resolved?.organization_id ?? null);
   };
 
 
@@ -281,6 +290,7 @@ const BrandTrackUploads = () => {
         .from("brandtrack_media")
         .insert({
           owner_id: user.id,
+          organization_id: eventOrgId,
           event_id: eventId,
           title: file.name,
           media_type: isImage ? "image" : "video",
@@ -316,6 +326,7 @@ const BrandTrackUploads = () => {
     setAddingInstagram(true);
     const { error } = await supabase.from("brandtrack_media").insert({
       owner_id: user.id,
+      organization_id: eventOrgId,
       event_id: eventId,
       title: getInstagramTitle(normalizedUrl),
       media_type: "instagram" as any,
@@ -413,7 +424,7 @@ const BrandTrackUploads = () => {
       setBulkBusy(false);
       return;
     }
-    const { error } = await supabase.from("brandtrack_media").update({ event_id: targetEvent }).in("id", selectedIds);
+    const { error } = await supabase.from("brandtrack_media").update({ event_id: targetEvent.id }).in("id", selectedIds);
 
     setBulkBusy(false);
     if (error) {
@@ -562,6 +573,7 @@ const BrandTrackUploads = () => {
             </div>
             <FieldEvidenceImportDialog
               eventId={eventId}
+              organizationId={eventOrgId}
               excludedIds={importedFieldIds}
               onImported={(mediaId, file, isImage, attachmentId) => {
                 if (attachmentId) setImportedFieldIds((cur) => (cur.includes(attachmentId) ? cur : [...cur, attachmentId]));

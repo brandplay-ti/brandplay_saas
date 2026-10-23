@@ -41,6 +41,13 @@ Roda em todo PR e em push para `dev`, `hml` e `main`.
 **Job `portal`**: `npm ci` → lint → `type-check` → `test` → `build`, no
 workspace `portal`.
 
+**Job `funcoes`**: `deno test --allow-read supabase/functions/_shared/`, com
+o Deno fixado na `v2.1.4` (a mesma da imagem `denoland/deno` usada
+localmente). Cobre a camada de IA (`_shared/ai/`) e a cifra das chaves
+(`_shared/ai-crypto.ts`), sem rede de fornecedor nem banco. Bloqueante.
+Sem Deno instalado, rode localmente pela imagem:
+`docker run --rm -v "$PWD/supabase:/app/supabase:ro" -w /app denoland/deno:2.1.4 test --allow-read supabase/functions/_shared/`.
+
 **Job `migrations`**:
 
 1. **Guarda contra destruição** — migration com `drop table/schema/column` ou
@@ -53,12 +60,14 @@ workspace `portal`.
 3. **Idempotência** — roda o runner de novo e exige "nenhuma migration
    pendente".
 4. **Seed + testes de segurança** — `supabase:seed` exercita os gatilhos de
-   cadastro (`handle_new_user`) e `supabase:test` roda
-   `supabase/tests/seguranca.sql` (RLS para `anon`).
+   cadastro (`handle_new_user`) e `supabase:test` roda as suítes de
+   `supabase/tests/`: `seguranca.sql` (RLS e isolamento), `cobranca.sql`,
+   `superadmin.sql` e `ia.sql` (chaves, uso e guardas da IA).
 
 O que o CI **não** cobre hoje: testes E2E (dependem do stack completo e de
-dados) e isolamento entre organizações com usuários reais (roteiro comentado em
-`seguranca.sql`).
+dados), isolamento entre organizações com usuários reais (roteiro comentado em
+`seguranca.sql`) e as Edge Functions fora de `_shared/` (o `deno test` só
+encontra testes ali).
 
 ### Dívida conhecida
 
