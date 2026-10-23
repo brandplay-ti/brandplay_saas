@@ -1,171 +1,184 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+// Benchmark de ticket médio por segmento: média interna vs. estimativa de
+// mercado pela IA (IA-15).
+//
+// O portal envia a organização ativa; ela é validada contra o usuário do JWT
+// (`exigirModulo`) e filtra contratos, patrocinadores e o cache. Antes, a
+// média interna misturava todas as organizações do usuário e o cache ia para
+// a organização de `get_user_org` — uma só, ambígua para quem está em várias.
+//
+// A média interna vale sem a IA: se a estimativa falhar, ela volta sem os
+// números de mercado e com `aviso_ia`.
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { gerar } from "../_shared/ai/camada.ts";
+import {
+  autenticar,
+  CORS,
+  dependenciasDaCamada,
+  exigirModulo,
+  json,
+  organizacaoDoCorpo,
+  respostaDeFalha,
+  tentarIA,
+} from "../_shared/ai/funcao.ts";
 
-// Extracts a JSON object from a Claude text response, stripping any ```json fences.
-function extractJson(text: string): any {
-  let cleaned = (text ?? "").trim();
-  const fenceMatch = cleaned.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-  if (fenceMatch) cleaned = fenceMatch[1].trim();
-  return JSON.parse(cleaned);
+const FUNCIONALIDADE = "ticket-benchmark-ai";
+const VALIDADE_DO_CACHE_MS = 7 * 24 * 3600 * 1000;
+
+interface Mercado {
+  segment: string;
+  market_avg: number | null;
+  market_min: number | null;
+  market_max: number | null;
+  notes: string | null;
 }
 
+const numeroOuNulo = (v: unknown) => {
+  const n = typeof v === "string" ? Number(v) : v;
+  return typeof n === "number" && Number.isFinite(n) ? n : null;
+};
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const { usuario, cliente } = await autenticar(req);
+    const corpo = await req.json().catch(() => ({}));
+    const org = organizacaoDoCorpo(corpo);
+    const force = corpo?.force === true;
+    await exigirModulo(cliente, usuario.id, org, "crm");
 
-    const { force } = await req.json().catch(() => ({}));
-
-    // Get user's org
-    const { data: orgRow } = await supabase.rpc("get_user_org", { _user_id: user.id });
-    const orgId = orgRow as unknown as string | null;
-
-    // Internal benchmark: avg ticket per segment (joining contracts + sponsors)
-    const { data: contracts } = await supabase
+    const { data: contratosR } = await cliente
       .from("contracts")
-      .select("total_value, sponsor_id")
+      .select("total_value,sponsor_id")
+      .eq("organization_id", org)
       .gt("total_value", 0)
       .in("status", ["ativo", "vencendo", "encerrado"]);
+    const contratos: { total_value: number; sponsor_id: string | null }[] = contratosR ?? [];
 
-    const sponsorIds = Array.from(new Set((contracts ?? []).map((c: any) => c.sponsor_id).filter(Boolean)));
-    const { data: sponsors } = sponsorIds.length
-      ? await supabase.from("sponsors").select("id, segment").in("id", sponsorIds)
-      : { data: [] as any[] };
+    const sponsorIds = [...new Set(contratos.map((c) => c.sponsor_id).filter((s): s is string => Boolean(s)))];
+    const { data: patrocinadores } = sponsorIds.length
+      ? await cliente.from("sponsors").select("id,segment").in("id", sponsorIds).eq("organization_id", org)
+      : { data: [] };
+    const segmentoDe: Record<string, string> = {};
+    for (const s of (patrocinadores ?? []) as { id: string; segment: string | null }[]) segmentoDe[s.id] = s.segment || "Outros";
 
-    const segMap: Record<string, string> = {};
-    (sponsors ?? []).forEach((s: any) => { segMap[s.id] = s.segment || "Outros"; });
-
-    const grouped: Record<string, { sum: number; count: number; values: number[] }> = {};
-    (contracts ?? []).forEach((c: any) => {
-      const seg = segMap[c.sponsor_id] || "Outros";
-      if (!grouped[seg]) grouped[seg] = { sum: 0, count: 0, values: [] };
-      grouped[seg].sum += Number(c.total_value || 0);
-      grouped[seg].count += 1;
-      grouped[seg].values.push(Number(c.total_value || 0));
-    });
-
-    const internal = Object.entries(grouped).map(([segment, g]) => ({
+    const grupos: Record<string, number[]> = {};
+    for (const c of contratos) {
+      const seg = (c.sponsor_id && segmentoDe[c.sponsor_id]) || "Outros";
+      (grupos[seg] ??= []).push(Number(c.total_value || 0));
+    }
+    const interno = Object.entries(grupos).map(([segment, valores]) => ({
       segment,
-      internal_avg: Math.round(g.sum / g.count),
-      contract_count: g.count,
-      min: Math.round(Math.min(...g.values)),
-      max: Math.round(Math.max(...g.values)),
+      internal_avg: Math.round(valores.reduce((s, v) => s + v, 0) / valores.length),
+      contract_count: valores.length,
+      min: Math.round(Math.min(...valores)),
+      max: Math.round(Math.max(...valores)),
     })).sort((a, b) => b.internal_avg - a.internal_avg);
 
-    // Try to get cached market benchmarks (1 week TTL)
-    let market: any[] = [];
-    if (orgId && internal.length > 0) {
+    let mercado: Mercado[] = [];
+    let avisoIA: unknown = undefined;
+    if (interno.length > 0) {
       if (!force) {
-        const { data: cached } = await supabase
+        const { data: cache } = await cliente
           .from("market_benchmarks")
-          .select("*")
-          .eq("organization_id", orgId);
-        const fresh = (cached ?? []).filter((c: any) =>
-          Date.now() - new Date(c.generated_at).getTime() < 7 * 24 * 3600 * 1000
-        );
-        if (fresh.length === internal.length) {
-          market = fresh;
+          .select("segment,market_avg_ticket,market_min,market_max,notes,generated_at")
+          .eq("organization_id", org);
+        const recentes = (cache ?? []).filter((c: { generated_at: string }) => Date.now() - new Date(c.generated_at).getTime() < VALIDADE_DO_CACHE_MS);
+        if (recentes.length === interno.length) {
+          mercado = recentes.map((c: { segment: string; market_avg_ticket: unknown; market_min: unknown; market_max: unknown; notes: string | null }) => ({
+            segment: c.segment,
+            market_avg: numeroOuNulo(c.market_avg_ticket),
+            market_min: numeroOuNulo(c.market_min),
+            market_max: numeroOuNulo(c.market_max),
+            notes: c.notes,
+          }));
         }
       }
 
-      if (market.length === 0) {
-        // Generate via the Anthropic API
-        const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-        const AI_MODEL = "claude-sonnet-5";
-        if (ANTHROPIC_API_KEY) {
-          try {
-            const prompt = `Você é um analista do mercado brasileiro de patrocínio esportivo. Para cada segmento abaixo, estime o ticket médio anual realista de uma cota de patrocínio (em BRL) no mercado brasileiro de propriedades esportivas regionais/nacionais. Retorne JSON puro.
-
-Segmentos: ${internal.map((i) => i.segment).join(", ")}
-
-Formato exato (apenas JSON, sem markdown):
-{"segments":[{"segment":"...","market_avg":120000,"market_min":50000,"market_max":300000,"notes":"breve justificativa"}]}`;
-
-            const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
-              method: "POST",
-              headers: {
-                "x-api-key": ANTHROPIC_API_KEY,
-                "anthropic-version": "2023-06-01",
-                "Content-Type": "application/json",
+      if (mercado.length === 0) {
+        const ia = await tentarIA(FUNCIONALIDADE, () =>
+          gerar({ organizacaoId: org, usuarioId: usuario.id }, {
+            funcionalidade: FUNCIONALIDADE,
+            nivel: "padrao",
+            mensagens: [{
+              papel: "usuario",
+              conteudo:
+                `Você é um analista do mercado brasileiro de patrocínio esportivo. Para cada segmento abaixo, estime o ticket médio anual realista de uma cota de patrocínio (em BRL) no mercado brasileiro de propriedades esportivas regionais/nacionais, com mínimo, máximo e uma breve justificativa.\n\nSegmentos: ${interno.map((i) => i.segment).join(", ")}`,
+            }],
+            json: {
+              nome: "benchmark_de_ticket",
+              esquema: {
+                type: "object",
+                properties: {
+                  segments: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        segment: { type: "string" },
+                        market_avg: { type: "number" },
+                        market_min: { type: "number" },
+                        market_max: { type: "number" },
+                        notes: { type: "string" },
+                      },
+                      required: ["segment", "market_avg", "market_min", "market_max", "notes"],
+                    },
+                  },
+                },
+                required: ["segments"],
               },
-              body: JSON.stringify({
-                model: AI_MODEL,
-                max_tokens: 2048,
-                messages: [{ role: "user", content: prompt }],
-              }),
-            });
+            },
+            maxTokens: 2048,
+          }, dependenciasDaCamada())
+        );
+        avisoIA = ia.aviso;
 
-            if (aiRes.ok) {
-              const aiData = await aiRes.json();
-              const content = aiData.content?.find((b: any) => b.type === "text")?.text || "{}";
-              const parsed = extractJson(content);
-              const segs = parsed.segments || [];
-              market = segs;
+        const segmentos = Array.isArray(ia.valor?.json?.segments) ? ia.valor.json.segments as Record<string, unknown>[] : [];
+        mercado = segmentos
+          .filter((s) => typeof s.segment === "string")
+          .map((s) => ({
+            segment: s.segment as string,
+            market_avg: numeroOuNulo(s.market_avg),
+            market_min: numeroOuNulo(s.market_min),
+            market_max: numeroOuNulo(s.market_max),
+            notes: typeof s.notes === "string" ? s.notes : null,
+          }));
 
-              // Cache
-              for (const s of segs) {
-                await supabase.from("market_benchmarks").upsert({
-                  organization_id: orgId,
-                  segment: s.segment,
-                  market_avg_ticket: s.market_avg || 0,
-                  market_min: s.market_min,
-                  market_max: s.market_max,
-                  notes: s.notes,
-                  model: AI_MODEL,
-                  generated_at: new Date().toISOString(),
-                }, { onConflict: "organization_id,segment" });
-              }
-            }
-          } catch (e) {
-            console.error("AI benchmark error", e);
-          }
+        if (mercado.length > 0) {
+          const geradoEm = new Date().toISOString();
+          const gravacoes = await Promise.all(mercado.map((m) =>
+            cliente.from("market_benchmarks").upsert({
+              organization_id: org,
+              segment: m.segment,
+              market_avg_ticket: m.market_avg ?? 0,
+              market_min: m.market_min,
+              market_max: m.market_max,
+              notes: m.notes,
+              model: ia.valor?.modelo ?? null,
+              generated_at: geradoEm,
+            }, { onConflict: "organization_id,segment" })
+          ));
+          const falhas = gravacoes.filter((g) => g.error).length;
+          if (falhas) console.error(`${FUNCIONALIDADE}: ${falhas} de ${mercado.length} linhas do cache não gravadas`);
         }
       }
     }
 
-    // Merge
-    const result = internal.map((i) => {
-      const m = market.find((x: any) => x.segment === i.segment);
-      const marketAvg = m?.market_avg ?? m?.market_avg_ticket ?? null;
-      const variance = marketAvg ? Math.round(((i.internal_avg - marketAvg) / marketAvg) * 100) : null;
+    const items = interno.map((i) => {
+      const m = mercado.find((x) => x.segment === i.segment);
+      const marketAvg = m?.market_avg ?? null;
       return {
         ...i,
         market_avg: marketAvg,
         market_min: m?.market_min ?? null,
         market_max: m?.market_max ?? null,
         market_notes: m?.notes ?? null,
-        variance_percent: variance,
+        variance_percent: marketAvg ? Math.round(((i.internal_avg - marketAvg) / marketAvg) * 100) : null,
       };
     });
 
-    return new Response(JSON.stringify({ items: result }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ items, ...(avisoIA ? { aviso_ia: avisoIA } : {}) });
   } catch (e) {
-    console.error("ticket-benchmark-ai error", e);
-    return new Response(JSON.stringify({ error: String(e) }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return respostaDeFalha(e, FUNCIONALIDADE);
   }
 });

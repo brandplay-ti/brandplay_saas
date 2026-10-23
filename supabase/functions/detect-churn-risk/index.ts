@@ -1,143 +1,180 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+// Risco de churn dos contratos ativos da organização ativa (IA-15).
+//
+// O portal envia a organização ativa; ela é validada contra o usuário do JWT
+// (`exigirModulo`) e filtra todas as consultas. Antes, a função varria tudo
+// o que o RLS deixava ver — para quem está em várias organizações, misturava
+// clientes diferentes no mesmo prompt.
+//
+// O risco é calculado aqui; a IA só escreve a recomendação dos 5 maiores.
+// Se a IA falhar, os riscos voltam sem recomendação e com `aviso_ia`.
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { gerar } from "../_shared/ai/camada.ts";
+import {
+  autenticar,
+  CORS,
+  dependenciasDaCamada,
+  exigirModulo,
+  json,
+  organizacaoDoCorpo,
+  respostaDeFalha,
+  tentarIA,
+} from "../_shared/ai/funcao.ts";
 
-// Extracts a JSON object from a Claude text response, stripping any ```json fences.
-function extractJson(text: string): any {
-  let cleaned = (text ?? "").trim();
-  const fenceMatch = cleaned.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-  if (fenceMatch) cleaned = fenceMatch[1].trim();
-  return JSON.parse(cleaned);
+const FUNCIONALIDADE = "detect-churn-risk";
+
+interface Contrato {
+  id: string;
+  title: string;
+  brand: string | null;
+  sponsor_id: string | null;
+  end_date: string | null;
+  total_value: number | null;
 }
 
+interface Risco {
+  contract_id: string;
+  contract_title: string;
+  sponsor_name: string | null;
+  sponsor_id: string | null;
+  risk_level: "baixo" | "medio" | "alto" | "critico";
+  risk_score: number;
+  signals: string[];
+  total_value: number | null;
+  recommendation?: string;
+}
+
+const DIA_MS = 86_400_000;
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const { usuario, cliente } = await autenticar(req);
+    const org = organizacaoDoCorpo(await req.json().catch(() => ({})));
+    await exigirModulo(cliente, usuario.id, org, "crm");
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
-    const { data: contracts } = await supabase
+    const { data } = await cliente
       .from("contracts")
-      .select("id,title,brand,sponsor_id,status,end_date,total_value")
+      .select("id,title,brand,sponsor_id,end_date,total_value")
+      .eq("organization_id", org)
       .eq("status", "ativo");
+    const contratos: Contrato[] = data ?? [];
+    if (contratos.length === 0) return json({ risks: [] });
 
-    if (!contracts || contracts.length === 0) {
-      return new Response(JSON.stringify({ risks: [] }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    const contractIds = contratos.map((c) => c.id);
+    const marcas = [...new Set(contratos.map((c) => c.brand).filter((m): m is string => Boolean(m)))];
+    const sponsorIds = [...new Set(contratos.map((c) => c.sponsor_id).filter((s): s is string => Boolean(s)))];
 
-    const contractIds = contracts.map(c => c.id);
-    const sponsorIds = [...new Set(contracts.map(c => c.sponsor_id).filter(Boolean))];
-
-    const [installmentsRes, deliveriesRes, sponsorsRes] = await Promise.all([
-      supabase.from("installments").select("contract_id,status,due_date").in("contract_id", contractIds),
-      supabase.from("deliveries").select("brand,status,approval,due_date").in("brand", contracts.map(c => c.brand)),
-      sponsorIds.length ? supabase.from("sponsors").select("id,last_contact_at,name").in("id", sponsorIds) : Promise.resolve({ data: [] }),
+    const [parcelasR, entregasR, patrocinadoresR] = await Promise.all([
+      cliente.from("installments").select("contract_id,status").in("contract_id", contractIds).eq("organization_id", org),
+      marcas.length
+        ? cliente.from("deliveries").select("brand,status,approval,due_date").in("brand", marcas).eq("organization_id", org)
+        : Promise.resolve({ data: [] }),
+      sponsorIds.length
+        ? cliente.from("sponsors").select("id,last_contact_at,name").in("id", sponsorIds).eq("organization_id", org)
+        : Promise.resolve({ data: [] }),
     ]);
+    const parcelas: { contract_id: string; status: string }[] = parcelasR.data ?? [];
+    const entregas: { brand: string; status: string; approval: string | null; due_date: string | null }[] = entregasR.data ?? [];
+    const patrocinadores: { id: string; last_contact_at: string | null; name: string }[] = patrocinadoresR.data ?? [];
 
-    const today = new Date();
-    const risks: any[] = [];
+    const hoje = new Date();
+    const riscos: Risco[] = [];
 
-    for (const c of contracts) {
-      const ins = (installmentsRes.data ?? []).filter((i: any) => i.contract_id === c.id);
-      const overdue = ins.filter((i: any) => i.status === "atrasado").length;
-      const dels = (deliveriesRes.data ?? []).filter((d: any) => d.brand === c.brand);
-      const reproved = dels.filter((d: any) => d.approval === "reprovada").length;
-      const lateDels = dels.filter((d: any) => d.status === "atrasada" || (d.due_date && new Date(d.due_date) < today && d.status !== "entregue" && d.status !== "aprovada")).length;
-      const sp = (sponsorsRes.data ?? []).find((s: any) => s.id === c.sponsor_id);
-      const daysSinceContact = sp?.last_contact_at ? Math.floor((today.getTime() - new Date(sp.last_contact_at).getTime()) / 86400000) : 999;
-      const daysToEnd = c.end_date ? Math.floor((new Date(c.end_date).getTime() - today.getTime()) / 86400000) : null;
+    for (const c of contratos) {
+      const atrasadas = parcelas.filter((i) => i.contract_id === c.id && i.status === "atrasado").length;
+      const dels = entregas.filter((d) => d.brand === c.brand);
+      const reprovadas = dels.filter((d) => d.approval === "reprovada").length;
+      const entregasAtrasadas = dels.filter((d) =>
+        d.status === "atrasada" || (d.due_date && new Date(d.due_date) < hoje && d.status !== "entregue" && d.status !== "aprovada")
+      ).length;
+      const sp = patrocinadores.find((s) => s.id === c.sponsor_id);
+      const diasSemContato = sp?.last_contact_at ? Math.floor((hoje.getTime() - new Date(sp.last_contact_at).getTime()) / DIA_MS) : 999;
+      const diasParaFim = c.end_date ? Math.floor((new Date(c.end_date).getTime() - hoje.getTime()) / DIA_MS) : null;
 
       let score = 0;
       const signals: string[] = [];
-      if (overdue > 0) { score += overdue * 20; signals.push(`${overdue} parcela(s) em atraso`); }
-      if (reproved > 0) { score += reproved * 15; signals.push(`${reproved} entrega(s) reprovada(s)`); }
-      if (lateDels > 0) { score += lateDels * 10; signals.push(`${lateDels} entrega(s) atrasada(s)`); }
-      if (daysSinceContact > 30) { score += 15; signals.push(`${daysSinceContact}d sem contato`); }
-      if (daysSinceContact > 60) { score += 10; }
-      if (daysToEnd !== null && daysToEnd < 60 && daysToEnd > 0) { score += 20; signals.push(`Vence em ${daysToEnd}d`); }
+      if (atrasadas > 0) { score += atrasadas * 20; signals.push(`${atrasadas} parcela(s) em atraso`); }
+      if (reprovadas > 0) { score += reprovadas * 15; signals.push(`${reprovadas} entrega(s) reprovada(s)`); }
+      if (entregasAtrasadas > 0) { score += entregasAtrasadas * 10; signals.push(`${entregasAtrasadas} entrega(s) atrasada(s)`); }
+      if (diasSemContato > 30) { score += 15; signals.push(`${diasSemContato}d sem contato`); }
+      if (diasSemContato > 60) score += 10;
+      if (diasParaFim !== null && diasParaFim < 60 && diasParaFim > 0) { score += 20; signals.push(`Vence em ${diasParaFim}d`); }
 
       if (score === 0) continue;
 
-      const level = score >= 60 ? "critico" : score >= 40 ? "alto" : score >= 20 ? "medio" : "baixo";
-
-      risks.push({
+      riscos.push({
         contract_id: c.id,
         contract_title: c.title,
         sponsor_name: sp?.name ?? c.brand,
         sponsor_id: c.sponsor_id,
-        risk_level: level,
+        risk_level: score >= 60 ? "critico" : score >= 40 ? "alto" : score >= 20 ? "medio" : "baixo",
         risk_score: score,
         signals,
         total_value: c.total_value,
       });
     }
 
-    risks.sort((a, b) => b.risk_score - a.risk_score);
+    riscos.sort((a, b) => b.risk_score - a.risk_score);
+    if (riscos.length === 0) return json({ risks: [] });
 
-    // Recomendação IA para top 5
-    const topRisks = risks.slice(0, 5);
-    const AI_MODEL = "claude-haiku-4-5-20251001";
-    if (topRisks.length > 0) {
-      const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "x-api-key": Deno.env.get("ANTHROPIC_API_KEY") ?? "",
-          "anthropic-version": "2023-06-01",
-          "Content-Type": "application/json",
+    // Recomendação da IA para os 5 maiores riscos.
+    const maiores = riscos.slice(0, 5);
+    const ia = await tentarIA(FUNCIONALIDADE, () =>
+      gerar({ organizacaoId: org, usuarioId: usuario.id }, {
+        funcionalidade: FUNCIONALIDADE,
+        nivel: "rapido",
+        sistema:
+          "Você é consultor de retenção de patrocinadores. Para cada contrato, gere 1 recomendação curta (máx 15 palavras) em português brasileiro.",
+        mensagens: [{ papel: "usuario", conteudo: `Contratos em risco:\n${JSON.stringify(maiores, null, 2)}` }],
+        json: {
+          nome: "recomendacoes_de_retencao",
+          esquema: {
+            type: "object",
+            properties: {
+              recommendations: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: { contract_id: { type: "string" }, recommendation: { type: "string" } },
+                  required: ["contract_id", "recommendation"],
+                },
+              },
+            },
+            required: ["recommendations"],
+          },
         },
-        body: JSON.stringify({
-          model: AI_MODEL,
-          max_tokens: 1024,
-          system: "Você é consultor de retenção de patrocinadores. Para cada contrato, gere 1 recomendação curta (máx 15 palavras) em português brasileiro. Responda APENAS com um objeto JSON válido, sem markdown, sem crases.",
-          messages: [
-            { role: "user", content: `Contratos em risco:\n${JSON.stringify(topRisks, null, 2)}\n\nResponda em JSON: {"recommendations":[{"contract_id":"...","recommendation":"..."}]}` },
-          ],
-        }),
-      });
-      if (aiResp.ok) {
-        const data = await aiResp.json();
-        try {
-          const text = data.content?.find((b: any) => b.type === "text")?.text ?? "";
-          const parsed = extractJson(text);
-          for (const rec of parsed.recommendations ?? []) {
-            const r = risks.find(r => r.contract_id === rec.contract_id);
-            if (r) r.recommendation = rec.recommendation;
-          }
-        } catch (_) {}
-      }
+        maxTokens: 1024,
+      }, dependenciasDaCamada())
+    );
+
+    const recomendacoes = Array.isArray(ia.valor?.json?.recommendations) ? ia.valor.json.recommendations : [];
+    for (const rec of recomendacoes as { contract_id?: unknown; recommendation?: unknown }[]) {
+      const r = maiores.find((m) => m.contract_id === rec.contract_id);
+      if (r && typeof rec.recommendation === "string") r.recommendation = rec.recommendation;
     }
 
-    // Cache
-    for (const r of risks) {
-      await supabase.from("contract_churn_risk").upsert({
+    // Cache auxiliar, uma linha por contrato (uma que falhe não leva as
+    // outras); se não gravar, os riscos voltam mesmo assim.
+    const geradoEm = new Date().toISOString();
+    const gravacoes = await Promise.all(riscos.map((r) =>
+      cliente.from("contract_churn_risk").upsert({
         contract_id: r.contract_id,
-        owner_id: user.id,
+        organization_id: org,
+        owner_id: usuario.id,
         risk_level: r.risk_level,
         risk_score: r.risk_score,
         signals: r.signals,
         recommendation: r.recommendation ?? null,
-        model: AI_MODEL,
-        generated_at: new Date().toISOString(),
-      });
-    }
+        model: r.recommendation ? ia.valor?.modelo ?? null : null,
+        generated_at: geradoEm,
+      })
+    ));
+    const falhas = gravacoes.filter((g) => g.error).length;
+    if (falhas) console.error(`${FUNCIONALIDADE}: ${falhas} de ${riscos.length} linhas do cache não gravadas`);
 
-    return new Response(JSON.stringify({ risks }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return json({ risks: riscos, ...(ia.aviso ? { aviso_ia: ia.aviso } : {}) });
   } catch (e) {
-    console.error(e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return respostaDeFalha(e, FUNCIONALIDADE);
   }
 });

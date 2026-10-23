@@ -317,6 +317,18 @@ Helper em `portal/src/lib/` que traduz `{ error, codigo }` em
 toast padronizado (IA desabilitada, orçamento esgotado, contate o suporte,
 limite de taxa). Teste unitário.
 
+Feito em `portal/src/lib/erroDeIA.ts`: `avisarErroDeIA(error, data, titulo)`
+lê o corpo da função (em `data` ou, fora de 2xx, em `error.context`, via
+`readEdgeFunctionError`) e mostra o toast; `lerErroDeIA` e
+`traduzirErroDeIA` devolvem a mensagem sem mostrar. Decisões:
+- a descrição é o `error` da função (a mensagem ao usuário de `erros.ts`); o
+  helper só escolhe o título por código e tem a mesma mensagem de reserva;
+- sem `codigo` conhecido não é erro da camada (recurso não encontrado,
+  validação): título da tela e o `error` da função;
+- a mensagem técnica do `invoke` ("non-2xx status code") e a falha de rede
+  não vão crus para a tela;
+- o teste lê `_shared/ai/erros.ts` e falha se a lista de códigos divergir.
+
 Dependências: IA-05.
 
 ### IA-14 · `sponsor-executive-summary` e `generate-sellout-report` — M
@@ -324,16 +336,69 @@ Dependências: IA-05.
 Organização do patrocinador / da propriedade ou evento. Componentes:
 `ExecutiveSummaryAI.tsx`, `SelloutReportGenerator.tsx`.
 
+Feito. A IA-14 criou o apoio comum das funções do épico, em
+`_shared/ai/funcao.ts` (com teste): `autenticar` (usuário do JWT, client sob
+RLS), `exigirModulo` (`is_org_member` + `can_access_module`),
+`organizacaoDoCorpo`/`uuidDoCorpo`, `dependenciasDaCamada` (service role só
+para a camada) e `respostaDeFalha` (`{ error, codigo }` para erro de IA;
+falha inesperada vira 500 sem detalhe, e o log não leva conteúdo).
+Decisões tomadas na implementação:
+- mesmo com a organização vinda do recurso, a função passa por
+  `exigirModulo` (módulo `crm`, leitura): usuário do portal do patrocinador,
+  que lê o próprio patrocinador pelo RLS, não gera resumo interno;
+- **mistura de organizações corrigida também aqui**: as entregas do resumo
+  eram buscadas só pelo nome da marca, em todas as organizações do usuário;
+  agora todas as consultas filtram pela organização do recurso;
+- os caches (`sponsor_executive_summaries`, `sellout_reports`) passam a
+  gravar `organization_id`. Antes o gatilho preenchia com `get_user_org`, que
+  para quem está em várias organizações podia gravar o resumo na errada;
+- o evento do relatório precisa ser da mesma propriedade (senão 404);
+- relatório que não grava volta mesmo assim (`saved: false`), com aviso na
+  tela: a chamada já foi feita e medida;
+- `SelloutReportGenerator` lista propriedades e relatórios só da organização
+  ativa (antes, de todas as organizações do usuário);
+- modelo gravado no cache é o da resposta, não mais um nome fixo.
+
 ### IA-15 · `detect-churn-risk` e `ticket-benchmark-ai` — M
 
 Passam a receber a organização ativa (`ChurnRiskWidget.tsx`,
 `TicketBenchmarkWidget.tsx`), validam e filtram. `ticket-benchmark-ai` deixa
 de usar `get_user_org`. Corrige a mistura de organizações (plano §1.2).
 
+Feito. As duas recebem `organization_id` do corpo, validam com
+`exigirModulo` (módulo `crm`, leitura) e filtram contratos, parcelas,
+entregas, patrocinadores e os caches por ela; os widgets mandam o `orgId`
+de `useOrganization` e limpam ou recarregam ao trocar de organização.
+Decisões tomadas na implementação:
+- **a IA é a parte opcional**: o risco e a média interna são calculados sem
+  ela. Falha de IA (inclusive bloqueio por orçamento ou IA desativada) não
+  derruba a resposta: volta `aviso_ia: { error, codigo }`, via `tentarIA`
+  (`_shared/ai/funcao.ts`), e o portal avisa com `avisarIAParcial` (IA-13).
+  Era o comportamento de antes, quando a chamada falhava em silêncio;
+- no benchmark, que carrega ao abrir o dashboard, o aviso fica como nota no
+  card e só vira toast na atualização manual;
+- recomendação de churn no nível `rapido`, benchmark no `padrao`; os dois
+  pelo modo JSON da camada, com esquema, no lugar do parse do texto;
+- os caches (`contract_churn_risk`, `market_benchmarks`) gravam
+  `organization_id` explícito, uma linha por vez, para que uma linha antiga
+  gravada na organização errada pelo gatilho não derrube as outras.
+
 ### IA-16 · `prepare-meeting-ai` e `task-insights` — P
 
 Já determinam a organização; JSON passa a usar o modo JSON da camada
 (`MeetingPrepAI.tsx`, `TaskInsightsDialog.tsx`).
+
+Feito. As duas usam `gerar()` com `json` (esquema de sempre, que a camada
+fecha por fornecedor) no lugar do parse do texto, e o apoio de
+`_shared/ai/funcao.ts`. Decisões tomadas na implementação:
+- a checagem de acesso que já existia virou `exigirModulo`: `crm` na
+  preparação de reunião e nas tarefas do CRM e atividades de oportunidade,
+  `operacional` nos itens de checklist; dados do patrocinador continuam só
+  com acesso ao CRM, financeiros só com acesso ao financeiro;
+- as consultas ganharam o filtro pela organização do registro, além do
+  `sponsor_id`/`contract_id`;
+- `source` desconhecido continua tratado como tarefa do CRM; ids passam a
+  ser validados como uuid (400).
 
 ### IA-17 · `score-leads` — M
 
