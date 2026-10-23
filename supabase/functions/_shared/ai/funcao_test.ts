@@ -4,7 +4,15 @@
 
 import { assert, assertEquals, assertRejects, assertThrows } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { ErroDeIA } from "./erros.ts";
-import { type ClienteDeRpc, ErroDaRequisicao, exigirModulo, organizacaoDoCorpo, respostaDeFalha, uuidDoCorpo } from "./funcao.ts";
+import {
+  type ClienteDeRpc,
+  ErroDaRequisicao,
+  exigirModulo,
+  organizacaoDoCorpo,
+  respostaDeFalha,
+  tentarIA,
+  uuidDoCorpo,
+} from "./funcao.ts";
 import { AcessoNegadoAIA } from "./guardas.ts";
 
 const ORG = "c1000000-0000-4000-8000-000000000001";
@@ -65,6 +73,17 @@ Deno.test("respostaDeFalha: erro de IA vira { error, codigo } com o status do ca
   assertEquals(corpo.codigo, "orcamento_esgotado");
   assert(!JSON.stringify(corpo).includes("9f3a"));
   assertEquals(r.headers.get("Access-Control-Allow-Origin"), "*");
+});
+
+Deno.test("tentarIA: falha de IA vira aviso para a resposta; outras falhas sobem", async () => {
+  assertEquals(await tentarIA("teste", () => Promise.resolve(42)), { valor: 42 });
+
+  const { valor, aviso } = await tentarIA("teste", () => Promise.reject(new ErroDeIA("ia_desabilitada", "guarda", false, "plataforma")));
+  assertEquals(valor, undefined);
+  assertEquals(aviso?.codigo, "ia_desabilitada");
+  assert(aviso?.error && !aviso.error.includes("guarda"));
+
+  await assertRejects(() => tentarIA("teste", () => Promise.reject(new AcessoNegadoAIA())), AcessoNegadoAIA);
 });
 
 Deno.test("respostaDeFalha: acesso negado, requisição inválida e falha inesperada", async () => {

@@ -103,3 +103,13 @@ export async function avisarErroDeIA(error: unknown, data: unknown, tituloPadrao
   const { titulo, descricao } = await lerErroDeIA(error, data, tituloPadrao);
   toast.error(titulo, { description: descricao });
 }
+
+/**
+ * A função respondeu, mas a parte de IA falhou (`aviso_ia`): ex.: riscos de
+ * churn calculados sem a recomendação. Aviso, não erro — o resto da tela vale.
+ */
+export function avisarIAParcial(aviso: { error?: string | null; codigo?: unknown } | null | undefined, tituloPadrao: string): void {
+  if (!aviso) return;
+  const { titulo, descricao } = traduzirErroDeIA(aviso, tituloPadrao);
+  toast.warning(titulo, { description: descricao });
+}

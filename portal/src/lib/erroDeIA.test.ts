@@ -3,14 +3,15 @@ import { describe, expect, it, vi } from "vitest";
 import errosDaCamada from "../../../supabase/functions/_shared/ai/erros.ts?raw";
 import {
   avisarErroDeIA,
+  avisarIAParcial,
   CODIGOS_DE_ERRO_DE_IA,
   ehCodigoDeErroDeIA,
   lerErroDeIA,
   traduzirErroDeIA,
 } from "./erroDeIA";
 
-const toastError = vi.hoisted(() => vi.fn());
-vi.mock("sonner", () => ({ toast: { error: toastError } }));
+const { toastError, toastWarning } = vi.hoisted(() => ({ toastError: vi.fn(), toastWarning: vi.fn() }));
+vi.mock("sonner", () => ({ toast: { error: toastError, warning: toastWarning } }));
 
 function erroHttp(corpo: string, status = 402): FunctionsHttpError {
   return new FunctionsHttpError(new Response(corpo, { status, headers: { "Content-Type": "application/json" } }));
@@ -100,5 +101,14 @@ describe("avisarErroDeIA", () => {
   it("mostra o toast com título e descrição traduzidos", async () => {
     await avisarErroDeIA(erroHttp(JSON.stringify({ error: "Aguarde.", codigo: "limite_taxa" }), 429), null, "Erro");
     expect(toastError).toHaveBeenCalledWith("Muitas solicitações de IA", { description: "Aguarde." });
+  });
+});
+
+describe("avisarIAParcial", () => {
+  it("avisa sem erro quando só a parte de IA falhou, e não faz nada sem aviso", () => {
+    avisarIAParcial(undefined, "Recomendações indisponíveis");
+    expect(toastWarning).not.toHaveBeenCalled();
+    avisarIAParcial({ error: "O limite mensal foi atingido.", codigo: "orcamento_esgotado" }, "Recomendações indisponíveis");
+    expect(toastWarning).toHaveBeenCalledWith("Limite de IA atingido", { description: "O limite mensal foi atingido." });
   });
 });

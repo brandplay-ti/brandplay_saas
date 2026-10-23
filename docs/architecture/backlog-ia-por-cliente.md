@@ -365,6 +365,24 @@ Passam a receber a organização ativa (`ChurnRiskWidget.tsx`,
 `TicketBenchmarkWidget.tsx`), validam e filtram. `ticket-benchmark-ai` deixa
 de usar `get_user_org`. Corrige a mistura de organizações (plano §1.2).
 
+Feito. As duas recebem `organization_id` do corpo, validam com
+`exigirModulo` (módulo `crm`, leitura) e filtram contratos, parcelas,
+entregas, patrocinadores e os caches por ela; os widgets mandam o `orgId`
+de `useOrganization` e limpam ou recarregam ao trocar de organização.
+Decisões tomadas na implementação:
+- **a IA é a parte opcional**: o risco e a média interna são calculados sem
+  ela. Falha de IA (inclusive bloqueio por orçamento ou IA desativada) não
+  derruba a resposta: volta `aviso_ia: { error, codigo }`, via `tentarIA`
+  (`_shared/ai/funcao.ts`), e o portal avisa com `avisarIAParcial` (IA-13).
+  Era o comportamento de antes, quando a chamada falhava em silêncio;
+- no benchmark, que carrega ao abrir o dashboard, o aviso fica como nota no
+  card e só vira toast na atualização manual;
+- recomendação de churn no nível `rapido`, benchmark no `padrao`; os dois
+  pelo modo JSON da camada, com esquema, no lugar do parse do texto;
+- os caches (`contract_churn_risk`, `market_benchmarks`) gravam
+  `organization_id` explícito, uma linha por vez, para que uma linha antiga
+  gravada na organização errada pelo gatilho não derrube as outras.
+
 ### IA-16 · `prepare-meeting-ai` e `task-insights` — P
 
 Já determinam a organização; JSON passa a usar o modo JSON da camada

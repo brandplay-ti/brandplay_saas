@@ -17,7 +17,7 @@
 
 import { createClient, type SupabaseClient, type User } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { type DependenciasDaCamada, dependenciasSupabase } from "./camada.ts";
-import { ErroDeIA, respostaDeErro } from "./erros.ts";
+import { corpoDeErro, ErroDeIA, respostaDeErro } from "./erros.ts";
 import { AcessoNegadoAIA } from "./guardas.ts";
 
 export const CORS = {
@@ -108,6 +108,26 @@ export async function exigirModulo(
   }
   if (membro.data !== true) throw new ErroDaRequisicao(403, "Acesso restrito à equipe da organização");
   if (modulos.data !== true) throw new ErroDaRequisicao(403, "Sem permissão neste módulo");
+}
+
+export type AvisoDeIA = ReturnType<typeof corpoDeErro>;
+
+/**
+ * Para a parte opcional de IA de uma função que vale sem ela (ex.: riscos
+ * calculados, recomendação pela IA): a falha de IA vira `aviso` para a
+ * resposta (`aviso_ia`), lido pelo portal (IA-13). Outras falhas sobem.
+ */
+export async function tentarIA<T>(
+  funcionalidade: string,
+  chamada: () => Promise<T>,
+): Promise<{ valor: T; aviso?: undefined } | { valor?: undefined; aviso: AvisoDeIA }> {
+  try {
+    return { valor: await chamada() };
+  } catch (e) {
+    if (!(e instanceof ErroDeIA)) throw e;
+    console.error(`${funcionalidade}: ${e.message}`);
+    return { aviso: corpoDeErro(e) };
+  }
 }
 
 /** Converte a falha em resposta; o log nunca leva conteúdo. */
