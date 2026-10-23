@@ -271,6 +271,20 @@ usuário, funcionalidade, fornecedor, modelo, credencial (`exclusiva`/`padrao`/
 latência, categoria de erro. Falha ao gravar o evento não derruba a resposta,
 mas é registrada no log.
 
+Feito em `_shared/ai/medicao.ts` e `_shared/ai/camada.ts`. A IA-11 entregou
+também a entrada única da camada, **`gerar(contexto, pedido, deps)`**, que as
+funções vão usar no épico 3: valida → guardas → credencial → chamada →
+registro. `dependenciasSupabase(admin)` monta as dependências reais.
+Decisões tomadas na implementação:
+- tentativa barrada pela guarda é registrada como `bloqueado` com a chave
+  que seria usada (fornecedor e modelo são obrigatórios na tabela); sem
+  nenhuma chave configurada, não há evento;
+- acesso negado (não membro) e falha na escolha da chave não geram evento;
+- custo pelo nome do modelo como está na credencial, o mesmo cadastrado em
+  `ai_model_prices`; arredondado a 6 casas.
+Exercitado contra o stack isolado com fornecedor falso: chave semente,
+preço lido, evento gravado e já contado por `ia_situacao`.
+
 Dependências: IA-01, IA-06/IA-07.
 
 ### IA-12 · `deno test` no CI — P
