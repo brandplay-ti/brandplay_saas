@@ -124,7 +124,13 @@ Dependências: nenhuma.
 - Categorias de erro: `chave_invalida`, `sem_saldo`, `limite_taxa`,
   `indisponivel`, `resposta_invalida`, mais os bloqueios internos
   `ia_desabilitada`, `orcamento_esgotado`, `cobranca_bloqueada`.
-- Corpo de erro padronizado devolvido ao portal: `{ error: { codigo, mensagem } }`.
+- Corpo de erro padronizado devolvido ao portal: `{ error: <mensagem>, codigo }`.
+  `error` continua texto porque é o que as telas já leem (`data.error`); um
+  objeto ali quebraria as telas durante a migração das funções.
+- Módulos: `_shared/ai/tipos.ts` (pedido, mensagens, ferramentas, resposta,
+  `validarPedido`) e `_shared/ai/erros.ts` (códigos, mensagens, status HTTP,
+  classificação base por status). O teste confere os códigos contra os
+  `check` da migration 0031.
 
 Dependências: nenhuma.
 
@@ -218,7 +224,7 @@ manual com a chave semente em cada um dos 3 fornecedores fica para IA-22.
 
 ### IA-13 · Tratamento de erro de IA no portal — P
 
-Helper em `portal/src/lib/` que traduz `{ error: { codigo, mensagem } }` em
+Helper em `portal/src/lib/` que traduz `{ error, codigo }` em
 toast padronizado (IA desabilitada, orçamento esgotado, contate o suporte,
 limite de taxa). Teste unitário.
 
