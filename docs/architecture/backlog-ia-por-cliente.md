@@ -224,6 +224,20 @@ Critérios: testes cobrindo as quatro rotas (exclusiva, padrão do banco,
 semente, exceção de capacidade) e a garantia de nunca usar credencial de
 outra organização.
 
+Feito em `_shared/ai/credencial.ts` (`resolverCredencial`,
+`chamarComCredencial`, `repositorioSupabase`). Decisões tomadas na
+implementação:
+- linha que não decifra (chave mestra errada, versão ausente, linha copiada
+  de outra organização) vira `chave_invalida`: para o usuário é "contate o
+  suporte", e o superadmin vê na credencial;
+- modelos da semente podem vir de `AI_DEFAULT_MODEL_RAPIDO/PADRAO/VISAO`;
+  vazios, os padrões de `modelos.ts`;
+- a passagem da Q4 continua marcada `via_padrao` mesmo quando a padrão é a
+  semente;
+- sucesso numa credencial com falha registrada limpa `last_error`;
+- `repositorioSupabase` (as consultas reais) não tem teste unitário: é
+  exercitado na migração das funções e na avaliação (IA-22).
+
 Dependências: IA-01, IA-04, IA-08.
 
 ### IA-10 · Guardas antes da chamada — M
