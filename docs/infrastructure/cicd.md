@@ -41,12 +41,15 @@ Roda em todo PR e em push para `dev`, `hml` e `main`.
 **Job `portal`**: `npm ci` → lint → `type-check` → `test` → `build`, no
 workspace `portal`.
 
-**Job `funcoes`**: `deno test --allow-read supabase/functions/_shared/`, com
-o Deno fixado na `v2.1.4` (a mesma da imagem `denoland/deno` usada
-localmente). Cobre a camada de IA (`_shared/ai/`) e a cifra das chaves
-(`_shared/ai-crypto.ts`), sem rede de fornecedor nem banco. Bloqueante.
-Sem Deno instalado, rode localmente pela imagem:
-`docker run --rm -v "$PWD/supabase:/app/supabase:ro" -w /app denoland/deno:2.1.4 test --allow-read supabase/functions/_shared/`.
+**Job `funcoes`**: `deno test --allow-read supabase/functions/_shared/
+supabase/functions/fetch-social-stats/`, com o Deno fixado na `v2.1.4` (a
+mesma da imagem `denoland/deno` usada localmente). Cobre a camada de IA
+(`_shared/ai/`), a cifra das chaves (`_shared/ai-crypto.ts`) e as regras de
+busca de URL externa do `fetch-social-stats` (`busca.ts`), sem rede de
+fornecedor nem banco. Bloqueante. As pastas são listadas uma a uma: o
+`create-organization/organization_rls_test.ts` precisa de stack e
+credenciais. Sem Deno instalado, rode localmente pela imagem:
+`docker run --rm -v "$PWD/supabase:/app/supabase:ro" -w /app denoland/deno:2.1.4 test --allow-read supabase/functions/_shared/ supabase/functions/fetch-social-stats/`.
 
 **Job `migrations`**:
 
@@ -66,8 +69,8 @@ Sem Deno instalado, rode localmente pela imagem:
 
 O que o CI **não** cobre hoje: testes E2E (dependem do stack completo e de
 dados), isolamento entre organizações com usuários reais (roteiro comentado em
-`seguranca.sql`) e as Edge Functions fora de `_shared/` (o `deno test` só
-encontra testes ali).
+`seguranca.sql`) e as demais Edge Functions (o job só roda as pastas que
+lista).
 
 ### Dívida conhecida
 

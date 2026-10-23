@@ -20,9 +20,11 @@ Todo PR e todo push em `dev`, `hml` e `main` executam:
 **`portal`**: `npm ci` → lint (**não bloqueante** — dívida herdada, ver
 `docs/infrastructure/cicd.md`) → `type-check` → `test` → `build`.
 
-**`funcoes`**: `deno test --allow-read supabase/functions/_shared/` com o
-Deno fixado (`v2.1.4`). Teste novo de Edge Function compartilhada vai para
-`_shared/` como `*_test.ts`, sem rede nem banco.
+**`funcoes`**: `deno test --allow-read supabase/functions/_shared/
+supabase/functions/fetch-social-stats/` com o Deno fixado (`v2.1.4`). Teste
+novo de Edge Function compartilhada vai para `_shared/` como `*_test.ts`, sem
+rede nem banco. Teste de uma função específica fica na pasta dela, e a pasta
+entra na lista do job.
 
 **`migrations`**: guarda contra migration destrutiva sem marcador
 (`-- destrutivo: aprovado por <nome> em <data>` na primeira linha) → sobe o

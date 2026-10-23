@@ -395,7 +395,7 @@ feature/* → PR → dev → PR → hml (homologação) → PR → main (produç
 
 - **CI** (`.github/workflows/ci.yml`): portal (lint não bloqueante por dívida
   herdada, type-check, test, build), funcoes (`deno test` de
-  `supabase/functions/_shared/`) e migrations (guarda destrutiva, banco
+  `supabase/functions/_shared/` e `fetch-social-stats/`) e migrations (guarda destrutiva, banco
   limpo, idempotência, seed, testes de RLS).
 - **CD**: o Dockploy publica cada ambiente a partir da branch dele. O
   workflow `Deploy (VPS)` é manual e **não escreve no banco** — só lista
