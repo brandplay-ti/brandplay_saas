@@ -150,6 +150,7 @@ const FieldDeliveryDetail = () => {
           {
             delivery_id: delivery.id,
             owner_id: user.id,
+            organization_id: targetOrg,
             uploaded_by: user.id,
             storage_path: path,
             file_name: file.name,

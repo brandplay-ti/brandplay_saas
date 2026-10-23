@@ -39,7 +39,7 @@ const sanitizeEmailHtml = (html: string) => DOMPurify.sanitize(html, {
   FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form", "input", "button"],
 });
 
-export function ProposalVersionsEditor({ proposalId }: { proposalId: string }) {
+export function ProposalVersionsEditor({ proposalId, organizationId }: { proposalId: string; organizationId: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<Channel | null>(null);
   const [versions, setVersions] = useState<Record<Channel, Version>>(EMPTY);
@@ -82,6 +82,7 @@ export function ProposalVersionsEditor({ proposalId }: { proposalId: string }) {
         const { data, error } = await supabase.from("proposal_versions").insert({
           proposal_id: proposalId,
           owner_id: user.id,
+          organization_id: organizationId,
           channel: ch,
           title: v.title,
           content: safeContent,
