@@ -1,12 +1,17 @@
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+// Le seguidores e posts da pagina publica de uma rede social, para o
+// cadastro de patrocinador (`SponsorProfileFields`).
+//
+// Exige usuario logado e so busca URLs das proprias redes — ver `busca.ts`
+// para o porque (SSRF dentro da rede Docker do Supabase).
+
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.103.3';
+import { corsHeaders } from 'https://esm.sh/@supabase/supabase-js@2.103.3/cors';
+import { buscarPagina, isNetwork, type Network, urlPermitida } from './busca.ts';
 
 type Stat = { followers?: number | null; engagement?: number | null; posts?: number | null };
 
-const UA =
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36';
-
-const NETWORKS = ['instagram', 'facebook', 'youtube', 'tiktok', 'linkedin', 'x'] as const;
-type Network = (typeof NETWORKS)[number];
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
 function parseCount(raw: string): number | null {
   if (!raw) return null;
@@ -79,49 +84,56 @@ function extract(network: Network, html: string): Stat {
   return out;
 }
 
-async function scrape(network: Network, url: string): Promise<Stat & { error?: string }> {
-  try {
-    const res = await fetch(url, {
-      headers: { 'User-Agent': UA, 'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8', Accept: 'text/html,*/*' },
-      redirect: 'follow',
-    });
-    if (!res.ok) return { error: `HTTP ${res.status}` };
-    const html = (await res.text()).slice(0, 2_500_000);
-    const stat = extract(network, html);
-    if (stat.followers == null && stat.posts == null) return { error: 'sem dados públicos' };
-    return stat;
-  } catch (e) {
-    return { error: e instanceof Error ? e.message : 'falha ao acessar' };
-  }
+async function scrape(network: Network, url: URL): Promise<Stat & { error?: string }> {
+  const pagina = await buscarPagina(network, url);
+  if ('error' in pagina) return { error: pagina.error };
+  const stat = extract(network, pagina.html);
+  if (stat.followers == null && stat.posts == null) return { error: 'sem dados públicos' };
+  return stat;
 }
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  try {
-    const body = await req.json().catch(() => ({}));
-    const links = (body?.links ?? {}) as Record<string, string>;
-    const entries = Object.entries(links)
-      .filter(([k, v]) => (NETWORKS as readonly string[]).includes(k) && typeof v === 'string' && /^https?:\/\//i.test(v.trim()))
-      .slice(0, 6);
+  if (req.method !== 'POST') return json({ error: 'Método não permitido.' }, 405);
 
-    if (entries.length === 0) {
-      return new Response(JSON.stringify({ error: 'Nenhuma URL válida enviada' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+  try {
+    // Ter um JWT nao basta: a anon key tambem e um JWT valido, e e publica.
+    // `getUser()` confere a sessao no Auth.
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) return json({ error: 'Não autenticado.' }, 401);
+    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !userData.user) return json({ error: 'Não autenticado.' }, 401);
+
+    // Do corpo, so `links` e lido.
+    const body: unknown = await req.json().catch(() => null);
+    const links = body && typeof body === 'object' ? (body as { links?: unknown }).links : undefined;
+    if (!links || typeof links !== 'object' || Array.isArray(links)) {
+      return json({ error: 'Nenhuma URL válida enviada' }, 400);
     }
 
-    const results = await Promise.all(
-      entries.map(async ([k, v]) => [k, await scrape(k as Network, v.trim())] as const),
-    );
+    const stats: Partial<Record<Network, Stat & { error?: string }>> = {};
+    const buscas: Promise<void>[] = [];
+    for (const [k, v] of Object.entries(links as Record<string, unknown>)) {
+      if (!isNetwork(k) || typeof v !== 'string') continue;
+      const url = urlPermitida(k, v.trim(), { aceitarHttp: true });
+      if (!url) {
+        stats[k] = { error: 'URL não permitida para esta rede' };
+        continue;
+      }
+      buscas.push(
+        scrape(k, url).then((s) => {
+          stats[k] = s;
+        }),
+      );
+    }
+    if (buscas.length === 0) return json({ error: 'Nenhuma URL válida enviada' }, 400);
 
-    return new Response(JSON.stringify({ stats: Object.fromEntries(results) }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  } catch (e) {
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : 'erro' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    await Promise.all(buscas);
+    return json({ stats });
+  } catch {
+    return json({ error: 'erro interno' }, 500);
   }
 });
