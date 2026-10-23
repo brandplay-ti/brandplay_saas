@@ -107,6 +107,8 @@ Dependências: IA-01, IA-02.
 
 - AES-GCM via Web Crypto; IV aleatório por gravação; `key_version` para
   rotação (aceita decifrar versões anteriores listadas em ambiente).
+- A cifra leva como dado autenticado (AAD) o dono da chave — organização ou
+  `padrao`: uma linha copiada para outra organização no banco não decifra.
 - Variável `AI_KEYS_MASTER_KEY` no compose e no `.env.example` (sem valor);
   `npm run supabase:chaves` passa a gerar uma para o ambiente local.
 - Teste: cifra/decifra; IV diferente a cada gravação; chave mestra errada
@@ -122,7 +124,13 @@ Dependências: nenhuma.
 - Categorias de erro: `chave_invalida`, `sem_saldo`, `limite_taxa`,
   `indisponivel`, `resposta_invalida`, mais os bloqueios internos
   `ia_desabilitada`, `orcamento_esgotado`, `cobranca_bloqueada`.
-- Corpo de erro padronizado devolvido ao portal: `{ error: { codigo, mensagem } }`.
+- Corpo de erro padronizado devolvido ao portal: `{ error: <mensagem>, codigo }`.
+  `error` continua texto porque é o que as telas já leem (`data.error`); um
+  objeto ali quebraria as telas durante a migração das funções.
+- Módulos: `_shared/ai/tipos.ts` (pedido, mensagens, ferramentas, resposta,
+  `validarPedido`) e `_shared/ai/erros.ts` (códigos, mensagens, status HTTP,
+  classificação base por status). O teste confere os códigos contra os
+  `check` da migration 0031.
 
 Dependências: nenhuma.
 
@@ -137,6 +145,19 @@ erro (`insufficient_quota` → `sem_saldo`, etc.). URL base fixa por fornecedor.
 Critérios: testes com `fetch` simulado para cada linha da tabela, nos dois
 fornecedores.
 
+Feito em `_shared/ai/openai.ts`. Decisões tomadas na implementação:
+- saída JSON por `response_format: json_schema` **sem** `strict` (os esquemas
+  das funções não seguem as regras do modo estrito) e reforço no `system`; a
+  garantia vem do parse — o que não for objeto JSON é `resposta_invalida`;
+- `uso.entrada` exclui a parte lida do cache (`prompt_tokens` da OpenAI
+  inclui), para o custo usar o preço certo de cada parte;
+- chamada de ferramenta é reconhecida pelas `tool_calls`, não só pelo
+  `finish_reason` (o Gemini pode responder `stop` mesmo chamando);
+- ferramenta obrigatória não chamada e argumentos que não são objeto JSON
+  viram `resposta_invalida`.
+A avaliação (IA-22) confirma com chamadas reais o `json_schema` e a
+ferramenta obrigatória no endpoint compatível do Gemini.
+
 Dependências: IA-05.
 
 ### IA-07 · Adaptador `anthropic` — M
@@ -148,6 +169,17 @@ Erro 529 → `indisponivel`.
 
 Critérios: testes com `fetch` simulado equivalentes aos de IA-06.
 
+Feito em `_shared/ai/anthropic.ts`. Decisões tomadas na implementação:
+- (revisto na IA-08) saída JSON por saída estruturada
+  (`output_config.format`), não por ferramenta obrigatória: Claude Opus 5.5,
+  Sonnet 5.5 e Fable 5.1 recusam `tool_choice` com nome (400);
+- mensagens seguidas do mesmo papel (resultados de ferramenta e a próxima
+  pergunta) vão juntas, porque a API exige papéis alternados; texto vazio do
+  assistente não vira bloco;
+- falta de crédito é reconhecida por `billing_error` ou pelo 400
+  `invalid_request_error` que fala de "credit balance" — o único caso em que o
+  texto da mensagem é examinado.
+
 Dependências: IA-05.
 
 ### IA-08 · Modelos padrão por nível e matriz de capacidades — P
@@ -155,6 +187,22 @@ Dependências: IA-05.
 Tabela no código: fornecedor → modelos padrão de `rapido`/`padrao`/`visao` e
 capacidades (visão, tool obrigatória, JSON). Valores iniciais provisórios;
 os definitivos saem da avaliação (IA-22).
+
+Feito em `_shared/ai/modelos.ts`. Padrões provisórios: OpenAI `gpt-5.4-mini`
+nos três níveis; Gemini `gemini-3.5-flash-lite` / `gemini-3.6-flash`;
+Anthropic `claude-haiku-5-5` / `claude-sonnet-5-5`. Descobertas que mudaram
+os adaptadores:
+- **Ferramenta obrigatória na Anthropic**: Opus 5.5, Sonnet 5.5 e Fable 5.1
+  recusam `tool_choice` com nome. A matriz lista os modelos que sabidamente
+  aceitam; nos demais, ferramenta única vira saída estruturada (volta como
+  chamada `saida_estruturada`) e várias ferramentas vão `auto` com instrução.
+  Saída estruturada exige `additionalProperties: false` e não aceita limites
+  numéricos/de tamanho: o adaptador ajusta o esquema.
+- **Raciocínio consome o limite de saída** nos três fornecedores: os
+  adaptadores somam `FOLGA_DE_RACIOCINIO` (8.000, teto 32.000) ao
+  `maxTokens` pedido. Só o gerado é cobrado.
+- Esforço/raciocínio por nível (custo e latência) fica para a avaliação
+  (IA-22): hoje os modelos rodam no esforço padrão de cada um.
 
 Dependências: IA-05.
 
@@ -176,6 +224,20 @@ Critérios: testes cobrindo as quatro rotas (exclusiva, padrão do banco,
 semente, exceção de capacidade) e a garantia de nunca usar credencial de
 outra organização.
 
+Feito em `_shared/ai/credencial.ts` (`resolverCredencial`,
+`chamarComCredencial`, `repositorioSupabase`). Decisões tomadas na
+implementação:
+- linha que não decifra (chave mestra errada, versão ausente, linha copiada
+  de outra organização) vira `chave_invalida`: para o usuário é "contate o
+  suporte", e o superadmin vê na credencial;
+- modelos da semente podem vir de `AI_DEFAULT_MODEL_RAPIDO/PADRAO/VISAO`;
+  vazios, os padrões de `modelos.ts`;
+- a passagem da Q4 continua marcada `via_padrao` mesmo quando a padrão é a
+  semente;
+- sucesso numa credencial com falha registrada limpa `last_error`;
+- `repositorioSupabase` (as consultas reais) não tem teste unitário: é
+  exercitado na migração das funções e na avaliação (IA-22).
+
 Dependências: IA-01, IA-04, IA-08.
 
 ### IA-10 · Guardas antes da chamada — M
@@ -184,6 +246,20 @@ Chama `ia_situacao` e bloqueia, nesta ordem: IA desabilitada, cobrança
 bloqueada, orçamento esgotado (Q5: corte na chave padrão, só alerta na
 exclusiva), limite de taxa por organização e por usuário (valores em
 constante, revisáveis).
+
+Feito em `_shared/ai/guardas.ts`. Decisões tomadas na implementação:
+- limites iniciais: 60 chamadas/min por organização e 20 por usuário
+  (contam só as que chegaram ao fornecedor);
+- **falha fechada**: consulta que falha ou responde fora do formato barra a
+  chamada (`indisponivel`) — sem saber o orçamento, não se gasta;
+- quem não é membro ativo sobe como `AcessoNegadoAIA` (403), separado da
+  falta de permissão na função (cliente sem service role), que é erro de
+  configuração (`indisponivel`);
+- `ErroDeIA` ganhou `origem` (`fornecedor`/`plataforma`): o limite interno
+  usa o código `limite_taxa`, mas não é falha da credencial e não vai para
+  `last_error`.
+Exercitado contra o stack isolado: membro passa, não membro é recusado,
+cliente com a chave anon falha fechado.
 
 Dependências: IA-02, IA-09.
 
@@ -195,12 +271,33 @@ usuário, funcionalidade, fornecedor, modelo, credencial (`exclusiva`/`padrao`/
 latência, categoria de erro. Falha ao gravar o evento não derruba a resposta,
 mas é registrada no log.
 
+Feito em `_shared/ai/medicao.ts` e `_shared/ai/camada.ts`. A IA-11 entregou
+também a entrada única da camada, **`gerar(contexto, pedido, deps)`**, que as
+funções vão usar no épico 3: valida → guardas → credencial → chamada →
+registro. `dependenciasSupabase(admin)` monta as dependências reais.
+Decisões tomadas na implementação:
+- tentativa barrada pela guarda é registrada como `bloqueado` com a chave
+  que seria usada (fornecedor e modelo são obrigatórios na tabela); sem
+  nenhuma chave configurada, não há evento;
+- acesso negado (não membro) e falha na escolha da chave não geram evento;
+- custo pelo nome do modelo como está na credencial, o mesmo cadastrado em
+  `ai_model_prices`; arredondado a 6 casas.
+Exercitado contra o stack isolado com fornecedor falso: chave semente,
+preço lido, evento gravado e já contado por `ia_situacao`.
+
 Dependências: IA-01, IA-06/IA-07.
 
 ### IA-12 · `deno test` no CI — P
 
 Passo novo no job `portal` (ou job próprio) do `.github/workflows/ci.yml`
 rodando os testes de `supabase/functions/_shared/`. Bloqueante.
+
+Feito no job próprio `funcoes` do `ci.yml` (paralelo a `portal` e
+`migrations`, sem Node nem stack): `denoland/setup-deno@v2` com o Deno
+fixado na `v2.1.4`, a mesma da imagem `denoland/deno` usada localmente, e
+`deno test --allow-read supabase/functions/_shared/` (o `--allow-read` é do
+teste que confere os códigos de erro contra a migration 0031). Comando local
+pela imagem em `docs/infrastructure/cicd.md`.
 
 Dependências: IA-04, IA-06, IA-07.
 
@@ -216,7 +313,7 @@ manual com a chave semente em cada um dos 3 fornecedores fica para IA-22.
 
 ### IA-13 · Tratamento de erro de IA no portal — P
 
-Helper em `portal/src/lib/` que traduz `{ error: { codigo, mensagem } }` em
+Helper em `portal/src/lib/` que traduz `{ error, codigo }` em
 toast padronizado (IA desabilitada, orçamento esgotado, contate o suporte,
 limite de taxa). Teste unitário.
 
@@ -276,7 +373,7 @@ qualidade em português (amostra revisada por pessoa), taxa de JSON/tool
 inválido, latência e custo medido em `ai_usage_events`.
 
 Critérios: relatório anexado ao PR; fornecedor padrão e modelos por nível
-decididos e gravados em IA-08 e na ADR-0009.
+decididos e gravados em IA-08 e na ADR da IA (IA-35).
 
 **Bloqueio**: precisa de chaves de teste de OpenAI, Gemini (plano pago) e
 Anthropic fornecidas pelo usuário. Dependências: IA-14 a IA-21.
@@ -395,9 +492,9 @@ Registro em `docs/runbooks/deployment.md`.
 Dependências: IA-22. **Exige autorização explícita** para acessar
 homologação/produção.
 
-### IA-35 · ADR-0009 e atualização das regras — M
+### IA-35 · ADR da IA e atualização das regras — M
 
-ADR-0009 (IA multi-fornecedor com chave por organização; substitui a
+ADR da IA — próximo número livre; a 0009 já é a de backup (`0009-backup-externo-com-restic.md`) — (IA multi-fornecedor com chave por organização; substitui a
 ADR-0003), `SECURITY.md`, `.claude/rules/security.md` (superfície nova),
 `.claude/rules/supabase.md` (padrão das tabelas de IA), `CLAUDE.md` §3
 (integrações e variáveis), `supabase/functions/MIGRATION_NOTES.md`.

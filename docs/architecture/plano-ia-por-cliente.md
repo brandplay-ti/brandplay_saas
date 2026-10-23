@@ -2,7 +2,7 @@
 
 - **Data**: 2026-10-20
 - **Status**: **aprovado em 2026-10-20**, com todas as decisões da seção 7.
-  Backlog em `docs/architecture/backlog-ia-por-cliente.md`. A ADR-0009, que
+  Backlog em `docs/architecture/backlog-ia-por-cliente.md`. A ADR da IA (próximo número livre), que
   substitui a ADR-0003, é uma das histórias do backlog.
 - **Pedido**: IA compatível com vários fornecedores; uma chave padrão da
   plataforma usada por todos os clientes; o superadmin troca a chave de um
@@ -208,12 +208,12 @@ A interface neutra de `_shared/ai.ts` esconde estas diferenças das funções:
 |---|---|---|---|
 | Autenticação | `Authorization: Bearer` | `Authorization: Bearer` (chave da API Gemini) | `x-api-key` + `anthropic-version` |
 | Instrução de sistema | mensagem `role: "system"` | mensagem `role: "system"` | campo `system` de nível superior |
-| Tool obrigatória | `tool_choice: {type:"function", function:{name}}` | idem | `tool_choice: {type:"tool", name}` |
+| Tool obrigatória | `tool_choice: {type:"function", function:{name}}` | idem | `tool_choice: {type:"tool", name}` só nos modelos que aceitam (Opus 5.5, Sonnet 5.5 e Fable 5.1 recusam); nos demais, saída estruturada (ferramenta única) ou `auto` com instrução |
 | Definição de tool | `{type:"function", function:{name, description, parameters}}` | idem | `{name, description, input_schema}` |
 | Resposta com tool | `choices[0].message.tool_calls[].function.arguments` (string JSON) | idem | blocos `tool_use` em `content` (objeto) |
-| JSON garantido | `response_format` (`json_object` ou `json_schema`) | `response_format` | sem modo JSON equivalente: a camada usa **tool obrigatória com o schema** — mais robusto que o parse por prompt de hoje |
+| JSON garantido | `response_format` (`json_schema`) | `response_format` | saída estruturada (`output_config.format`), com o esquema fechado (`additionalProperties: false`) |
 | Imagem | `image_url` com data URL | `image_url` com data URL | bloco `image` com `source.base64` (função `dataUrlToBase64Source` atual) |
-| Limite de saída | `max_completion_tokens` nos modelos novos (`max_tokens` está obsoleto) | `max_tokens` | `max_tokens` (obrigatório) |
+| Limite de saída | `max_completion_tokens` nos modelos novos (`max_tokens` está obsoleto) | `max_tokens` | `max_tokens` (obrigatório) — nos três, com folga para o raciocínio do modelo |
 | Parâmetros recusados | modelos de raciocínio recusam `temperature` | — | — |
 | Uso (medição) | `usage.prompt_tokens` / `completion_tokens` / `prompt_tokens_details.cached_tokens` | `usage.prompt_tokens` / `completion_tokens` | `usage.input_tokens` / `output_tokens` / `cache_read_input_tokens` / `cache_creation_input_tokens` |
 | Erros a mapear | 401, 429 (`rate_limit` × `insufficient_quota`), 5xx | 400 (chave), 429, 5xx | 401, 429, 529 (sobrecarregado), 5xx |
@@ -289,7 +289,7 @@ de `supabase/tests/cobranca.sql` (dado da plataforma), exceto o que o owner lê
 | **D. `admin-ai`** | Edge Function administrativa: chave padrão, chave por cliente, teste de conexão, revogação, orçamento, preços; auditoria | `functions/admin-ai/`, compose e `.env.example` (variável `AI_KEYS_MASTER_KEY`) |
 | **E. Tela `/admin/ia`** | F1 completa, item no menu do admin | `portal/src/pages/admin/AdminAi*.tsx`, hook `useAdminAi.ts` |
 | **F. Controles** | Alertas de 80%/100% (notificação + e-mail via `_shared/email.ts`), card de custo na visão geral, opcional: consumo em Configurações | `check-notifications` ou função nova, `AdminOverview.tsx` |
-| **G. Documentação** | ADR-0009 (substitui ADR-0003), `SECURITY.md`, `.claude/rules/security.md` e `supabase.md` (padrão novo), `CLAUDE.md` §3, runbook `docs/runbooks/ia.md` (gerar chave mestra, cadastrar chave padrão, criar Project na OpenAI por cliente, rotação), `MIGRATION_NOTES.md` | docs |
+| **G. Documentação** | ADR da IA, próximo número livre (substitui ADR-0003), `SECURITY.md`, `.claude/rules/security.md` e `supabase.md` (padrão novo), `CLAUDE.md` §3, runbook `docs/runbooks/ia.md` (gerar chave mestra, cadastrar chave padrão, criar Project na OpenAI por cliente, rotação), `MIGRATION_NOTES.md` | docs |
 
 - **Marco 1 — IA volta a funcionar** (A + B + B2 + C + chave padrão via
   variável de ambiente como semente): todos os clientes no fornecedor padrão

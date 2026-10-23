@@ -20,6 +20,10 @@ Todo PR e todo push em `dev`, `hml` e `main` executam:
 **`portal`**: `npm ci` → lint (**não bloqueante** — dívida herdada, ver
 `docs/infrastructure/cicd.md`) → `type-check` → `test` → `build`.
 
+**`funcoes`**: `deno test --allow-read supabase/functions/_shared/` com o
+Deno fixado (`v2.1.4`). Teste novo de Edge Function compartilhada vai para
+`_shared/` como `*_test.ts`, sem rede nem banco.
+
 **`migrations`**: guarda contra migration destrutiva sem marcador
 (`-- destrutivo: aprovado por <nome> em <data>` na primeira linha) → sobe o
 mesmo stack de `docker/supabase/` → aplica as migrations → exige idempotência →
