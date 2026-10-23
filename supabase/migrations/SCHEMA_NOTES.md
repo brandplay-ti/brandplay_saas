@@ -399,6 +399,8 @@ Efeito sobre as seções anteriores deste documento:
 - **`organization_id` nulo**: 45 triggers reais preenchem `organization_id` a
   partir do pai ou do usuário. Atenção: quando vem do usuário, usam
   `get_user_org()` (a organização ativa mais antiga), não a selecionada na UI.
+  Desde a `0033`, a linha que referencia um registro pai herda a organização
+  dele; `get_user_org()` ficou só para a linha sem pai (ver a seção da 0033).
 
 Diferenças deliberadas que permanecem:
 
@@ -607,3 +609,99 @@ Suposições registradas:
   acesso não lê o próprio uso.
 - Auditoria da IA em `platform_admin_audit_log` com `target_type`
   `ai_credential` e `ai_org_settings` (gravada a partir da IA-23).
+
+## Organização herdada do registro pai (0033, 2026-10-23)
+
+Bug de isolamento (ADR-0002), reproduzido num stack local: dono das
+organizações A e B cria um contrato ativo na B; `generate_contract_installments`
+inseria as parcelas sem `organization_id`, e o gatilho `set_org_id`
+(`tg_set_organization_id`) preenchia com `get_user_org(owner_id)` = A. Membros
+só da A liam, pela RLS, valor, vencimento e `contract_id` das parcelas da B. O
+mesmo valia para toda linha inserida sem `organization_id` numa tabela com
+`tg_set_organization_id` ou `tg_set_org_from_membership_default`.
+
+O que a 0033 muda:
+
+- `generate_contract_installments` grava o `organization_id` do contrato
+  (`generate_contract_deliveries` já gravava).
+- `tg_set_organization_id` e `tg_set_org_from_membership_default`, quando
+  `organization_id` vem nulo, herdam a organização do pai via
+  `organizacao_do_registro_pai(tabela, linha)` (só service role executa):
+
+  | Tabela | Pai (na ordem) |
+  | --- | --- |
+  | `installments`, `contract_churn_risk` | contrato |
+  | `deliveries` | contrato → oportunidade → patrocinador → propriedade |
+  | `contracts` | oportunidade → patrocinador → propriedade |
+  | `proposals` | patrocinador → propriedade |
+  | `proposal_versions` | proposta |
+  | `delivery_attachments` | entrega |
+  | `sponsorship_tiers`, `brandtrack_events` | propriedade |
+  | `brandtrack_media`, `brandtrack_event_brands` | evento do BrandTrack |
+  | `brandtrack_detections` | mídia do BrandTrack |
+  | `brandtrack_brands`, `sponsor_executive_summaries` | patrocinador |
+  | `lead_scores` | alvo (`target_type` sponsor/opportunity) → propriedade |
+  | `sellout_reports` | propriedade → `property_events` |
+
+Decisões e suposições:
+
+- **`organization_id` enviado vale como veio.** A 0033 não passou a validar o
+  valor explícito contra o do pai (só onde já havia `validate_parent_org`:
+  `delivery_attachments`, `contract_assets`, `contract_clauses`,
+  `proposal_items`, `tier_assets`). Validar em todas as filhas é um passo
+  seguinte possível.
+- **Pai sem organização → filha nula** (invisível, como o pai), não cai no
+  `get_user_org`.
+- **`get_user_org` continua** para a linha que não referencia pai nenhum:
+  `sponsors`, `sports_properties`, `assets`, um contrato/proposta sem
+  oportunidade, patrocinador nem propriedade; e em `opportunities`
+  (`set_default_pipeline_funnel` e `validate_opportunity_org_access` resolvem
+  antes) e nas preferências por usuário (`set_org_from_user_membership`). Para
+  essas, a correção é o portal enviar a organização ativa. Conhecidos sem
+  envio: `ProposalWizardDialog` (proposta; agora herda do patrocinador ou da
+  propriedade), `BrandTrackUploads` (evento herda da propriedade).
+- `delivery_attachments` sem `organization_id` (`FieldDeliveryDetail`) era
+  **recusado** para entrega fora da primeira organização do usuário ("Registro
+  pai pertence a outra organização"): não vazava, mas o anexo não subia. Agora
+  herda da entrega.
+
+Correção dos dados (UPDATE, nada apagado; a migration imprime a contagem por
+tabela): `installments`, `contract_churn_risk`, `proposal_versions`,
+`sponsor_executive_summaries`, `lead_scores`, `brandtrack_events`,
+`brandtrack_media`, `brandtrack_event_brands` e `brandtrack_detections` passam
+para a organização do pai quando diferente (inclusive nula). `updated_at` muda
+nas tabelas com gatilho de `updated_at`. O acesso aos arquivos do bucket
+`brandtrack-media` segue a linha de `brandtrack_media`, então acompanha a
+correção.
+
+**Não corrigidos pela migration** (só contados, em NOTICE):
+
+- `deliveries` e `delivery_attachments`. Os arquivos de evidência ficam em
+  `delivery-evidence/{org_id}/...` e a policy do bucket decide pelo prefixo:
+  mover a linha sem mover o arquivo tiraria o acesso de quem deve ver e o
+  deixaria com quem não deve. A versão do Lovable de
+  `generate_contract_deliveries` anterior a 2026-08-07 não gravava
+  `organization_id` nem `contract_id`, então entregas importadas podem estar
+  na organização errada. Para conferir num ambiente:
+
+  ```sql
+  select d.id, d.organization_id,
+         coalesce(c.organization_id, o.organization_id) as organizacao_do_pai,
+         (select count(*) from public.delivery_attachments a where a.delivery_id = d.id) as anexos
+    from public.deliveries d
+    left join public.contracts c on c.id = d.contract_id
+    left join public.opportunities o on o.id = d.opportunity_id
+   where coalesce(c.organization_id, o.organization_id) is not null
+     and d.organization_id is distinct from coalesce(c.organization_id, o.organization_id);
+  ```
+
+  Havendo linhas, a correção é manual e por entrega: mover os objetos do
+  Storage para o prefixo da organização certa (API do Storage, não SQL),
+  atualizar `delivery_attachments.storage_path`/`organization_id`,
+  `delivery_approval_log.organization_id` e por fim `deliveries.organization_id`.
+- `brandtrack_brands` criadas pela `brandtrack-detect-image` com a
+  organização de uma mídia errada ficam onde estão (marca sem patrocinador não
+  tem pai); uma detecção corrigida pode apontar para marca de outra
+  organização.
+- Contratos e propostas em organização diferente da do patrocinador (raiz, não
+  filha): não movidos.

@@ -5546,6 +5546,10 @@ export type Database = {
         Args: { _duplicate_id: string; _target_id: string }
         Returns: Json
       }
+      organizacao_do_registro_pai: {
+        Args: { _linha: Json; _tabela: string }
+        Returns: Record<string, unknown>
+      }
       platform_admin_grant: {
         Args: { _comment: string; _email: string }
         Returns: string
