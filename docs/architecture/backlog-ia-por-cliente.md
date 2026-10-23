@@ -169,6 +169,16 @@ Erro 529 → `indisponivel`.
 
 Critérios: testes com `fetch` simulado equivalentes aos de IA-06.
 
+Feito em `_shared/ai/anthropic.ts`. Decisões tomadas na implementação:
+- a ferramenta que carrega a saída JSON é interna: o objeto volta em
+  `json`, nunca em `chamadas`;
+- mensagens seguidas do mesmo papel (resultados de ferramenta e a próxima
+  pergunta) vão juntas, porque a API exige papéis alternados; texto vazio do
+  assistente não vira bloco;
+- falta de crédito é reconhecida por `billing_error` ou pelo 400
+  `invalid_request_error` que fala de "credit balance" — o único caso em que o
+  texto da mensagem é examinado.
+
 Dependências: IA-05.
 
 ### IA-08 · Modelos padrão por nível e matriz de capacidades — P
