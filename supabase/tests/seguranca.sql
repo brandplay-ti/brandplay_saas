@@ -131,10 +131,10 @@ cada um e repetir os SELECTs/UPDATEs acima pelo client - o resultado esperado
 \echo '=== Fim do roteiro (b) ==='
 
 -- ===========================================================================
--- Testes automatizados (c)..(g): isolamento entre organizações (automatiza o
+-- Testes automatizados (c)..(h): isolamento entre organizações (automatiza o
 -- roteiro (b)), escrita por módulo, perfis, trigger de organization_id e
--- escopo por usuário. Cobrem a reconciliação do schema (0012..0017,
--- ADR-0005).
+-- escopo por usuário, linha filha na organização do pai (0033). Cobrem a
+-- reconciliação do schema (0012..0017, ADR-0005) e a 0033.
 --
 -- Tudo roda numa transação com ROLLBACK no fim: o script cria os próprios
 -- usuários/organizações e não deixa resíduo. Cada verificação que falha
@@ -145,7 +145,7 @@ cada um e repetir os SELECTs/UPDATEs acima pelo client - o resultado esperado
 -- C = financeiro, D = operacional, E = comercial (os três na Org A).
 -- ===========================================================================
 \echo ''
-\echo '=== Testes (c)..(g): RLS reconciliada (transação revertida no fim) ==='
+\echo '=== Testes (c)..(h): RLS reconciliada (transação revertida no fim) ==='
 
 begin;
 
@@ -317,6 +317,108 @@ begin
 end $$;
 reset role;
 
+-- (h) linha filha fica na organização do pai (0033) --------------------------
+-- A passa a ser admin também da Org B, com a filiação mais nova: get_user_org(A)
+-- continua sendo a Org A. Contrato criado por A na B gera parcelas na B, e as
+-- linhas filhas inseridas sem organization_id herdam a do pai. C (só da Org A)
+-- não vê nada disso.
+insert into public.organization_members (organization_id, user_id, role, status, created_at)
+values ('bbbbbbbb-0000-4000-8000-000000000002', '0a000000-0000-4000-8000-00000000000a', 'admin', 'ativo', now() + interval '1 minute');
+insert into public.sports_properties (id, organization_id, owner_id, name, category) values
+  ('9b000000-0000-4000-8000-000000000002', 'bbbbbbbb-0000-4000-8000-000000000002', '0b000000-0000-4000-8000-00000000000b', 'Propriedade B', 'futebol');
+do $$
+begin
+  if public.get_user_org('0a000000-0000-4000-8000-00000000000a') = 'bbbbbbbb-0000-4000-8000-000000000002' then
+    raise exception 'FALHA (h): pré-condição — get_user_org(A) não pode ser a Org B';
+  end if;
+end $$;
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"0a000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+insert into public.contracts (id, organization_id, owner_id, sponsor_id, title, brand, status,
+                              payment_method, installments, total_value, start_date)
+values ('c0b00000-0000-4000-8000-000000000002', 'bbbbbbbb-0000-4000-8000-000000000002',
+        '0a000000-0000-4000-8000-00000000000a', '5b000000-0000-4000-8000-000000000002',
+        'Contrato da Org B', 'Marca B', 'ativo', 'parcelado', 2, 2000, current_date);
+reset role;
+
+do $$
+begin
+  if (select count(*) from public.installments where contract_id = 'c0b00000-0000-4000-8000-000000000002') <> 2 then
+    raise exception 'FALHA (h): contrato ativo não gerou as 2 parcelas';
+  end if;
+  if exists (select 1 from public.installments
+              where contract_id = 'c0b00000-0000-4000-8000-000000000002'
+                and organization_id is distinct from 'bbbbbbbb-0000-4000-8000-000000000002') then
+    raise exception 'FALHA (h): parcela gerada fora da organização do contrato';
+  end if;
+  raise notice 'OK (h): parcelas geradas na organização do contrato';
+end $$;
+
+-- linhas filhas inseridas sem organization_id, como fazem o portal e a score-leads
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"0a000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+insert into public.proposals (id, organization_id, owner_id, sponsor_id, title)
+values ('e0b00000-0000-4000-8000-000000000002', 'bbbbbbbb-0000-4000-8000-000000000002',
+        '0a000000-0000-4000-8000-00000000000a', '5b000000-0000-4000-8000-000000000002', 'Proposta da Org B');
+insert into public.proposal_versions (proposal_id, owner_id, channel, content)
+values ('e0b00000-0000-4000-8000-000000000002', '0a000000-0000-4000-8000-00000000000a', 'whatsapp', 'Texto da proposta da B');
+insert into public.deliveries (id, organization_id, owner_id, contract_id, title, brand)
+values ('de0b0000-0000-4000-8000-000000000002', 'bbbbbbbb-0000-4000-8000-000000000002',
+        '0a000000-0000-4000-8000-00000000000a', 'c0b00000-0000-4000-8000-000000000002', 'Entrega da B', 'Marca B');
+-- antes da 0033 este insert era recusado ("Registro pai pertence a outra organização")
+insert into public.delivery_attachments (delivery_id, owner_id, uploaded_by, storage_path)
+values ('de0b0000-0000-4000-8000-000000000002', '0a000000-0000-4000-8000-00000000000a',
+        '0a000000-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-000000000002/de0b/foto.jpg');
+insert into public.brandtrack_events (id, owner_id, name, property_id)
+values ('be0b0000-0000-4000-8000-000000000002', '0a000000-0000-4000-8000-00000000000a', 'Evento B',
+        '9b000000-0000-4000-8000-000000000002');
+insert into public.brandtrack_media (owner_id, event_id, title, media_type)
+values ('0a000000-0000-4000-8000-00000000000a', 'be0b0000-0000-4000-8000-000000000002', 'foto-b.jpg', 'image');
+insert into public.lead_scores (owner_id, target_type, target_id, score)
+values ('0a000000-0000-4000-8000-00000000000a', 'sponsor', '5b000000-0000-4000-8000-000000000002', 80);
+reset role;
+
+do $$
+declare
+  _org_b constant uuid := 'bbbbbbbb-0000-4000-8000-000000000002';
+begin
+  if exists (select 1 from public.proposal_versions where proposal_id = 'e0b00000-0000-4000-8000-000000000002' and organization_id is distinct from _org_b)
+     or exists (select 1 from public.delivery_attachments where delivery_id = 'de0b0000-0000-4000-8000-000000000002' and organization_id is distinct from _org_b)
+     or exists (select 1 from public.brandtrack_events where id = 'be0b0000-0000-4000-8000-000000000002' and organization_id is distinct from _org_b)
+     or exists (select 1 from public.brandtrack_media where event_id = 'be0b0000-0000-4000-8000-000000000002' and organization_id is distinct from _org_b)
+     or exists (select 1 from public.lead_scores where target_id = '5b000000-0000-4000-8000-000000000002' and organization_id is distinct from _org_b) then
+    raise exception 'FALHA (h): linha filha sem organization_id não herdou a organização do pai';
+  end if;
+  raise notice 'OK (h): linhas filhas sem organization_id herdam a do pai';
+end $$;
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"0c000000-0000-4000-8000-00000000000c","role":"authenticated"}', true);
+do $$
+begin
+  if (select count(*) from public.installments where contract_id = 'c0b00000-0000-4000-8000-000000000002') <> 0
+     or (select count(*) from public.proposal_versions where proposal_id = 'e0b00000-0000-4000-8000-000000000002') <> 0
+     or (select count(*) from public.delivery_attachments where delivery_id = 'de0b0000-0000-4000-8000-000000000002') <> 0
+     or (select count(*) from public.brandtrack_media where event_id = 'be0b0000-0000-4000-8000-000000000002') <> 0
+     or (select count(*) from public.lead_scores where target_id = '5b000000-0000-4000-8000-000000000002') <> 0 then
+    raise exception 'FALHA (h): membro só da Org A lê parcelas/linhas filhas da Org B';
+  end if;
+  raise notice 'OK (h): membro só da Org A não vê as parcelas da Org B';
+end $$;
+reset role;
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"0b000000-0000-4000-8000-00000000000b","role":"authenticated"}', true);
+do $$
+begin
+  if (select count(*) from public.installments where contract_id = 'c0b00000-0000-4000-8000-000000000002') <> 2 then
+    raise exception 'FALHA (h): owner da Org B não vê as parcelas do contrato da B';
+  end if;
+  raise notice 'OK (h): owner da Org B vê as parcelas';
+end $$;
+reset role;
+
 rollback;
 
-\echo '=== Fim dos testes (c)..(g) ==='
+\echo '=== Fim dos testes (c)..(h) ==='
