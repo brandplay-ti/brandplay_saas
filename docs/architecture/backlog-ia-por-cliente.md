@@ -317,6 +317,18 @@ Helper em `portal/src/lib/` que traduz `{ error, codigo }` em
 toast padronizado (IA desabilitada, orçamento esgotado, contate o suporte,
 limite de taxa). Teste unitário.
 
+Feito em `portal/src/lib/erroDeIA.ts`: `avisarErroDeIA(error, data, titulo)`
+lê o corpo da função (em `data` ou, fora de 2xx, em `error.context`, via
+`readEdgeFunctionError`) e mostra o toast; `lerErroDeIA` e
+`traduzirErroDeIA` devolvem a mensagem sem mostrar. Decisões:
+- a descrição é o `error` da função (a mensagem ao usuário de `erros.ts`); o
+  helper só escolhe o título por código e tem a mesma mensagem de reserva;
+- sem `codigo` conhecido não é erro da camada (recurso não encontrado,
+  validação): título da tela e o `error` da função;
+- a mensagem técnica do `invoke` ("non-2xx status code") e a falha de rede
+  não vão crus para a tela;
+- o teste lê `_shared/ai/erros.ts` e falha se a lista de códigos divergir.
+
 Dependências: IA-05.
 
 ### IA-14 · `sponsor-executive-summary` e `generate-sellout-report` — M
