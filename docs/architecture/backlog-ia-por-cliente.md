@@ -292,6 +292,13 @@ Dependências: IA-01, IA-06/IA-07.
 Passo novo no job `portal` (ou job próprio) do `.github/workflows/ci.yml`
 rodando os testes de `supabase/functions/_shared/`. Bloqueante.
 
+Feito no job próprio `funcoes` do `ci.yml` (paralelo a `portal` e
+`migrations`, sem Node nem stack): `denoland/setup-deno@v2` com o Deno
+fixado na `v2.1.4`, a mesma da imagem `denoland/deno` usada localmente, e
+`deno test --allow-read supabase/functions/_shared/` (o `--allow-read` é do
+teste que confere os códigos de erro contra a migration 0031). Comando local
+pela imagem em `docs/infrastructure/cicd.md`.
+
 Dependências: IA-04, IA-06, IA-07.
 
 ---

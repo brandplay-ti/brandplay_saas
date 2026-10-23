@@ -41,6 +41,22 @@ jobs:
       - name: Build
         run: npm run build
 
+  funcoes:
+    name: Edge Functions (deno test da camada de IA)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Versao fixa, a mesma da imagem usada localmente (denoland/deno:2.1.4).
+      # Os testes nao acessam rede de fornecedor nem banco; --allow-read e
+      # para o teste que confere os codigos de erro contra a migration 0031.
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.1.4
+
+      - name: Testes Deno de supabase/functions/_shared
+        run: deno test --allow-read supabase/functions/_shared/
+
   migrations:
     name: Migrations (guarda, banco limpo, idempotencia, RLS)
     runs-on: ubuntu-latest
