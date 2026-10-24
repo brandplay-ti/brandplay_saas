@@ -11,6 +11,13 @@
 // e `additionalProperties: false`). A garantia vem do parse aqui: resposta
 // que não é um objeto JSON vira `resposta_invalida`.
 //
+// Ferramentas no Gemini 3: cada chamada vem com uma assinatura de
+// raciocínio em `tool_calls[].extra_content.google.thought_signature`, campo
+// fora do formato da OpenAI. Ela precisa voltar na mesma chamada quando o
+// histórico é reenviado no turno seguinte — sem ela, o Gemini responde 400.
+// O adaptador guarda em `ChamadaDeFerramenta.assinatura` e só a reenvia ao
+// Gemini (a OpenAI não conhece o campo).
+//
 // Nada daqui registra corpo de pedido ou de resposta: só fornecedor, modelo
 // e status HTTP vão para a mensagem interna do erro.
 
@@ -49,7 +56,7 @@ type MensagemCompat =
   | { role: "assistant"; content: string | null; tool_calls?: unknown[] }
   | { role: "tool"; tool_call_id: string; content: string };
 
-function mensagensCompat(pedido: PedidoDeIA): MensagemCompat[] {
+function mensagensCompat(pedido: PedidoDeIA, fornecedor: FornecedorCompat): MensagemCompat[] {
   const saida: MensagemCompat[] = [];
   let sistema = pedido.sistema?.trim() ?? "";
   if (pedido.json) {
@@ -78,6 +85,9 @@ function mensagensCompat(pedido: PedidoDeIA): MensagemCompat[] {
               id: c.id,
               type: "function",
               function: { name: c.nome, arguments: JSON.stringify(c.argumentos) },
+              ...(fornecedor === "gemini" && c.assinatura
+                ? { extra_content: { google: { thought_signature: c.assinatura } } }
+                : {}),
             })),
           }
           : {}),
@@ -92,14 +102,20 @@ function mensagensCompat(pedido: PedidoDeIA): MensagemCompat[] {
 export function montarCorpo(pedido: PedidoDeIA, modelo: string, fornecedor: FornecedorCompat): Record<string, unknown> {
   const corpo: Record<string, unknown> = {
     model: modelo,
-    messages: mensagensCompat(pedido),
+    messages: mensagensCompat(pedido, fornecedor),
     // O limite inclui o raciocínio do modelo: vai com folga (modelos.ts).
     [PERFIS[fornecedor].campoMaxTokens]: limiteDeSaida(pedido.maxTokens),
   };
   if (pedido.ferramentas?.length) {
     corpo.tools = pedido.ferramentas.map((f) => ({
       type: "function",
-      function: { name: f.nome, description: f.descricao, parameters: f.parametros },
+      function: {
+        name: f.nome,
+        description: f.descricao,
+        // Ferramenta sem parâmetros vai sem `parameters`: o Gemini recusa
+        // objeto com `properties` vazio; a OpenAI aceita a ausência.
+        ...(Object.keys(f.parametros.properties).length ? { parameters: f.parametros } : {}),
+      },
     }));
   }
   if (pedido.ferramentaObrigatoria) {
@@ -147,13 +163,23 @@ export function lerResposta(
   const texto = typeof escolha.message.content === "string" ? escolha.message.content : "";
   const chamadas: ChamadaDeFerramenta[] = [];
   for (const bruta of escolha.message.tool_calls ?? []) {
-    const c = bruta as { id?: unknown; function?: { name?: unknown; arguments?: unknown } };
+    const c = bruta as {
+      id?: unknown;
+      function?: { name?: unknown; arguments?: unknown };
+      extra_content?: { google?: { thought_signature?: unknown } };
+    };
     if (typeof c.id !== "string" || typeof c.function?.name !== "string") throw invalida("tool_call sem id ou nome");
     const argumentos = typeof c.function.arguments === "string"
       ? extrairObjetoJson(c.function.arguments || "{}")
       : null;
     if (!argumentos) throw invalida(`argumentos da ferramenta ${c.function.name} não são um objeto JSON`);
-    chamadas.push({ id: c.id, nome: c.function.name, argumentos });
+    const assinatura = c.extra_content?.google?.thought_signature;
+    chamadas.push({
+      id: c.id,
+      nome: c.function.name,
+      argumentos,
+      ...(fornecedor === "gemini" && typeof assinatura === "string" && assinatura ? { assinatura } : {}),
+    });
   }
 
   if (pedido.ferramentaObrigatoria && !chamadas.some((c) => c.nome === pedido.ferramentaObrigatoria)) {

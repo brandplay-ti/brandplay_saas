@@ -181,6 +181,8 @@ Toda função de IA segue o mesmo roteiro, com o apoio de `_shared/ai/funcao.ts`
 | `generate-proposal-wizard` | padrao | ativa do portal | crm |
 | `suggest-next-steps` | padrao | do registro (oportunidade, patrocinador, contrato, proposta, entrega); ativa do portal no painel e na lista de entregas | crm; operacional nas entregas |
 | `summarize-contract` | padrao | do contrato | crm |
+| `ai-assistant` | padrao | da conversa; conversa nova na ativa do portal | crm |
+| `brandtrack-detect-image` | visao | da mídia | operacional |
 
 ### Lote 2 (IA-17, IA-18)
 
@@ -224,3 +226,56 @@ Toda função de IA segue o mesmo roteiro, com o apoio de `_shared/ai/funcao.ts`
   que já existe. Quem só lê contratos tem o UPDATE de `ai_summary` filtrado
   pelo RLS sem erro: a função confere as linhas gravadas e volta
   `saved: false`, e a tela avisa.
+
+### Lote 4 (IA-20, IA-21)
+
+- **`ai-assistant`**: a organização é a da conversa (`ai_conversations`, lida
+  sob RLS); conversa nova nasce na organização ativa enviada pelo portal.
+  Antes, a conversa era criada sem `organization_id` — o RLS
+  (`ai_conversations_own`, `is_org_member(organization_id)`) recusava o insert,
+  e conversa nova não abria — e as nove ferramentas consultavam todas as
+  organizações do usuário. Agora toda ferramenta filtra pela organização da
+  conversa, e as duas de escrita conferem que o patrocinador ou a
+  oportunidade é dela e gravam `organization_id` explícito. Texto livre que
+  entra em filtro do PostgREST (`.or(...)`, `ilike`) perde os caracteres que
+  mudam o filtro; `limit` vai de 1 a 50. Falha de banco volta ao modelo como
+  mensagem neutra ("Sem permissão…", "Não foi possível consultar…"), sem o
+  texto do erro. O loop de ferramentas passa pela camada; na última rodada,
+  se o modelo ainda pede ferramentas, elas não são executadas. Nada é gravado
+  antes da primeira resposta da IA: uma chamada barrada (orçamento, IA
+  desativada) não deixa pergunta órfã nem conversa vazia.
+  - **Histórico neutro** (`_shared/ai/historico.ts`, com teste): a resposta
+    com ferramentas grava em `ai_messages.tool_calls` as chamadas como
+    `{ id, nome, argumentos, assinatura? }`; os resultados seguem uma linha
+    `tool` por chamada. A leitura aceita os três formatos já gravados —
+    neutro, o `content` cru da Anthropic (blocos `tool_use`) e o
+    `tool_calls` da OpenAI do tempo do Lovable — e descarta o que os
+    fornecedores recusariam (resultado sem chamada, chamada sem resultado,
+    histórico que não começa pelo usuário). Isso fecha o gap conhecido da
+    seção "Suposições sobre formato de resposta" acima: as conversas antigas
+    voltam a abrir. A janela do histórico passou a ser as **últimas** 50
+    linhas (antes, `order asc limit 50` pegava as primeiras e, em conversa
+    longa, deixava a pergunta nova de fora).
+  - **Assinatura de raciocínio do Gemini 3**: no endpoint compatível com a
+    OpenAI, cada chamada de ferramenta traz
+    `tool_calls[].extra_content.google.thought_signature`, e o Gemini
+    responde 400 se ela não volta no turno seguinte do loop. O adaptador
+    `openai_compat` passou a guardá-la em `ChamadaDeFerramenta.assinatura` e a
+    reenviá-la só ao Gemini. Ferramenta sem parâmetros (`get_dashboard_metrics`)
+    vai sem `parameters`, porque o Gemini recusa objeto com `properties` vazio.
+    Validado só com `fetch` simulado (sem chave real).
+- **`brandtrack-detect-image`**: organização da mídia, lida sob RLS, com
+  `exigirModulo` (`operacional`). Antes, tudo passava pela service role: o
+  acesso era conferido só para quem não era o dono da mídia, e as marcas
+  esperadas e os logos eram lidos sem filtro de organização. Agora consultas,
+  gravações e storage usam o client do usuário — a mídia é baixada pela policy
+  do bucket, os logos pela URL pública de `sponsor-logos`, e a evidência do
+  frame é gravada na pasta de quem analisa (`<user_id>/evidence/...`; a
+  policy só deixa gravar na própria, e a leitura vale pela linha da
+  detecção). A service role fica só com a camada. Imagens vão como
+  `ParteDoConteudo` no nível `visao` (a exceção Q4 — chave da organização sem
+  modelo de visão usa a padrão — é da camada, coberta em
+  `credencial_test.ts`). O frame enviado é validado (data URL de imagem, até
+  8 MB). A mídia só é marcada como `failed` depois de o acesso ser
+  confirmado, e `error_message` recebe a mensagem ao usuário — antes podia
+  receber o corpo do erro do fornecedor.

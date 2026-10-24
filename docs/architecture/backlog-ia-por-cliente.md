@@ -464,10 +464,44 @@ passa a gravar em formato neutro; leitura converte o formato Anthropic
 antigo (conversas antigas continuam abrindo). Teste do conversor.
 Componente: `AIAssistantDrawer.tsx`.
 
+Feito. Conversor em `_shared/ai/historico.ts` (com teste), para o CI rodar
+junto com a camada. Decisões tomadas na implementação:
+- conversa nova nasce na organização ativa (o drawer manda o `orgId` e lista
+  só as conversas dela); a existente segue na organização dela. Antes, a
+  conversa era criada sem `organization_id` e o RLS recusava;
+- as ferramentas filtram pela organização da conversa; as de escrita
+  conferem que o patrocinador/oportunidade é dela. Texto livre que vai para
+  filtro do PostgREST perde `,()*%\:"'`; falha de banco volta ao modelo como
+  mensagem neutra;
+- a leitura aceita também o formato OpenAI do tempo do Lovable, não só o da
+  Anthropic: as conversas mais antigas voltam a abrir;
+- janela das **últimas** 50 mensagens (antes, as primeiras 50);
+- nada é gravado antes da primeira resposta da IA; na última rodada, chamada
+  de ferramenta não é executada;
+- **assinatura de raciocínio do Gemini 3**: o adaptador `openai_compat` lê
+  `extra_content.google.thought_signature` em `ChamadaDeFerramenta.assinatura`
+  e a reenvia só ao Gemini — sem ela, a segunda volta do loop dá 400.
+  Ferramenta sem parâmetros vai sem `parameters` (o Gemini recusa
+  `properties` vazio). Testado com `fetch` simulado; a avaliação real fica
+  para a IA-22.
+
 ### IA-21 · `brandtrack-detect-image` — M
 
 Nível `visao`, imagens pela camada, exceção Q4 coberta. Componente:
 `BrandTrackUploads.tsx`.
+
+Feito. Decisões tomadas na implementação:
+- organização da mídia, lida sob RLS, com `exigirModulo` (`operacional`);
+- a função deixou de usar a service role para dados: consultas e gravações
+  pelo client do usuário, mídia baixada pela policy do bucket, logos pela URL
+  pública de `sponsor-logos`, evidência do frame na pasta de quem analisa
+  (`<user_id>/evidence/...`, a única em que a policy deixa gravar). Antes, o
+  acesso só era conferido para quem não era o dono, e as marcas esperadas e
+  logos não filtravam a organização;
+- exceção Q4 coberta pela camada (`exigeVisao` + `credencial_test.ts`);
+- frame validado (data URL de imagem, até 8 MB); a mídia só vira `failed`
+  depois de o acesso ser confirmado, com a mensagem ao usuário em
+  `error_message` (antes, podia ir o corpo do erro do fornecedor).
 
 Dependências de IA-14 a IA-21: IA-09, IA-10, IA-11, IA-13.
 
