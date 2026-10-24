@@ -441,6 +441,22 @@ Feito. Decisões tomadas na implementação:
 Organização do registro de contexto (6 contextos) e do contrato
 (`NextStepsAI.tsx`, `Pipeline.tsx`, `ContractAISummary.tsx`).
 
+Feito. Decisões tomadas na implementação:
+- `suggest-next-steps`: contexto de registro usa a organização dele, com
+  `exigirModulo` no módulo do registro (`crm`; `operacional` na entrega);
+  painel do dia e lista de entregas usam a organização ativa, que o
+  `NextStepsAI` sempre envia. Antes, essas duas listas filtravam só por
+  `owner_id`, em todas as organizações do usuário;
+- entregas do contrato: o filtro `.or(...)` comparava o id do contrato com
+  `opportunity_id` e interpolava a marca crua; virou duas consultas
+  parametrizadas (por `contract_id` e pela marca), na organização do contrato;
+- passos normalizados (tipo e prioridade da lista, prazo 0–30); o
+  `Pipeline.tsx` (priorizar o dia, 5 chamadas em paralelo) mostra o primeiro
+  erro traduzido por `lerErroDeIA`;
+- `summarize-contract`: resumo vazio vira `resposta_invalida` e não apaga o
+  anterior; o UPDATE de `ai_summary` confere as linhas gravadas (quem só lê
+  tem o UPDATE filtrado pelo RLS, sem erro) e volta `saved: false`.
+
 ### IA-20 · `ai-assistant` e histórico neutro — G
 
 Organização da `ai_conversations`. Loop de tools pela camada. `ai_messages`

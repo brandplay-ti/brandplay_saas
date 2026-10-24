@@ -179,6 +179,8 @@ Toda função de IA segue o mesmo roteiro, com o apoio de `_shared/ai/funcao.ts`
 | `score-leads` | rapido | ativa do portal | crm (escrita) |
 | `generate-proposal-ai` | padrao | ativa do portal | crm |
 | `generate-proposal-wizard` | padrao | ativa do portal | crm |
+| `suggest-next-steps` | padrao | do registro (oportunidade, patrocinador, contrato, proposta, entrega); ativa do portal no painel e na lista de entregas | crm; operacional nas entregas |
+| `summarize-contract` | padrao | do contrato | crm |
 
 ### Lote 2 (IA-17, IA-18)
 
@@ -200,3 +202,25 @@ Toda função de IA segue o mesmo roteiro, com o apoio de `_shared/ai/funcao.ts`
   modo `json` da camada, e a resposta volta normalizada (itens com nome,
   quantidade ≥ 1 e valor ≥ 0; campos de texto sempre string), porque a tela
   soma os itens e lê cada campo.
+
+### Lote 3 (IA-19)
+
+- **`suggest-next-steps`**: nos quatro contextos de registro (oportunidade,
+  patrocinador, contrato, proposta) e na entrega com `target_id`, a
+  organização é a do registro; no painel do dia e na lista de entregas, a
+  organização ativa (o `NextStepsAI` sempre manda o `orgId`). Antes, o painel
+  e as entregas filtravam só por `owner_id`, em todas as organizações do
+  usuário, e as consultas filhas não tinham filtro de organização. No
+  contrato, as entregas eram buscadas por
+  `.or("opportunity_id.eq.<id do contrato>,brand.eq.<marca>")` — comparava o
+  id do contrato com `opportunity_id` e montava o filtro com a marca crua
+  (vírgula ou parêntese no nome quebrava a consulta). Agora são duas consultas
+  parametrizadas, por `contract_id` e pela marca, na organização do contrato.
+  Contexto desconhecido continua 400; o `opportunity_id` solto (chamada antiga
+  do pipeline) continua aceito. Os passos voltam normalizados (tipo e
+  prioridade dentro da lista, prazo 0–30).
+- **`summarize-contract`**: organização do contrato; cláusulas e ativos
+  filtrados por ela. Resumo vazio é `resposta_invalida` e não apaga o resumo
+  que já existe. Quem só lê contratos tem o UPDATE de `ai_summary` filtrado
+  pelo RLS sem erro: a função confere as linhas gravadas e volta
+  `saved: false`, e a tela avisa.
