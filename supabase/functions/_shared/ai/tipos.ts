@@ -33,6 +33,12 @@ export interface ChamadaDeFerramenta {
   id: string;
   nome: string;
   argumentos: Record<string, unknown>;
+  /**
+   * Dado opaco do fornecedor que precisa voltar com a chamada no turno
+   * seguinte (hoje, a assinatura de raciocínio do Gemini 3). Só o adaptador
+   * do fornecedor que a emitiu lê e reenvia.
+   */
+  assinatura?: string;
 }
 
 export interface ResultadoDeFerramenta {

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Upload, Image as ImageIcon, Video, Loader2, CheckCircle2, AlertCircle, Clock, Trash2, BarChart3, Instagram, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
+import { avisarErroDeIA } from "@/lib/erroDeIA";
 import { useAuth } from "@/hooks/useAuth";
 import FieldEvidenceImportDialog from "@/components/brandtrack/FieldEvidenceImportDialog";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -202,8 +203,8 @@ const BrandTrackUploads = () => {
 
 
   const analyzeImage = async (mediaId: string) => {
-    const { error } = await supabase.functions.invoke("brandtrack-detect-image", { body: { media_id: mediaId } });
-    if (error) toast.error(`Análise falhou: ${error.message}`);
+    const { data, error } = await supabase.functions.invoke("brandtrack-detect-image", { body: { media_id: mediaId } });
+    if (error || data?.error) await avisarErroDeIA(error, data, "Análise falhou");
   };
 
   const analyzeVideo = async (mediaId: string, file: File) => {
@@ -243,7 +244,7 @@ const BrandTrackUploads = () => {
         });
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const frameDataUrl = canvas.toDataURL("image/jpeg", 0.78);
-        const { error } = await supabase.functions.invoke("brandtrack-detect-image", {
+        const { data, error } = await supabase.functions.invoke("brandtrack-detect-image", {
           body: {
             media_id: mediaId,
             frame_data_url: frameDataUrl,
@@ -253,7 +254,10 @@ const BrandTrackUploads = () => {
             finalize: index === timestamps.length - 1,
           },
         });
-        if (error) throw new Error(error.message);
+        if (error || data?.error) {
+          await avisarErroDeIA(error, data, "Análise de vídeo falhou");
+          return;
+        }
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Análise de vídeo falhou");
