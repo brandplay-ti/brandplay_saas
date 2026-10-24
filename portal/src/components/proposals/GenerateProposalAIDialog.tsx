@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/hooks/useOrganization";
+import { avisarErroDeIA } from "@/lib/erroDeIA";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,6 +28,7 @@ type Props = {
 };
 
 export function GenerateProposalAIDialog({ sponsors, properties, onGenerated }: Props) {
+  const { orgId } = useOrganization();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [briefing, setBriefing] = useState("");
@@ -34,6 +37,7 @@ export function GenerateProposalAIDialog({ sponsors, properties, onGenerated }: 
   const [propertyId, setPropertyId] = useState<string>("none");
 
   const handleGenerate = async () => {
+    if (!orgId) return;
     if (!briefing.trim() && !objective.trim()) {
       toast.error("Preencha o briefing ou o objetivo.");
       return;
@@ -42,14 +46,17 @@ export function GenerateProposalAIDialog({ sponsors, properties, onGenerated }: 
     try {
       const { data, error } = await supabase.functions.invoke("generate-proposal-ai", {
         body: {
+          organization_id: orgId,
           briefing,
           objective,
           sponsor_id: sponsorId === "none" ? null : sponsorId,
           property_id: propertyId === "none" ? null : propertyId,
         },
       });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
+      if (error || data?.error) {
+        await avisarErroDeIA(error, data, "Falha ao gerar proposta");
+        return;
+      }
 
       onGenerated({
         ...(data as GeneratedProposal),
@@ -60,8 +67,6 @@ export function GenerateProposalAIDialog({ sponsors, properties, onGenerated }: 
       setBriefing("");
       setObjective("");
       toast.success("Proposta gerada! Revise e salve.");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao gerar proposta");
     } finally {
       setLoading(false);
     }
@@ -167,7 +172,7 @@ export function GenerateProposalAIDialog({ sponsors, properties, onGenerated }: 
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)} disabled={loading}>Cancelar</Button>
-          <Button onClick={handleGenerate} disabled={loading}>
+          <Button onClick={handleGenerate} disabled={loading || !orgId}>
             {loading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
             Gerar
           </Button>

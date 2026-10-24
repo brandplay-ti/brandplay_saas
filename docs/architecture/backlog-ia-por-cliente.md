@@ -406,10 +406,35 @@ Recebe a organização ativa (`LeadScoring.tsx`), valida e filtra
 patrocinadores, oportunidades, propriedades e histórico por ela. Corrige a
 mistura de organizações. Nível `rapido`.
 
+Feito. `organization_id` do corpo, validado com `exigirModulo` (módulo
+`crm`, **escrita**), filtra as cinco consultas e vai explícito em
+`lead_scores`. `LeadScoring.tsx` manda o `orgId`, lê as notas só da
+organização ativa e esquece a propriedade escolhida ao trocar de
+organização. Decisões tomadas na implementação:
+- exige escrita no CRM antes de chamar a IA: o resultado só vale gravado, e
+  o RLS de `lead_scores` recusaria a gravação de quem só lê;
+- a resposta só aceita alvos que foram no prompt (id inventado não vira
+  linha); nota limitada a 0–100; classificação fora da lista é recalculada
+  pela nota;
+- uma exclusão e uma inserção em lote no lugar do par por lead; gravação que
+  falha volta `saved: false` e a tela avisa (a chamada já foi feita e medida);
+- `maxTokens` de 4.096 para 16.000: até 200 leads não cabiam no limite antigo.
+
 ### IA-18 · `generate-proposal-ai` e `generate-proposal-wizard` — M
 
 Tool obrigatória; organização da oportunidade/patrocinador
 (`GenerateProposalAIDialog.tsx`, `ProposalWizardDialog.tsx`).
+
+Feito. Decisões tomadas na implementação:
+- **organização ativa, não a do patrocinador**: patrocinador e propriedade
+  são opcionais nos dois diálogos, e a proposta é gravada pela tela na
+  organização ativa. As funções recebem o `organization_id`, validam com
+  `exigirModulo` (`crm`, leitura) e exigem que patrocinador e propriedade
+  escolhidos sejam dela (senão 404). Cotas, alocações e ativos do contexto
+  também ficam nela — antes, os ativos vinham de todas as organizações;
+- a ferramenta obrigatória virou o modo `json` da camada, como no lote 1;
+- a resposta volta normalizada (itens com nome, quantidade ≥ 1, valor ≥ 0;
+  textos sempre string), porque a tela soma os itens e lê cada campo.
 
 ### IA-19 · `suggest-next-steps` e `summarize-contract` — M
 

@@ -17,6 +17,15 @@ A variável de ambiente `ANTHROPIC_API_KEY` precisa ser configurada no Supabase
 self-hosted; `LOVABLE_API_KEY` não é mais necessária em nenhuma das 15 funções listadas
 abaixo (confirmado via `grep -ri "lovable" supabase/functions/` — nenhuma ocorrência).
 
+> **Depois (épico 3 do plano de IA por cliente):** as 13 funções de IA deixaram de
+> chamar a Anthropic direto. Todas passam pela camada `_shared/ai/` (`gerar`), que
+> escolhe a credencial da organização (OpenAI, Gemini ou Anthropic), aplica as
+> guardas e mede o uso. `ANTHROPIC_API_KEY` não é mais lida por nenhuma função; a
+> chave do ambiente é a semente `AI_DEFAULT_PROVIDER` + `AI_DEFAULT_API_KEY`. As
+> seções abaixo desta nota descrevem a migração anterior (Lovable → Anthropic) e
+> ficam como histórico. O estado atual está em
+> [Camada de IA multi-fornecedor](#camada-de-ia-multi-fornecedor).
+
 ## Funções migradas e modelo escolhido
 
 | Função | Modelo | Por quê |
@@ -137,3 +146,57 @@ modelo "lite"/"flash-lite" explícito de baixo custo); por isso foram tratadas c
   instrução no prompt + parse defensivo, sem garantia "hard" de schema.
 - **Forçar uma única tool (`tool_choice`)**: mapeado 1:1 para
   `{type:"tool", name:"..."}`, sem perda de funcionalidade.
+
+## Camada de IA multi-fornecedor
+
+Plano em `docs/architecture/plano-ia-por-cliente.md`, histórias em
+`docs/architecture/backlog-ia-por-cliente.md` (épico 3, IA-14 a IA-21).
+
+Toda função de IA segue o mesmo roteiro, com o apoio de `_shared/ai/funcao.ts`:
+
+1. `autenticar`: usuário do JWT e client com o JWT dele (consultas sob RLS);
+2. organização: a do recurso lido sob RLS (patrocinador, oportunidade,
+   contrato, conversa, mídia) ou, nas funções que trabalham sobre listas, a
+   organização ativa enviada pelo portal (`organization_id`);
+3. `exigirModulo`: membro ativo da organização e com acesso ao módulo — vale
+   também quando a organização veio do recurso (usuário do portal do
+   patrocinador lê o próprio patrocinador pelo RLS, mas não usa a IA interna);
+4. todas as consultas filtram por essa organização;
+5. `gerar` com o **nível** (`rapido`, `padrao`, `visao`) — nunca um nome de
+   modelo; saída estruturada pelo modo `json` da camada, com esquema;
+6. `respostaDeFalha`: erro de IA vira `{ error, codigo }` (o portal trata com
+   `portal/src/lib/erroDeIA.ts`); falha inesperada vira 500 sem detalhe, e o
+   log nunca leva prompt, resposta ou chave.
+
+| Função | Nível | Organização | Módulo |
+|---|---|---|---|
+| `sponsor-executive-summary` | padrao | do patrocinador | crm |
+| `generate-sellout-report` | padrao | da propriedade | crm |
+| `detect-churn-risk` | rapido | ativa do portal | crm |
+| `ticket-benchmark-ai` | padrao | ativa do portal | crm |
+| `prepare-meeting-ai` | padrao | do patrocinador | crm |
+| `task-insights` | padrao | da tarefa / item | crm ou operacional |
+| `score-leads` | rapido | ativa do portal | crm (escrita) |
+| `generate-proposal-ai` | padrao | ativa do portal | crm |
+| `generate-proposal-wizard` | padrao | ativa do portal | crm |
+
+### Lote 2 (IA-17, IA-18)
+
+- **`score-leads`**: lia patrocinadores, oportunidades, propriedades e o
+  histórico de propostas de **todas** as organizações do usuário e gravava
+  `lead_scores` sem `organization_id` (o gatilho preenchia com `get_user_org`,
+  a organização mais antiga). Agora recebe a organização ativa, filtra tudo por
+  ela e grava `organization_id` explícito. Exige escrita no CRM antes da
+  chamada, porque o resultado só vale gravado. Só aceita na resposta os alvos
+  que foram no prompt (id inventado não vira linha); nota limitada a 0–100 e
+  classificação recalculada pela nota quando vem fora da lista. `maxTokens`
+  subiu de 4.096 para 16.000: até 200 leads com razões e argumento não cabiam.
+  Gravação que falha volta `saved: false` e a tela avisa.
+- **`generate-proposal-ai`** e **`generate-proposal-wizard`**: a proposta é
+  gravada pela tela na organização ativa, então é ela que a função recebe e
+  valida. Patrocinador e propriedade escolhidos precisam ser dessa organização
+  (senão 404); cotas, alocações e ativos do contexto também. Antes, os ativos
+  vinham de todas as organizações do usuário. A ferramenta obrigatória virou o
+  modo `json` da camada, e a resposta volta normalizada (itens com nome,
+  quantidade ≥ 1 e valor ≥ 0; campos de texto sempre string), porque a tela
+  soma os itens e lê cada campo.
