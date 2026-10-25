@@ -78,7 +78,7 @@ export function useAdminIaConsumo(meses = 6) {
     queryFn: async (): Promise<AdminIaConsumo> => {
       const { data, error } = await supabase.rpc("admin_ia_consumo", { _meses: meses });
       if (error) throw error;
-      const bruto = (data ?? {}) as AdminIaConsumo;
+      const bruto = (data ?? {}) as unknown as AdminIaConsumo;
       return {
         meses: bruto.meses ?? [],
         top_mes: bruto.top_mes ?? [],
