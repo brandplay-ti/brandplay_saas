@@ -108,7 +108,10 @@ Ao editar um template:
 
 - mantenha `{{ .ConfirmationURL }}` (no `reautenticacao.html`, `{{ .Token }}`):
   é o link de verificação. O E2E `portal/e2e/recuperacao-senha.spec.ts` extrai
-  do `href` o link com `/auth/v1/verify`. Também disponíveis: `{{ .Email }}`,
+  do `href` o link com `/auth/v1/verify` e confere assunto/corpo PT-BR (template
+  versionado, não o padrão em inglês do GoTrue). Testes unitários em
+  `portal/src/lib/authEmailTemplates.test.ts` validam os seis HTML do repositório.
+  Também disponíveis: `{{ .Email }}`,
   `{{ .NewEmail }}` (troca de e-mail), `{{ .Token }}`, `{{ .SiteURL }}`;
 - o layout é repetido nos seis arquivos (o GoTrue não tem include): mudou um,
   confira os outros;

@@ -1,34 +1,25 @@
 import { expect, test, type Page } from "@playwright/test";
+import {
+  aguardarMensagem,
+  assertTemplateRecuperacaoPtBr,
+  lerMensagem,
+  linkDeVerificacaoGotrue,
+  supabasePublicUrl,
+} from "./helpers/mailpit";
 
 // Recuperação de senha de ponta a ponta: o GoTrue do stack local entrega o
 // e-mail no Mailpit (docker/supabase), de onde o teste tira o link. Usa uma
 // conta nova por execução para não mexer na senha dos usuários do seed.
 // O onboarding segue sozinho para o painel quando não há o que configurar.
 const DEPOIS_DO_LOGIN = /\/(onboarding\/organizacao|dashboard)/;
-const mailpit = (process.env.E2E_MAILPIT_URL ?? "http://localhost:8026").replace(/\/$/, "");
-
-interface MensagemMailpit {
-  ID: string;
-}
 
 async function linkDeRecuperacao(page: Page, email: string): Promise<string> {
-  let id: string | undefined;
-  await expect
-    .poll(
-      async () => {
-        const r = await page.request.get(`${mailpit}/api/v1/search`, { params: { query: `to:"${email}"` } });
-        const corpo = (await r.json()) as { messages: MensagemMailpit[] };
-        id = corpo.messages[0]?.ID;
-        return id;
-      },
-      { message: `e-mail de recuperação para ${email} no Mailpit (${mailpit})`, timeout: 20_000 },
-    )
-    .toBeTruthy();
-
-  const r = await page.request.get(`${mailpit}/api/v1/message/${id}`);
-  const { HTML, Text } = (await r.json()) as { HTML: string; Text: string };
-  const link = (HTML.match(/href="([^"]*\/auth\/v1\/verify[^"]*)"/)?.[1] ?? Text.match(/https?:\/\/\S*\/auth\/v1\/verify\S*/)?.[0])
-    ?.replace(/&amp;/g, "&");
+  const id = await aguardarMensagem(page.request, email, {
+    message: `e-mail de recuperação para ${email} no Mailpit`,
+  });
+  const { HTML, Text, Subject } = await lerMensagem(page.request, id);
+  assertTemplateRecuperacaoPtBr(HTML, Subject);
+  const link = linkDeVerificacaoGotrue(HTML, Text, supabasePublicUrl);
   expect(link, "link de verificação no corpo do e-mail").toBeTruthy();
   return link!;
 }
