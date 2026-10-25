@@ -706,6 +706,44 @@ correção.
 - Contratos e propostas em organização diferente da do patrocinador (raiz, não
   filha): não movidos.
 
+## Desconto e sessão de suporte (0035)
+
+O superadmin concede desconto percentual (1 a 100, por 1 a 12 meses) e abre
+uma sessão para ver uma organização como admin. 100% no prazo é a isenção.
+Estender teste e liberar acesso provisório continuam sendo outra coisa: eles
+destrancam o painel, não zeram a fatura do Stripe.
+
+| Tabela | O que é | Leitura | Escrita |
+| --- | --- | --- | --- |
+| `billing_discounts` | percentual, prazo, cupom Stripe, revogação | owner/admin da organização e superadmin | só a Edge Function `admin-discounts` (service role) |
+| `platform_support_sessions` | sessão do operador, prazo máximo de 8 horas | o próprio superadmin | só `admin_abrir_sessao_suporte` / `admin_encerrar_sessao_suporte` |
+
+Suposições:
+
+- Um desconto vigente por organização. Vigente = `revoked_at` nulo, status
+  diferente de `falhou` e ainda dentro de `duration_months` meses de
+  calendário a partir de `created_at`. Aplicar outro exige revogar o atual.
+  A revogação tira o cupom da assinatura; fatura já emitida não muda.
+- Com assinatura vigente o cupom entra nela (`stripe_status = aplicado`).
+  Sem assinatura, fica `aguardando_checkout` e o próximo checkout de
+  `manage-billing` manda `discounts: [{ coupon }]`. Sem `STRIPE_SECRET_KEY`
+  a linha fica `pendente` e a resposta avisa que o Stripe não foi atualizado.
+- A sessão altera as funções de um argumento `is_org_member(uuid)` e
+  `has_org_role(uuid, text[])`. O papel emprestado é `admin`: policy que
+  exige só `owner` continua recusando. `is_org_member(user_id, org_id)` não
+  muda — a sessão não é membership. Desde 0037, `can_access_module` também
+  aceita a sessão, e só quando `_user_id` é o `auth.uid()` dela: o acesso é
+  o da linha `admin` em `organization_role_grants`. `none` nesse módulo
+  esconde o dado da sessão também.
+- O bloqueio de cobrança (`billing_blocked_orgs`) olha `organization_members`.
+  O operador em sessão não é membro, então vê o dado mesmo com a organização
+  sem acesso. A tela não manda essa sessão para a página de plano.
+- `manage-billing` e `manage-team-access` continuam exigindo um membro real.
+  A sessão não inicia cobrança nem convite em nome do cliente.
+- As duas tabelas ficam fora da policy restritiva `billing_access_restrictive`
+  (exceção do teste `(m)`): desconto é dado de cobrança, sessão é dado da
+  plataforma.
+
 ## Permissões por organização (0036)
 
 `organization_role_grants` guarda, por papel, o acesso (`none`, `read`,
@@ -732,4 +770,3 @@ Suposições:
   membro; a escrita delas já passava por `can_access_module`.
 - A alteração grava `permission_changed` em `team_audit_log`, com o módulo e
   o acesso anterior e o novo em `metadata`.
-

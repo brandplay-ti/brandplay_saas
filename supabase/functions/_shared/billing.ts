@@ -9,6 +9,7 @@
 
 import Stripe from "https://esm.sh/stripe@14.25.0";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { descontoAindaVigente } from "./desconto.ts";
 
 export { Stripe };
 
@@ -444,4 +445,25 @@ export async function settlePixPayment(
   const subId = idOf(fatura.subscription);
   if (subId) await mirrorSubscription(db, stripe, subId);
   await mirrorInvoice(db, stripe, faturaId);
+}
+
+/**
+ * Cupom de desconto ainda no prazo, gravado pelo superadmin, para o próximo
+ * checkout. Já aplicado numa assinatura vigente não volta aqui: o checkout
+ * recusa uma segunda assinatura.
+ */
+export async function cupomDeDescontoVigente(db: SupabaseClient, orgId: string): Promise<string | null> {
+  const { data, error } = await db
+    .from("billing_discounts")
+    .select("stripe_coupon_id, duration_months, created_at, stripe_status")
+    .eq("organization_id", orgId)
+    .is("revoked_at", null)
+    .eq("stripe_status", "aguardando_checkout")
+    .not("stripe_coupon_id", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data?.stripe_coupon_id) return null;
+  if (!descontoAindaVigente(data.created_at, data.duration_months)) return null;
+  return data.stripe_coupon_id;
 }

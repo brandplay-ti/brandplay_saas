@@ -689,6 +689,50 @@ export type Database = {
           },
         ]
       }
+      billing_discounts: {
+        Row: {
+          comment: string
+          created_at: string
+          duration_months: number
+          id: string
+          organization_id: string
+          percent_off: number
+          revoked_at: string | null
+          stripe_coupon_id: string | null
+          stripe_status: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string
+          duration_months: number
+          id?: string
+          organization_id: string
+          percent_off: number
+          revoked_at?: string | null
+          stripe_coupon_id?: string | null
+          stripe_status?: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          duration_months?: number
+          id?: string
+          organization_id?: string
+          percent_off?: number
+          revoked_at?: string | null
+          stripe_coupon_id?: string | null
+          stripe_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_discounts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_invoices: {
         Row: {
           amount_cents: number
@@ -3084,6 +3128,44 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_support_sessions: {
+        Row: {
+          admin_user_id: string
+          comment: string
+          created_at: string
+          ended_at: string | null
+          expires_at: string
+          id: string
+          organization_id: string
+        }
+        Insert: {
+          admin_user_id: string
+          comment: string
+          created_at?: string
+          ended_at?: string | null
+          expires_at: string
+          id?: string
+          organization_id: string
+        }
+        Update: {
+          admin_user_id?: string
+          comment?: string
+          created_at?: string
+          ended_at?: string | null
+          expires_at?: string
+          id?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_support_sessions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       property_checklist_items: {
         Row: {
           assignee: string | null
@@ -5228,6 +5310,14 @@ export type Database = {
           users_active: number
         }[]
       }
+      admin_abrir_sessao_suporte: {
+        Args: { _comentario: string; _horas: number; _org_id: string }
+        Returns: Json
+      }
+      admin_encerrar_sessao_suporte: {
+        Args: { _comentario: string; _sessao_id: string }
+        Returns: Json
+      }
       admin_estender_teste: {
         Args: { _comentario: string; _dias: number; _org_id: string }
         Returns: Json
@@ -5321,6 +5411,7 @@ export type Database = {
         Args: { _comentario: string; _grant_id: string }
         Returns: Json
       }
+      admin_sessao_suporte_ativa: { Args: never; Returns: Json }
       archive_sponsor: {
         Args: { _reason: string; _sponsor_id: string }
         Returns: undefined

@@ -68,8 +68,15 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   concessão é operada à mão (`docs/runbooks/superadmin.md`), nunca pela API nem
   por migration. O superadmin lê a cobrança de todas as organizações e
   contagens de uso, pelas policies `*_platform_admin_read` e pelas funções
-  `admin_*` (que recusam quem não é superadmin), mas **não** lê dados de
-  domínio dos clientes. Toda ação administrativa vai para
+  `admin_*` (que recusam quem não é superadmin). Sem sessão de suporte, não lê
+  dados de domínio dos clientes. Uma sessão aberta
+  (`admin_abrir_sessao_suporte`, 1 a 8 horas, comentário obrigatório) faz
+  `is_org_member(uuid)` e `has_org_role(uuid, text[])` — quando o papel exigido
+  inclui `admin` — valerem só para aquela organização. `can_access_module`
+  usa, para o `auth.uid()` da sessão, a linha `admin` de
+  `organization_role_grants`: se o administrador daquela organização não lê um
+  módulo, a sessão também não lê. O operador age com o próprio `auth.uid()`.
+  A sessão não vira `organization_members` e não concede `owner`. Toda ação administrativa vai para
   `platform_admin_audit_log`, imutável pela API. Ao estender essa área, mantenha
   as duas coisas: leitura mínima e registro de quem fez.
 - **IA por organização** (ADR-0010, `/admin/ia`, `admin-ai`). Tabelas

@@ -24,6 +24,7 @@ import { OrganizationSwitcher } from "@/components/organization/OrganizationSwit
 import { CommandMenu } from "@/components/CommandMenu";
 import { OrganizationProvider } from "@/hooks/useOrganization";
 import { BillingGate } from "@/components/billing/BillingGate";
+import { SupportSessionBanner } from "@/components/admin/SupportSessionBanner";
 
 const DashboardLayoutInner = () => {
   const { user } = useAuth();
@@ -85,6 +86,7 @@ const DashboardLayoutInner = () => {
             </div>
           </header>
           <main className="flex-1 p-4 md:p-8">
+            <SupportSessionBanner />
             <BillingGate>
               <Suspense fallback={<PageLoader />}>
                 <Outlet />
