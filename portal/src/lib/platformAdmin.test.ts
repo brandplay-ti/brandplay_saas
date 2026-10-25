@@ -73,12 +73,13 @@ describe("summarizeClients", () => {
         cliente({ organization_id: "c", access_source: "trial", trial_ends_at: "2026-10-30T12:00:00Z" }),
         cliente({ organization_id: "d", access_source: "none", subscription_status: "incompleta" }),
         cliente({ organization_id: "e", access_source: "none" }),
+        cliente({ organization_id: "f", access_source: "exemption", trial_ends_at: "2026-10-17T12:00:00Z" }),
       ],
       3,
       AGORA,
     );
-    expect(resumo.total).toBe(5);
-    expect(resumo.bySource).toEqual({ subscription: 1, trial: 2, provisional: 0, none: 2 });
+    expect(resumo.total).toBe(6);
+    expect(resumo.bySource).toEqual({ subscription: 1, exemption: 1, trial: 2, provisional: 0, none: 2 });
     expect(resumo.delinquent).toBe(1);
     expect(resumo.trialsEndingSoon.map((c) => c.organization_id)).toEqual(["b"]);
     expect(resumo.awaitingPayment.map((c) => c.organization_id)).toEqual(["d"]);

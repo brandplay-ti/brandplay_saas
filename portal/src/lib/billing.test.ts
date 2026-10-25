@@ -4,6 +4,8 @@ import {
   daysLeft,
   describeStatus,
   formatCents,
+  formatDate,
+  showsTrialNotice,
   parsePlanLimitError,
   planLimitMessage,
   usageLabel,
@@ -19,6 +21,7 @@ function status(parcial: Partial<BillingStatus>): BillingStatus {
     access: true,
     source: "trial",
     trial_ends_at: "2026-10-21T12:00:00Z",
+    exemption_ends_at: null,
     has_customer: false,
     provisional_access_hours: 72,
     provisional_access: null,
@@ -113,6 +116,19 @@ describe("describeStatus", () => {
         agora,
       ),
     ).toMatchObject({ label: "Acesso provisório", tone: "warn" });
+  });
+
+  it("isenção de 100% não mostra os dias do teste", () => {
+    const isento = status({
+      source: "exemption",
+      exemption_ends_at: "2027-10-07T12:00:00Z",
+    });
+    expect(showsTrialNotice(isento)).toBe(false);
+    expect(showsTrialNotice(status({}))).toBe(true);
+    const resumo = describeStatus(isento, agora);
+    expect(resumo).toMatchObject({ label: "Isento", tone: "ok" });
+    expect(resumo.detail).toContain(formatDate("2027-10-07T12:00:00Z"));
+    expect(resumo.detail).not.toContain("dias restantes");
   });
 
   it("sem assinatura e com o teste vencido", () => {

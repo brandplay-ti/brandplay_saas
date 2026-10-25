@@ -14,7 +14,7 @@ import { ACCESS_SOURCE_LABEL, filterClients, type AccessSource, type ClientFilte
 import { PageHeader } from "@/components/common/PageHeader";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
-const SITUACOES: AccessSource[] = ["subscription", "trial", "provisional", "none"];
+const SITUACOES: AccessSource[] = ["subscription", "exemption", "trial", "provisional", "none"];
 
 const AdminClients = () => {
   const clientes = useAdminClients();

@@ -526,6 +526,156 @@ begin
   raise notice 'OK (m): toda tabela de organização tem a policy de bloqueio de cobrança';
 end $$;
 
+-- (n) isenção de 100% tira o aviso de teste e mantém o acesso (0039) --------
+-- Org B está sem acesso: teste vencido, liberação vencida, sem assinatura paga.
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"1b000000-0000-4000-8000-00000000000b","role":"authenticated"}', true);
+do $$
+begin
+  begin
+    insert into public.billing_discounts (organization_id, percent_off, duration_months, comment)
+    values ('b1000000-0000-4000-8000-000000000002', 100, 12, 'cliente não concede isenção');
+    raise exception 'FALHA (n): o cliente gravou a própria isenção';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+
+insert into public.billing_discounts
+  (organization_id, percent_off, duration_months, comment, stripe_status)
+values
+  ('b1000000-0000-4000-8000-000000000002', 100, 12, 'cortesia de um ano', 'aguardando_checkout');
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"1b000000-0000-4000-8000-00000000000b","role":"authenticated"}', true);
+do $$
+declare _s jsonb;
+begin
+  _s := public.billing_status('b1000000-0000-4000-8000-000000000002');
+  if (_s->>'access')::boolean is not true or _s->>'source' <> 'exemption'
+     or _s->'plan'->>'id' <> 'pro' or _s->>'exemption_ends_at' is null then
+    raise exception 'FALHA (n): isenção de 100%% não deu acesso: %', _s;
+  end if;
+  if (select count(*) from public.sponsors where id = '5b100000-0000-4000-8000-000000000002') <> 1 then
+    raise exception 'FALHA (n): isenção vigente continuou bloqueando o dado da organização';
+  end if;
+  raise notice 'OK (n): isenção de 100%% mantém o acesso, fora do teste';
+end $$;
+reset role;
+
+-- 50% não substitui o teste nem destranca quem já está sem acesso.
+update public.billing_discounts
+   set revoked_at = now(), stripe_status = 'revogado'
+ where organization_id = 'b1000000-0000-4000-8000-000000000002'
+   and percent_off = 100;
+
+insert into public.billing_discounts
+  (organization_id, percent_off, duration_months, comment, stripe_status)
+values
+  ('b1000000-0000-4000-8000-000000000002', 50, 12, 'meio desconto', 'aguardando_checkout');
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"1b000000-0000-4000-8000-00000000000b","role":"authenticated"}', true);
+do $$
+declare _s jsonb;
+begin
+  _s := public.billing_status('b1000000-0000-4000-8000-000000000002');
+  if (_s->>'access')::boolean or _s->>'source' <> 'none' then
+    raise exception 'FALHA (n): desconto de 50%% deu acesso: %', _s;
+  end if;
+end $$;
+reset role;
+
+-- Com o teste ainda valendo, 50% continua teste; 100% vira isenção.
+update public.billing_accounts
+   set trial_ends_at = now() + interval '10 days'
+ where organization_id = 'b1000000-0000-4000-8000-000000000002';
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"1b000000-0000-4000-8000-00000000000b","role":"authenticated"}', true);
+do $$
+begin
+  if public.billing_status('b1000000-0000-4000-8000-000000000002')->>'source' <> 'trial' then
+    raise exception 'FALHA (n): desconto parcial escondeu o teste';
+  end if;
+end $$;
+reset role;
+
+update public.billing_discounts
+   set revoked_at = now(), stripe_status = 'revogado'
+ where organization_id = 'b1000000-0000-4000-8000-000000000002'
+   and percent_off = 50
+   and revoked_at is null;
+
+insert into public.billing_discounts
+  (organization_id, percent_off, duration_months, comment, stripe_status)
+values
+  ('b1000000-0000-4000-8000-000000000002', 100, 12, 'isenta durante o teste', 'pendente');
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"1b000000-0000-4000-8000-00000000000b","role":"authenticated"}', true);
+do $$
+declare _s jsonb;
+begin
+  _s := public.billing_status('b1000000-0000-4000-8000-000000000002');
+  if _s->>'source' <> 'exemption' then
+    raise exception 'FALHA (n): isenção durante o teste continuou como teste: %', _s;
+  end if;
+end $$;
+reset role;
+
+-- Fora do prazo, falha no Stripe e assinatura paga não contam como isenção.
+update public.billing_discounts
+   set created_at = now() - interval '13 months'
+ where organization_id = 'b1000000-0000-4000-8000-000000000002'
+   and percent_off = 100
+   and revoked_at is null;
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"1b000000-0000-4000-8000-00000000000b","role":"authenticated"}', true);
+do $$
+begin
+  if public.billing_status('b1000000-0000-4000-8000-000000000002')->>'source' <> 'trial' then
+    raise exception 'FALHA (n): isenção vencida ainda esconde o teste';
+  end if;
+end $$;
+reset role;
+
+update public.billing_discounts
+   set created_at = now(), stripe_status = 'falhou'
+ where organization_id = 'b1000000-0000-4000-8000-000000000002'
+   and percent_off = 100
+   and revoked_at is null;
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"1b000000-0000-4000-8000-00000000000b","role":"authenticated"}', true);
+do $$
+begin
+  if public.billing_status('b1000000-0000-4000-8000-000000000002')->>'source' <> 'trial' then
+    raise exception 'FALHA (n): isenção que falhou no Stripe escondeu o teste';
+  end if;
+end $$;
+reset role;
+
+-- Org A tem assinatura ativa: a isenção não troca a situação.
+insert into public.billing_discounts
+  (organization_id, percent_off, duration_months, comment, stripe_status)
+values
+  ('a1000000-0000-4000-8000-000000000001', 100, 12, 'assinante isento', 'aplicado');
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"1a000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+do $$
+declare _s jsonb;
+begin
+  _s := public.billing_status('a1000000-0000-4000-8000-000000000001');
+  if _s->>'source' <> 'subscription' or _s->>'exemption_ends_at' is null then
+    raise exception 'FALHA (n): assinatura deveria prevalecer sobre a isenção: %', _s;
+  end if;
+  raise notice 'OK (n): parcial, vencida e falha não isentam; assinatura prevalece';
+end $$;
+reset role;
+
 rollback;
 
 \echo '=== Fim dos testes de cobrança ==='

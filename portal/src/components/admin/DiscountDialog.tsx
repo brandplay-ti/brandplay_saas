@@ -73,8 +73,8 @@ export const DiscountDialog = ({ trigger, onConfirm }: Props) => {
         <DialogHeader>
           <DialogTitle>Desconto ou isenção</DialogTitle>
           <DialogDescription>
-            100% isenta a cobrança pelo prazo. Com assinatura vigente, o cupom entra nela. Sem assinatura, entra no
-            próximo checkout. Um desconto vigente por vez.
+            100% isenta a cobrança e mantém o acesso pelo prazo: o aviso de teste some. Com assinatura vigente, o cupom
+            entra nela. Sem assinatura, entra no próximo checkout. Um desconto vigente por vez.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
