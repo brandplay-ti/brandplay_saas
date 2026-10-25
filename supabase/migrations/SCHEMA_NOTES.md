@@ -705,3 +705,15 @@ correção.
   organização.
 - Contratos e propostas em organização diferente da do patrocinador (raiz, não
   filha): não movidos.
+
+## Marca da organização (0034)
+
+Cada organização pode ter uma linha em `organization_brand_kits` (primária e
+secundária, `#RRGGBB`) e até seis arquivos em `organization_brand_assets`
+(`horizontal`, `vertical`, `icone`, `sem_fundo`, `clara`, `escura`). Sem o kit,
+relatório, proposta, contrato, entrega e BrandTrack usam `#6206C8` e `#2962FF`.
+Sem a peça pedida, o gerador usa a próxima da ordem e, por último,
+`organizations.logo_path`. Owner e admin gravam; qualquer membro lê. A cor
+primária também substitui `--primary` no painel, e o texto sobre ela fica
+branco ou grafite conforme o contraste com branco passe de 4,5. E-mails da
+plataforma continuam na cor da BrandPlay.

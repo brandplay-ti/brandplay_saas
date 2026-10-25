@@ -2693,6 +2693,73 @@ export type Database = {
           },
         ]
       }
+      organization_brand_assets: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          organization_id: string
+          storage_path: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          organization_id: string
+          storage_path: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          organization_id?: string
+          storage_path?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_brand_assets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_brand_kits: {
+        Row: {
+          created_at: string
+          organization_id: string
+          primary_hex: string
+          secondary_hex: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          organization_id: string
+          primary_hex?: string
+          secondary_hex?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          organization_id?: string
+          primary_hex?: string
+          secondary_hex?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_brand_kits_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_invites: {
         Row: {
           accepted_at: string | null

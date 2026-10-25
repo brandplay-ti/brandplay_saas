@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { LOGO_BOX_CSS, logoFrameHtml, publicLogoUrl } from "../_shared/logo.ts";
+import { carregarMarca, corSegura, PRIMARIA_PADRAO, SECUNDARIA_PADRAO } from "../_shared/marca.ts";
 
 
 const corsHeaders = {
@@ -20,10 +21,14 @@ Deno.serve(async (req) => {
     if (!userRes?.user) throw new Error("Unauthorized");
 
     // Use userClient (respects RLS) so only the caller's org data is returned
-    let mediaQuery = userClient.from("brandtrack_media").select("id, title, event_id");
+    let mediaQuery = userClient.from("brandtrack_media").select("id, title, event_id, organization_id");
     if (event_id) mediaQuery = mediaQuery.eq("event_id", event_id);
     const { data: medias } = await mediaQuery;
-    const mediaIds = (medias ?? []).map((m: any) => m.id);
+    const mediaIds = (medias ?? []).map((m: { id: string }) => m.id);
+    const orgDaMidia = (medias ?? []).find((m: { organization_id?: string | null }) => m.organization_id)?.organization_id;
+    const marca = await carregarMarca(userClient, orgDaMidia);
+    const primaria = corSegura(marca.primaria, PRIMARIA_PADRAO);
+    const secundaria = corSegura(marca.secundaria, SECUNDARIA_PADRAO);
 
     let dets: any[] = [];
     if (mediaIds.length) {
@@ -96,9 +101,9 @@ table { width: 100%; border-collapse: collapse; font-size: 12px; }
 th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #e5e7eb; }
 th { background: #f3f4f6; font-weight: 600; color: #374151; }
 .bar { height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
-.bar > span { display: block; height: 100%; background: linear-gradient(90deg, #6206C8, #7B1FE6); }
+.bar > span { display: block; height: 100%; background: ${primaria}; }
 .footer { margin-top: 40px; font-size: 10px; color: #9ca3af; text-align: center; }
-.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #F4EEFD; color: #4B0FA3; font-size: 10px; margin-right: 4px; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: ${secundaria}22; color: ${primaria}; font-size: 10px; margin-right: 4px; }
 td.logo-cell { width: 56px; }
 ${LOGO_BOX_CSS}
 

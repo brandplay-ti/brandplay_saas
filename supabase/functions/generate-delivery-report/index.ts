@@ -1,5 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { PDFDocument, StandardFonts, rgb, type Color } from "https://esm.sh/pdf-lib@1.17.1";
+import { drawContainedLogo, fetchLogoBytes, publicLogoUrl } from "../_shared/logo.ts";
+import { caminhoDoLogo, carregarMarca, componentesRgb } from "../_shared/marca.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -118,7 +120,9 @@ Deno.serve(async (req) => {
     const pdf = await PDFDocument.create();
     const font = await pdf.embedFont(StandardFonts.Helvetica);
     const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-    const PRIMARY = rgb(0.384, 0.024, 0.784); // #6206C8
+    const marca = await carregarMarca(userClient, organization_id);
+    const [pr, pg, pb] = componentesRgb(marca.primaria);
+    const PRIMARY = rgb(pr, pg, pb);
     const MUTED = rgb(0.45, 0.45, 0.5);
     const TEXT = rgb(0.059, 0.071, 0.129); // #0F1221
 
@@ -146,8 +150,23 @@ Deno.serve(async (req) => {
 
     // Header
     page.drawRectangle({ x: 0, y: 800, width: 595, height: 42, color: PRIMARY });
-    text("Relatório de Entrega", { x: left, y: 822, size: 18, bold: true, color: rgb(1, 1, 1) });
-    text(`Marca: ${report.opportunity.brand}`, { x: left, y: 807, size: 9, color: rgb(1, 1, 1) });
+    const logoBytes = await fetchLogoBytes(
+      publicLogoUrl(Deno.env.get("SUPABASE_URL")!, "org-logos", caminhoDoLogo(marca, "fundo_escuro")),
+    );
+    let tituloX = left;
+    if (logoBytes) {
+      const box = { x: left, y: 806, width: 56, height: 30 };
+      page.drawRectangle({ ...box, color: rgb(1, 1, 1) });
+      await drawContainedLogo(pdf, page, logoBytes, {
+        x: box.x + 3,
+        y: box.y + 3,
+        width: box.width - 6,
+        height: box.height - 6,
+      });
+      tituloX = left + 64;
+    }
+    text("Relatório de Entrega", { x: tituloX, y: 822, size: 18, bold: true, color: rgb(1, 1, 1) });
+    text(`Marca: ${report.opportunity.brand}`, { x: tituloX, y: 807, size: 9, color: rgb(1, 1, 1) });
     y = 780;
 
     // Opportunity summary
