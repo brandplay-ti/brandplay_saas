@@ -21,6 +21,7 @@ import {
 } from "./credencial.ts";
 import { ErroDeIA } from "./erros.ts";
 import { type ConsultaDeSituacao, consultaSupabase, verificarGuardas } from "./guardas.ts";
+import { processarAlertasPosUso } from "./alertas.ts";
 import {
   custoEstimado,
   type EventoDeUso,
@@ -42,6 +43,8 @@ import {
 } from "./tipos.ts";
 
 export interface DependenciasDaCamada {
+  /** Client service role — alertas de orçamento e chave exclusiva (IA-30/31). */
+  admin?: SupabaseClient;
   credenciais: RepositorioDeCredenciais;
   situacao: ConsultaDeSituacao;
   registro: RegistroDeUso;
@@ -59,6 +62,7 @@ export interface DependenciasDaCamada {
 /** Dependências reais, todas pelo client da service role. */
 export function dependenciasSupabase(admin: SupabaseClient): DependenciasDaCamada {
   return {
+    admin,
     credenciais: repositorioSupabase(admin),
     situacao: consultaSupabase(admin),
     registro: registroSupabase(admin),
@@ -93,9 +97,13 @@ function evento(
   };
 }
 
-async function registrarSemQuebrar(registro: RegistroDeUso, e: EventoDeUso): Promise<void> {
+async function registrarSemQuebrar(
+  deps: DependenciasDaCamada,
+  e: EventoDeUso,
+): Promise<void> {
   try {
-    await registro.registrar(e);
+    await deps.registro.registrar(e);
+    processarAlertasPosUso(deps.admin, e.organization_id, e);
   } catch {
     console.error("ai_usage_events: falha ao registrar uso", e.feature);
   }
@@ -116,7 +124,7 @@ export async function gerar(contexto: ContextoDeIA, pedido: PedidoDeIA, deps: De
     // uma (fornecedor e modelo são obrigatórios na tabela). Sem chave, só o erro.
     if (e instanceof ErroDeIA) {
       const credencial = await resolverCredencial(contexto.organizacaoId, pedido, resolucao).catch(() => null);
-      if (credencial) await registrarSemQuebrar(deps.registro, evento(contexto, pedido, credencial, { status: "bloqueado", erro: e }));
+      if (credencial) await registrarSemQuebrar(deps, evento(contexto, pedido, credencial, { status: "bloqueado", erro: e }));
     }
     throw e;
   }
@@ -139,7 +147,7 @@ export async function gerar(contexto: ContextoDeIA, pedido: PedidoDeIA, deps: De
     // superadmin cadastra em ai_model_prices.
     const preco = await deps.precos.vigente(credencial.fornecedor, credencial.modelo).catch(() => null);
     await registrarSemQuebrar(
-      deps.registro,
+      deps,
       evento(contexto, pedido, credencial, {
         status: "sucesso",
         uso: resposta.uso,
@@ -150,7 +158,7 @@ export async function gerar(contexto: ContextoDeIA, pedido: PedidoDeIA, deps: De
     return resposta;
   } catch (e) {
     if (e instanceof ErroDeIA) {
-      await registrarSemQuebrar(deps.registro, evento(contexto, pedido, credencial, { status: "erro", erro: e, latenciaMs: agora() - inicio }));
+      await registrarSemQuebrar(deps, evento(contexto, pedido, credencial, { status: "erro", erro: e, latenciaMs: agora() - inicio }));
     }
     throw e;
   }

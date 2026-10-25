@@ -211,16 +211,17 @@ const AdminAiClientDetail = () => {
             <Label htmlFor="ia-enabled">IA habilitada</Label>
           </div>
           <div>
-            <Label>Orçamento mensal (R$)</Label>
+            <Label htmlFor="admin-ia-budget-reais">Orçamento mensal (R$)</Label>
             <Input
+              id="admin-ia-budget-reais"
               value={budgetReais}
               onChange={(e) => setBudgetReais(e.target.value)}
               placeholder="Vazio = sem teto / herda do plano"
             />
           </div>
           <div>
-            <Label>Alerta em (%)</Label>
-            <Input value={alertaPct} onChange={(e) => setAlertaPct(e.target.value)} />
+            <Label htmlFor="admin-ia-alerta-pct">Alerta em (%)</Label>
+            <Input id="admin-ia-alerta-pct" value={alertaPct} onChange={(e) => setAlertaPct(e.target.value)} />
           </div>
           <div>
             <Label>Corte ao esgotar 100%</Label>
@@ -239,8 +240,13 @@ const AdminAiClientDetail = () => {
             </Select>
           </div>
           <div>
-            <Label>Comentário</Label>
-            <Textarea value={comentarioCfg} onChange={(e) => setComentarioCfg(e.target.value)} rows={2} />
+            <Label htmlFor="admin-ia-config-comentario">Comentário (auditoria)</Label>
+            <Textarea
+              id="admin-ia-config-comentario"
+              value={comentarioCfg}
+              onChange={(e) => setComentarioCfg(e.target.value)}
+              rows={2}
+            />
           </div>
           <Button disabled={acao.isPending || comentarioCfg.trim().length < 3} onClick={salvarConfig}>
             Salvar configuração

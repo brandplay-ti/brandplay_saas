@@ -31,7 +31,8 @@ de credenciais fora do necessário.
 
 Nunca inserir secrets em código, logs, commits, PRs ou mensagens de erro.
 
-`SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`,
+`SUPABASE_SERVICE_ROLE_KEY`, `AI_KEYS_MASTER_KEY`, chaves de fornecedor de IA
+(`AI_DEFAULT_API_KEY` e credenciais em `ai_credentials`), `RESEND_API_KEY`,
 `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET` só podem existir em Edge
 Functions / ambiente server-side. Nunca com prefixo `VITE_`
 (tudo que tem esse prefixo é público no bundle) e nunca no `useEffect` de um
@@ -69,11 +70,11 @@ estender esse fluxo.
   precisa considerar que é acessível sem login, por qualquer visitante da
   internet — nunca exponha ali um campo que não esteja explicitamente
   destinado a ser público.
-- **Edge Functions de IA** (`ai-assistant`, `score-leads`,
-  `generate-proposal-ai`, etc.) — chamam a Anthropic API com
-  `ANTHROPIC_API_KEY` (ver ADR-0003). Todas processam dado de organização; confirme que continuam
-  escopando por `organization_id` derivado do usuário autenticado, não do
-  prompt ou de parâmetro solto no body.
+- **Edge Functions de IA** (`ai-assistant`, `score-leads`, etc.) — usam a
+  camada `_shared/ai/` (ADR-0010), não API de fornecedor direta. Confirme
+  `organization_id` derivado do JWT/`organization_members`, nunca do body;
+  nunca logue prompt, resposta ou chave. **`admin-ai`** — só superadmin ativo;
+  auditar em `platform_admin_audit_log`; resposta e auditoria só com `key_hint`.
 - **Superadmin da plataforma** (`platform_admins`, `admin_*`, `admin-plans`,
   área `/admin`, ADR-0008) — papel concedido só à mão por quem opera o banco;
   nunca abra escrita de `platform_admins` para `authenticated` nem crie

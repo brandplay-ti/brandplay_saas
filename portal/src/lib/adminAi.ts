@@ -66,3 +66,28 @@ export const IA_MODO_LABEL: Record<string, string> = {
   semente: "Semente (ambiente)",
   via_padrao: "Padrão (visão)",
 };
+
+export interface AdminIaConsumoMes {
+  mes: string;
+  requisicoes: number;
+  tokens_entrada: number;
+  tokens_saida: number;
+  gasto_brl: number;
+  organizacoes: number;
+}
+
+export interface AdminIaTopMes {
+  organization_id: string;
+  nome: string;
+  requisicoes: number;
+  gasto_brl: number;
+}
+
+export interface AdminIaConsumo {
+  meses: AdminIaConsumoMes[];
+  top_mes: AdminIaTopMes[];
+}
+
+export function formatBrl(valor: number): string {
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
