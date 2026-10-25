@@ -195,3 +195,53 @@ Deno.test("pedido incoerente e fornecedor errado falham antes da rede", async ()
   await assertRejects(() => chamar("anthropic", pedido(), espiao), TypeError);
   assert(!chamou);
 });
+
+Deno.test("Gemini 3: assinatura de raciocínio da chamada é lida e volta no histórico, só para o Gemini", async () => {
+  const chamadaComAssinatura = {
+    id: "function-call-1",
+    type: "function",
+    function: { name: "submit_scores", arguments: '{"nota":7}' },
+    extra_content: { google: { thought_signature: "ASSINATURA-opaca==" } },
+  };
+  const ida = await chamar(
+    "gemini",
+    pedido({ ferramentas: [ferramenta] }),
+    fetchFalso(200, respostaOk({ content: null, tool_calls: [chamadaComAssinatura] }, "tool_calls")),
+  );
+  assertEquals(ida.chamadas, [{ id: "function-call-1", nome: "submit_scores", argumentos: { nota: 7 }, assinatura: "ASSINATURA-opaca==" }]);
+
+  const historico = pedido({
+    ferramentas: [ferramenta],
+    mensagens: [
+      { papel: "usuario", conteudo: "Dê a nota" },
+      { papel: "assistente", chamadas: ida.chamadas },
+      { papel: "resultados", resultados: [{ idChamada: "function-call-1", nome: "submit_scores", conteudo: '{"ok":true}' }] },
+    ],
+  });
+  const cap: Capturado[] = [];
+  await chamar("gemini", historico, fetchFalso(200, respostaOk({ content: "pronto" }), cap));
+  await chamar("openai", historico, fetchFalso(200, respostaOk({ content: "pronto" }), cap));
+
+  const doAssistente = (c: Capturado) =>
+    (c.corpo.messages as { role: string; tool_calls?: Record<string, unknown>[] }[]).find((m) => m.role === "assistant")!;
+  assertEquals(doAssistente(cap[0]).tool_calls?.[0].extra_content, { google: { thought_signature: "ASSINATURA-opaca==" } });
+  // A OpenAI não conhece o campo: não vai.
+  assertEquals(doAssistente(cap[1]).tool_calls?.[0].extra_content, undefined);
+
+  // Na OpenAI, um extra_content que viesse na resposta não vira assinatura.
+  const openai = await chamar(
+    "openai",
+    pedido({ ferramentas: [ferramenta] }),
+    fetchFalso(200, respostaOk({ content: null, tool_calls: [chamadaComAssinatura] }, "tool_calls")),
+  );
+  assertEquals(openai.chamadas[0].assinatura, undefined);
+});
+
+Deno.test("ferramenta sem parâmetros vai sem `parameters` (o Gemini recusa properties vazio)", async () => {
+  const cap: Capturado[] = [];
+  const semParametros = { nome: "metricas", descricao: "Métricas do painel", parametros: { type: "object" as const, properties: {} } };
+  await chamar("gemini", pedido({ ferramentas: [semParametros, ferramenta] }), fetchFalso(200, respostaOk({ content: "oi" }), cap));
+  const tools = cap[0].corpo.tools as { function: Record<string, unknown> }[];
+  assertEquals(tools[0].function, { name: "metricas", description: "Métricas do painel" });
+  assertEquals(tools[1].function.parameters, ferramenta.parametros);
+});

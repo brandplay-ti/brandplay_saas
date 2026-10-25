@@ -116,8 +116,9 @@ não nos secrets do GitHub. Passo a passo em `docs/runbooks/primeira-carga.md`.
 Secrets do repositório: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`. Secrets de cada
 environment: `DOCKPLOY_DEPLOY_WEBHOOK` e `APP_HEALTH_URL`.
 
-Os segredos de runtime (`SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`,
-`RESEND_API_KEY`, ...) **não** entram no GitHub Actions: vivem no Dockploy.
+Os segredos de runtime (`SERVICE_ROLE_KEY`, `AI_KEYS_MASTER_KEY`, chaves de
+fornecedor de IA, `RESEND_API_KEY`, ...) **não** entram no GitHub Actions:
+vivem no Dockploy (`docs/runbooks/ia.md`).
 
 ## Runner de migrations
 

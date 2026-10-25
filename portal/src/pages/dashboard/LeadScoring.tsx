@@ -10,6 +10,7 @@ import { Sparkles, Loader2, Flame, Snowflake, ThermometerSun, ExternalLink } fro
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useOrganization } from "@/hooks/useOrganization";
+import { avisarErroDeIA } from "@/lib/erroDeIA";
 import { PageHeader } from "@/components/common/PageHeader";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
@@ -48,6 +49,8 @@ export default function LeadScoring() {
   const [scoring, setScoring] = useState(false);
 
   useEffect(() => {
+    // A propriedade escolhida é da organização anterior: não vale na nova.
+    setPropertyId("");
     if (!orgId) return;
     supabase.from("sports_properties").select("id,name").eq("organization_id", orgId).order("name").then(({ data }) => {
       setProperties((data ?? []) as Property[]);
@@ -57,7 +60,7 @@ export default function LeadScoring() {
   const load = async () => {
     if (!orgId) return;
     setLoading(true);
-    let q = supabase.from("lead_scores").select("*").order("score", { ascending: false }).limit(100);
+    let q = supabase.from("lead_scores").select("*").eq("organization_id", orgId).order("score", { ascending: false }).limit(100);
     if (scopeMode === "property" && propertyId) q = q.eq("property_id", propertyId);
     else q = q.is("property_id", null);
     const { data: rows } = await q;
@@ -80,6 +83,7 @@ export default function LeadScoring() {
   useEffect(() => { load(); }, [scopeMode, propertyId, orgId]);
 
   const runScoring = async () => {
+    if (!orgId) return;
     if (scopeMode === "property" && !propertyId) {
       toast.error("Selecione uma propriedade.");
       return;
@@ -87,14 +91,18 @@ export default function LeadScoring() {
     setScoring(true);
     try {
       const { data, error } = await supabase.functions.invoke("score-leads", {
-        body: { property_id: scopeMode === "property" ? propertyId : null },
+        body: { organization_id: orgId, property_id: scopeMode === "property" ? propertyId : null },
       });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success(`IA avaliou ${(data as any)?.count ?? 0} leads.`);
+      if (error || data?.error) {
+        await avisarErroDeIA(error, data, "Falha ao gerar scores");
+        return;
+      }
+      if (data?.saved === false) {
+        toast.warning("A IA avaliou os leads, mas as notas não foram gravadas. Tente novamente.");
+        return;
+      }
+      toast.success(`IA avaliou ${data?.count ?? 0} leads.`);
       await load();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao gerar scores");
     } finally {
       setScoring(false);
     }
@@ -133,7 +141,7 @@ export default function LeadScoring() {
                   </SelectContent>
                 </Select>
               )}
-              <Button onClick={runScoring} disabled={scoring}>
+              <Button onClick={runScoring} disabled={scoring || !orgId}>
                 {scoring ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
                 Gerar / Atualizar com IA
               </Button>

@@ -1,5 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Building2, ArrowRight } from "lucide-react";
+import { Users, Building2, ArrowRight, Sparkles } from "lucide-react";
+import { IaConsumoCard } from "@/components/settings/IaConsumoCard";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -53,11 +54,22 @@ const Settings = () => {
           <TabsTrigger value="team">
             <Users className="h-4 w-4 mr-2" /> Usuários & Permissões
           </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="ia">
+              <Sparkles className="h-4 w-4 mr-2" /> IA
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="organization">
           <OrganizationForm />
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="ia">
+            <IaConsumoCard />
+          </TabsContent>
+        )}
 
         <TabsContent value="team" className="space-y-4">
           <Card>

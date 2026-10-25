@@ -73,7 +73,10 @@ Deno.serve(async (req: Request) => {
   }
 });
 
-// Referenciado apenas para deixar explicito o contrato de verificacao de JWT,
-// que hoje e feito pelo proprio runtime via flag --verify-jwt.
+// Este despachante NAO verifica JWT: nada aqui le `VERIFY_JWT`, e o compose
+// sobe o runtime sem `--verify-jwt`. Cada funcao valida o usuario por conta
+// propria (`auth.getUser()`) — e de proposito, ver "Edge Functions" no
+// SECURITY.md. As variaveis ficam referenciadas para quem procurar por elas
+// chegar aqui.
 void JWT_SECRET;
 void VERIFY_JWT;

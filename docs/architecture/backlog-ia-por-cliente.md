@@ -20,13 +20,46 @@
   ou resposta da IA. Só o final da chave (`key_hint`) aparece em tela e
   auditoria.
 
+## Status final (2026-10-25)
+
+Referência de branch: épico 1–3 e funções migradas já estão em **`dev`**
+(migrations `0031`–`0033`, camada `_shared/ai/`, funções via `gerar()`).
+Épicos 4–6 (admin, alertas, docs) estão em **`feature/ia-admin`** — PR
+[#30](https://github.com/brandplay-ti/brandplay_saas/pull/30) → `dev`.
+
+| ID | Status | Observação |
+| --- | --- | --- |
+| IA-01 – IA-12 | **Feito** (`dev`) | Fundação, camada, CI Deno |
+| IA-13 – IA-21 | **Feito** (`dev`) | Funções migradas + portal `erroDeIA` |
+| IA-22 | **Parcial** | `npm run supabase:avaliar-ia`: teste `admin-ai` por fornecedor; `--funcoes` faz smoke de 1 função. Falta rodar as **13** funções, métricas agregadas e revisão qualitativa em PT (depende de chaves OpenAI/Anthropic + tempo humano). Relatório local em `supabase/tools/avaliar-ia/saida/`. |
+| IA-23 – IA-28 | **Feito** (PR #30) | `admin-ai`, `/admin/ia`, preços |
+| IA-29 | **Feito** (PR #30) | E2E `admin-ia.spec.ts`: acesso, bloqueio owner, teste inválido, orçamento na lista. |
+| IA-30 – IA-32 | **Feito** (PR #30) | `alertas.ts`, `AdminOverview` |
+| IA-33 | **Feito** (PR #30) | `IaConsumoCard` em Configurações |
+| IA-34 | **Pendente (ops)** | Deploy homolog/prod na VPS — checklist em `docs/runbooks/ia.md`; **não** é desenvolvimento local |
+| IA-35 – IA-36 | **Feito** (PR #30) | ADR-0010, runbook, regras atualizadas |
+| IA-37 | **Fora do dev** | Termos/privacidade — jurídico |
+
+### Desenvolvimento local ainda útil (opcional, não bloqueia merge)
+
+1. **IA-22 (completo)** — estender `supabase/tools/avaliar-ia/rodar.mjs` para
+   invocar as 13 funções de produto (com payloads mínimos do seed) e sumarizar
+   latência/erros a partir de `ai_usage_events`; anexar relatório ao PR ou ao
+   runbook. Requer chaves dos três fornecedores e stack local.
+3. **Cadastro operacional local** — preços em `/admin/ia/precos` e chave padrão
+   no admin (dados, não código): necessário para orçamento/alertas fazerem
+   sentido nos testes manuais.
+
+Fora de código: **IA-34** (VPS), **IA-37** (jurídico), rotação/revogação da
+chave Gemini exposta em chat de dev.
+
 ## Sequência por marco
 
 | Marco | Histórias | Resultado |
 |---|---|---|
 | **1 — IA volta a funcionar** | IA-01 → IA-12 (fundação e camada), IA-13 → IA-21 (funções), IA-22 (avaliação), IA-34 (deploy do marco) | Todos os clientes usando a chave padrão (semente por variável de ambiente), em qualquer um dos 3 fornecedores, com uso medido |
 | **2 — Chave por cliente** | IA-23 → IA-29 | Superadmin gerencia chave padrão e chaves exclusivas em `/admin/ia` |
-| **3 — Controle de custo** | IA-30 → IA-33, IA-35 → IA-37 | Alertas, custo na visão geral, consumo para o cliente, documentação final |
+| **3 — Controle de custo** | IA-30 → IA-33, IA-35 → IA-36 **feitos** (PR #30); IA-37 jurídico | Alertas, visão geral, consumo cliente, docs; deploy = IA-34 |
 
 Caminho crítico: IA-01 → IA-05 → IA-06/IA-07 → IA-09 → IA-13 → lotes de
 funções → IA-22. As histórias de um mesmo lote de funções (IA-14 a IA-21) são
@@ -406,15 +439,56 @@ Recebe a organização ativa (`LeadScoring.tsx`), valida e filtra
 patrocinadores, oportunidades, propriedades e histórico por ela. Corrige a
 mistura de organizações. Nível `rapido`.
 
+Feito. `organization_id` do corpo, validado com `exigirModulo` (módulo
+`crm`, **escrita**), filtra as cinco consultas e vai explícito em
+`lead_scores`. `LeadScoring.tsx` manda o `orgId`, lê as notas só da
+organização ativa e esquece a propriedade escolhida ao trocar de
+organização. Decisões tomadas na implementação:
+- exige escrita no CRM antes de chamar a IA: o resultado só vale gravado, e
+  o RLS de `lead_scores` recusaria a gravação de quem só lê;
+- a resposta só aceita alvos que foram no prompt (id inventado não vira
+  linha); nota limitada a 0–100; classificação fora da lista é recalculada
+  pela nota;
+- uma exclusão e uma inserção em lote no lugar do par por lead; gravação que
+  falha volta `saved: false` e a tela avisa (a chamada já foi feita e medida);
+- `maxTokens` de 4.096 para 16.000: até 200 leads não cabiam no limite antigo.
+
 ### IA-18 · `generate-proposal-ai` e `generate-proposal-wizard` — M
 
 Tool obrigatória; organização da oportunidade/patrocinador
 (`GenerateProposalAIDialog.tsx`, `ProposalWizardDialog.tsx`).
 
+Feito. Decisões tomadas na implementação:
+- **organização ativa, não a do patrocinador**: patrocinador e propriedade
+  são opcionais nos dois diálogos, e a proposta é gravada pela tela na
+  organização ativa. As funções recebem o `organization_id`, validam com
+  `exigirModulo` (`crm`, leitura) e exigem que patrocinador e propriedade
+  escolhidos sejam dela (senão 404). Cotas, alocações e ativos do contexto
+  também ficam nela — antes, os ativos vinham de todas as organizações;
+- a ferramenta obrigatória virou o modo `json` da camada, como no lote 1;
+- a resposta volta normalizada (itens com nome, quantidade ≥ 1, valor ≥ 0;
+  textos sempre string), porque a tela soma os itens e lê cada campo.
+
 ### IA-19 · `suggest-next-steps` e `summarize-contract` — M
 
 Organização do registro de contexto (6 contextos) e do contrato
 (`NextStepsAI.tsx`, `Pipeline.tsx`, `ContractAISummary.tsx`).
+
+Feito. Decisões tomadas na implementação:
+- `suggest-next-steps`: contexto de registro usa a organização dele, com
+  `exigirModulo` no módulo do registro (`crm`; `operacional` na entrega);
+  painel do dia e lista de entregas usam a organização ativa, que o
+  `NextStepsAI` sempre envia. Antes, essas duas listas filtravam só por
+  `owner_id`, em todas as organizações do usuário;
+- entregas do contrato: o filtro `.or(...)` comparava o id do contrato com
+  `opportunity_id` e interpolava a marca crua; virou duas consultas
+  parametrizadas (por `contract_id` e pela marca), na organização do contrato;
+- passos normalizados (tipo e prioridade da lista, prazo 0–30); o
+  `Pipeline.tsx` (priorizar o dia, 5 chamadas em paralelo) mostra o primeiro
+  erro traduzido por `lerErroDeIA`;
+- `summarize-contract`: resumo vazio vira `resposta_invalida` e não apaga o
+  anterior; o UPDATE de `ai_summary` confere as linhas gravadas (quem só lê
+  tem o UPDATE filtrado pelo RLS, sem erro) e volta `saved: false`.
 
 ### IA-20 · `ai-assistant` e histórico neutro — G
 
@@ -423,10 +497,44 @@ passa a gravar em formato neutro; leitura converte o formato Anthropic
 antigo (conversas antigas continuam abrindo). Teste do conversor.
 Componente: `AIAssistantDrawer.tsx`.
 
+Feito. Conversor em `_shared/ai/historico.ts` (com teste), para o CI rodar
+junto com a camada. Decisões tomadas na implementação:
+- conversa nova nasce na organização ativa (o drawer manda o `orgId` e lista
+  só as conversas dela); a existente segue na organização dela. Antes, a
+  conversa era criada sem `organization_id` e o RLS recusava;
+- as ferramentas filtram pela organização da conversa; as de escrita
+  conferem que o patrocinador/oportunidade é dela. Texto livre que vai para
+  filtro do PostgREST perde `,()*%\:"'`; falha de banco volta ao modelo como
+  mensagem neutra;
+- a leitura aceita também o formato OpenAI do tempo do Lovable, não só o da
+  Anthropic: as conversas mais antigas voltam a abrir;
+- janela das **últimas** 50 mensagens (antes, as primeiras 50);
+- nada é gravado antes da primeira resposta da IA; na última rodada, chamada
+  de ferramenta não é executada;
+- **assinatura de raciocínio do Gemini 3**: o adaptador `openai_compat` lê
+  `extra_content.google.thought_signature` em `ChamadaDeFerramenta.assinatura`
+  e a reenvia só ao Gemini — sem ela, a segunda volta do loop dá 400.
+  Ferramenta sem parâmetros vai sem `parameters` (o Gemini recusa
+  `properties` vazio). Testado com `fetch` simulado; a avaliação real fica
+  para a IA-22.
+
 ### IA-21 · `brandtrack-detect-image` — M
 
 Nível `visao`, imagens pela camada, exceção Q4 coberta. Componente:
 `BrandTrackUploads.tsx`.
+
+Feito. Decisões tomadas na implementação:
+- organização da mídia, lida sob RLS, com `exigirModulo` (`operacional`);
+- a função deixou de usar a service role para dados: consultas e gravações
+  pelo client do usuário, mídia baixada pela policy do bucket, logos pela URL
+  pública de `sponsor-logos`, evidência do frame na pasta de quem analisa
+  (`<user_id>/evidence/...`, a única em que a policy deixa gravar). Antes, o
+  acesso só era conferido para quem não era o dono, e as marcas esperadas e
+  logos não filtravam a organização;
+- exceção Q4 coberta pela camada (`exigeVisao` + `credencial_test.ts`);
+- frame validado (data URL de imagem, até 8 MB); a mídia só vira `failed`
+  depois de o acesso ser confirmado, com a mensagem ao usuário em
+  `error_message` (antes, podia ir o corpo do erro do fornecedor).
 
 Dependências de IA-14 a IA-21: IA-09, IA-10, IA-11, IA-13.
 
@@ -559,16 +667,15 @@ homologação/produção.
 
 ### IA-35 · ADR da IA e atualização das regras — M
 
-ADR da IA — próximo número livre; a 0009 já é a de backup (`0009-backup-externo-com-restic.md`) — (IA multi-fornecedor com chave por organização; substitui a
-ADR-0003), `SECURITY.md`, `.claude/rules/security.md` (superfície nova),
-`.claude/rules/supabase.md` (padrão das tabelas de IA), `CLAUDE.md` §3
-(integrações e variáveis), `supabase/functions/MIGRATION_NOTES.md`.
+**Feito (2026-10-25):** [ADR-0010](../adr/0010-ia-multi-fornecedor-por-organizacao.md)
+(substitui ADR-0003), `SECURITY.md`, `.claude/rules/security.md`,
+`.claude/rules/supabase.md`, `CLAUDE.md` §3, `MIGRATION_NOTES.md` (alertas).
 
 ### IA-36 · Runbook `docs/runbooks/ia.md` — P
 
-Gerar e guardar a chave mestra; rotação (`key_version`); cadastrar a chave
-padrão; criar um *Project* da OpenAI por cliente com limite de gasto; usar o
-plano pago do Gemini; o que fazer com cada alerta.
+**Feito (2026-10-25):** [`docs/runbooks/ia.md`](../runbooks/ia.md) — chave
+mestra, rotação, chave padrão/exclusiva, preços, alertas, checklist de deploy
+(sem executar VPS até IA-34).
 
 ### IA-37 · Termos de uso e política de privacidade — fora do time de dev
 

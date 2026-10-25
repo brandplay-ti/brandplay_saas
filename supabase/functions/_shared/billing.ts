@@ -257,6 +257,10 @@ export async function ensurePlanPrice(db: SupabaseClient, stripe: Stripe, plano:
     priceId = preco.id;
   }
 
+  if (!priceId) {
+    throw new Error("Stripe não devolveu id de preço após create.");
+  }
+
   if (productId !== plano.stripe_product_id || priceId !== plano.stripe_price_id) {
     await db
       .from("billing_plans")

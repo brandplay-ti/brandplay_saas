@@ -32,7 +32,8 @@
     "supabase:types": "node supabase/tools/gerar-types.mjs",
     "supabase:chaves": "node supabase/tools/gerar-chaves-locais.mjs",
     "supabase:chave-de-papel": "node supabase/tools/gerar-chave-de-papel.mjs",
-    "supabase:checar": "node supabase/tools/checar-supabase.mjs"
+    "supabase:checar": "node supabase/tools/checar-supabase.mjs",
+    "supabase:avaliar-ia": "node supabase/tools/avaliar-ia/rodar.mjs"
   },
   "devDependencies": {
     "prettier": "^3.9.6"

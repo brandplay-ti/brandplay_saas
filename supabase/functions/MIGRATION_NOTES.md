@@ -17,6 +17,15 @@ A variável de ambiente `ANTHROPIC_API_KEY` precisa ser configurada no Supabase
 self-hosted; `LOVABLE_API_KEY` não é mais necessária em nenhuma das 15 funções listadas
 abaixo (confirmado via `grep -ri "lovable" supabase/functions/` — nenhuma ocorrência).
 
+> **Depois (épico 3 do plano de IA por cliente):** as 13 funções de IA deixaram de
+> chamar a Anthropic direto. Todas passam pela camada `_shared/ai/` (`gerar`), que
+> escolhe a credencial da organização (OpenAI, Gemini ou Anthropic), aplica as
+> guardas e mede o uso. `ANTHROPIC_API_KEY` não é mais lida por nenhuma função; a
+> chave do ambiente é a semente `AI_DEFAULT_PROVIDER` + `AI_DEFAULT_API_KEY`. As
+> seções abaixo desta nota descrevem a migração anterior (Lovable → Anthropic) e
+> ficam como histórico. O estado atual está em
+> [Camada de IA multi-fornecedor](#camada-de-ia-multi-fornecedor).
+
 ## Funções migradas e modelo escolhido
 
 | Função | Modelo | Por quê |
@@ -137,3 +146,164 @@ modelo "lite"/"flash-lite" explícito de baixo custo); por isso foram tratadas c
   instrução no prompt + parse defensivo, sem garantia "hard" de schema.
 - **Forçar uma única tool (`tool_choice`)**: mapeado 1:1 para
   `{type:"tool", name:"..."}`, sem perda de funcionalidade.
+
+## Camada de IA multi-fornecedor
+
+Plano em `docs/architecture/plano-ia-por-cliente.md`, histórias em
+`docs/architecture/backlog-ia-por-cliente.md` (épico 3, IA-14 a IA-21).
+
+Toda função de IA segue o mesmo roteiro, com o apoio de `_shared/ai/funcao.ts`:
+
+1. `autenticar`: usuário do JWT e client com o JWT dele (consultas sob RLS);
+2. organização: a do recurso lido sob RLS (patrocinador, oportunidade,
+   contrato, conversa, mídia) ou, nas funções que trabalham sobre listas, a
+   organização ativa enviada pelo portal (`organization_id`);
+3. `exigirModulo`: membro ativo da organização e com acesso ao módulo — vale
+   também quando a organização veio do recurso (usuário do portal do
+   patrocinador lê o próprio patrocinador pelo RLS, mas não usa a IA interna);
+4. todas as consultas filtram por essa organização;
+5. `gerar` com o **nível** (`rapido`, `padrao`, `visao`) — nunca um nome de
+   modelo; saída estruturada pelo modo `json` da camada, com esquema;
+6. `respostaDeFalha`: erro de IA vira `{ error, codigo }` (o portal trata com
+   `portal/src/lib/erroDeIA.ts`); falha inesperada vira 500 sem detalhe, e o
+   log nunca leva prompt, resposta ou chave.
+
+| Função | Nível | Organização | Módulo |
+|---|---|---|---|
+| `sponsor-executive-summary` | padrao | do patrocinador | crm |
+| `generate-sellout-report` | padrao | da propriedade | crm |
+| `detect-churn-risk` | rapido | ativa do portal | crm |
+| `ticket-benchmark-ai` | padrao | ativa do portal | crm |
+| `prepare-meeting-ai` | padrao | do patrocinador | crm |
+| `task-insights` | padrao | da tarefa / item | crm ou operacional |
+| `score-leads` | rapido | ativa do portal | crm (escrita) |
+| `generate-proposal-ai` | padrao | ativa do portal | crm |
+| `generate-proposal-wizard` | padrao | ativa do portal | crm |
+| `suggest-next-steps` | padrao | do registro (oportunidade, patrocinador, contrato, proposta, entrega); ativa do portal no painel e na lista de entregas | crm; operacional nas entregas |
+| `summarize-contract` | padrao | do contrato | crm |
+| `ai-assistant` | padrao | da conversa; conversa nova na ativa do portal | crm |
+| `brandtrack-detect-image` | visao | da mídia | operacional |
+
+### Lote 2 (IA-17, IA-18)
+
+- **`score-leads`**: lia patrocinadores, oportunidades, propriedades e o
+  histórico de propostas de **todas** as organizações do usuário e gravava
+  `lead_scores` sem `organization_id` (o gatilho preenchia com `get_user_org`,
+  a organização mais antiga). Agora recebe a organização ativa, filtra tudo por
+  ela e grava `organization_id` explícito. Exige escrita no CRM antes da
+  chamada, porque o resultado só vale gravado. Só aceita na resposta os alvos
+  que foram no prompt (id inventado não vira linha); nota limitada a 0–100 e
+  classificação recalculada pela nota quando vem fora da lista. `maxTokens`
+  subiu de 4.096 para 16.000: até 200 leads com razões e argumento não cabiam.
+  Gravação que falha volta `saved: false` e a tela avisa.
+- **`generate-proposal-ai`** e **`generate-proposal-wizard`**: a proposta é
+  gravada pela tela na organização ativa, então é ela que a função recebe e
+  valida. Patrocinador e propriedade escolhidos precisam ser dessa organização
+  (senão 404); cotas, alocações e ativos do contexto também. Antes, os ativos
+  vinham de todas as organizações do usuário. A ferramenta obrigatória virou o
+  modo `json` da camada, e a resposta volta normalizada (itens com nome,
+  quantidade ≥ 1 e valor ≥ 0; campos de texto sempre string), porque a tela
+  soma os itens e lê cada campo.
+
+### Lote 3 (IA-19)
+
+- **`suggest-next-steps`**: nos quatro contextos de registro (oportunidade,
+  patrocinador, contrato, proposta) e na entrega com `target_id`, a
+  organização é a do registro; no painel do dia e na lista de entregas, a
+  organização ativa (o `NextStepsAI` sempre manda o `orgId`). Antes, o painel
+  e as entregas filtravam só por `owner_id`, em todas as organizações do
+  usuário, e as consultas filhas não tinham filtro de organização. No
+  contrato, as entregas eram buscadas por
+  `.or("opportunity_id.eq.<id do contrato>,brand.eq.<marca>")` — comparava o
+  id do contrato com `opportunity_id` e montava o filtro com a marca crua
+  (vírgula ou parêntese no nome quebrava a consulta). Agora são duas consultas
+  parametrizadas, por `contract_id` e pela marca, na organização do contrato.
+  Contexto desconhecido continua 400; o `opportunity_id` solto (chamada antiga
+  do pipeline) continua aceito. Os passos voltam normalizados (tipo e
+  prioridade dentro da lista, prazo 0–30).
+- **`summarize-contract`**: organização do contrato; cláusulas e ativos
+  filtrados por ela. Resumo vazio é `resposta_invalida` e não apaga o resumo
+  que já existe. Quem só lê contratos tem o UPDATE de `ai_summary` filtrado
+  pelo RLS sem erro: a função confere as linhas gravadas e volta
+  `saved: false`, e a tela avisa.
+
+### Lote 4 (IA-20, IA-21)
+
+- **`ai-assistant`**: a organização é a da conversa (`ai_conversations`, lida
+  sob RLS); conversa nova nasce na organização ativa enviada pelo portal.
+  Antes, a conversa era criada sem `organization_id` — o RLS
+  (`ai_conversations_own`, `is_org_member(organization_id)`) recusava o insert,
+  e conversa nova não abria — e as nove ferramentas consultavam todas as
+  organizações do usuário. Agora toda ferramenta filtra pela organização da
+  conversa, e as duas de escrita conferem que o patrocinador ou a
+  oportunidade é dela e gravam `organization_id` explícito. Texto livre que
+  entra em filtro do PostgREST (`.or(...)`, `ilike`) perde os caracteres que
+  mudam o filtro; `limit` vai de 1 a 50. Falha de banco volta ao modelo como
+  mensagem neutra ("Sem permissão…", "Não foi possível consultar…"), sem o
+  texto do erro. O loop de ferramentas passa pela camada; na última rodada,
+  se o modelo ainda pede ferramentas, elas não são executadas. Nada é gravado
+  antes da primeira resposta da IA: uma chamada barrada (orçamento, IA
+  desativada) não deixa pergunta órfã nem conversa vazia.
+  - **Histórico neutro** (`_shared/ai/historico.ts`, com teste): a resposta
+    com ferramentas grava em `ai_messages.tool_calls` as chamadas como
+    `{ id, nome, argumentos, assinatura? }`; os resultados seguem uma linha
+    `tool` por chamada. A leitura aceita os três formatos já gravados —
+    neutro, o `content` cru da Anthropic (blocos `tool_use`) e o
+    `tool_calls` da OpenAI do tempo do Lovable — e descarta o que os
+    fornecedores recusariam (resultado sem chamada, chamada sem resultado,
+    histórico que não começa pelo usuário). Isso fecha o gap conhecido da
+    seção "Suposições sobre formato de resposta" acima: as conversas antigas
+    voltam a abrir. A janela do histórico passou a ser as **últimas** 50
+    linhas (antes, `order asc limit 50` pegava as primeiras e, em conversa
+    longa, deixava a pergunta nova de fora).
+  - **Assinatura de raciocínio do Gemini 3**: no endpoint compatível com a
+    OpenAI, cada chamada de ferramenta traz
+    `tool_calls[].extra_content.google.thought_signature`, e o Gemini
+    responde 400 se ela não volta no turno seguinte do loop. O adaptador
+    `openai_compat` passou a guardá-la em `ChamadaDeFerramenta.assinatura` e a
+    reenviá-la só ao Gemini. Ferramenta sem parâmetros (`get_dashboard_metrics`)
+    vai sem `parameters`, porque o Gemini recusa objeto com `properties` vazio.
+    Validado só com `fetch` simulado (sem chave real).
+- **`brandtrack-detect-image`**: organização da mídia, lida sob RLS, com
+  `exigirModulo` (`operacional`). Antes, tudo passava pela service role: o
+  acesso era conferido só para quem não era o dono da mídia, e as marcas
+  esperadas e os logos eram lidos sem filtro de organização. Agora consultas,
+  gravações e storage usam o client do usuário — a mídia é baixada pela policy
+  do bucket, os logos pela URL pública de `sponsor-logos`, e a evidência do
+  frame é gravada na pasta de quem analisa (`<user_id>/evidence/...`; a
+  policy só deixa gravar na própria, e a leitura vale pela linha da
+  detecção). A service role fica só com a camada. Imagens vão como
+  `ParteDoConteudo` no nível `visao` (a exceção Q4 — chave da organização sem
+  modelo de visão usa a padrão — é da camada, coberta em
+  `credencial_test.ts`). O frame enviado é validado (data URL de imagem, até
+  8 MB). A mídia só é marcada como `failed` depois de o acesso ser
+  confirmado, e `error_message` recebe a mensagem ao usuário — antes podia
+  receber o corpo do erro do fornecedor.
+
+## `admin-ai` (backlog IA-23)
+
+Edge Function administrativa para credenciais de IA (`ai_credentials`):
+
+- JWT → superadmin ativo (`platform_admins`) → validação → teste mínimo no
+  fornecedor → cifra (`AI_KEYS_MASTER_KEY`, `_shared/ai-crypto.ts`) → gravação
+  com revogação da credencial ativa anterior → auditoria em
+  `platform_admin_audit_log` (`target_type: ai_credential`, só metadados e
+  `key_hint`).
+- Ações: `testar`, `definir_padrao`, `definir_cliente`, `revogar_cliente`.
+- Ações adicionais (IA-24): `configurar_cliente` (`ai_org_settings`) e
+  `definir_preco` (`ai_model_prices`), também auditadas.
+
+## Alertas de IA (backlog IA-30, IA-31)
+
+Após cada evento em `ai_usage_events`, `_shared/ai/alertas.ts` (chamado pela
+camada) pode:
+
+- avisar owner/admin e superadmins ao atingir o % de alerta ou 100% do
+  orçamento mensal (dedupe por organização, limiar e mês);
+- avisar superadmins quando a chave **exclusiva** falha com `chave_invalida` ou
+  `sem_saldo` (dedupe por credencial e hora).
+
+Notificações em `notifications`; e-mail via `_shared/email.ts` quando o usuário
+mantém `notification_preferences.email_enabled`.
+
+Documentação de operação e ADR: `docs/runbooks/ia.md`, `docs/adr/0010-ia-multi-fornecedor-por-organizacao.md`.
