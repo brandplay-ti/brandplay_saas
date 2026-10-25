@@ -1,13 +1,25 @@
-// Summarize a contract file (PDF/DOCX) and persist ai_summary
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+// Resumo de contrato e perguntas sobre ele (IA-19). A organização é a do
+// contrato, lido sob RLS; cláusulas e ativos ficam nela.
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { gerar } from "../_shared/ai/camada.ts";
+import {
+  autenticar,
+  CORS,
+  dependenciasDaCamada,
+  ErroDaRequisicao,
+  exigirModulo,
+  json,
+  respostaDeFalha,
+  uuidDoCorpo,
+} from "../_shared/ai/funcao.ts";
+import { ErroDeIA } from "../_shared/ai/erros.ts";
 
-const SUMMARY_SYSTEM = `Você é um analista jurídico-comercial. Resuma contratos de patrocínio em português do Brasil de forma estruturada e objetiva.
+const FUNCIONALIDADE = "summarize-contract";
+
+/** Linha do PostgREST (as funções não têm os tipos gerados do banco). */
+type Linha = Record<string, unknown>;
+
+const SISTEMA_RESUMO = `Você é um analista jurídico-comercial. Resuma contratos de patrocínio em português do Brasil de forma estruturada e objetiva.
 Use markdown com as seções:
 ## Partes
 ## Objeto
@@ -19,160 +31,77 @@ Use markdown com as seções:
 
 Seja conciso, factual e destaque cláusulas atípicas ou riscos.`;
 
-const CHAT_SYSTEM = `Você é um assistente que responde perguntas sobre o contrato fornecido. Responda em português do Brasil, citando trechos quando útil. Se não houver informação no contrato, diga claramente.`;
+const SISTEMA_PERGUNTA = `Você é um assistente que responde perguntas sobre o contrato fornecido. Responda em português do Brasil, citando trechos quando útil. Se não houver informação no contrato, diga claramente.`;
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
 
   try {
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not configured");
+    const { usuario, cliente } = await autenticar(req);
+    const corpo = await req.json().catch(() => ({}));
+    const contractId = uuidDoCorpo(corpo, "contract_id");
+    const modo = corpo?.mode === "chat" ? "chat" : "summarize";
+    const pergunta = typeof corpo?.question === "string" ? corpo.question.trim().slice(0, 2000) : "";
+    if (modo === "chat" && !pergunta) throw new ErroDaRequisicao(400, "question é obrigatório");
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing authorization" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const body = await req.json();
-    const contractId: string = body.contract_id;
-    const mode: "summarize" | "chat" = body.mode ?? "summarize";
-    const question: string = body.question ?? "";
-
-    if (!contractId) {
-      return new Response(JSON.stringify({ error: "contract_id é obrigatório" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const { data: contract, error: cErr } = await supabase
+    const { data: contrato } = await cliente
       .from("contracts")
-      .select("id, title, brand, total_value, start_date, end_date, signatories, notes, file_path, file_name, ai_summary")
-      .eq("id", contractId).maybeSingle();
-    if (cErr || !contract) {
-      return new Response(JSON.stringify({ error: "Contrato não encontrado" }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      .select("id, organization_id, title, brand, total_value, start_date, end_date, signatories, notes, ai_summary")
+      .eq("id", contractId)
+      .maybeSingle();
+    if (!contrato?.organization_id) throw new ErroDaRequisicao(404, "Contrato não encontrado");
+    const org: string = contrato.organization_id;
+    await exigirModulo(cliente, usuario.id, org, "crm");
+
+    // Contexto em texto: campos estruturados, ativos e cláusulas (sem ler o arquivo binário).
+    const [{ data: clausulas }, { data: ativos }] = await Promise.all([
+      cliente.from("contract_clauses").select("title, content, position").eq("contract_id", contractId).eq("organization_id", org).order("position"),
+      cliente.from("contract_assets").select("name, quantity, unit_value, notes").eq("contract_id", contractId).eq("organization_id", org),
+    ]);
+
+    const partes: string[] = [`Título: ${contrato.title}`, `Marca: ${contrato.brand}`];
+    if (contrato.total_value) partes.push(`Valor total: R$ ${contrato.total_value}`);
+    if (contrato.start_date || contrato.end_date) partes.push(`Vigência: ${contrato.start_date ?? "?"} → ${contrato.end_date ?? "?"}`);
+    if (contrato.signatories) partes.push(`Signatários: ${contrato.signatories}`);
+    if (contrato.notes) partes.push(`Notas: ${contrato.notes}`);
+    if (ativos?.length) {
+      partes.push(`Ativos:\n${(ativos as Linha[]).map((a) => `- ${a.name} x${a.quantity} (R$ ${a.unit_value})${a.notes ? ` — ${a.notes}` : ""}`).join("\n")}`);
     }
-
-    // Build text context: clauses + structured fields. (Avoid binary parsing in edge.)
-    const { data: clauses } = await supabase
-      .from("contract_clauses")
-      .select("title, content, position")
-      .eq("contract_id", contractId)
-      .order("position");
-
-    const { data: assetsRows } = await supabase
-      .from("contract_assets")
-      .select("name, quantity, unit_value, notes")
-      .eq("contract_id", contractId);
-
-    const contextParts: string[] = [];
-    contextParts.push(`Título: ${contract.title}`);
-    contextParts.push(`Marca: ${contract.brand}`);
-    if (contract.total_value) contextParts.push(`Valor total: R$ ${contract.total_value}`);
-    if (contract.start_date || contract.end_date) {
-      contextParts.push(`Vigência: ${contract.start_date ?? "?"} → ${contract.end_date ?? "?"}`);
+    if (clausulas?.length) {
+      partes.push(`Cláusulas:\n${(clausulas as Linha[]).map((c) => `### ${c.title}\n${c.content ?? ""}`).join("\n\n")}`);
     }
-    if (contract.signatories) contextParts.push(`Signatários: ${contract.signatories}`);
-    if (contract.notes) contextParts.push(`Notas: ${contract.notes}`);
-    if (assetsRows?.length) {
-      contextParts.push(`Ativos:\n${assetsRows.map((a) => `- ${a.name} x${a.quantity} (R$ ${a.unit_value})${a.notes ? ` — ${a.notes}` : ""}`).join("\n")}`);
-    }
-    if (clauses?.length) {
-      contextParts.push(`Cláusulas:\n${clauses.map((c) => `### ${c.title}\n${c.content ?? ""}`).join("\n\n")}`);
-    }
+    const contexto = partes.join("\n");
 
-    const contractContext = contextParts.join("\n");
+    const resposta = await gerar({ organizacaoId: org, usuarioId: usuario.id }, {
+      funcionalidade: FUNCIONALIDADE,
+      nivel: "padrao",
+      sistema: modo === "chat" ? SISTEMA_PERGUNTA : SISTEMA_RESUMO,
+      mensagens: [{
+        papel: "usuario",
+        conteudo: modo === "chat"
+          ? `CONTRATO:\n${contexto}\n\nRESUMO PRÉVIO:\n${contrato.ai_summary ?? "(sem resumo)"}\n\nPERGUNTA: ${pergunta}`
+          : `Resuma este contrato:\n\n${contexto}`,
+      }],
+      maxTokens: 4096,
+    }, dependenciasDaCamada());
+    const texto = resposta.texto.trim();
 
-    if (mode === "chat") {
-      if (!question) {
-        return new Response(JSON.stringify({ error: "question é obrigatório" }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "x-api-key": ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-5",
-          max_tokens: 4096,
-          system: CHAT_SYSTEM,
-          messages: [
-            { role: "user", content: `CONTRATO:\n${contractContext}\n\nRESUMO PRÉVIO:\n${contract.ai_summary ?? "(sem resumo)"}\n\nPERGUNTA: ${question}` },
-          ],
-        }),
-      });
-      if (!aiResp.ok) {
-        const t = await aiResp.text();
-        console.error("chat error:", aiResp.status, t);
-        return new Response(JSON.stringify({ error: aiResp.status === 429 ? "Rate limit" : "Erro IA" }), {
-          status: aiResp.status === 429 ? 429 : 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const j = await aiResp.json();
-      const answer = j.content?.find((b: any) => b.type === "text")?.text ?? "";
-      return new Response(JSON.stringify({ answer }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (modo === "chat") return json({ answer: texto });
 
-    // Summarize
-    const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-5",
-        max_tokens: 4096,
-        system: SUMMARY_SYSTEM,
-        messages: [
-          { role: "user", content: `Resuma este contrato:\n\n${contractContext}` },
-        ],
-      }),
-    });
-    if (!aiResp.ok) {
-      const t = await aiResp.text();
-      console.error("summarize error:", aiResp.status, t);
-      return new Response(JSON.stringify({ error: aiResp.status === 429 ? "Rate limit" : "Erro IA" }), {
-        status: aiResp.status === 429 ? 429 : 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const j = await aiResp.json();
-    const summary = j.content?.find((b: any) => b.type === "text")?.text ?? "";
+    // Resposta vazia não apaga o resumo que já existe.
+    if (!texto) throw new ErroDeIA("resposta_invalida", `${resposta.fornecedor}/${resposta.modelo}: resumo vazio`);
+    // Quem só lê contratos tem o UPDATE filtrado pelo RLS (zero linhas, sem erro).
+    const { data: gravado, error } = await cliente
+      .from("contracts")
+      .update({ ai_summary: texto })
+      .eq("id", contractId)
+      .eq("organization_id", org)
+      .select("id");
+    const saved = !error && (gravado?.length ?? 0) > 0;
+    if (!saved) console.error(`${FUNCIONALIDADE}: resumo não gravado (${error?.code ?? "sem permissão"})`);
 
-    await supabase.from("contracts").update({ ai_summary: summary }).eq("id", contractId);
-
-    return new Response(JSON.stringify({ summary }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ summary: texto, saved });
   } catch (e) {
-    console.error("summarize-contract error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Erro" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return respostaDeFalha(e, FUNCIONALIDADE);
   }
 });

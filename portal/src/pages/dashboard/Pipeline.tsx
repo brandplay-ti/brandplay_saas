@@ -51,6 +51,7 @@ import {
 import { useDraggable } from "@dnd-kit/core";
 import type { Database } from "@/integrations/supabase/types";
 import { logBackendDbError } from "@/lib/backendErrorLogger";
+import { lerErroDeIA, type MensagemDeErroDeIA } from "@/lib/erroDeIA";
 import { PipelineMetrics } from "@/components/pipeline/PipelineMetrics";
 import { OpportunityDrawer } from "@/components/pipeline/OpportunityDrawer";
 import { getOpportunityStageChecklistIssues } from "@/lib/opportunityStageChecklist";
@@ -951,16 +952,24 @@ export default function Pipeline() {
 
     setPrioritizing(true);
     try {
+      const falhas: MensagemDeErroDeIA[] = [];
       const recommendations = await Promise.all(candidates.map(async ({ opp, priority, reasons }) => {
         const { data, error } = await supabase.functions.invoke("suggest-next-steps", {
           body: { context: "opportunity", target_id: opp.id },
         });
         const response = data as SuggestedStepsResponse | null;
-        if (error || response?.error) throw new Error(response?.error || error?.message || "Erro ao gerar sugestão");
+        if (error || response?.error) {
+          falhas.push(await lerErroDeIA(error, data, "Erro ao priorizar o dia"));
+          return null;
+        }
         const steps = response?.steps ?? [];
         const step = steps.find((s) => s.priority === "alta") ?? steps[0];
         return step ? { opportunity: opp, priority, reasons, step, selected: true } : null;
       }));
+      if (falhas.length) {
+        toast.error(falhas[0].titulo, { description: falhas[0].descricao });
+        return;
+      }
       setBoardRecommendations(recommendations.filter(Boolean) as BoardRecommendation[]);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao priorizar o dia");

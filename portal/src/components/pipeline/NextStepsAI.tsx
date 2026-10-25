@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/hooks/useOrganization";
+import { avisarErroDeIA } from "@/lib/erroDeIA";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +47,7 @@ const PRIO_CLS = {
 type PropOption = { id: string; name: string };
 
 export function NextStepsAI({ context, targetId, opportunityId, ownerId, propertyId, onActivityCreated }: Props) {
+  const { orgId } = useOrganization();
   const [steps, setSteps] = useState<Step[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState<number | null>(null);
@@ -55,14 +58,16 @@ export function NextStepsAI({ context, targetId, opportunityId, ownerId, propert
   const suggest = async () => {
     setLoading(true);
     try {
+      // A organização ativa vale para os contextos de lista (painel, entregas);
+      // nos de um registro, a função usa a organização dele.
       const { data, error } = await supabase.functions.invoke("suggest-next-steps", {
-        body: { context, target_id: targetId ?? opportunityId },
+        body: { context, target_id: targetId ?? opportunityId, organization_id: orgId },
       });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      setSteps((data as any).steps as Step[]);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro");
+      if (error || data?.error) {
+        await avisarErroDeIA(error, data, "Não foi possível sugerir próximos passos");
+        return;
+      }
+      setSteps((data?.steps ?? []) as Step[]);
     } finally {
       setLoading(false);
     }

@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Sparkles, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
+import { avisarErroDeIA } from "@/lib/erroDeIA";
 
 type Props = {
   contractId: string;
@@ -27,14 +28,18 @@ export function ContractAISummary({ contractId, initialSummary, onSummaryUpdated
       const { data, error } = await supabase.functions.invoke("summarize-contract", {
         body: { contract_id: contractId, mode: "summarize" },
       });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      const s = (data as any).summary as string;
+      if (error || data?.error) {
+        await avisarErroDeIA(error, data, "Erro ao resumir");
+        return;
+      }
+      const s = data.summary as string;
       setSummary(s);
+      if (data.saved === false) {
+        toast.warning("Resumo gerado, mas não foi salvo no contrato.");
+        return;
+      }
       onSummaryUpdated?.(s);
       toast.success("Resumo gerado");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro ao resumir");
     } finally {
       setLoading(false);
     }
@@ -49,11 +54,12 @@ export function ContractAISummary({ contractId, initialSummary, onSummaryUpdated
       const { data, error } = await supabase.functions.invoke("summarize-contract", {
         body: { contract_id: contractId, mode: "chat", question: q },
       });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      setAnswers((prev) => [...prev, { q, a: (data as any).answer }]);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro");
+      if (error || data?.error) {
+        await avisarErroDeIA(error, data, "Não foi possível responder");
+        setQuestion(q);
+        return;
+      }
+      setAnswers((prev) => [...prev, { q, a: data.answer as string }]);
     } finally {
       setAsking(false);
     }
