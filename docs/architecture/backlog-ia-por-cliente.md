@@ -33,7 +33,7 @@ Referência de branch: épico 1–3 e funções migradas já estão em **`dev`**
 | IA-13 – IA-21 | **Feito** (`dev`) | Funções migradas + portal `erroDeIA` |
 | IA-22 | **Parcial** | `npm run supabase:avaliar-ia`: teste `admin-ai` por fornecedor; `--funcoes` faz smoke de 1 função. Falta rodar as **13** funções, métricas agregadas e revisão qualitativa em PT (depende de chaves OpenAI/Anthropic + tempo humano). Relatório local em `supabase/tools/avaliar-ia/saida/`. |
 | IA-23 – IA-28 | **Feito** (PR #30) | `admin-ai`, `/admin/ia`, preços |
-| IA-29 | **Quase feito** (PR #30) | E2E: acesso superadmin, bloqueio owner, teste conexão inválida. **Falta** cenário E2E: orçamento salvo reflete na lista. |
+| IA-29 | **Feito** (PR #30) | E2E `admin-ia.spec.ts`: acesso, bloqueio owner, teste inválido, orçamento na lista. |
 | IA-30 – IA-32 | **Feito** (PR #30) | `alertas.ts`, `AdminOverview` |
 | IA-33 | **Feito** (PR #30) | `IaConsumoCard` em Configurações |
 | IA-34 | **Pendente (ops)** | Deploy homolog/prod na VPS — checklist em `docs/runbooks/ia.md`; **não** é desenvolvimento local |
@@ -42,9 +42,7 @@ Referência de branch: épico 1–3 e funções migradas já estão em **`dev`**
 
 ### Desenvolvimento local ainda útil (opcional, não bloqueia merge)
 
-1. **IA-29** — um teste Playwright: superadmin salva orçamento no detalhe do
-   cliente e a coluna/% aparece na lista (`/admin/ia`).
-2. **IA-22 (completo)** — estender `supabase/tools/avaliar-ia/rodar.mjs` para
+1. **IA-22 (completo)** — estender `supabase/tools/avaliar-ia/rodar.mjs` para
    invocar as 13 funções de produto (com payloads mínimos do seed) e sumarizar
    latência/erros a partir de `ai_usage_events`; anexar relatório ao PR ou ao
    runbook. Requer chaves dos três fornecedores e stack local.
