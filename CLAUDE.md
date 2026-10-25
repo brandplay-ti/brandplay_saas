@@ -118,9 +118,10 @@ O npm roda em workspaces: os comandos do portal (`dev`, `build`, `lint`,
 
 ### Integrações
 
-- Anthropic API (`ANTHROPIC_API_KEY`) para as funcionalidades de IA, chamada
-  direto pelas Edge Functions (ADR-0003; histórico da conversão em
-  `supabase/functions/MIGRATION_NOTES.md`).
+- **IA multi-fornecedor** (ADR-0010): OpenAI, Google Gemini e Anthropic via
+  camada `_shared/ai/`; credenciais cifradas no banco (`AI_KEYS_MASTER_KEY`);
+  semente opcional `AI_DEFAULT_*`; gestão em `/admin/ia` e Edge Function
+  `admin-ai`. Runbook: `docs/runbooks/ia.md`.
 - Resend (e-mail transacional) — chave apenas em Edge Functions.
 - Stripe (cobrança da organização: planos, teste grátis, assinatura) —
   `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` apenas em Edge Functions
@@ -313,9 +314,10 @@ Nunca:
 - aceitar `organization_id`, `user_id` ou papel vindos do corpo da requisição
   sem validar contra o JWT/sessão autenticada;
 - commitar secrets ou colocar tokens no código;
-- expor `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`,
-  `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` ou qualquer credencial
-  privilegiada no client (nunca com prefixo `VITE_`);
+- expor `SUPABASE_SERVICE_ROLE_KEY`, `AI_KEYS_MASTER_KEY`, chaves de API de
+  fornecedores de IA, `RESEND_API_KEY`, `STRIPE_SECRET_KEY`,
+  `STRIPE_WEBHOOK_SECRET` ou qualquer credencial privilegiada no client (nunca
+  com prefixo `VITE_`);
 - logar dado sensível (senha, token, header de autorização, service role,
   documento pessoal);
 - expor dados de outra organização ou de outro usuário.
@@ -414,7 +416,8 @@ máquina local como parte do fluxo normal. Ver `.claude/rules/cicd.md`.
 ## 10.1 Produção
 
 Produção é um ambiente protegido. Segredos (`JWT_SECRET`, `SERVICE_ROLE_KEY`,
-`POSTGRES_PASSWORD`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, Stripe, SMTP) vivem no
+`POSTGRES_PASSWORD`, `AI_KEYS_MASTER_KEY`, chaves de IA de fornecedor,
+`RESEND_API_KEY`, Stripe, SMTP) vivem no
 Dockploy; nunca proponha commitá-los nem copiá-los para o ambiente local.
 Nunca execute alterações destrutivas diretamente em produção, e nunca use
 dados reais de produção (ou exportações do Lovable em `.migracao-lovable/`)

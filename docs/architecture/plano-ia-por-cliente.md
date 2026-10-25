@@ -289,7 +289,7 @@ de `supabase/tests/cobranca.sql` (dado da plataforma), exceto o que o owner lê
 | **D. `admin-ai`** | Edge Function administrativa: chave padrão, chave por cliente, teste de conexão, revogação, orçamento, preços; auditoria | `functions/admin-ai/`, compose e `.env.example` (variável `AI_KEYS_MASTER_KEY`) |
 | **E. Tela `/admin/ia`** | F1 completa, item no menu do admin | `portal/src/pages/admin/AdminAi*.tsx`, hook `useAdminAi.ts` |
 | **F. Controles** | Alertas de 80%/100% (notificação + e-mail via `_shared/email.ts`), card de custo na visão geral, opcional: consumo em Configurações | `check-notifications` ou função nova, `AdminOverview.tsx` |
-| **G. Documentação** | ADR da IA, próximo número livre (substitui ADR-0003), `SECURITY.md`, `.claude/rules/security.md` e `supabase.md` (padrão novo), `CLAUDE.md` §3, runbook `docs/runbooks/ia.md` (gerar chave mestra, cadastrar chave padrão, criar Project na OpenAI por cliente, rotação), `MIGRATION_NOTES.md` | docs |
+| **G. Documentação** | [ADR-0010](../adr/0010-ia-multi-fornecedor-por-organizacao.md), `SECURITY.md`, regras Claude, `docs/runbooks/ia.md`, `MIGRATION_NOTES.md` — **feito** (IA-35/36) | docs |
 
 - **Marco 1 — IA volta a funcionar** (A + B + B2 + C + chave padrão via
   variável de ambiente como semente): todos os clientes no fornecedor padrão

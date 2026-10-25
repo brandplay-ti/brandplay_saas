@@ -305,3 +305,5 @@ camada) pode:
 
 Notificações em `notifications`; e-mail via `_shared/email.ts` quando o usuário
 mantém `notification_preferences.email_enabled`.
+
+Documentação de operação e ADR: `docs/runbooks/ia.md`, `docs/adr/0010-ia-multi-fornecedor-por-organizacao.md`.

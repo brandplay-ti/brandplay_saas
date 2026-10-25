@@ -18,9 +18,13 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
 - **Edge Functions** (`supabase/functions/`). Recebem o JWT do usuário, devem
   derivar `user.id` dele e escopar toda consulta por organização. Nunca devem
   confiar em `organization_id`/`user_id` vindos do corpo da requisição.
-  Funções de IA (`ai-assistant`, `score-leads`, `generate-proposal-ai`, entre
-  outras) chamam a Anthropic API diretamente (ADR-0003) —
-  `ANTHROPIC_API_KEY` só existe nesse ambiente server-side.
+  Funções de IA de produto (`ai-assistant`, `score-leads`, `generate-proposal-wizard`,
+  entre outras) passam pela camada `_shared/ai/` (ADR-0010): credencial por
+  organização (OpenAI, Gemini ou Anthropic), guardas de orçamento e registro em
+  `ai_usage_events`. Chaves de fornecedor ficam cifradas em `ai_credentials`;
+  a Edge Function `admin-ai` grava e testa credenciais (superadmin). Nunca
+  exponha `AI_KEYS_MASTER_KEY`, `AI_DEFAULT_API_KEY` nem chaves de cliente no
+  client (`VITE_*`) ou em logs.
 
   O despachante `main` **não** verifica JWT (nada lê `VERIFY_JWT`, e o runtime
   sobe sem `--verify-jwt`): cada função valida o usuário por conta própria com
@@ -65,6 +69,13 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   domínio dos clientes. Toda ação administrativa vai para
   `platform_admin_audit_log`, imutável pela API. Ao estender essa área, mantenha
   as duas coisas: leitura mínima e registro de quem fez.
+- **IA por organização** (ADR-0010, `/admin/ia`, `admin-ai`). Tabelas
+  `ai_credentials`, `ai_org_settings`, `ai_usage_events`, `ai_model_prices`:
+  `authenticated` não lê cifra nem escreve credenciais; owner/admin lê só
+  consumo agregado (`ia_consumo_organizacao`); superadmin lê metadados via
+  `admin_ia_*` e escreve via `admin-ai`. Prompts e anexos saem para o
+  fornecedor da credencial em uso — tratar como subprocessador (IA-37).
+  Operação: `docs/runbooks/ia.md`.
 - **Media Kit público** (`/p/:slug`, `portal/src/pages/PublicMediaKit.tsx`). Única
   rota que aceita leitura anônima (`anon`) de propriedades publicadas e
   insert público de leads. Qualquer dado exposto ali é público por definição
@@ -74,7 +85,8 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
 ## O que nunca deve vazar
 
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `ANTHROPIC_API_KEY`
+- `AI_KEYS_MASTER_KEY` e chaves de API de fornecedores (`AI_DEFAULT_*`, chaves
+  cadastradas em `ai_credentials`)
 - `RESEND_API_KEY`
 - `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET`
 - JWT secret, senha do Postgres, qualquer credencial de infraestrutura

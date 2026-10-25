@@ -57,8 +57,10 @@ Crie (uma vez) o projeto `brandplay`. Os quatro serviços abaixo vivem nele.
    - SMTP real com TLS (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`,
      `SMTP_ADMIN_EMAIL`, `SMTP_SENDER_NAME`) — o padrão `mail:1025` é o
      Mailpit, que não existe nos hospedados. Pelo Resend: `docs/runbooks/email.md`;
-   - `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `RESEND_FROM_DOMAIN`,
-     `EMAIL_FROM` do ambiente;
+   - IA (ADR-0010): `AI_KEYS_MASTER_KEY` (+ versão/rotação) e semente
+     `AI_DEFAULT_*` ou chave padrão cadastrada depois em `/admin/ia` — ver
+     `docs/runbooks/ia.md`;
+   - `RESEND_API_KEY`, `RESEND_FROM_DOMAIN`, `EMAIL_FROM` do ambiente;
    - `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET` (chaves de teste em
      homologação, live em produção). O endpoint do webhook no Stripe e o
      portal do cliente são configurados no Dashboard do Stripe — passo a passo

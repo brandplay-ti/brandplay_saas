@@ -634,16 +634,15 @@ homologação/produção.
 
 ### IA-35 · ADR da IA e atualização das regras — M
 
-ADR da IA — próximo número livre; a 0009 já é a de backup (`0009-backup-externo-com-restic.md`) — (IA multi-fornecedor com chave por organização; substitui a
-ADR-0003), `SECURITY.md`, `.claude/rules/security.md` (superfície nova),
-`.claude/rules/supabase.md` (padrão das tabelas de IA), `CLAUDE.md` §3
-(integrações e variáveis), `supabase/functions/MIGRATION_NOTES.md`.
+**Feito (2026-10-25):** [ADR-0010](../adr/0010-ia-multi-fornecedor-por-organizacao.md)
+(substitui ADR-0003), `SECURITY.md`, `.claude/rules/security.md`,
+`.claude/rules/supabase.md`, `CLAUDE.md` §3, `MIGRATION_NOTES.md` (alertas).
 
 ### IA-36 · Runbook `docs/runbooks/ia.md` — P
 
-Gerar e guardar a chave mestra; rotação (`key_version`); cadastrar a chave
-padrão; criar um *Project* da OpenAI por cliente com limite de gasto; usar o
-plano pago do Gemini; o que fazer com cada alerta.
+**Feito (2026-10-25):** [`docs/runbooks/ia.md`](../runbooks/ia.md) — chave
+mestra, rotação, chave padrão/exclusiva, preços, alertas, checklist de deploy
+(sem executar VPS até IA-34).
 
 ### IA-37 · Termos de uso e política de privacidade — fora do time de dev
 

@@ -209,7 +209,7 @@ As funções leem segredos do ambiente do serviço:
 
 | Variável            | Sem ela                                       |
 | ------------------- | --------------------------------------------- |
-| `ANTHROPIC_API_KEY` | toda funcionalidade de IA falha               |
+| `AI_KEYS_MASTER_KEY` + chave padrão no banco ou `AI_DEFAULT_*` | IA de produto falha ao resolver credencial (ver `docs/runbooks/ia.md`) |
 | `RESEND_API_KEY`    | convites e notificações por e-mail não saem   |
 | `APP_URL`           | links dos e-mails apontam para o lugar errado |
 | `SERVICE_ROLE_KEY`  | operações privilegiadas falham                |

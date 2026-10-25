@@ -1,6 +1,10 @@
 # ADR-0003: IA via Anthropic API
 
-Status: Accepted
+Status: Superseded by [ADR-0010](0010-ia-multi-fornecedor-por-organizacao.md)
+
+> Histórico: decisão válida durante a migração Lovable → Anthropic única. O
+> produto hoje usa a camada multi-fornecedor da ADR-0010; `ANTHROPIC_API_KEY`
+> não é mais lida pelas funções de IA de produto.
 
 ## Contexto
 
