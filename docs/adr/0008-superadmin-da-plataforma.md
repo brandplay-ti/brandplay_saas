@@ -89,8 +89,10 @@ lá). Três pontos dele não servem aqui:
 A sessão de suporte cobre o que esta ADR deixava como impersonação fora de
 escopo, com prazo. `admin_abrir_sessao_suporte` (1 a 8 horas, comentário
 obrigatório) faz `is_org_member(uuid)` e `has_org_role(uuid, text[])` — quando
-o papel exigido inclui `admin` — valerem para aquela organização. Não cria
-`organization_members`, não concede `owner` e não abre outra organização.
+o papel exigido inclui `admin` — valerem para aquela organização.
+`can_access_module` (0037) segue a linha `admin` da matriz dessa organização,
+só para quem abriu a sessão. Não cria `organization_members`, não concede
+`owner` e não abre outra organização.
 Policies de domínio não ganham `is_platform_admin()`.
 
 Desconto e isenção (100% por até 12 meses) são cupom recorrente no Stripe,

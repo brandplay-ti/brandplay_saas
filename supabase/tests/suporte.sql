@@ -82,6 +82,29 @@ begin
   if not public.has_org_role('a3000000-0000-4000-8000-000000000001', array['owner', 'admin']) then
     raise exception 'FALHA (b): sessão não passou numa policy de owner ou admin';
   end if;
+  if not public.can_access_module(
+       auth.uid(), 'a3000000-0000-4000-8000-000000000001', 'crm', false) then
+    raise exception 'FALHA (b): sessão não leu o CRM pela matriz do admin';
+  end if;
+  if public.can_access_module(
+       '3b000000-0000-4000-8000-00000000000b',
+       'a3000000-0000-4000-8000-000000000001', 'crm', false) then
+    raise exception 'FALHA (b): sessão liberou o CRM para outro usuário';
+  end if;
+
+  update public.organization_role_grants
+     set access = 'none'
+   where organization_id = 'a3000000-0000-4000-8000-000000000001'
+     and role = 'admin'
+     and module = 'crm';
+  if (select count(*) from public.sponsors) <> 0 then
+    raise exception 'FALHA (b): sessão leu patrocinador com o CRM do admin em none';
+  end if;
+  update public.organization_role_grants
+     set access = 'write'
+   where organization_id = 'a3000000-0000-4000-8000-000000000001'
+     and role = 'admin'
+     and module = 'crm';
 
   select count(*) into _n from public.sponsors;
   if _n <> 1 then

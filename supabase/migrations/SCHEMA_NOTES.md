@@ -728,10 +728,13 @@ Suposições:
   Sem assinatura, fica `aguardando_checkout` e o próximo checkout de
   `manage-billing` manda `discounts: [{ coupon }]`. Sem `STRIPE_SECRET_KEY`
   a linha fica `pendente` e a resposta avisa que o Stripe não foi atualizado.
-- A sessão altera só as funções de um argumento `is_org_member(uuid)` e
-  `has_org_role(uuid, text[])`, que são as usadas pelas policies. O papel
-  emprestado é `admin`: policy que exige só `owner` continua recusando.
-  `is_org_member(user_id, org_id)` não muda — a sessão não é membership.
+- A sessão altera as funções de um argumento `is_org_member(uuid)` e
+  `has_org_role(uuid, text[])`. O papel emprestado é `admin`: policy que
+  exige só `owner` continua recusando. `is_org_member(user_id, org_id)` não
+  muda — a sessão não é membership. Desde 0037, `can_access_module` também
+  aceita a sessão, e só quando `_user_id` é o `auth.uid()` dela: o acesso é
+  o da linha `admin` em `organization_role_grants`. `none` nesse módulo
+  esconde o dado da sessão também.
 - O bloqueio de cobrança (`billing_blocked_orgs`) olha `organization_members`.
   O operador em sessão não é membro, então vê o dado mesmo com a organização
   sem acesso. A tela não manda essa sessão para a página de plano.
