@@ -21,11 +21,19 @@
 //                     raiz apontava para um projeto antigo do Lovable)
 //   --saida <dir>     pasta de saída (padrão: .migracao-lovable/<data-hora>)
 //   --sem-arquivos    não baixa o Storage
-//   --complementar <dir>  NÃO exporta tabelas: só tenta de novo os arquivos que
-//                     falharam numa exportação anterior (manifesto.json da pasta)
-//                     e atualiza o manifesto. Útil quando a falha foi permissão
-//                     (no Lovable, brandtrack-media e proposals só deixam o próprio
-//                     autor do upload ler): rode com a sessão de quem enviou.
+//   --complementar <dir>  NÃO exporta tabelas: tenta de novo o que ainda falta no
+//                     disco (falhas do manifesto + paths das tabelas + listagem
+//                     dos buckets com a sessão atual) e atualiza o manifesto.
+//                     No Lovable, brandtrack-media e proposals só deixam o próprio
+//                     autor do upload ler — "Object not found" é a RLS escondendo
+//                     o arquivo. Rode com a sessão de quem enviou, ou com
+//                     --service-role se o Lovable Cloud entregar a service role.
+//   --relatar         só lista o que falta, agrupado pelo dono (primeira pasta
+//                     do path). Não entra no Lovable. Use com --complementar.
+//   --service-role    usa a service_role do projeto de origem (bypass de RLS).
+//                     A chave é pedida no terminal e não é gravada. Caminho
+//                     preferido quando o Lovable Cloud a expõe: baixa tudo
+//                     numa tacada, sem precisar da sessão de cada autor.
 //   --sessao <arq.json>   entra com uma sessão já aberta no navegador em vez de
 //                     e-mail/senha (contas criadas com login social não têm senha).
 //                     O arquivo é o valor da chave sb-<projeto>-auth-token do
@@ -35,16 +43,17 @@
 //                     no app para revogar a sessão.
 //
 // Credenciais: digitadas no terminal. Para automação local (ex.: testar contra o
-// Supabase local com o usuário do seed) aceita EXPORT_EMAIL/EXPORT_PASSWORD no
-// ambiente; não use variável de ambiente com a senha real (fica no histórico).
+// Supabase local com o usuário do seed) aceita EXPORT_EMAIL/EXPORT_PASSWORD e
+// EXPORT_SERVICE_ROLE no ambiente; não use variável de ambiente com a senha
+// ou a service role reais (ficam no histórico).
 //
 // A saída contém DADOS REAIS DE CLIENTES (LGPD): fica fora do git
 // (.migracao-lovable/ no .gitignore), não deve ser compartilhada e deve ser
 // apagada depois da migração.
 
 import { createClient } from "@supabase/supabase-js";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { existsSync, statSync } from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
 
@@ -151,6 +160,8 @@ const COLUNA_BUCKET = {
   "opportunity_comment_attachments.storage_path": "opportunity-comments",
   "proposals.pdf_path": "proposals",
   "sponsor_interactions.attachment_url": "sponsor-interactions",
+  "sponsor_documents.file_path": "sponsor-documents",
+  "brandtrack_brands.logo_path": "sponsor-logos",
 };
 
 const PAGINA = 1000;
@@ -167,6 +178,8 @@ function args() {
     saida: get("--saida"),
     semArquivos: a.includes("--sem-arquivos"),
     complementar: get("--complementar"),
+    relatar: a.includes("--relatar"),
+    serviceRole: a.includes("--service-role"),
     sessao: get("--sessao"),
   };
 }
@@ -243,14 +256,92 @@ async function listarBucket(sb, bucket, prefixo = "", acc = [], profundidade = 0
   }
 }
 
+function erroTransitorio(msg) {
+  return /fetch|network|timeout|ECONNRESET|ETIMEDOUT|503|502|429|temporar/i.test(msg ?? "");
+}
+
 async function baixar(sb, bucket, caminho, base) {
-  const { data, error } = await sb.storage.from(bucket).download(caminho);
-  if (error || !data) return { ok: false, erro: error?.message ?? "sem conteúdo" };
-  const destino = caminhoSeguro(base, bucket, ...caminho.split("/"));
-  await mkdir(path.dirname(destino), { recursive: true });
-  const buf = Buffer.from(await data.arrayBuffer());
-  await writeFile(destino, buf);
-  return { ok: true, bytes: buf.length };
+  let ultimo = "sem conteúdo";
+  for (let tentativa = 1; tentativa <= 3; tentativa += 1) {
+    const { data, error } = await sb.storage.from(bucket).download(caminho);
+    if (!error && data) {
+      const destino = caminhoSeguro(base, bucket, ...caminho.split("/"));
+      await mkdir(path.dirname(destino), { recursive: true });
+      const buf = Buffer.from(await data.arrayBuffer());
+      await writeFile(destino, buf);
+      return { ok: true, bytes: buf.length };
+    }
+    ultimo = error?.message ?? "sem conteúdo";
+    if (!erroTransitorio(ultimo) || tentativa === 3) break;
+    await new Promise((r) => setTimeout(r, 1000 * tentativa));
+  }
+  return { ok: false, erro: ultimo };
+}
+
+function coletarRefs(dados) {
+  const alvo = new Map();
+  for (const [tabela, linhas] of Object.entries(dados)) {
+    for (const linha of linhas) {
+      for (const [col, valor] of Object.entries(linha)) {
+        const chaveCol = `${tabela}.${col}`;
+        const mapeada = COLUNA_BUCKET[chaveCol];
+        if (!mapeada && !/_path$/.test(col)) continue;
+        const ref = refStorage(valor, mapeada);
+        if (!ref) continue;
+        const k = `${ref.bucket ?? "*"}|${ref.caminho}`;
+        if (!alvo.has(k)) alvo.set(k, ref);
+      }
+    }
+  }
+  return alvo;
+}
+
+async function lerDados(saida) {
+  const dir = path.join(saida, "dados");
+  const dados = {};
+  if (!existsSync(dir)) return dados;
+  for (const nome of await readdir(dir)) {
+    if (nome.endsWith(".json")) dados[nome.slice(0, -5)] = JSON.parse(await readFile(path.join(dir, nome), "utf8"));
+  }
+  return dados;
+}
+
+function arquivoNoDisco(saida, bucket, caminho) {
+  if (!bucket || bucket === "(desconhecido)") return false;
+  const destino = path.join(saida, "arquivos", bucket, ...caminho.split("/"));
+  if (!existsSync(destino)) return false;
+  try {
+    return statSync(destino).size > 0;
+  } catch {
+    return false;
+  }
+}
+
+function donoDoCaminho(caminho, usuarios) {
+  const primeiro = caminho.split("/")[0];
+  return usuarios.find((u) => u.user_id === primeiro) ?? null;
+}
+
+function imprimirPendentes(falhas, usuarios) {
+  const grupos = new Map();
+  for (const f of falhas) {
+    const dono = donoDoCaminho(f.caminho, usuarios);
+    const chave = dono?.user_id ?? "(outro)";
+    const g = grupos.get(chave) ?? {
+      user_id: dono?.user_id ?? null,
+      nome: dono?.nome ?? "caminho sem user_id conhecido",
+      email: dono?.email ?? null,
+      buckets: new Map(),
+    };
+    g.buckets.set(f.bucket, (g.buckets.get(f.bucket) ?? 0) + 1);
+    grupos.set(chave, g);
+  }
+  console.log(`Pendentes: ${falhas.length}`);
+  for (const g of grupos.values()) {
+    const quem = g.email ? `${g.nome ?? "?"} <${g.email}>` : (g.nome ?? "desconhecido");
+    const porBucket = [...g.buckets.entries()].map(([b, n]) => `${b} ${n}`).join(", ");
+    console.log(`  ${quem}: ${[...g.buckets.values()].reduce((a, n) => a + n, 0)} (${porBucket})`);
+  }
 }
 
 // ---------------------------------------------------------------- autenticação
@@ -276,69 +367,121 @@ async function entrar(sb, opt) {
 }
 
 // ---------------------------------------------------------------- complemento de arquivos
-async function complementar(sb, saida, eu) {
+async function complementar(sb, saida, eu, { soRelatar = false } = {}) {
   const arqManifesto = path.join(saida, "manifesto.json");
   if (!existsSync(arqManifesto)) throw new Error(`manifesto.json não encontrado em ${saida}`);
   const manifesto = JSON.parse(await readFile(arqManifesto, "utf8"));
-  const falhas = manifesto.arquivos?.falhas ?? [];
-  console.log(`Arquivos pendentes: ${falhas.length}`);
+  const usuarios = existsSync(path.join(saida, "usuarios.json"))
+    ? JSON.parse(await readFile(path.join(saida, "usuarios.json"), "utf8"))
+    : [];
+
+  const alvo = coletarRefs(await lerDados(saida));
+  for (const f of manifesto.arquivos?.falhas ?? []) {
+    const k = `${f.bucket && f.bucket !== "(desconhecido)" ? f.bucket : "*"}|${f.caminho}`;
+    if (!alvo.has(k)) alvo.set(k, { bucket: f.bucket === "(desconhecido)" ? null : f.bucket, caminho: f.caminho });
+  }
+
+  if (sb) {
+    for (const bucket of BUCKETS) {
+      for (const caminho of await listarBucket(sb, bucket)) {
+        const k = `${bucket}|${caminho}`;
+        if (!alvo.has(k)) alvo.set(k, { bucket, caminho });
+      }
+    }
+  }
+
+  const pendentes = [];
+  for (const ref of alvo.values()) {
+    if (ref.bucket && arquivoNoDisco(saida, ref.bucket, ref.caminho)) continue;
+    if (!ref.bucket && BUCKETS.some((b) => arquivoNoDisco(saida, b, ref.caminho))) continue;
+    pendentes.push(ref);
+  }
+
+  console.log(`Referenciados: ${alvo.size}. Já no disco: ${alvo.size - pendentes.length}. Faltando: ${pendentes.length}`);
+  imprimirPendentes(pendentes.map((p) => ({ bucket: p.bucket ?? "(desconhecido)", caminho: p.caminho })), usuarios);
+  if (soRelatar || !sb) return;
+
   const restantes = [];
   let baixados = 0;
   let bytes = 0;
-  for (const f of falhas) {
-    const candidatos = BUCKETS.includes(f.bucket) ? [f.bucket] : BUCKETS;
+  let i = 0;
+  for (const ref of pendentes) {
+    i += 1;
+    const candidatos = ref.bucket && BUCKETS.includes(ref.bucket) ? [ref.bucket] : BUCKETS;
     let r = null;
     for (const bucket of candidatos) {
-      r = await baixar(sb, bucket, f.caminho, path.join(saida, "arquivos"));
+      r = await baixar(sb, bucket, ref.caminho, path.join(saida, "arquivos"));
       if (r.ok) break;
     }
     if (r?.ok) {
       baixados += 1;
       bytes += r.bytes;
+      if (i % 10 === 0 || i === pendentes.length) console.log(`  ${i} de ${pendentes.length}...`);
     } else {
-      restantes.push({ ...f, erro: r?.erro });
+      restantes.push({ bucket: ref.bucket ?? "(desconhecido)", caminho: ref.caminho, erro: r?.erro });
     }
   }
+
   manifesto.arquivos.baixados += baixados;
   manifesto.arquivos.bytes += bytes;
   manifesto.arquivos.falhas = restantes;
-  manifesto.complementos = [...(manifesto.complementos ?? []), { em: new Date().toISOString(), por_user_id: eu, baixados, restantes: restantes.length }];
+  manifesto.complementos = [...(manifesto.complementos ?? []), {
+    em: new Date().toISOString(), por_user_id: eu, baixados, restantes: restantes.length,
+  }];
   await writeFile(arqManifesto, JSON.stringify(manifesto, null, 2));
   console.log(`Baixados agora: ${baixados} (${(bytes / 1048576).toFixed(1)} MB). Ainda pendentes: ${restantes.length}`);
+  if (restantes.length) imprimirPendentes(restantes, usuarios);
 }
 
 // ---------------------------------------------------------------- principal
 async function main() {
   const opt = args();
+
+  if (opt.relatar) {
+    const pasta = opt.complementar ?? opt.saida;
+    if (!pasta) throw new Error("--relatar precisa de --complementar <pasta da exportação>");
+    await complementar(null, path.resolve(pasta), null, { soRelatar: true });
+    return;
+  }
+
   const env = await lerEnv(opt.envFile);
   const url = env.VITE_SUPABASE_URL;
-  const chave = env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !chave) throw new Error(`VITE_SUPABASE_URL/VITE_SUPABASE_PUBLISHABLE_KEY ausentes em ${opt.envFile}`);
+  if (!url) throw new Error(`VITE_SUPABASE_URL ausente em ${opt.envFile}`);
+  const chave = opt.serviceRole
+    ? (process.env.EXPORT_SERVICE_ROLE || (await perguntar("SERVICE_ROLE_KEY do Lovable (não aparece): ", true)))
+    : env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!chave) throw new Error(opt.serviceRole
+    ? "SERVICE_ROLE_KEY do Lovable não informada"
+    : `VITE_SUPABASE_PUBLISHABLE_KEY ausente em ${opt.envFile}`);
 
   const carimbo = new Date().toISOString().replace(/[:.]/g, "-");
   const saida = path.resolve(opt.complementar ?? opt.saida ?? path.join(".migracao-lovable", carimbo));
   await mkdir(path.join(saida, "dados"), { recursive: true });
 
-  console.log(`Origem: ${new URL(url).host}`);
+  console.log(`Origem: ${new URL(url).host}${opt.serviceRole ? "  (service_role: bypass de RLS)" : ""}`);
   console.log(`Saída:  ${saida}\n`);
 
   const sb = createClient(url, chave, { auth: { persistSession: false, autoRefreshToken: true } });
-  const login = await entrar(sb, opt);
-  const eu = login.user.id;
+  let eu = "service_role";
+  if (!opt.serviceRole) {
+    const login = await entrar(sb, opt);
+    eu = login.user.id;
+  }
 
   if (opt.complementar) {
     await complementar(sb, saida, eu);
-    await sb.auth.signOut({ scope: "local" });
+    if (!opt.serviceRole) await sb.auth.signOut({ scope: "local" });
     return;
   }
 
-  const { data: vinculos } = await sb
+  let vinculosQuery = sb
     .from("organization_members")
-    .select("organization_id, role, status, organization:organizations(name)")
-    .eq("user_id", eu);
-  console.log("Organizações deste usuário:");
+    .select("organization_id, role, status, organization:organizations(name)");
+  if (!opt.serviceRole) vinculosQuery = vinculosQuery.eq("user_id", eu);
+  const { data: vinculos } = await vinculosQuery;
+  console.log(opt.serviceRole ? "Organizações (service_role, todas):" : "Organizações deste usuário:");
   for (const v of vinculos ?? []) console.log(`  - ${v.organization?.name ?? v.organization_id} (${v.role}, ${v.status})`);
-  if (!(vinculos ?? []).some((v) => ["owner", "admin"].includes(v.role) && v.status === "ativo")) {
+  if (!opt.serviceRole && !(vinculos ?? []).some((v) => ["owner", "admin"].includes(v.role) && v.status === "ativo")) {
     console.warn("\nATENÇÃO: o usuário não é owner/admin ativo; a exportação pode vir incompleta.");
   }
   console.log("");
@@ -366,20 +509,7 @@ async function main() {
   // 2. arquivos
   if (!opt.semArquivos) {
     console.log("\nArquivos do Storage...");
-    const alvo = new Map(); // "bucket|caminho" -> {bucket, caminho, candidatos}
-    for (const [tabela, linhas] of Object.entries(dados)) {
-      for (const linha of linhas) {
-        for (const [col, valor] of Object.entries(linha)) {
-          const chaveCol = `${tabela}.${col}`;
-          const mapeada = COLUNA_BUCKET[chaveCol];
-          if (!mapeada && !/_path$/.test(col)) continue;
-          const ref = refStorage(valor, mapeada);
-          if (!ref) continue;
-          const k = `${ref.bucket ?? "*"}|${ref.caminho}`;
-          if (!alvo.has(k)) alvo.set(k, ref);
-        }
-      }
-    }
+    const alvo = coletarRefs(dados);
     manifesto.arquivos.referenciados = alvo.size;
 
     for (const bucket of BUCKETS) {
@@ -417,7 +547,10 @@ async function main() {
 
   // 3. usuários
   const emails = new Map();
-  if (login.user.email) emails.set(eu, login.user.email.toLowerCase());
+  if (!opt.serviceRole) {
+    const { data: sessao } = await sb.auth.getUser();
+    if (sessao?.user?.email) emails.set(eu, sessao.user.email.toLowerCase());
+  }
   for (const t of ["organization_invites", "sponsor_invites"]) {
     for (const c of dados[t] ?? []) if (c.accepted_user_id && c.email) emails.set(c.accepted_user_id, c.email.toLowerCase());
   }
@@ -449,9 +582,13 @@ async function main() {
   manifesto.concluido_em = new Date().toISOString();
   await writeFile(path.join(saida, "manifesto.json"), JSON.stringify(manifesto, null, 2));
 
-  await sb.auth.signOut();
+  if (!opt.serviceRole) await sb.auth.signOut({ scope: "local" });
 
   console.log(`\nUsuários: ${listaUsuarios.length} (sem e-mail: ${pendentes.length})`);
+  if (manifesto.arquivos.falhas.length) {
+    imprimirPendentes(manifesto.arquivos.falhas, listaUsuarios);
+    console.log("Para completar: --complementar <pasta> com a sessão do dono, ou --service-role.");
+  }
   console.log("Avisos:");
   for (const a of manifesto.avisos) console.log(`  - ${a}`);
   console.log(`\nConcluído. Manifesto: ${path.join(saida, "manifesto.json")}`);

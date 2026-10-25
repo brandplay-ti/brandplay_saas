@@ -1,7 +1,7 @@
 # Reconciliação de schema: Lovable × reconstruído
 
 Compara o schema produzido pelas migrations reais do Lovable
-(`supabase/lovable-migrations/`) com o produzido por `supabase/migrations/`,
+(`docs/archive/lovable/lovable-migrations/`) com o produzido por `supabase/migrations/`,
 em dois Postgres descartáveis. Não toca no banco do stack local.
 
 Resultado de 2026-10-02: `docs/architecture/reconciliacao-schema-2026-10-02.md`.
@@ -37,7 +37,7 @@ done
 for f in supabase/migrations/0*.sql; do
   docker exec -i recon-repo psql -U supabase_admin -d postgres -q -v ON_ERROR_STOP=1 -1 < $f || echo "FALHOU $f"
 done
-for f in supabase/lovable-migrations/2026*.sql; do
+for f in docs/archive/lovable/lovable-migrations/2026*.sql; do
   docker exec -i recon-lovable psql -U supabase_admin -d postgres -q -v ON_ERROR_STOP=1 -1 < $f || echo "FALHOU $f"
 done
 # esperado: só 20260419203505_… falha (duplicata do init, descartada no Lovable)

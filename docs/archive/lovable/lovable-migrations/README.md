@@ -6,7 +6,7 @@ schema do banco do Lovable Cloud (projeto `qwyqmzvbopcirhkoenmp`), na ordem em
 que a plataforma os aplicou.
 
 **Não são aplicados** pelo `supabase/tools/migrate.sh` nem pelo CI: ficam fora
-de `supabase/migrations/` de propósito. O schema do self-hosted continua sendo
+de `supabase/migrations/` de propósito. Arquivado em `docs/archive/lovable/`. O schema do self-hosted continua sendo
 `supabase/migrations/0001_…` em diante (ADR-0004).
 
 Uso: fonte da verdade para reconciliar o schema reconstruído com o banco real
