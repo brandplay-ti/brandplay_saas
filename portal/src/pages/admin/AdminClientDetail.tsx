@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, CalendarPlus, ExternalLink, History, Loader2, Unlock } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CalendarPlus, ExternalLink, Eye, History, Loader2, Percent, Unlock } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -9,11 +9,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AccessSourceBadge } from "@/components/admin/AccessSourceBadge";
 import { CommentedActionDialog } from "@/components/admin/CommentedActionDialog";
+import { DiscountDialog } from "@/components/admin/DiscountDialog";
 import { useBillingSettings } from "@/hooks/useBilling";
 import {
   useAdminClientDetail,
+  useApplyDiscount,
   useExtendTrial,
   useGrantAccess,
+  useOpenSupportSession,
+  useOrgDiscounts,
+  useRevokeDiscount,
   useRevokeGrant,
 } from "@/hooks/usePlatformAdmin";
 import {
@@ -37,6 +42,14 @@ const Campo = ({ rotulo, valor }: { rotulo: string; valor: ReactNode }) => (
 
 const Vazio = ({ texto }: { texto: string }) => <p className="py-6 text-center text-sm text-muted-foreground">{texto}</p>;
 
+const SITUACAO_DESCONTO: Record<string, string> = {
+  pendente: "Aguardando Stripe",
+  aplicado: "Na assinatura",
+  aguardando_checkout: "No próximo checkout",
+  falhou: "Stripe não atualizado",
+  revogado: "Revogado",
+};
+
 function avisarErro(erro: unknown) {
   toast.error(erro instanceof Error ? erro.message : "Não foi possível concluir a ação.");
 }
@@ -48,6 +61,10 @@ const AdminClientDetail = () => {
   const liberar = useGrantAccess(id);
   const estender = useExtendTrial(id);
   const revogar = useRevokeGrant(id);
+  const descontos = useOrgDiscounts(id);
+  const aplicarDesconto = useApplyDiscount(id);
+  const revogarDesconto = useRevokeDiscount(id);
+  const abrirSessao = useOpenSupportSession(id);
 
   if (detalhe.isLoading) {
     return (
@@ -143,9 +160,116 @@ const AdminClientDetail = () => {
                 }
               }}
             />
+            <DiscountDialog
+              trigger={
+                <Button variant="outline">
+                  <Percent /> Desconto
+                </Button>
+              }
+              onConfirm={async ({ percentOff, durationMonths, comment }) => {
+                try {
+                  const r = await aplicarDesconto.mutateAsync({ percentOff, durationMonths, comment });
+                  if (r.stripe?.status === "sem_chave") {
+                    toast.success("Desconto registrado. O Stripe não está configurado neste ambiente.");
+                  } else if (r.stripe_status === "aguardando_checkout") {
+                    toast.success("Desconto registrado. Entra no próximo checkout.");
+                  } else {
+                    toast.success("Desconto aplicado na assinatura.");
+                  }
+                } catch (e) {
+                  avisarErro(e);
+                  throw e;
+                }
+              }}
+            />
+            <CommentedActionDialog
+              trigger={
+                <Button variant="outline">
+                  <Eye /> Ver como admin
+                </Button>
+              }
+              title="Ver o painel como admin"
+              description="Pelo prazo escolhido este painel abre com papel de admin. O acesso cai sozinho. Cobrança no Stripe e convites de equipe continuam com um membro real da organização."
+              confirmLabel="Abrir painel"
+              numberField={{
+                label: "Horas",
+                min: 1,
+                max: 8,
+                defaultValue: 2,
+                description: "De 1 a 8 horas.",
+              }}
+              onConfirm={async ({ amount, comment }) => {
+                try {
+                  await abrirSessao.mutateAsync({ hours: amount ?? 0, comment });
+                  localStorage.setItem("active_organization_id", id);
+                  window.location.assign("/dashboard");
+                } catch (e) {
+                  avisarErro(e);
+                  throw e;
+                }
+              }}
+            />
           </div>
         </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Descontos</CardTitle>
+          <CardDescription>Percentual por até 12 meses. 100% isenta a cobrança nesse prazo.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {descontos.isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-label="Carregando descontos" />
+          ) : (descontos.data ?? []).length === 0 ? (
+            <Vazio texto="Nenhum desconto." />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Percentual</TableHead>
+                  <TableHead>Prazo</TableHead>
+                  <TableHead>Situação</TableHead>
+                  <TableHead>Desde</TableHead>
+                  <TableHead className="text-right">
+                    <span className="sr-only">Revogar</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(descontos.data ?? []).map((d) => (
+                  <TableRow key={d.id}>
+                    <TableCell className="tabular-nums">{d.percent_off}%</TableCell>
+                    <TableCell>{d.duration_months} {d.duration_months === 1 ? "mês" : "meses"}</TableCell>
+                    <TableCell>{SITUACAO_DESCONTO[d.stripe_status] ?? d.stripe_status}</TableCell>
+                    <TableCell>{formatDate(d.created_at)}</TableCell>
+                    <TableCell className="text-right">
+                      {d.revoked_at || d.stripe_status === "falhou" ? null : (
+                        <CommentedActionDialog
+                          trigger={<Button variant="ghost" size="sm">Revogar</Button>}
+                          title="Revogar desconto"
+                          description="O cupom sai da assinatura vigente. Faturas já emitidas não mudam."
+                          confirmLabel="Revogar"
+                          destructive
+                          onConfirm={async ({ comment }) => {
+                            try {
+                              await revogarDesconto.mutateAsync({ discountId: d.id, comment });
+                              toast.success("Desconto revogado.");
+                            } catch (e) {
+                              avisarErro(e);
+                              throw e;
+                            }
+                          }}
+                        />
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card>

@@ -504,9 +504,14 @@ begin
      )
      and c.relname <> all (array[
        'billing_accounts', 'billing_subscriptions', 'billing_invoices', 'billing_access_grants',
+       -- Desconto do superadmin: a tela de plano e a área /admin leem com a
+       -- organização bloqueada (0035).
+       'billing_discounts',
        'organization_members', 'organization_invites', 'backend_error_logs', 'error_reports',
        -- Dado da plataforma, não da organização: só o superadmin lê (0027).
        'platform_admin_audit_log',
+       -- Sessão do operador, não dado da organização (0035).
+       'platform_support_sessions',
        -- Chaves de IA cifradas: dado da plataforma, sem acesso nenhum pela
        -- API — nem do owner (0031).
        'ai_credentials'

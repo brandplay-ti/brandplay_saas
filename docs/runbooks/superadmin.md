@@ -73,14 +73,25 @@ select u.email, pa.comment, pa.created_at, pa.revoked_at
 |---|---|---|
 | Visão geral | MRR, recebido no mês, organizações por situação, testes que acabam em 3 dias, boletos aguardando, atrasos | `admin_clientes()`, `admin_faturamento_*` |
 | Clientes | Lista com situação (assinante, teste, provisória, sem acesso), plano, uso e MRR | `admin_clientes()` |
-| Cliente | Cadastro, owner, cobrança, uso, assinaturas, faturas, liberações e histórico; **liberar acesso**, **revogar liberação**, **estender teste** | `admin_cliente_detalhe()`, `admin_liberar_acesso()`, `admin_revogar_liberacao()`, `admin_estender_teste()` |
+| Cliente | Cadastro, owner, cobrança, uso, assinaturas, faturas, liberações e histórico; **liberar acesso**, **revogar liberação**, **estender teste**, **desconto ou isenção**, **ver como admin** | `admin_cliente_detalhe()`, `admin_liberar_acesso()`, `admin_revogar_liberacao()`, `admin_estender_teste()`, Edge Function `admin-discounts`, `admin_abrir_sessao_suporte()` |
 | Planos | Catálogo completo; criar, editar, tirar de venda, sincronizar com o Stripe | Edge Function `admin-plans` |
 | Faturamento | Realizado (caixa, mês a mês) e projetado (MRR, crescimento, churn) | `admin_faturamento_realizado()`, `admin_faturamento_projetado()` |
 
 Liberar acesso, revogar e estender exigem motivo. Os limites são do banco:
 liberação de 1 a 720 h (padrão = `billing_settings.provisional_access_hours`),
 extensão de 1 a 90 dias, somados ao fim atual do teste ou a agora, o que for
-mais tarde.
+mais tarde. Desconto de 1 a 100% por 1 a 12 meses (100% isenta). Sessão de
+suporte de 1 a 8 horas.
+
+## Ver como admin
+
+Na ficha do cliente, **Ver como admin** abre o painel daquela organização com
+papel de admin, pelo prazo informado. Uma faixa no painel mostra até quando e
+encerra a sessão. Abrir outra sessão encerra a anterior.
+
+A sessão não cria membership. Cobrança no Stripe e convites de equipe
+continuam exigindo um membro real. Sem sessão aberta, o dado de domínio segue
+inacessível ao superadmin.
 
 ## Planos pela tela
 

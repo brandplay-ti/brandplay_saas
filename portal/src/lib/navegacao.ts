@@ -88,8 +88,8 @@ interface Acesso {
 }
 
 /** Grupos e itens que o usuário pode ver, mais o atalho do superadmin. */
-export function gruposVisiveis({ can, isAdmin, loading, isPlatformAdmin }: Acesso): NavGroup[] {
-  const visivel = (item: NavItem) => !item.modules || loading || isAdmin || item.modules.some((m) => can(m));
+export function gruposVisiveis({ can, loading, isPlatformAdmin }: Acesso): NavGroup[] {
+  const visivel = (item: NavItem) => !item.modules || loading || item.modules.some((m) => can(m));
   const grupos = NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter(visivel) })).filter((g) => g.items.length > 0);
   if (isPlatformAdmin) {
     grupos.push({ label: "Plataforma", items: [{ title: "Admin da plataforma", url: "/admin", icon: ShieldEllipsis }] });

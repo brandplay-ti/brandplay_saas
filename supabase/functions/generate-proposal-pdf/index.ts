@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { drawContainedLogo, fetchLogoBytes, publicLogoUrl } from "../_shared/logo.ts";
+import { carregarMarca, caminhoDoLogo, componentesRgb } from "../_shared/marca.ts";
 
 
 const corsHeaders = {
@@ -59,16 +60,33 @@ Deno.serve(async (req) => {
     const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
     let page = pdf.addPage([595, 842]);
     const { width, height } = page.getSize();
-    const primary = rgb(0.384, 0.024, 0.784); // #6206C8
+    const marca = await carregarMarca(supabase, proposal.organization_id);
+    const [pr, pg, pb] = componentesRgb(marca.primaria);
+    const primary = rgb(pr, pg, pb);
     const text = rgb(0.059, 0.071, 0.129); // #0F1221
     const muted = rgb(0.42, 0.45, 0.52);
     let y = height - 60;
 
+    const orgLogo = await fetchLogoBytes(
+      publicLogoUrl(Deno.env.get("SUPABASE_URL")!, "org-logos", caminhoDoLogo(marca, "fundo_escuro")),
+    );
+
     // Header
     page.drawRectangle({ x: 0, y: height - 80, width, height: 80, color: primary });
-    page.drawText("PROPOSTA COMERCIAL", { x: 40, y: height - 38, size: 18, font: fontBold, color: rgb(1, 1, 1) });
+    const tituloX = orgLogo ? 100 : 40;
+    if (orgLogo) {
+      const box = { x: 36, y: height - 68, width: 52, height: 40 };
+      page.drawRectangle({ ...box, color: rgb(1, 1, 1) });
+      await drawContainedLogo(pdf, page, orgLogo, {
+        x: box.x + 4,
+        y: box.y + 4,
+        width: box.width - 8,
+        height: box.height - 8,
+      });
+    }
+    page.drawText("PROPOSTA COMERCIAL", { x: tituloX, y: height - 38, size: 18, font: fontBold, color: rgb(1, 1, 1) });
     if (proposal.proposal_number) {
-      page.drawText(`Nº ${proposal.proposal_number}`, { x: 40, y: height - 60, size: 10, font, color: rgb(0.93, 0.89, 1) });
+      page.drawText(`Nº ${proposal.proposal_number}`, { x: tituloX, y: height - 60, size: 10, font, color: rgb(0.93, 0.89, 1) });
     }
 
     // Sponsor logo — centered and proportional inside a fixed white frame

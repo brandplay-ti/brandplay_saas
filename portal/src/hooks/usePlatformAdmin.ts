@@ -218,3 +218,90 @@ export function useExtendTrial(orgId: string) {
     onSettled: () => invalidarCliente(queryClient, orgId),
   });
 }
+
+export type BillingDiscount = Tables<"billing_discounts">;
+
+export function useOrgDiscounts(orgId: string) {
+  return useQuery({
+    queryKey: ["admin", "discounts", orgId],
+    enabled: !!orgId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("billing_discounts")
+        .select("*")
+        .eq("organization_id", orgId)
+        .order("created_at", { ascending: false });
+      if (error) throw new AdminActionError(error.message, error.code);
+      return data;
+    },
+  });
+}
+
+async function erroDaFuncao(error: unknown, data: unknown): Promise<never> {
+  const corpo = await readEdgeFunctionError(error, data);
+  throw new Error(corpo.error ?? "Não foi possível concluir a ação.");
+}
+
+/** Cupom de 1–100% por 1–12 meses (`admin-discounts`). 100% isenta no prazo. */
+export function useApplyDiscount(orgId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      percentOff,
+      durationMonths,
+      comment,
+    }: {
+      percentOff: number;
+      durationMonths: number;
+      comment: string;
+    }) => {
+      const { data, error } = await supabase.functions.invoke("admin-discounts", {
+        body: {
+          action: "apply",
+          organization_id: orgId,
+          percent_off: percentOff,
+          duration_months: durationMonths,
+          comment,
+        },
+      });
+      if (error || (data && typeof data === "object" && "error" in data)) await erroDaFuncao(error, data);
+      return data as { id: string; stripe_status: string; stripe?: { status: string } };
+    },
+    onSettled: () => {
+      invalidarCliente(queryClient, orgId);
+      queryClient.invalidateQueries({ queryKey: ["admin", "discounts", orgId] });
+    },
+  });
+}
+
+export function useRevokeDiscount(orgId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ discountId, comment }: { discountId: string; comment: string }) => {
+      const { data, error } = await supabase.functions.invoke("admin-discounts", {
+        body: { action: "revoke", discount_id: discountId, comment },
+      });
+      if (error || (data && typeof data === "object" && "error" in data)) await erroDaFuncao(error, data);
+      return data as { id: string; stripe_status: string };
+    },
+    onSettled: () => {
+      invalidarCliente(queryClient, orgId);
+      queryClient.invalidateQueries({ queryKey: ["admin", "discounts", orgId] });
+    },
+  });
+}
+
+/** Abre a sessão em que o superadmin vê a organização como admin (1–8 h). */
+export function useOpenSupportSession(orgId: string) {
+  return useMutation({
+    mutationFn: async ({ hours, comment }: { hours: number; comment: string }) => {
+      const { data, error } = await supabase.rpc("admin_abrir_sessao_suporte", {
+        _org_id: orgId,
+        _horas: hours,
+        _comentario: comment,
+      });
+      if (error) throw new AdminActionError(error.message, error.code);
+      return data as unknown as { id: string; organization_id: string; expires_at: string };
+    },
+  });
+}

@@ -20,7 +20,7 @@ import { BILLING_ROUTE, daysLeft, formatDateTime, type BillingStatus } from "@/l
  * a navegação por um erro transitório só pioraria a experiência.
  */
 export const BillingGate = ({ children }: { children: ReactNode }) => {
-  const { orgId, orgName, isAdmin, loading: orgLoading } = useOrganization();
+  const { orgId, orgName, isAdmin, loading: orgLoading, organizations } = useOrganization();
   const location = useLocation();
   const { data: status, isLoading, isError } = useBillingStatus(orgId);
 
@@ -35,8 +35,9 @@ export const BillingGate = ({ children }: { children: ReactNode }) => {
   if (!orgId || isError || !status) return <>{children}</>;
 
   const naTelaDePlano = location.pathname.startsWith(BILLING_ROUTE);
+  const emSuporte = organizations.some((o) => o.id === orgId && o.suporte);
 
-  if (!status.access && !naTelaDePlano) {
+  if (!status.access && !naTelaDePlano && !emSuporte) {
     if (isAdmin) return <Navigate to={BILLING_ROUTE} replace />;
     return <AccessSuspended orgName={orgName} />;
   }

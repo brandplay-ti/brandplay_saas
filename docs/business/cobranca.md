@@ -131,6 +131,18 @@ owner/admin).
 Se o limite de um plano diminuir, quem já está acima continua com o que tem,
 mas não cresce até voltar para baixo do limite.
 
+## Desconto e isenção
+
+O superadmin registra, na ficha do cliente, um percentual de 1 a 100 por 1 a
+12 meses. 100% isenta a cobrança nesse prazo. O motivo fica na auditoria.
+
+- Com assinatura vigente, o cupom entra nela na hora.
+- Sem assinatura, o cupom entra no próximo checkout.
+- Um desconto vigente por organização. Outro percentual começa pela revogação
+  do atual, que tira o cupom da assinatura. Fatura já emitida permanece.
+- Estender o teste e liberar acesso provisório destrancam o painel. Eles não
+  alteram o valor cobrado no Stripe.
+
 ## Faturamento da plataforma
 
 Como a área administrativa apura (ADR-0008, `0028`):

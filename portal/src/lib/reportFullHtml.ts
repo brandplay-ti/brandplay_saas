@@ -1,4 +1,5 @@
 import { buildAnalytics, type AnalyticsInput } from "@/components/reports/AnalyticsTab";
+import { corSegura, PRIMARIA_PADRAO, SECUNDARIA_PADRAO } from "@/lib/marca";
 
 const fmtMoney = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
@@ -12,6 +13,8 @@ interface FullReportInput extends AnalyticsInput {
   orgName?: string | null;
   propertyLabel?: string | null;
   sponsorLabel?: string | null;
+  primaria?: string | null;
+  secundaria?: string | null;
   kpis: {
     received: number; expected: number; overdue: number; activeContracts: number;
     pipelineValue: number; winRate: number; overdueDeliveries: number;
@@ -35,6 +38,8 @@ export const openFullReport = (input: FullReportInput) => {
   const a = buildAnalytics(input);
   const k = input.kpis;
   const maxCash = Math.max(1, ...input.cashflow.map((m) => m.recebido + m.previsto));
+  const primaria = corSegura(input.primaria, PRIMARIA_PADRAO);
+  const secundaria = corSegura(input.secundaria, SECUNDARIA_PADRAO);
 
   const kpiCard = (label: string, value: string) =>
     `<div class="kpi"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`;
@@ -45,8 +50,8 @@ export const openFullReport = (input: FullReportInput) => {
   * { box-sizing: border-box; }
   body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #0F1221; margin: 0; padding: 32px; }
   h1 { font-size: 26px; margin: 0; }
-  h2 { font-size: 16px; margin: 28px 0 10px; padding-bottom: 6px; border-bottom: 2px solid #6206C8; text-transform: uppercase; letter-spacing: .04em; }
-  .cover { background: linear-gradient(135deg,#6206C8,#4B0FA3); color:#fff; border-radius: 14px; padding: 28px; margin-bottom: 22px; }
+  h2 { font-size: 16px; margin: 28px 0 10px; padding-bottom: 6px; border-bottom: 2px solid ${primaria}; text-transform: uppercase; letter-spacing: .04em; }
+  .cover { background: ${primaria}; color:#fff; border-radius: 14px; padding: 28px; margin-bottom: 22px; }
   .cover p { margin: 6px 0 0; opacity: .85; font-size: 13px; }
   .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .kpi { border:1px solid #e2e5ee; border-radius:10px; padding:10px 12px; }
@@ -58,8 +63,8 @@ export const openFullReport = (input: FullReportInput) => {
   .muted { color:#8a90a3; }
   .chart { display:flex; align-items:flex-end; gap:6px; height:150px; border-bottom:1px solid #dfe3ee; padding-top:8px; }
   .bar { flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; height:100%; }
-  .bar .s1 { width:100%; background:#6206C8; }
-  .bar .s2 { width:100%; background:#2962FF; }
+  .bar .s1 { width:100%; background:${primaria}; }
+  .bar .s2 { width:100%; background:${secundaria}; }
   .bar small { font-size:8px; color:#666e82; margin-top:4px; }
   .legend { font-size:10px; color:#666e82; margin-top:8px; }
   .legend i { display:inline-block; width:9px; height:9px; margin-right:4px; border-radius:2px; }
@@ -101,7 +106,7 @@ export const openFullReport = (input: FullReportInput) => {
     )
     .join("")}
 </div>
-<div class="legend"><i style="background:#6206C8"></i>Recebido &nbsp; <i style="background:#2962FF"></i>Previsto</div>
+<div class="legend"><i style="background:${primaria}"></i>Recebido &nbsp; <i style="background:${secundaria}"></i>Previsto</div>
 ${table(
   ["Mês", "Recebido", "Previsto", "Total"],
   input.cashflow.map((m) => [m.label, fmtMoney(m.recebido), fmtMoney(m.previsto), fmtMoney(m.recebido + m.previsto)]),

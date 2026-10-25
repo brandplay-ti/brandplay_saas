@@ -689,6 +689,50 @@ export type Database = {
           },
         ]
       }
+      billing_discounts: {
+        Row: {
+          comment: string
+          created_at: string
+          duration_months: number
+          id: string
+          organization_id: string
+          percent_off: number
+          revoked_at: string | null
+          stripe_coupon_id: string | null
+          stripe_status: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string
+          duration_months: number
+          id?: string
+          organization_id: string
+          percent_off: number
+          revoked_at?: string | null
+          stripe_coupon_id?: string | null
+          stripe_status?: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          duration_months?: number
+          id?: string
+          organization_id?: string
+          percent_off?: number
+          revoked_at?: string | null
+          stripe_coupon_id?: string | null
+          stripe_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_discounts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_invoices: {
         Row: {
           amount_cents: number
@@ -2693,6 +2737,73 @@ export type Database = {
           },
         ]
       }
+      organization_brand_assets: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          organization_id: string
+          storage_path: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          organization_id: string
+          storage_path: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          organization_id?: string
+          storage_path?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_brand_assets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_brand_kits: {
+        Row: {
+          created_at: string
+          organization_id: string
+          primary_hex: string
+          secondary_hex: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          organization_id: string
+          primary_hex?: string
+          secondary_hex?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          organization_id?: string
+          primary_hex?: string
+          secondary_hex?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_brand_kits_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_invites: {
         Row: {
           accepted_at: string | null
@@ -2774,6 +2885,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_role_grants: {
+        Row: {
+          access: string
+          module: string
+          organization_id: string
+          role: Database["public"]["Enums"]["org_role"]
+          updated_at: string
+        }
+        Insert: {
+          access: string
+          module: string
+          organization_id: string
+          role: Database["public"]["Enums"]["org_role"]
+          updated_at?: string
+        }
+        Update: {
+          access?: string
+          module?: string
+          organization_id?: string
+          role?: Database["public"]["Enums"]["org_role"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_role_grants_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -3051,6 +3194,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      platform_support_sessions: {
+        Row: {
+          admin_user_id: string
+          comment: string
+          created_at: string
+          ended_at: string | null
+          expires_at: string
+          id: string
+          organization_id: string
+        }
+        Insert: {
+          admin_user_id: string
+          comment: string
+          created_at?: string
+          ended_at?: string | null
+          expires_at: string
+          id?: string
+          organization_id: string
+        }
+        Update: {
+          admin_user_id?: string
+          comment?: string
+          created_at?: string
+          ended_at?: string | null
+          expires_at?: string
+          id?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_support_sessions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       property_checklist_items: {
         Row: {
@@ -5196,6 +5377,14 @@ export type Database = {
           users_active: number
         }[]
       }
+      admin_abrir_sessao_suporte: {
+        Args: { _comentario: string; _horas: number; _org_id: string }
+        Returns: Json
+      }
+      admin_encerrar_sessao_suporte: {
+        Args: { _comentario: string; _sessao_id: string }
+        Returns: Json
+      }
       admin_estender_teste: {
         Args: { _comentario: string; _dias: number; _org_id: string }
         Returns: Json
@@ -5289,6 +5478,7 @@ export type Database = {
         Args: { _comentario: string; _grant_id: string }
         Returns: Json
       }
+      admin_sessao_suporte_ativa: { Args: never; Returns: Json }
       archive_sponsor: {
         Args: { _reason: string; _sponsor_id: string }
         Returns: undefined
