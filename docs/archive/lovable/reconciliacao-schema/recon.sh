@@ -7,7 +7,7 @@ set -eu
 
 IMG="${RECON_IMAGE:-supabase/postgres:17.6.1.136}"
 DIR="$(cd "$(dirname "$0")" && pwd)"
-ROOT="$(cd "$DIR/../../.." && pwd)"
+ROOT="$(cd "$DIR/../../../.." && pwd)"
 OUT="${RECON_OUT:-$ROOT/.recon}"
 mkdir -p "$OUT"
 
@@ -49,7 +49,7 @@ apply() {
 }
 
 apply recon-repo "$ROOT"/supabase/migrations/0*.sql
-apply recon-lovable "$ROOT"/supabase/lovable-migrations/2026*.sql
+apply recon-lovable "$ROOT"/docs/archive/lovable/lovable-migrations/2026*.sql
 
 for n in lovable repo; do
   docker exec -i "recon-$n" psql -U supabase_admin -d postgres -q < "$DIR/catalog.sql" > "$OUT/cat_$n.txt"

@@ -65,7 +65,7 @@ Monorepo no padrão do central-check (ADR-0006,
 ```
 .claude/            regras e skills do Claude Code
 .github/workflows/  ci.yml (portal + migrations) e deploy.yml (manual, VPS)
-docs/               adr/, architecture/, infrastructure/, runbooks/
+docs/               adr/, architecture/, infrastructure/, runbooks/, archive/lovable/
 docker/             compose único do Supabase (local/hml/produção) + files/volumes
 portal/             aplicação React (workspace npm) — Dockerfile, nixpacks.toml
   src/
@@ -79,11 +79,10 @@ portal/             aplicação React (workspace npm) — Dockerfile, nixpacks.t
   scripts/          guardas de build (checar-build, checar-node)
 supabase/
   migrations/       schema versionado (fonte única de verdade do banco)
-  lovable-migrations/  migrations originais do Lovable — referência, não aplicadas
   functions/        Edge Functions (Deno), assadas na imagem do edge-runtime
   seed/             usuário de exemplo — SÓ local
   tests/            testes de segurança/RLS
-  tools/            migrate, chaves, bundle, checar-supabase, migração do Lovable
+  tools/            migrate, chaves, bundle, checar-supabase, avaliar-ia
 ```
 
 O npm roda em workspaces: os comandos do portal (`dev`, `build`, `lint`,

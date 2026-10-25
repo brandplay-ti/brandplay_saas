@@ -7,7 +7,7 @@ Status: Accepted
 A ADR-0004 reconstruiu o schema a partir de `src/integrations/supabase/types.ts`
 porque não havia acesso ao banco do Lovable Cloud. Em 2026-10-01 o export do
 código do Lovable trouxe as **95 migrations reais** do banco de origem, hoje
-guardadas em `supabase/lovable-migrations/` (somente referência).
+guardadas em `docs/archive/lovable/lovable-migrations/` (somente referência).
 
 A comparação dos dois schemas (`docs/architecture/reconciliacao-schema-2026-10-02.md`,
 ferramenta em `supabase/tools/reconciliacao-schema/`) mostrou que a

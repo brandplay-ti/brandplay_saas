@@ -366,7 +366,7 @@ pura de nome/assinatura, sem nenhuma pista adicional).
 ## Reconciliação com o schema real do Lovable (0012–0019, 2026-10-02)
 
 O export do Lovable trouxe as 95 migrations reais do banco de origem
-(`supabase/lovable-migrations/`). A comparação completa está em
+(`docs/archive/lovable/lovable-migrations/`). A comparação completa está em
 `docs/architecture/reconciliacao-schema-2026-10-02.md` e a decisão de manter a
 reconstrução, corrigindo-a com migrations novas, na **ADR-0005**. Depois de
 `0012`–`0019`, tabelas, colunas (tipo e default), enums, triggers, view e

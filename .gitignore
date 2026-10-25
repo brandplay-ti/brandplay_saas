@@ -14,6 +14,7 @@ npm-debug.log*
 .env
 .env.*
 !.env.example
+!.env.*.example
 
 # Build e relatórios
 dist
@@ -29,10 +30,10 @@ portal/test-results
 # SQL gerado por supabase/tools/gerar-bundle.mjs — derivado, regenere
 supabase/bundle
 
-# Saída local da reconciliação de schema (supabase/tools/reconciliacao-schema)
+# Saída local da reconciliação de schema (archive: docs/archive/lovable/reconciliacao-schema)
 .recon/
 
-# Exportação de dados reais do Lovable (supabase/tools/migracao-lovable).
+# Exportação de dados reais do Lovable (scripts em docs/archive/lovable/migracao-dados).
 # LGPD: nunca versionar.
 .migracao-lovable/
 

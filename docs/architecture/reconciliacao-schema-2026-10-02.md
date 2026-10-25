@@ -1,7 +1,7 @@
 # Reconciliação de schema: Lovable Cloud × schema reconstruído
 
 - **Data**: 2026-10-02
-- **Método**: as 95 migrations reais (`supabase/lovable-migrations/`) e as
+- **Método**: as 95 migrations reais (`docs/archive/lovable/lovable-migrations/`) e as
   `supabase/migrations/0001`–`0011` aplicadas em dois Postgres descartáveis
   (mesma imagem do stack, mesma base de `auth`/`storage`), seguidas de
   comparação por catálogo. Passo a passo reproduzível em
