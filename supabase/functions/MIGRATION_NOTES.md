@@ -292,3 +292,16 @@ Edge Function administrativa para credenciais de IA (`ai_credentials`):
 - Ações: `testar`, `definir_padrao`, `definir_cliente`, `revogar_cliente`.
 - Ações adicionais (IA-24): `configurar_cliente` (`ai_org_settings`) e
   `definir_preco` (`ai_model_prices`), também auditadas.
+
+## Alertas de IA (backlog IA-30, IA-31)
+
+Após cada evento em `ai_usage_events`, `_shared/ai/alertas.ts` (chamado pela
+camada) pode:
+
+- avisar owner/admin e superadmins ao atingir o % de alerta ou 100% do
+  orçamento mensal (dedupe por organização, limiar e mês);
+- avisar superadmins quando a chave **exclusiva** falha com `chave_invalida` ou
+  `sem_saldo` (dedupe por credencial e hora).
+
+Notificações em `notifications`; e-mail via `_shared/email.ts` quando o usuário
+mantém `notification_preferences.email_enabled`.

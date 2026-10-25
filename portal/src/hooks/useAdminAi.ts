@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { readEdgeFunctionError } from "@/lib/edgeFunctionError";
-import type { AdminIaCliente, AdminIaPadrao, AdminIaPreco, IaFornecedor } from "@/lib/adminAi";
+import type { AdminIaCliente, AdminIaConsumo, AdminIaPadrao, AdminIaPreco, IaFornecedor } from "@/lib/adminAi";
 import { AdminActionError } from "@/hooks/usePlatformAdmin";
 
 export const adminAiKeys = {
@@ -67,6 +67,22 @@ export function useAdminIaPrecos() {
       const { data, error } = await supabase.rpc("admin_ia_precos");
       if (error) throw error;
       return (data ?? []) as AdminIaPreco[];
+    },
+  });
+}
+
+export function useAdminIaConsumo(meses = 6) {
+  return useQuery({
+    queryKey: adminAiKeys.consumo(meses),
+    staleTime: 60_000,
+    queryFn: async (): Promise<AdminIaConsumo> => {
+      const { data, error } = await supabase.rpc("admin_ia_consumo", { _meses: meses });
+      if (error) throw error;
+      const bruto = (data ?? {}) as AdminIaConsumo;
+      return {
+        meses: bruto.meses ?? [],
+        top_mes: bruto.top_mes ?? [],
+      };
     },
   });
 }
