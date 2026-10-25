@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { ACESSO_DE_MODULO, MODULOS_DE_PERMISSAO, PAPEIS_DE_PERMISSAO, type AcessoDeModulo } from "@/lib/permissoes";
 
 type LogRow = {
   id: string;
@@ -34,6 +35,7 @@ const ACTION_META: Record<string, { icon: any; label: string; color: string }> =
   role_changed: { icon: UserCog, label: "Papel alterado", color: "text-primary" },
   member_revoked: { icon: UserX, label: "Acesso revogado", color: "text-destructive" },
   member_reactivated: { icon: ShieldCheck, label: "Acesso reativado", color: "text-primary" },
+  permission_changed: { icon: UserCog, label: "Permissão alterada", color: "text-primary" },
 };
 
 export const TeamAuditLog = () => {
@@ -104,12 +106,20 @@ export const TeamAuditLog = () => {
                           {r.target_email}
                         </Badge>
                       )}
+                      {r.action === "permission_changed" && (
+                        <Badge variant="secondary" className="text-xs font-normal">
+                          {PAPEIS_DE_PERMISSAO.find((p) => p.key === r.new_role)?.label ?? r.new_role} ·{" "}
+                          {MODULOS_DE_PERMISSAO.find((m) => m.key === r.metadata?.module)?.label ?? r.metadata?.module}
+                          : {ACESSO_DE_MODULO[r.metadata?.before as AcessoDeModulo] ?? r.metadata?.before} →{" "}
+                          {ACESSO_DE_MODULO[r.metadata?.after as AcessoDeModulo] ?? r.metadata?.after}
+                        </Badge>
+                      )}
                       {r.action === "role_changed" && r.old_role && r.new_role && (
                         <Badge variant="secondary" className="text-xs font-normal">
                           {ROLE_LABEL[r.old_role] ?? r.old_role} → {ROLE_LABEL[r.new_role] ?? r.new_role}
                         </Badge>
                       )}
-                      {r.action !== "role_changed" && r.new_role && (
+                      {r.action !== "role_changed" && r.action !== "permission_changed" && r.new_role && (
                         <Badge variant="secondary" className="text-xs font-normal">
                           {ROLE_LABEL[r.new_role] ?? r.new_role}
                         </Badge>

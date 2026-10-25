@@ -2781,6 +2781,38 @@ export type Database = {
           },
         ]
       }
+      organization_role_grants: {
+        Row: {
+          access: string
+          module: string
+          organization_id: string
+          role: Database["public"]["Enums"]["org_role"]
+          updated_at: string
+        }
+        Insert: {
+          access: string
+          module: string
+          organization_id: string
+          role: Database["public"]["Enums"]["org_role"]
+          updated_at?: string
+        }
+        Update: {
+          access?: string
+          module?: string
+          organization_id?: string
+          role?: Database["public"]["Enums"]["org_role"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_role_grants_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           address_city: string | null
