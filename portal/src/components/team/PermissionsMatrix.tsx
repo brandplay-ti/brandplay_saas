@@ -1,98 +1,77 @@
-import { Check, Minus } from "lucide-react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/hooks/useOrganization";
+import {
+  ACESSO_DE_MODULO,
+  MODULOS_DE_PERMISSAO,
+  PAPEIS_DE_PERMISSAO,
+  type AcessoDeModulo,
+  type ModuloDePermissao,
+  type PapelDePermissao,
+} from "@/lib/permissoes";
 
-type Role = "owner" | "admin" | "comercial" | "operacional" | "financeiro";
+type Linha = { role: PapelDePermissao; module: ModuloDePermissao; access: AcessoDeModulo };
 
-const ROLES: { key: Role; label: string; tone: string }[] = [
-  { key: "owner", label: "Proprietário", tone: "bg-primary/10 text-primary" },
-  { key: "admin", label: "Administrador", tone: "bg-primary/10 text-primary" },
-  { key: "comercial", label: "Comercial", tone: "bg-secondary text-secondary-foreground" },
-  { key: "operacional", label: "Operacional", tone: "bg-secondary text-secondary-foreground" },
-  { key: "financeiro", label: "Financeiro", tone: "bg-secondary text-secondary-foreground" },
-];
-
-type Perm = "read" | "write" | "none";
-
-const MATRIX: { module: string; description: string; perms: Record<Role, Perm> }[] = [
-  {
-    module: "Dashboard",
-    description: "Visão geral, KPIs, widgets",
-    perms: { owner: "write", admin: "write", comercial: "read", operacional: "read", financeiro: "read" },
-  },
-  {
-    module: "Patrocinadores e CRM",
-    description: "Patrocinadores, lead scoring, pipeline, propostas",
-    perms: { owner: "write", admin: "write", comercial: "write", operacional: "none", financeiro: "read" },
-  },
-  {
-    module: "Propriedades e Ativos",
-    description: "Cadastro de propriedades esportivas, cotas e ativos",
-    perms: { owner: "write", admin: "write", comercial: "write", operacional: "write", financeiro: "read" },
-  },
-  {
-    module: "Contratos",
-    description: "Contratos, cláusulas, renovações",
-    perms: { owner: "write", admin: "write", comercial: "write", operacional: "read", financeiro: "write" },
-  },
-  {
-    module: "Financeiro",
-    description: "Parcelas, recebimentos, fluxo de caixa",
-    perms: { owner: "write", admin: "write", comercial: "read", operacional: "none", financeiro: "write" },
-  },
-  {
-    module: "Entregas e Campo",
-    description: "Entregas, evidências, app de campo, checklists",
-    perms: { owner: "write", admin: "write", comercial: "read", operacional: "write", financeiro: "none" },
-  },
-  {
-    module: "Relatórios",
-    description: "Sell-out, executivos, exportações",
-    perms: { owner: "write", admin: "write", comercial: "read", operacional: "read", financeiro: "read" },
-  },
-  {
-    module: "Acessos ao Portal",
-    description: "Liberar e revogar acessos de patrocinadores",
-    perms: { owner: "write", admin: "write", comercial: "none", operacional: "none", financeiro: "none" },
-  },
-  {
-    module: "Equipe e Configurações",
-    description: "Convidar membros, alterar papéis, auditoria",
-    perms: { owner: "write", admin: "write", comercial: "none", operacional: "none", financeiro: "none" },
-  },
-];
-
-const PermCell = ({ perm }: { perm: Perm }) => {
-  if (perm === "write")
-    return (
-      <div className="flex items-center justify-center">
-        <Badge className="bg-primary/15 text-primary hover:bg-primary/20">
-          <Check className="h-3 w-3 mr-1" /> Edita
-        </Badge>
-      </div>
-    );
-  if (perm === "read")
-    return (
-      <div className="flex items-center justify-center">
-        <Badge variant="outline">
-          <Check className="h-3 w-3 mr-1" /> Lê
-        </Badge>
-      </div>
-    );
-  return (
-    <div className="flex items-center justify-center text-muted-foreground">
-      <Minus className="h-4 w-4" />
-    </div>
-  );
-};
-
+/** Matriz que o admin da conta edita. O banco é a fronteira; isto só grava a linha. */
 export const PermissionsMatrix = () => {
+  const { orgId, role, isAdmin, refresh } = useOrganization();
+  const queryClient = useQueryClient();
+  const [salvando, setSalvando] = useState<string | null>(null);
+
+  const matriz = useQuery({
+    queryKey: ["role-grants", orgId],
+    enabled: !!orgId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("organization_role_grants")
+        .select("role, module, access")
+        .eq("organization_id", orgId!);
+      if (error) throw error;
+      return data as Linha[];
+    },
+  });
+
+  const acesso = (papel: PapelDePermissao, modulo: ModuloDePermissao): AcessoDeModulo =>
+    matriz.data?.find((l) => l.role === papel && l.module === modulo)?.access ?? "none";
+
+  const podeEditar = (papel: PapelDePermissao, modulo: ModuloDePermissao) => {
+    if (!isAdmin || papel === "owner") return false;
+    if (papel === "admin" && modulo === "team" && role !== "owner") return false;
+    return true;
+  };
+
+  const salvar = async (papel: PapelDePermissao, modulo: ModuloDePermissao, access: AcessoDeModulo) => {
+    if (!orgId || access === acesso(papel, modulo)) return;
+    const chave = `${papel}:${modulo}`;
+    setSalvando(chave);
+    const { error } = await supabase
+      .from("organization_role_grants")
+      .update({ access })
+      .eq("organization_id", orgId)
+      .eq("role", papel)
+      .eq("module", modulo);
+    setSalvando(null);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    await queryClient.invalidateQueries({ queryKey: ["role-grants", orgId] });
+    await refresh();
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Matriz de permissões</CardTitle>
-        <CardDescription>O que cada papel pode fazer em cada módulo do sistema.</CardDescription>
+        <CardDescription>
+          O que cada papel faz em CRM, entregas, financeiro e equipe. O proprietário permanece com edição. A equipe
+          dos administradores só o proprietário altera.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
@@ -100,34 +79,52 @@ export const PermissionsMatrix = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className="min-w-[220px]">Módulo</TableHead>
-                {ROLES.map((r) => (
-                  <TableHead key={r.key} className="text-center min-w-[110px]">
-                    {r.label}
+                {PAPEIS_DE_PERMISSAO.map((p) => (
+                  <TableHead key={p.key} className="text-center min-w-[140px]">
+                    {p.label}
                   </TableHead>
                 ))}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {MATRIX.map((row) => (
-                <TableRow key={row.module}>
+              {MODULOS_DE_PERMISSAO.map((modulo) => (
+                <TableRow key={modulo.key}>
                   <TableCell>
-                    <div className="font-medium">{row.module}</div>
-                    <div className="text-xs text-muted-foreground">{row.description}</div>
+                    <div className="font-medium">{modulo.label}</div>
+                    <div className="text-xs text-muted-foreground">{modulo.description}</div>
                   </TableCell>
-                  {ROLES.map((r) => (
-                    <TableCell key={r.key}>
-                      <PermCell perm={row.perms[r.key]} />
-                    </TableCell>
-                  ))}
+                  {PAPEIS_DE_PERMISSAO.map((papel) => {
+                    const valor = acesso(papel.key, modulo.key);
+                    const editavel = podeEditar(papel.key, modulo.key);
+                    return (
+                      <TableCell key={papel.key}>
+                        <Select
+                          value={valor}
+                          disabled={!editavel || salvando === `${papel.key}:${modulo.key}` || matriz.isLoading}
+                          onValueChange={(v) => salvar(papel.key, modulo.key, v as AcessoDeModulo)}
+                        >
+                          <SelectTrigger className="h-8" aria-label={`${modulo.label} para ${papel.label}`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(Object.keys(ACESSO_DE_MODULO) as AcessoDeModulo[]).map((opcao) => (
+                              <SelectItem key={opcao} value={opcao}>
+                                {ACESSO_DE_MODULO[opcao]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
-        <p className="text-xs text-muted-foreground mt-4">
-          <strong>Edita</strong> = pode criar, alterar e excluir registros do módulo. <strong>Lê</strong> = apenas
-          visualiza. <strong>—</strong> = sem acesso.
-        </p>
+        {!isAdmin && (
+          <p className="mt-4 text-xs text-muted-foreground">Só o proprietário ou um administrador altera esta matriz.</p>
+        )}
       </CardContent>
     </Card>
   );
