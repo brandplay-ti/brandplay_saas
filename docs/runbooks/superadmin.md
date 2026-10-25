@@ -80,8 +80,9 @@ select u.email, pa.comment, pa.created_at, pa.revoked_at
 Liberar acesso, revogar e estender exigem motivo. Os limites são do banco:
 liberação de 1 a 720 h (padrão = `billing_settings.provisional_access_hours`),
 extensão de 1 a 90 dias, somados ao fim atual do teste ou a agora, o que for
-mais tarde. Desconto de 1 a 100% por 1 a 12 meses (100% isenta). Sessão de
-suporte de 1 a 8 horas.
+mais tarde. Desconto de 1 a 100% por 1 a 12 meses. 100% isenta a cobrança e
+mantém o acesso no prazo (o aviso de teste some). Abaixo de 100%, o cupom só
+entra na cobrança. Sessão de suporte de 1 a 8 horas.
 
 ## Ver como admin
 

@@ -55,7 +55,9 @@ export const CurrentPlanCard = ({ status, contractedPlanName, canManage, pending
             <p className="text-sm text-muted-foreground">
               {status.source === "trial"
                 ? "Durante o teste grátis, sem cobrança."
-                : `${formatCents(plano.price_cents)}${plano.price_cents != null ? "/mês" : ""}`}
+                : status.source === "exemption"
+                  ? "Isento de cobrança no prazo concedido."
+                  : `${formatCents(plano.price_cents)}${plano.price_cents != null ? "/mês" : ""}`}
             </p>
           )}
         </div>

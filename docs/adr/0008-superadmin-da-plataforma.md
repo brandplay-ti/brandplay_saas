@@ -99,6 +99,13 @@ Desconto e isenção (100% por até 12 meses) são cupom recorrente no Stripe,
 gravados por `admin-discounts`, com auditoria. Detalhe em
 `docs/business/cobranca.md` e `docs/runbooks/superadmin.md`.
 
+## Atualização (0039)
+
+Isenção de 100% vigente é fonte de acesso (`exemption`), com os limites do
+plano de teste, à frente do teste grátis e da liberação provisória. Assinatura
+com acesso continua na frente. O aviso de dias restantes do teste não aparece
+enquanto a isenção vale. Desconto abaixo de 100% não muda o acesso.
+
 ## Relacionados
 
 ADR-0002 (tenant), ADR-0007 (cobrança), `docs/architecture/plano-superadmin.md`,
