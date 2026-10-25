@@ -279,3 +279,16 @@ Toda função de IA segue o mesmo roteiro, com o apoio de `_shared/ai/funcao.ts`
   8 MB). A mídia só é marcada como `failed` depois de o acesso ser
   confirmado, e `error_message` recebe a mensagem ao usuário — antes podia
   receber o corpo do erro do fornecedor.
+
+## `admin-ai` (backlog IA-23)
+
+Edge Function administrativa para credenciais de IA (`ai_credentials`):
+
+- JWT → superadmin ativo (`platform_admins`) → validação → teste mínimo no
+  fornecedor → cifra (`AI_KEYS_MASTER_KEY`, `_shared/ai-crypto.ts`) → gravação
+  com revogação da credencial ativa anterior → auditoria em
+  `platform_admin_audit_log` (`target_type: ai_credential`, só metadados e
+  `key_hint`).
+- Ações: `testar`, `definir_padrao`, `definir_cliente`, `revogar_cliente`.
+- Ações adicionais (IA-24): `configurar_cliente` (`ai_org_settings`) e
+  `definir_preco` (`ai_model_prices`), também auditadas.

@@ -2,7 +2,7 @@ import { Link, Outlet, useNavigate } from "react-router-dom";
 import { Suspense } from "react";
 import { PageLoader } from "@/components/PageLoader";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3, Building2, LayoutDashboard, Loader2, LogOut, Package, ShieldAlert } from "lucide-react";
+import { BarChart3, Building2, LayoutDashboard, Loader2, LogOut, Package, ShieldAlert, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 import { NavLink } from "@/components/NavLink";
@@ -17,6 +17,7 @@ const NAV = [
   { title: "Clientes", to: "/admin/clientes", icon: Building2, end: false },
   { title: "Planos", to: "/admin/planos", icon: Package, end: false },
   { title: "Faturamento", to: "/admin/faturamento", icon: BarChart3, end: false },
+  { title: "IA", to: "/admin/ia", icon: Sparkles, end: false },
 ];
 
 /**

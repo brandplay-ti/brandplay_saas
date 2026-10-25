@@ -57,10 +57,10 @@ jobs:
       # Sem DENO_NO_PACKAGE_JSON, o Deno 2 acha o package.json da raiz e
       # procura os pacotes npm: em node_modules (que este job nao instala) —
       # os tipos do supabase-js pedem npm:@types/node e o check falha.
-      - name: Testes Deno de supabase/functions/_shared
+      - name: Testes Deno da camada de IA e admin-ai
         env:
           DENO_NO_PACKAGE_JSON: "1"
-        run: deno test --allow-read supabase/functions/_shared/
+        run: deno test --allow-read supabase/functions/_shared/ supabase/functions/admin-ai/
 
   migrations:
     name: Migrations (guarda, banco limpo, idempotencia, RLS)

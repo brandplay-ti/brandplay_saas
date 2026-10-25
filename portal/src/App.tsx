@@ -64,6 +64,9 @@ const AdminClients = lazyPage(() => import("./pages/admin/AdminClients"));
 const AdminClientDetail = lazyPage(() => import("./pages/admin/AdminClientDetail"));
 const AdminPlans = lazyPage(() => import("./pages/admin/AdminPlans"));
 const AdminRevenue = lazyPage(() => import("./pages/admin/AdminRevenue"));
+const AdminAi = lazyPage(() => import("./pages/admin/AdminAi"));
+const AdminAiClientDetail = lazyPage(() => import("./pages/admin/AdminAiClientDetail"));
+const AdminAiPrecos = lazyPage(() => import("./pages/admin/AdminAiPrecos"));
 const NotFound = lazyPage(() => import("./pages/NotFound.tsx"));
 
 const queryClient = new QueryClient();
@@ -146,6 +149,9 @@ const App = () => (
             <Route path="clientes/:id" element={<AdminClientDetail />} />
             <Route path="planos" element={<AdminPlans />} />
             <Route path="faturamento" element={<AdminRevenue />} />
+            <Route path="ia" element={<AdminAi />} />
+            <Route path="ia/clientes/:id" element={<AdminAiClientDetail />} />
+            <Route path="ia/precos" element={<AdminAiPrecos />} />
           </Route>
           <Route path="/campo" element={<FieldLayout />}>
             <Route index element={<FieldDeliveries />} />
