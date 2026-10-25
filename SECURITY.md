@@ -31,9 +31,14 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   `auth.getUser()` — direto, ou pelo `autenticar()` de
   `supabase/functions/_shared/ai/funcao.ts` nas funções de IA. Verificar no
   despachante não substituiria isso — a anon key é um JWT válido e está no
-  bundle do portal, então "ter um JWT" não significa "estar logado". Sem usuário, de propósito, só três:
+  bundle do portal, então "ter um JWT" não significa "estar logado". Sem usuário, de propósito, só três
+  funções e um caminho do próprio despachante:
   `billing-webhook` (autentica pela assinatura do Stripe), `saude`
-  (healthcheck, não lê nada) e `report-error` (aceita relato de erro anônimo).
+  (healthcheck, não lê nada), `report-error` (aceita relato de erro anônimo)
+  e `GET /functions/v1/metricas` (não é diretório de função; o `main` responde
+  contadores Prometheus se `EDGE_METRICS_TOKEN` estiver definido, e 404 se
+  não estiver). O log transacional do despachante grava nomes de campo, nunca
+  valores, senha ou `Authorization` (`docs/infrastructure/monitoring.md`).
   Função nova começa com `getUser()`; ficar fora dessa lista exige o motivo
   registrado aqui.
 
