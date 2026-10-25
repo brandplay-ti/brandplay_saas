@@ -20,13 +20,48 @@
   ou resposta da IA. Só o final da chave (`key_hint`) aparece em tela e
   auditoria.
 
+## Status final (2026-10-25)
+
+Referência de branch: épico 1–3 e funções migradas já estão em **`dev`**
+(migrations `0031`–`0033`, camada `_shared/ai/`, funções via `gerar()`).
+Épicos 4–6 (admin, alertas, docs) estão em **`feature/ia-admin`** — PR
+[#30](https://github.com/brandplay-ti/brandplay_saas/pull/30) → `dev`.
+
+| ID | Status | Observação |
+| --- | --- | --- |
+| IA-01 – IA-12 | **Feito** (`dev`) | Fundação, camada, CI Deno |
+| IA-13 – IA-21 | **Feito** (`dev`) | Funções migradas + portal `erroDeIA` |
+| IA-22 | **Parcial** | `npm run supabase:avaliar-ia`: teste `admin-ai` por fornecedor; `--funcoes` faz smoke de 1 função. Falta rodar as **13** funções, métricas agregadas e revisão qualitativa em PT (depende de chaves OpenAI/Anthropic + tempo humano). Relatório local em `supabase/tools/avaliar-ia/saida/`. |
+| IA-23 – IA-28 | **Feito** (PR #30) | `admin-ai`, `/admin/ia`, preços |
+| IA-29 | **Quase feito** (PR #30) | E2E: acesso superadmin, bloqueio owner, teste conexão inválida. **Falta** cenário E2E: orçamento salvo reflete na lista. |
+| IA-30 – IA-32 | **Feito** (PR #30) | `alertas.ts`, `AdminOverview` |
+| IA-33 | **Feito** (PR #30) | `IaConsumoCard` em Configurações |
+| IA-34 | **Pendente (ops)** | Deploy homolog/prod na VPS — checklist em `docs/runbooks/ia.md`; **não** é desenvolvimento local |
+| IA-35 – IA-36 | **Feito** (PR #30) | ADR-0010, runbook, regras atualizadas |
+| IA-37 | **Fora do dev** | Termos/privacidade — jurídico |
+
+### Desenvolvimento local ainda útil (opcional, não bloqueia merge)
+
+1. **IA-29** — um teste Playwright: superadmin salva orçamento no detalhe do
+   cliente e a coluna/% aparece na lista (`/admin/ia`).
+2. **IA-22 (completo)** — estender `supabase/tools/avaliar-ia/rodar.mjs` para
+   invocar as 13 funções de produto (com payloads mínimos do seed) e sumarizar
+   latência/erros a partir de `ai_usage_events`; anexar relatório ao PR ou ao
+   runbook. Requer chaves dos três fornecedores e stack local.
+3. **Cadastro operacional local** — preços em `/admin/ia/precos` e chave padrão
+   no admin (dados, não código): necessário para orçamento/alertas fazerem
+   sentido nos testes manuais.
+
+Fora de código: **IA-34** (VPS), **IA-37** (jurídico), rotação/revogação da
+chave Gemini exposta em chat de dev.
+
 ## Sequência por marco
 
 | Marco | Histórias | Resultado |
 |---|---|---|
 | **1 — IA volta a funcionar** | IA-01 → IA-12 (fundação e camada), IA-13 → IA-21 (funções), IA-22 (avaliação), IA-34 (deploy do marco) | Todos os clientes usando a chave padrão (semente por variável de ambiente), em qualquer um dos 3 fornecedores, com uso medido |
 | **2 — Chave por cliente** | IA-23 → IA-29 | Superadmin gerencia chave padrão e chaves exclusivas em `/admin/ia` |
-| **3 — Controle de custo** | IA-30 → IA-33, IA-35 → IA-37 | Alertas, custo na visão geral, consumo para o cliente, documentação final |
+| **3 — Controle de custo** | IA-30 → IA-33, IA-35 → IA-36 **feitos** (PR #30); IA-37 jurídico | Alertas, visão geral, consumo cliente, docs; deploy = IA-34 |
 
 Caminho crítico: IA-01 → IA-05 → IA-06/IA-07 → IA-09 → IA-13 → lotes de
 funções → IA-22. As histórias de um mesmo lote de funções (IA-14 a IA-21) são
