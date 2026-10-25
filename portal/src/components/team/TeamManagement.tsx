@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import { Loader2, Mail, UserPlus, Shield, Trash2, Copy, Check, RotateCcw, X, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -75,7 +75,15 @@ type Invite = {
   created_at: string;
 };
 
-export const TeamManagement = () => {
+export type ControleDeEdicao = {
+  salvar: () => Promise<boolean>;
+  descartar: () => void;
+};
+
+export const TeamManagement = forwardRef<ControleDeEdicao, { editando: boolean }>(function TeamManagement(
+  { editando },
+  ref,
+) {
   const confirm = useConfirm();
   const { orgId, isAdmin, role: myRole, loading: orgLoading } = useOrganization();
   const avisarLimiteDoPlano = usePlanLimitNotice();
@@ -98,6 +106,7 @@ export const TeamManagement = () => {
   const [createRole, setCreateRole] = useState<OrgRole>("comercial");
 
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [papeis, setPapeis] = useState<Record<string, OrgRole>>({});
 
   const load = async () => {
     if (!orgId) return;
@@ -131,8 +140,11 @@ export const TeamManagement = () => {
   };
 
   useEffect(() => {
+    setPapeis({});
     if (orgId) load();
   }, [orgId]);
+
+  const papelDe = (membro: Member) => (editando ? papeis[membro.id] ?? membro.role : membro.role);
 
   const callFn = async (payload: any) => {
     setBusy(true);
@@ -148,6 +160,39 @@ export const TeamManagement = () => {
     }
     return true;
   };
+
+  useImperativeHandle(ref, () => ({
+    descartar: () => setPapeis({}),
+    salvar: async () => {
+      const pendentes = members.filter((membro) => papeis[membro.id] && papeis[membro.id] !== membro.role);
+      if (pendentes.length === 0) {
+        setPapeis({});
+        return true;
+      }
+      const restantes = { ...papeis };
+      let salvou = false;
+      for (const membro of pendentes) {
+        const papel = restantes[membro.id];
+        const ok = await callFn({
+          action: "update_role",
+          member_id: membro.id,
+          role: papel,
+          organization_id: orgId,
+        });
+        if (!ok) {
+          setPapeis(restantes);
+          await load();
+          return false;
+        }
+        delete restantes[membro.id];
+        salvou = true;
+      }
+      setPapeis({});
+      if (salvou) toast.success(pendentes.length === 1 ? "Papel atualizado" : "Papéis atualizados");
+      await load();
+      return true;
+    },
+  }));
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
@@ -184,19 +229,6 @@ export const TeamManagement = () => {
       setCreateName("");
       setCreatePassword("");
       setCreateOpen(false);
-      load();
-    }
-  };
-
-  const handleUpdateRole = async (memberId: string, newRole: OrgRole) => {
-    const ok = await callFn({
-      action: "update_role",
-      member_id: memberId,
-      role: newRole,
-      organization_id: orgId,
-    });
-    if (ok) {
-      toast.success("Papel atualizado");
       load();
     }
   };
@@ -419,15 +451,15 @@ export const TeamManagement = () => {
                     <div className="font-medium">{m.profile?.full_name || "—"}</div>
                   </TableCell>
                   <TableCell>
-                    {m.role === "owner" ? (
-                      <Badge variant="secondary">{ROLE_LABEL.owner}</Badge>
+                    {m.role === "owner" || !editando ? (
+                      <Badge variant={m.role === "owner" ? "secondary" : "outline"}>{ROLE_LABEL[papelDe(m)]}</Badge>
                     ) : (
                       <Select
-                        value={m.role}
-                        onValueChange={(v) => handleUpdateRole(m.id, v as OrgRole)}
+                        value={papelDe(m)}
+                        onValueChange={(v) => setPapeis((atual) => ({ ...atual, [m.id]: v as OrgRole }))}
                         disabled={busy}
                       >
-                        <SelectTrigger className="w-40 h-8">
+                        <SelectTrigger className="w-40 h-8" aria-label={`Papel de ${m.profile?.full_name || "membro"}`}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -512,4 +544,4 @@ export const TeamManagement = () => {
       )}
     </div>
   );
-};
+});
