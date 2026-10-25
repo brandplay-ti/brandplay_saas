@@ -80,9 +80,22 @@ lá). Três pontos dele não servem aqui:
   não-superadmin e `anon`; superadmin lê a cobrança mas não o domínio; owner
   comum continua sem ler a cobrança de outra organização; liberação e
   extensão auditadas; apuração do faturamento; auditoria imutável.
-- Pendências fora do escopo: impersonação de cliente; edição de
-  `billing_settings` (duração do teste, plano do teste, prazo da liberação)
-  pela tela — continua por SQL (`docs/runbooks/cobranca.md`).
+- Pendências fora do escopo: edição de `billing_settings` (duração do teste,
+  plano do teste, prazo da liberação) pela tela — continua por SQL
+  (`docs/runbooks/cobranca.md`).
+
+## Atualização (0035)
+
+A sessão de suporte cobre o que esta ADR deixava como impersonação fora de
+escopo, com prazo. `admin_abrir_sessao_suporte` (1 a 8 horas, comentário
+obrigatório) faz `is_org_member(uuid)` e `has_org_role(uuid, text[])` — quando
+o papel exigido inclui `admin` — valerem para aquela organização. Não cria
+`organization_members`, não concede `owner` e não abre outra organização.
+Policies de domínio não ganham `is_platform_admin()`.
+
+Desconto e isenção (100% por até 12 meses) são cupom recorrente no Stripe,
+gravados por `admin-discounts`, com auditoria. Detalhe em
+`docs/business/cobranca.md` e `docs/runbooks/superadmin.md`.
 
 ## Relacionados
 

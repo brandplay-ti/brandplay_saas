@@ -10,6 +10,8 @@ export type OrgSummary = {
   name: string;
   role: OrgRole;
   logo_path?: string | null;
+  /** Sessão de suporte do superadmin nesta organização (0035). Não é membership. */
+  suporte?: { id: string; expires_at: string };
 };
 
 const ACTIVE_ORG_KEY = "active_organization_id";
@@ -69,6 +71,30 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
       role: m.role as OrgRole,
       logo_path: m.organization?.logo_path ?? null,
     }));
+
+    const { data: sessaoRaw, error: erroSessao } = await supabase.rpc("admin_sessao_suporte_ativa");
+    const sessao = sessaoRaw as {
+      id?: string;
+      organization_id?: string;
+      organization_name?: string;
+      expires_at?: string;
+    } | null;
+    if (!erroSessao && sessao?.id && sessao.organization_id && sessao.expires_at) {
+      const suporte = { id: sessao.id, expires_at: sessao.expires_at };
+      const existente = list.find((o) => o.id === sessao.organization_id);
+      if (existente) {
+        existente.suporte = suporte;
+      } else {
+        list.push({
+          id: sessao.organization_id,
+          name: sessao.organization_name ?? "Organização em suporte",
+          role: "admin",
+          logo_path: null,
+          suporte,
+        });
+      }
+    }
+
     setOrganizations(list);
     return list;
   }, []);
