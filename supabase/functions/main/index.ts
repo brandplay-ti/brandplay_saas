@@ -34,7 +34,11 @@ function encaminhar(req: Request, requestId: string): Request {
   headers.set('x-request-id', requestId);
   const init: RequestInit = { method: req.method, headers };
   if (req.method !== 'GET' && req.method !== 'HEAD') init.body = req.body;
-  return new Request(req.url, init);
+  // `new Request` nao copia a marca interna do runtime (streamRid). Sem ela,
+  // `worker.fetch` quebra com "reading 'streamRid'" antes de a funcao rodar.
+  const encaminhada = new Request(req.url, init);
+  EdgeRuntime.applySupabaseTag(req, encaminhada);
+  return encaminhada;
 }
 
 function marcarResposta(res: Response, requestId: string): Response {
