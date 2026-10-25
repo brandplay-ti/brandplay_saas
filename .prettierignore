@@ -11,7 +11,7 @@ playwright-report
 test-results
 package-lock.json
 supabase/functions
-supabase/lovable-migrations
+docs/archive/lovable/lovable-migrations
 
 # Componentes gerados pelo shadcn/ui: reformatar produz diff gratuito na
 # proxima vez que um componente for regenerado.

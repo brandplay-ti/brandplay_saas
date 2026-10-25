@@ -33,7 +33,10 @@
     "supabase:chaves": "node supabase/tools/gerar-chaves-locais.mjs",
     "supabase:chave-de-papel": "node supabase/tools/gerar-chave-de-papel.mjs",
     "supabase:checar": "node supabase/tools/checar-supabase.mjs",
-    "supabase:avaliar-ia": "node supabase/tools/avaliar-ia/rodar.mjs"
+    "supabase:avaliar-ia": "node supabase/tools/avaliar-ia/rodar.mjs",
+    "migracao:exportar": "node docs/archive/lovable/migracao-dados/exportar.mjs",
+    "migracao:importar": "node docs/archive/lovable/migracao-dados/importar.mjs",
+    "migracao:desligar-repositorio": "node docs/archive/lovable/migracao-dados/finalizar-desligamento.mjs"
   },
   "devDependencies": {
     "prettier": "^3.9.6"

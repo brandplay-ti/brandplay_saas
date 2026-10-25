@@ -1,5 +1,10 @@
 # Plano de ação: migração de dados do Lovable Cloud para o Supabase da VPS
 
+> **Status (2026-10-25):** código e schema vivem no self-hosted (ADR-0001/0006).
+> Ferramentas de export/import e referências Lovable ficam em
+> `docs/archive/lovable/` após `npm run migracao:desligar-repositorio`.
+> Corte de dados de produção: seguir §4–§5 e `docs/runbooks/desligar-lovable.md`.
+
 - **Data**: 2026-10-01
 - **Origem**: projeto Supabase gerenciado pelo Lovable Cloud
   (ref. `qwyqmzvbopcirhkoenmp`, app publicado em `brandplayapp.lovable.app`)
@@ -12,7 +17,7 @@ O que precisa ser migrado:
 
 | Camada | Conteúdo | Observação |
 |---|---|---|
-| Código | Frontend + Edge Functions | O Lovable está **à frente** do GitHub (ver 1.1) |
+| Código | Frontend + Edge Functions | **Concluído** — repositório é a fonte; Lovable congelado |
 | Schema | 71 tabelas, 16 enums, funções, policies | Hoje reconstruído por inferência (ADR-0004), não por dump |
 | Auth | `auth.users` + `auth.identities` | Os UUIDs precisam ser preservados: todas as FKs de `user_id` dependem deles |
 | Dados | Linhas de domínio por organização | Triggers do destino podem duplicar dados na importação (ver 5.3) |
@@ -30,8 +35,7 @@ O bundle publicado contém telas que não existem no repositório (ver
 a melhor pista do schema real de hoje: se o repositório está atrás no código,
 **provavelmente também está atrás no schema**.
 
-- [ ] Congelar edições no Lovable. **Se houver nova edição no Lovable após
-      2026-10-01, repetir o export e a sincronização.**
+- [x] Congelar edições no Lovable (2026-10-25: plataforma abandonada; não editar).
 - [x] Trazer o código atual para uma branch do GitHub (`sync/lovable-2026-10`,
       integrada em `201298a`).
 - [x] Comparar o `types.ts` sincronizado com as migrations `0001`–`0011`:
@@ -78,7 +82,7 @@ a melhor pista do schema real de hoje: se o repositório está atrás no código
 ## 2. Reconciliação de schema
 
 > **Atualização 2026-10-01**: o export do Lovable trouxe as **95 migrations
-> reais** do banco de origem (`supabase/lovable-migrations/`, de
+> reais** do banco de origem (`docs/archive/lovable/lovable-migrations/`, de
 > `20260419203057` a `20260810025139`). O `types.ts` do export difere só na
 > formatação, então tabelas, colunas, enums e assinaturas já batem com a
 > reconstrução. A reconciliação deixa de depender do cenário A para o
@@ -98,7 +102,7 @@ a melhor pista do schema real de hoje: se o repositório está atrás no código
 > 140 FKs que só existem aqui; triggers desligados durante a carga, agora são
 > 126, ver seção 3.3).
 
-1. Aplicar `supabase/lovable-migrations/*.sql` num banco descartável (schema
+1. Aplicar `docs/archive/lovable/lovable-migrations/*.sql` num banco descartável (schema
    "real") e `0001`–`0011` em outro (schema reconstruído). Comparar os dois
    (ex.: `migra` ou `pg_dump --schema-only` + diff), com foco no que o
    `types.ts` não mostra: corpo das funções, triggers, policies, defaults e a
@@ -176,6 +180,32 @@ trigger durante a carga (contagens da seção 3.6).
 - Validar por contagem e soma de tamanhos por bucket, mais amostragem de
   arquivos abrindo pelo app.
 
+Na exportação de 2026-10-02 (cenário C, sessão de um admin) vieram **88 de
+143** arquivos. Os 55 restantes falharam com `Object not found`: no Lovable,
+`brandtrack-media` e `proposals` só deixam o **autor do upload** ler
+(`auth.uid()` = primeira pasta do path). Essa mensagem é a RLS escondendo o
+arquivo, não necessariamente arquivo apagado. Quase todos os pendentes estão
+na pasta do owner da organização; um PDF de proposta está na pasta de outro
+admin.
+
+Para completar a pasta já exportada, sem reexportar as tabelas:
+
+```bash
+# o que falta, agrupado pelo dono (não entra no Lovable)
+node docs/archive/lovable/migracao-dados/exportar.mjs --relatar --complementar .migracao-lovable/<data-hora>
+
+# preferido, se o Lovable Cloud entregar a service role (bypass de RLS)
+node docs/archive/lovable/migracao-dados/exportar.mjs --env-file .env.lovable --service-role --complementar .migracao-lovable/<data-hora>
+
+# senão, uma rodada por autor do upload (e-mail/senha ou --sessao)
+node docs/archive/lovable/migracao-dados/exportar.mjs --env-file .env.lovable --complementar .migracao-lovable/<data-hora>
+```
+
+O `--complementar` reconstrói a lista pelo que ainda não está no disco
+(falhas do manifesto + paths das tabelas + listagem dos buckets com a sessão
+atual), então dá para rodar de novo. Depois, o envio ao destino é o passo 4
+da seção 3.7 (`importar.mjs --so-arquivos`).
+
 ### 3.6 Validação (critério de aceite da migração)
 
 - [ ] Contagem de linhas por tabela: origem = destino (diferenças só nas
@@ -205,7 +235,7 @@ primeiro, depois produção.
 2. **Gerar o SQL**:
 
    ```bash
-   node supabase/tools/migracao-lovable/importar.mjs --pasta .migracao-lovable/<data-hora> --gerar-sql
+   node docs/archive/lovable/migracao-dados/importar.mjs --pasta .migracao-lovable/<data-hora> --gerar-sql
    ```
 
    O SQL sai em `<pasta>/studio-<data-hora>/parte-NN-de-MM.sql`, dentro da
@@ -245,7 +275,7 @@ primeiro, depois produção.
 4. **Storage**:
 
    ```bash
-   node supabase/tools/migracao-lovable/importar.mjs --pasta .migracao-lovable/<data-hora> --so-arquivos --url https://teste.db.brandplay.com.br
+   node docs/archive/lovable/migracao-dados/importar.mjs --pasta .migracao-lovable/<data-hora> --so-arquivos --url https://teste.db.brandplay.com.br
    ```
 
    A `SERVICE_ROLE_KEY` do ambiente é pedida no terminal e não é gravada.

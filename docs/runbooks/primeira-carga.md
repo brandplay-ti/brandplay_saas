@@ -16,7 +16,7 @@ rede Docker, seus containers, sua senha e seu Studio, todos a partir do mesmo
 | ------------------- | ------------------------------------------------------------------------------- |
 | Migrations          | schema, enums, funções, RLS e policies, buckets do Storage, gatilhos            |
 | Edge Functions      | já vêm na imagem do serviço `functions` — nada a carregar à mão                 |
-| Dados (só no corte) | importação do Lovable — `docs/architecture/plano-migracao-dados-lovable-vps.md` |
+| Dados (só no corte) | importação legada — `docs/runbooks/desligar-lovable.md` e plano histórico |
 
 ## O que eles NUNCA recebem
 

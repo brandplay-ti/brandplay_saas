@@ -23,7 +23,7 @@
 // Ao contrario do central-check, nao ha `02-configuracao.sql`: o BrandPlay nao
 // tem catalogo de configuracao fora das migrations. Os dados de um ambiente
 // hospedado vem da importacao dos dados reais, no corte
-// (supabase/tools/migracao-lovable).
+// (docs/archive/lovable/migracao-dados/importar.mjs).
 //
 // O bundle e derivado — nao vai para o repositorio. Regenere quando precisar.
 

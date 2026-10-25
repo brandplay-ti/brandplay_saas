@@ -1,6 +1,8 @@
 # ADR-0001: Sair do Lovable Cloud
 
-Status: Accepted
+Status: Accepted — **implementado** (infra self-hosted em homologação/produção;
+artefatos Lovable arquivados em `docs/archive/lovable/`; ver
+`docs/runbooks/desligar-lovable.md`).
 
 ## Contexto
 
