@@ -1,5 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+import { drawContainedLogo, fetchLogoBytes, publicLogoUrl } from "../_shared/logo.ts";
+import { caminhoDoLogo, carregarMarca, componentesRgb, SECUNDARIA_PADRAO } from "../_shared/marca.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,6 +16,7 @@ interface Body {
   to: string;
   property_name: string | null;
   sponsor_name: string | null;
+  organization_id?: string | null;
   kpis: {
     received: number; expected: number; overdue: number;
     activeContracts: number; pipelineValue: number;
@@ -46,15 +49,18 @@ Deno.serve(async (req) => {
     }
 
     const body = (await req.json()) as Body;
+    const marca = await carregarMarca(userClient, body.organization_id);
+    const [pr, pg, pb] = componentesRgb(marca.primaria);
+    const [sr, sg, sb] = componentesRgb(marca.secundaria || SECUNDARIA_PADRAO);
 
     const pdf = await PDFDocument.create();
     const font = await pdf.embedFont(StandardFonts.Helvetica);
     const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
 
-    const PRIMARY = rgb(0.384, 0.024, 0.784); // #6206C8
+    const PRIMARY = rgb(pr, pg, pb);
     const MUTED = rgb(0.45, 0.45, 0.5);
     const TEXT = rgb(0.059, 0.071, 0.129); // #0F1221
-    const PREVISTO = rgb(0.161, 0.384, 1); // #2962FF
+    const PREVISTO = rgb(sr, sg, sb);
 
     let page = pdf.addPage([595, 842]); // A4
     let y = 800;
@@ -94,8 +100,23 @@ Deno.serve(async (req) => {
 
     // Header
     page.drawRectangle({ x: 0, y: 800, width: 595, height: 42, color: PRIMARY });
-    page.drawText(sanitize("Relatório executivo"), { x: left, y: 815, size: 18, font: bold, color: rgb(1, 1, 1) });
-    page.drawText(sanitize(`Período: ${body.from} a ${body.to}`), { x: left, y: 802, size: 9, font, color: rgb(1, 1, 1) });
+    const logoBytes = await fetchLogoBytes(
+      publicLogoUrl(SUPABASE_URL, "org-logos", caminhoDoLogo(marca, "fundo_escuro")),
+    );
+    let tituloX = left;
+    if (logoBytes) {
+      const box = { x: left, y: 806, width: 56, height: 30 };
+      page.drawRectangle({ ...box, color: rgb(1, 1, 1) });
+      await drawContainedLogo(pdf, page, logoBytes, {
+        x: box.x + 3,
+        y: box.y + 3,
+        width: box.width - 6,
+        height: box.height - 6,
+      });
+      tituloX = left + 64;
+    }
+    page.drawText(sanitize("Relatório executivo"), { x: tituloX, y: 815, size: 18, font: bold, color: rgb(1, 1, 1) });
+    page.drawText(sanitize(`Período: ${body.from} a ${body.to}`), { x: tituloX, y: 802, size: 9, font, color: rgb(1, 1, 1) });
     y = 780;
 
     if (body.property_name || body.sponsor_name) {

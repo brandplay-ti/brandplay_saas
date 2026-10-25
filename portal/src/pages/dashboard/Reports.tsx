@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useMarca } from "@/hooks/useMarca";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -139,6 +140,7 @@ const downloadCSV = (filename: string, rows: (string | number)[][]) => {
 export default function Reports() {
   const { user } = useAuth();
   const { orgId } = useOrganization();
+  const marca = useMarca(orgId);
   const [loading, setLoading] = useState(true);
   const [exportingPdf, setExportingPdf] = useState(false);
 
@@ -385,6 +387,8 @@ export default function Reports() {
       to,
       propertyLabel: propertyId === "all" ? null : propertyMap.get(propertyId)?.name ?? null,
       sponsorLabel: sponsorId === "all" ? null : sponsorMap.get(sponsorId)?.name ?? null,
+      primaria: marca.primaria,
+      secundaria: marca.secundaria,
       kpis,
       cashflow: cashflow.map((m) => ({ label: m.label, recebido: m.recebido, previsto: m.previsto })),
       funnel,
@@ -399,6 +403,7 @@ export default function Reports() {
     try {
       const { data, error } = await supabase.functions.invoke("generate-report-pdf", {
         body: {
+          organization_id: orgId,
           from, to,
           property_name: propertyId === "all" ? null : propertyMap.get(propertyId)?.name ?? null,
           sponsor_name: sponsorId === "all" ? null : sponsorMap.get(sponsorId)?.name ?? null,

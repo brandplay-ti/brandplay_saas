@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { OrganizationForm } from "@/components/organization/OrganizationForm";
+import { BrandKitCard } from "@/components/organization/BrandKitCard";
 import { CreateOrganizationDialog } from "@/components/organization/CreateOrganizationDialog";
 import { PageHeader } from "@/components/common/PageHeader";
 
@@ -61,8 +62,9 @@ const Settings = () => {
           )}
         </TabsList>
 
-        <TabsContent value="organization">
+        <TabsContent value="organization" className="space-y-4">
           <OrganizationForm />
+          <BrandKitCard />
         </TabsContent>
 
         {isAdmin && (
