@@ -26,6 +26,7 @@ import { OrganizationProvider, useOrganization } from "@/hooks/useOrganization";
 import { useMarca } from "@/hooks/useMarca";
 import { canaisHsl, textoSobrePrimaria } from "@/lib/marca";
 import { BillingGate } from "@/components/billing/BillingGate";
+import { SupportSessionBanner } from "@/components/admin/SupportSessionBanner";
 
 const DashboardLayoutInner = () => {
   const { user } = useAuth();
@@ -99,6 +100,7 @@ const DashboardLayoutInner = () => {
             </div>
           </header>
           <main className="flex-1 p-4 md:p-8">
+            <SupportSessionBanner />
             <BillingGate>
               <Suspense fallback={<PageLoader />}>
                 <Outlet />

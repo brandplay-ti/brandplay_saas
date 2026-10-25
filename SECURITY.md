@@ -14,7 +14,10 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   `has_org_role(organization_id, roles)` (`supabase/migrations/0004_functions.sql`
   e `0005_rls_policies.sql`). Um usuário só acessa organizações das quais é
   membro ativo — nunca "a organização atual", que não existe como conceito de
-  banco (ver ADR-0002).
+  banco (ver ADR-0002). Dentro da organização, `can_access_module` lê
+  `organization_role_grants` (0036): o proprietário ou um administrador edita
+  o acesso de cada papel, e o proprietário permanece com edição. A tela só
+  reflete isso.
 - **Edge Functions** (`supabase/functions/`). Recebem o JWT do usuário, devem
   derivar `user.id` dele e escopar toda consulta por organização. Nunca devem
   confiar em `organization_id`/`user_id` vindos do corpo da requisição.
@@ -65,8 +68,15 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   concessão é operada à mão (`docs/runbooks/superadmin.md`), nunca pela API nem
   por migration. O superadmin lê a cobrança de todas as organizações e
   contagens de uso, pelas policies `*_platform_admin_read` e pelas funções
-  `admin_*` (que recusam quem não é superadmin), mas **não** lê dados de
-  domínio dos clientes. Toda ação administrativa vai para
+  `admin_*` (que recusam quem não é superadmin). Sem sessão de suporte, não lê
+  dados de domínio dos clientes. Uma sessão aberta
+  (`admin_abrir_sessao_suporte`, 1 a 8 horas, comentário obrigatório) faz
+  `is_org_member(uuid)` e `has_org_role(uuid, text[])` — quando o papel exigido
+  inclui `admin` — valerem só para aquela organização. `can_access_module`
+  usa, para o `auth.uid()` da sessão, a linha `admin` de
+  `organization_role_grants`: se o administrador daquela organização não lê um
+  módulo, a sessão também não lê. O operador age com o próprio `auth.uid()`.
+  A sessão não vira `organization_members` e não concede `owner`. Toda ação administrativa vai para
   `platform_admin_audit_log`, imutável pela API. Ao estender essa área, mantenha
   as duas coisas: leitura mínima e registro de quem fez.
 - **IA por organização** (ADR-0010, `/admin/ia`, `admin-ai`). Tabelas

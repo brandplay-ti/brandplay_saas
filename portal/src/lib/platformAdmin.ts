@@ -172,6 +172,12 @@ const ACAO_DE_AUDITORIA: Record<string, string> = {
   plano_criado: "Plano criado",
   plano_alterado: "Plano alterado",
   plano_sincronizado: "Plano sincronizado com o Stripe",
+  desconto_registrado: "Desconto registrado",
+  desconto_aplicado: "Desconto aplicado",
+  desconto_revogado: "Desconto revogado",
+  sessao_suporte_aberta: "Sessão de suporte aberta",
+  sessao_suporte_encerrada: "Sessão de suporte encerrada",
+  sessao_suporte_substituida: "Sessão de suporte substituída",
   superadmin_concedido: "Superadmin concedido",
   superadmin_revogado: "Superadmin revogado",
 };
