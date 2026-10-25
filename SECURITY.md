@@ -14,7 +14,10 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   `has_org_role(organization_id, roles)` (`supabase/migrations/0004_functions.sql`
   e `0005_rls_policies.sql`). Um usuário só acessa organizações das quais é
   membro ativo — nunca "a organização atual", que não existe como conceito de
-  banco (ver ADR-0002).
+  banco (ver ADR-0002). Dentro da organização, `can_access_module` lê
+  `organization_role_grants` (0036): o proprietário ou um administrador edita
+  o acesso de cada papel, e o proprietário permanece com edição. A tela só
+  reflete isso.
 - **Edge Functions** (`supabase/functions/`). Recebem o JWT do usuário, devem
   derivar `user.id` dele e escopar toda consulta por organização. Nunca devem
   confiar em `organization_id`/`user_id` vindos do corpo da requisição.

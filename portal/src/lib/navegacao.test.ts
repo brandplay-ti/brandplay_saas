@@ -20,8 +20,8 @@ describe("gruposVisiveis", () => {
     expect(u).not.toContain("/dashboard/equipe");
   });
 
-  it("admin da organização vê tudo, menos a área da plataforma", () => {
-    const u = urls(gruposVisiveis(acesso([], { isAdmin: true })));
+  it("quem tem os quatro módulos vê o painel, menos a área da plataforma", () => {
+    const u = urls(gruposVisiveis(acesso(["crm", "operacional", "financeiro", "team"])));
     expect(u).toContain("/dashboard/equipe");
     expect(u).toContain("/dashboard/pipeline");
     expect(u).not.toContain("/admin");
@@ -39,7 +39,7 @@ describe("gruposVisiveis", () => {
 });
 
 describe("urlAtiva", () => {
-  const grupos = gruposVisiveis(acesso([], { isAdmin: true }));
+  const grupos = gruposVisiveis(acesso(["crm", "operacional", "financeiro", "team"]));
 
   it("escolhe o item mais específico", () => {
     expect(urlAtiva(grupos, "/dashboard/brandtrack/uploads")).toBe("/dashboard/brandtrack/uploads");

@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { logBackendDbError } from "@/lib/backendErrorLogger";
+import { podeVerModulo, podeVerModuloPadrao, type AcessoDeModulo, type ModuloDePermissao } from "@/lib/permissoes";
 
 export type OrgRole = "owner" | "admin" | "comercial" | "operacional" | "financeiro";
 
@@ -44,6 +45,9 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
   const [orgLogoPath, setOrgLogoPath] = useState<string | null>(null);
   const [role, setRole] = useState<OrgRole | null>(null);
   const [organizations, setOrganizations] = useState<OrgSummary[]>([]);
+  const [grants, setGrants] = useState<
+    { organization_id: string; role: OrgRole; module: ModuloDePermissao; access: AcessoDeModulo }[] | null
+  >(null);
   const [loading, setLoading] = useState(true);
 
   const loadOrganizations = useCallback(async (userId: string) => {
@@ -92,6 +96,28 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
           logo_path: null,
           suporte,
         });
+      }
+    }
+
+    const ids = list.map((o) => o.id);
+    if (ids.length === 0) {
+      setGrants([]);
+    } else {
+      const { data: linhas, error: erroMatriz } = await supabase
+        .from("organization_role_grants")
+        .select("organization_id, role, module, access")
+        .in("organization_id", ids);
+      if (erroMatriz) {
+        setGrants(null);
+      } else {
+        setGrants(
+          (linhas ?? []).map((g) => ({
+            organization_id: g.organization_id,
+            role: g.role,
+            module: g.module as ModuloDePermissao,
+            access: g.access as AcessoDeModulo,
+          })),
+        );
       }
     }
 
@@ -151,14 +177,11 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
 
   const value = useMemo<OrganizationContextValue>(() => {
     const isAdmin = role === "owner" || role === "admin";
-    const can = (module: "crm" | "operacional" | "financeiro" | "team") => {
+    const can = (module: ModuloDePermissao) => {
       if (!role) return false;
-      if (isAdmin) return true;
-      if (module === "team") return false;
-      if (module === "crm") return role === "comercial";
-      if (module === "operacional") return role === "operacional";
-      if (module === "financeiro") return role === "financeiro";
-      return false;
+      if (!grants) return podeVerModuloPadrao(role, module);
+      const acesso = grants.find((g) => g.organization_id === orgId && g.role === role && g.module === module)?.access;
+      return podeVerModulo(acesso);
     };
     return {
       orgId,
@@ -172,7 +195,7 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
       switchOrganization,
       refresh,
     };
-  }, [orgId, orgName, orgLogoPath, role, loading, organizations, switchOrganization, refresh]);
+  }, [orgId, orgName, orgLogoPath, role, loading, organizations, grants, switchOrganization, refresh]);
 
   return <OrganizationContext.Provider value={value}>{children}</OrganizationContext.Provider>;
 };

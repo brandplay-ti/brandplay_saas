@@ -740,3 +740,30 @@ Suposições:
 - As duas tabelas ficam fora da policy restritiva `billing_access_restrictive`
   (exceção do teste `(m)`): desconto é dado de cobrança, sessão é dado da
   plataforma.
+
+## Permissões por organização (0036)
+
+`organization_role_grants` guarda, por papel, o acesso (`none`, `read`,
+`write`) em `crm`, `operacional`, `financeiro` e `team`. `can_access_module`
+passa a ler essa tabela. Organização nova recebe as linhas no insert; as que
+já existiam foram preenchidas na mesma migration.
+
+O padrão é o comportamento do banco em 0012, com `team` em `none` para
+comercial, operacional e financeiro. A matriz desenhada na tela dizia que
+operacional não via o CRM; o banco deixava ler, e o teste `(d)` de
+`seguranca.sql` depende disso. O padrão segue o banco.
+
+Suposições:
+
+- O proprietário permanece com `write` nos quatro módulos. A linha não é
+  atualizável pela API e o gatilho recusa qualquer outro valor.
+- Administrador edita comercial, operacional, financeiro e os outros módulos
+  do administrador. O módulo `team` do administrador só o proprietário muda,
+  para a conta não ficar sem quem gerencia a equipe.
+- Leitura de patrocinadores, oportunidades, propostas, entregas e parcelas
+  passa a usar `can_access_module(..., false)`. Com o padrão, todo papel
+  continua lendo o que já lia. `none` esconde a lista. As tabelas filhas que
+  ainda usam só `is_org_member` na leitura continuam visíveis a qualquer
+  membro; a escrita delas já passava por `can_access_module`.
+- A alteração grava `permission_changed` em `team_audit_log`, com o módulo e
+  o acesso anterior e o novo em `metadata`.
