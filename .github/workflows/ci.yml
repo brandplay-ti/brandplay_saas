@@ -38,6 +38,9 @@ jobs:
       - name: Testes unitarios
         run: npm test
 
+      - name: Testes do diagnostico de homologacao
+        run: npm run test:tools
+
       - name: Build
         run: npm run build
 

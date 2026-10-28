@@ -138,6 +138,9 @@ Confira o eco antes de continuar.
 docker run --rm --network "$SUPABASE_NETWORK" -v "$PWD/supabase:/supabase:ro" -e DATABASE_URL="$DATABASE_URL" postgres:17-alpine sh /supabase/tools/migrate.sh --status
 ```
 
+Da máquina local, sem copiar a senha, o mesmo status de homologação sai em
+`npm run supabase:diagnosticar` (`docs/runbooks/diagnostico-homologacao.md`).
+
 **2. Backup** — `docs/runbooks/backup.md` (num banco novo e vazio, pode
 pular).
 

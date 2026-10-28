@@ -13,6 +13,15 @@ npm run supabase:checar -- https://api.<dominio> <ANON_KEY> --portal https://<do
 curl -fsS https://api.<dominio>/functions/v1/saude
 ```
 
+Homologação a partir da máquina local — migrations pendentes, erros recentes
+do banco e logs do Dockploy, sem aplicar nada:
+
+```bash
+npm run supabase:diagnosticar
+```
+
+Credenciais e limites: `docs/runbooks/diagnostico-homologacao.md`.
+
 ## Log transacional das Edge Functions
 
 Toda rota que passa pelo despachante (`supabase/functions/main`) emite duas

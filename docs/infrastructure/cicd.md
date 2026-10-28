@@ -38,8 +38,9 @@ feature/* ──PR──▶ dev ──PR──▶ hml ──PR──▶ main
 
 Roda em todo PR e em push para `dev`, `hml` e `main`.
 
-**Job `portal`**: `npm ci` → lint → `type-check` → `test` → `build`, no
-workspace `portal`.
+**Job `portal`**: `npm ci` → lint → `type-check` → `test` → `test:tools` →
+`build`. `test` é o Vitest do portal. `test:tools` é o diagnóstico de
+homologação (`supabase/tools/diagnostico/`), sem rede.
 
 **Job `funcoes`**: `deno test --allow-read supabase/functions/_shared/`, com
 o Deno fixado na `v2.1.4` (a mesma da imagem `denoland/deno` usada
@@ -112,6 +113,11 @@ com `DATABASE_URL`, `SUPABASE_NETWORK` e `VPS_APP_DIR`. Arquivos separados, e
 não um só com prefixos: apontar homologação para o banco de produção por erro
 de variável é o acidente que o desenho torna impossível. O DSN fica **na VPS**,
 não nos secrets do GitHub. Passo a passo em `docs/runbooks/primeira-carga.md`.
+
+Da máquina local, `npm run supabase:diagnosticar` lista as migrations
+pendentes de homologação em sessão somente leitura e ainda olha a API e os
+logs do Dockploy. A senha do banco não vem para o laptop. Runbook:
+`docs/runbooks/diagnostico-homologacao.md`.
 
 Secrets do repositório: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`. Secrets de cada
 environment: `DOCKPLOY_DEPLOY_WEBHOOK` e `APP_HEALTH_URL`.
