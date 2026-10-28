@@ -33,6 +33,8 @@
     "supabase:chaves": "node supabase/tools/gerar-chaves-locais.mjs",
     "supabase:chave-de-papel": "node supabase/tools/gerar-chave-de-papel.mjs",
     "supabase:checar": "node supabase/tools/checar-supabase.mjs",
+    "supabase:diagnosticar": "node supabase/tools/diagnosticar-ambiente.mjs",
+    "test:tools": "node --test supabase/tools/diagnostico/relatorio.test.mjs",
     "supabase:avaliar-ia": "node supabase/tools/avaliar-ia/rodar.mjs",
     "migracao:exportar": "node docs/archive/lovable/migracao-dados/exportar.mjs",
     "migracao:importar": "node docs/archive/lovable/migracao-dados/importar.mjs",

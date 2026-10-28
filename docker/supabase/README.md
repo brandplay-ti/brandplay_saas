@@ -98,7 +98,7 @@ supabase/                  montado em /supabase no container do banco (só no lo
   (lovable-migrations arquivadas em docs/archive/lovable/)
   seed/                    usuário e organização de exemplo (só local)
   tests/                   testes de segurança (seguranca.sql)
-  tools/                   migrate.sh, chaves, checar-supabase, bundle, migração do Lovable
+  tools/                   migrate.sh, chaves, checar-supabase, diagnosticar, bundle, migração do Lovable
   functions/               edge functions, assadas na imagem do edge-runtime
     main/                  roteador de /functions/v1/<nome>
     saude/                 canário do healthcheck do container
