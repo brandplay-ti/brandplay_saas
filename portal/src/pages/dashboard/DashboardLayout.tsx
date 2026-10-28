@@ -1,4 +1,6 @@
 import { Outlet, useNavigate } from "react-router-dom";
+import { Suspense, useEffect } from "react";
+import { PageLoader } from "@/components/PageLoader";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Logo } from "@/components/Logo";
@@ -19,12 +21,28 @@ import {
 import { AIAssistantTrigger } from "@/components/ai/AIAssistantTrigger";
 import { NotificationsBell } from "@/components/notifications/NotificationsBell";
 import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
-import { OrganizationProvider } from "@/hooks/useOrganization";
+import { CommandMenu } from "@/components/CommandMenu";
+import { OrganizationProvider, useOrganization } from "@/hooks/useOrganization";
+import { useMarca } from "@/hooks/useMarca";
+import { canaisHsl, textoSobrePrimaria } from "@/lib/marca";
 import { BillingGate } from "@/components/billing/BillingGate";
+import { SupportSessionBanner } from "@/components/admin/SupportSessionBanner";
 
 const DashboardLayoutInner = () => {
   const { user } = useAuth();
+  const { orgId } = useOrganization();
+  const marca = useMarca(orgId);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--primary", canaisHsl(marca.primaria));
+    root.style.setProperty("--primary-foreground", textoSobrePrimaria(marca.primaria));
+    return () => {
+      root.style.removeProperty("--primary");
+      root.style.removeProperty("--primary-foreground");
+    };
+  }, [marca.primaria]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -47,7 +65,8 @@ const DashboardLayoutInner = () => {
           <header className="h-16 flex items-center justify-between border-b border-border bg-background px-4 md:px-6 sticky top-0 z-30">
             <div className="flex items-center gap-3">
               <SidebarTrigger />
-              <Logo showWordmark={false} sizeClassName="h-9 w-9 md:hidden" />
+              <Logo showWordmark={false} sizeClassName="h-8 md:hidden" />
+              <CommandMenu />
             </div>
             <div className="flex items-center gap-1">
               <OrganizationSwitcher />
@@ -81,8 +100,11 @@ const DashboardLayoutInner = () => {
             </div>
           </header>
           <main className="flex-1 p-4 md:p-8">
+            <SupportSessionBanner />
             <BillingGate>
-              <Outlet />
+              <Suspense fallback={<PageLoader />}>
+                <Outlet />
+              </Suspense>
             </BillingGate>
           </main>
         </div>

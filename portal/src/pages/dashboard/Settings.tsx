@@ -1,5 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Building2, ArrowRight } from "lucide-react";
+import { Users, Building2, ArrowRight, Sparkles } from "lucide-react";
+import { IaConsumoCard } from "@/components/settings/IaConsumoCard";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -7,7 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { OrganizationForm } from "@/components/organization/OrganizationForm";
+import { BrandKitCard } from "@/components/organization/BrandKitCard";
 import { CreateOrganizationDialog } from "@/components/organization/CreateOrganizationDialog";
+import { PageHeader } from "@/components/common/PageHeader";
 
 const Settings = () => {
   const { orgId, isAdmin } = useOrganization();
@@ -34,13 +37,15 @@ const Settings = () => {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto animate-fade-in">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
-          <p className="text-muted-foreground mt-1">Gerencie sua organização e equipe.</p>
-        </div>
-        <CreateOrganizationDialog />
-      </div>
+      <PageHeader
+        title="Configurações"
+        description="Gerencie sua organização e equipe."
+        actions={
+          <>
+            <CreateOrganizationDialog />
+          </>
+        }
+      />
 
       <Tabs defaultValue="organization" className="space-y-4">
         <TabsList>
@@ -50,11 +55,23 @@ const Settings = () => {
           <TabsTrigger value="team">
             <Users className="h-4 w-4 mr-2" /> Usuários & Permissões
           </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="ia">
+              <Sparkles className="h-4 w-4 mr-2" /> IA
+            </TabsTrigger>
+          )}
         </TabsList>
 
-        <TabsContent value="organization">
+        <TabsContent value="organization" className="space-y-4">
           <OrganizationForm />
+          <BrandKitCard />
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="ia">
+            <IaConsumoCard />
+          </TabsContent>
+        )}
 
         <TabsContent value="team" className="space-y-4">
           <Card>

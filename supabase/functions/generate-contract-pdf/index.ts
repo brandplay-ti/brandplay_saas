@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { drawContainedLogo, fetchLogoBytes, publicLogoUrl } from "../_shared/logo.ts";
+import { carregarMarca, caminhoDoLogo, componentesRgb } from "../_shared/marca.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -87,8 +88,10 @@ Deno.serve(async (req) => {
     let page = pdf.addPage(PAGE);
     const width = PAGE[0];
     const height = PAGE[1];
-    const primary = rgb(0.18, 0.43, 0.95);
-    const text = rgb(0.1, 0.12, 0.16);
+    const marca = await carregarMarca(supabase, contract.organization_id);
+    const [pr, pg, pb] = componentesRgb(marca.primaria);
+    const primary = rgb(pr, pg, pb);
+    const text = rgb(0.059, 0.071, 0.129); // #0F1221
     const muted = rgb(0.42, 0.45, 0.52);
     let y = height - 60;
 
@@ -105,7 +108,7 @@ Deno.serve(async (req) => {
     const section = (title: string) => {
       ensure(140);
       y -= 10;
-      page.drawRectangle({ x: 40, y: y - 5, width: width - 80, height: 18, color: rgb(0.93, 0.95, 1) });
+      page.drawRectangle({ x: 40, y: y - 5, width: width - 80, height: 18, color: rgb(0.957, 0.933, 0.992) });
       draw(title.toUpperCase(), { x: 48, size: 9, bold: true, color: primary });
       y -= 26;
     };
@@ -118,11 +121,25 @@ Deno.serve(async (req) => {
     };
 
     // Header
+    const orgLogo = await fetchLogoBytes(
+      publicLogoUrl(Deno.env.get("SUPABASE_URL")!, "org-logos", caminhoDoLogo(marca, "fundo_escuro")),
+    );
     page.drawRectangle({ x: 0, y: height - 80, width, height: 80, color: primary });
-    page.drawText("CONTRATO DE PATROCÍNIO", { x: 40, y: height - 38, size: 18, font: fontBold, color: rgb(1, 1, 1) });
+    const tituloX = orgLogo ? 100 : 40;
+    if (orgLogo) {
+      const box = { x: 36, y: height - 68, width: 52, height: 40 };
+      page.drawRectangle({ ...box, color: rgb(1, 1, 1) });
+      await drawContainedLogo(pdf, page, orgLogo, {
+        x: box.x + 4,
+        y: box.y + 4,
+        width: box.width - 8,
+        height: box.height - 8,
+      });
+    }
+    page.drawText("CONTRATO DE PATROCÍNIO", { x: tituloX, y: height - 38, size: 18, font: fontBold, color: rgb(1, 1, 1) });
     page.drawText(
       `${contract.contract_number ? `Nº ${contract.contract_number} · ` : ""}${STATUS_LABELS[contract.status] ?? contract.status}`,
-      { x: 40, y: height - 60, size: 10, font, color: rgb(0.9, 0.95, 1) },
+      { x: tituloX, y: height - 60, size: 10, font, color: rgb(0.93, 0.89, 1) },
     );
 
     const logoBytes = await fetchLogoBytes(
@@ -311,7 +328,7 @@ Deno.serve(async (req) => {
     draw(truncate(contract.sponsor?.name ?? contract.brand ?? "Patrocinador", 34), { x: 330, size: 9, color: muted });
 
     for (const p of pdf.getPages()) {
-      p.drawText(`Gerado por BrandPlay · ${new Date().toLocaleDateString("pt-BR")}`, {
+      p.drawText(`Gerado por Brandplay · ${new Date().toLocaleDateString("pt-BR")}`, {
         x: 40,
         y: 28,
         size: 8,

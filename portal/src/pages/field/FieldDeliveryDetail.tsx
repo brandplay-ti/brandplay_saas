@@ -22,6 +22,8 @@ import {
 import { toast } from "sonner";
 import { captureGeo, compressImage, detectKind } from "@/lib/fieldUtils";
 import { dataLocal } from "@/lib/datas";
+import { useConfirm } from "@/hooks/useConfirm";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 const MAX_ATTACHMENTS = 10;
 
@@ -53,6 +55,7 @@ type Attachment = {
 };
 
 const FieldDeliveryDetail = () => {
+  const confirm = useConfirm();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -147,6 +150,7 @@ const FieldDeliveryDetail = () => {
           {
             delivery_id: delivery.id,
             owner_id: user.id,
+            organization_id: targetOrg,
             uploaded_by: user.id,
             storage_path: path,
             file_name: file.name,
@@ -170,7 +174,12 @@ const FieldDeliveryDetail = () => {
   };
 
   const removeAttachment = async (att: Attachment) => {
-    if (!confirm("Remover este anexo?")) return;
+    const confirmado = await confirm({
+      title: "Remover este anexo?",
+      confirmLabel: "Remover",
+      destructive: true,
+    });
+    if (!confirmado) return;
     const { error } = await supabase.from("delivery_attachments").delete().eq("id", att.id);
     if (error) {
       toast.error(error.message);
@@ -207,7 +216,7 @@ const FieldDeliveryDetail = () => {
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-muted-foreground">Carregando…</div>;
+  if (loading) return <LoadingSkeleton variant="detalhe" className="p-4" />;
   if (!delivery) return <div className="p-8 text-center">Entrega não encontrada</div>;
 
   const isDone = delivery.status === "entregue" || delivery.status === "aprovada";
@@ -229,7 +238,7 @@ const FieldDeliveryDetail = () => {
               <p className="text-sm text-muted-foreground mt-0.5">{delivery.brand}</p>
             </div>
             {isDone && (
-              <Badge className="bg-green-500/10 text-green-600 dark:text-green-400">
+              <Badge className="bg-success/10 text-success-strong">
                 <CheckCircle2 className="w-3 h-3 mr-1" />
                 Entregue
               </Badge>
@@ -267,9 +276,9 @@ const FieldDeliveryDetail = () => {
                       className="w-full h-full flex flex-col items-center justify-center gap-1 p-2 text-center"
                     >
                       {att.kind === "pdf" ? (
-                        <FileText className="w-8 h-8 text-red-500" />
+                        <FileText className="w-8 h-8 text-destructive" />
                       ) : att.kind === "doc" ? (
-                        <FileText className="w-8 h-8 text-blue-500" />
+                        <FileText className="w-8 h-8 text-info-strong" />
                       ) : (
                         <FileIcon className="w-8 h-8 text-muted-foreground" />
                       )}

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,7 +40,6 @@ export interface CrmTask {
 export const CrmTasksPanel = ({ sponsorId, opportunityId }: { sponsorId: string; opportunityId?: string | null }) => {
   const { user } = useAuth();
   const { orgId, can } = useOrganization();
-  const { toast } = useToast();
   const [tasks, setTasks] = useState<CrmTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDone, setShowDone] = useState(false);
@@ -84,24 +83,24 @@ export const CrmTasksPanel = ({ sponsorId, opportunityId }: { sponsorId: string;
       assignee_id: user.id,
       created_by: user.id,
     });
-    if (error) return toast({ title: "Erro", description: error.message, variant: "destructive" });
+    if (error) return toast.error("Erro", { description: error.message });
     setForm({ title: "", task_type: "followup", priority: "media", due_date: "", description: "" });
-    toast({ title: "Tarefa criada" });
+    toast.success("Tarefa criada");
     load();
   };
 
   const complete = async (t: CrmTask) => {
     const { error } = await db.from("crm_tasks").update({ status: "concluida" }).eq("id", t.id);
-    if (error) return toast({ title: "Erro", description: error.message, variant: "destructive" });
-    toast({ title: "Tarefa concluída", description: "Uma interação foi registrada no histórico." });
+    if (error) return toast.error("Erro", { description: error.message });
+    toast.success("Tarefa concluída", { description: "Uma interação foi registrada no histórico." });
     load();
   };
 
   const updateDueDate = async (t: CrmTask, next: string | null) => {
     const { error } = await db.from("crm_tasks").update({ due_date: next }).eq("id", t.id);
-    if (error) return toast({ title: "Erro", description: error.message, variant: "destructive" });
+    if (error) return toast.error("Erro", { description: error.message });
     setTasks((cur) => cur.map((x) => (x.id === t.id ? { ...x, due_date: next } : x)));
-    toast({ title: "Data atualizada" });
+    toast.success("Data atualizada");
   };
 
   const remove = async (t: CrmTask) => {
@@ -126,12 +125,9 @@ export const CrmTasksPanel = ({ sponsorId, opportunityId }: { sponsorId: string;
     setBulkSaving(true);
     const { error } = await db.from("crm_tasks").update({ due_date: next }).in("id", selectedIds);
     setBulkSaving(false);
-    if (error) return toast({ title: "Erro", description: error.message, variant: "destructive" });
+    if (error) return toast.error("Erro", { description: error.message });
     setTasks((cur) => cur.map((x) => (selectedIds.includes(x.id) ? { ...x, due_date: next } : x)));
-    toast({
-      title: next ? "Prazos atualizados" : "Prazos removidos",
-      description: `${selectedIds.length} tarefa(s) atualizada(s).`,
-    });
+    toast.success(next ? "Prazos atualizados" : "Prazos removidos", { description: `${selectedIds.length} tarefa(s) atualizada(s).` });
     setSelected({});
     setBulkDate("");
   };
@@ -154,7 +150,7 @@ export const CrmTasksPanel = ({ sponsorId, opportunityId }: { sponsorId: string;
       const u = updates.find((y) => y.id === x.id);
       return u ? { ...x, due_date: u.due_date } : x;
     }));
-    toast({ title: "Prazos adiados", description: `${updates.length} tarefa(s) em ${days} dia(s).` });
+    toast.success("Prazos adiados", { description: `${updates.length} tarefa(s) em ${days} dia(s).` });
     setSelected({});
   };
 
@@ -264,11 +260,11 @@ export const CrmTasksPanel = ({ sponsorId, opportunityId }: { sponsorId: string;
                   {editable && (
                     <div className="flex flex-col gap-1">
                       {t.status !== "concluida" && (
-                        <Button size="icon" variant="ghost" title="Concluir" onClick={() => complete(t)}>
+                        <Button aria-label="Concluir tarefa" size="icon" variant="ghost" title="Concluir" onClick={() => complete(t)}>
                           <CheckCircle2 className="h-4 w-4" />
                         </Button>
                       )}
-                      <Button size="icon" variant="ghost" title="Excluir" onClick={() => remove(t)}>
+                      <Button aria-label="Excluir tarefa" size="icon" variant="ghost" title="Excluir" onClick={() => remove(t)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>

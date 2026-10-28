@@ -68,7 +68,7 @@ const Auth = () => {
     <div className="min-h-screen grid md:grid-cols-2 bg-background">
       {/* Left brand panel */}
       <div className="hidden md:flex relative bg-gradient-brand p-12 flex-col justify-between text-primary-foreground">
-        <Logo showWordmark={false} sizeClassName="h-20 w-20" />
+        <Logo tone="white" sizeClassName="h-10" className="self-start" />
         <div>
           <h2 className="text-4xl font-bold leading-tight">
             Transformando patrocínio em resultado.
@@ -78,7 +78,7 @@ const Auth = () => {
           </p>
         </div>
         <p className="text-sm text-primary-foreground/70">
-          © {new Date().getFullYear()} BrandPlay
+          © {new Date().getFullYear()} Brandplay
         </p>
       </div>
 
@@ -90,7 +90,7 @@ const Auth = () => {
           </Link>
 
           <div className="md:hidden mb-6">
-            <Logo sizeClassName="h-14" />
+            <Logo sizeClassName="h-9" />
           </div>
 
           <h1 className="text-2xl font-bold tracking-tight">

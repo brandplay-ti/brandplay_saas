@@ -14,6 +14,10 @@
    e-mails.
 8. Monitore erros e recursos nas horas seguintes.
 
+Se o deploy incluir o marco de IA (migrations `0031`+, área `/admin/ia`):
+siga a **Checklist antes do deploy (IA)** em
+[`docs/runbooks/ia.md`](ia.md) e registre abaixo.
+
 Mudanças feitas direto no Dockploy (variáveis, domínios, limites) não passam
 por PR: registre aqui o que mudou, quando e por quê.
 

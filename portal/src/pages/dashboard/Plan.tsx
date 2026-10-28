@@ -19,6 +19,7 @@ import {
 } from "@/hooks/useBilling";
 import { useOrganization } from "@/hooks/useOrganization";
 import { canManageBilling, formatDateTime } from "@/lib/billing";
+import { PageHeader } from "@/components/common/PageHeader";
 
 const SUCESSO: Partial<Record<BillingAction, string>> = {
   change_plan: "Plano alterado.",
@@ -104,12 +105,10 @@ const Plan = () => {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Plano e cobrança</h1>
-        <p className="text-muted-foreground mt-1">
-          Plano, uso e faturas de <strong>{orgName || "sua organização"}</strong>.
-        </p>
-      </div>
+      <PageHeader
+        title="Plano e cobrança"
+        description={<>Plano, uso e faturas de <strong>{orgName || "sua organização"}</strong>.</>}
+      />
 
       {status.isLoading ? (
         <div className="flex justify-center py-16">

@@ -98,6 +98,7 @@ Senha pública, válida só no ambiente local.
 | `npm run supabase:chaves`         | Gera os segredos do ambiente local                     |
 | `npm run supabase:chave-de-papel` | Confere ANON/SERVICE_ROLE de um `JWT_SECRET` existente |
 | `npm run supabase:checar`         | Diagnostica um Supabase remoto, camada por camada      |
+| `npm run supabase:diagnosticar`   | Lê homologação (API, migrations, Dockploy) e diz o que executar |
 | `npm run supabase:up`             | Sobe o stack                                           |
 | `npm run supabase:down`           | Derruba, preservando os volumes                        |
 | `npm run supabase:reset`          | Derruba **e apaga os dados**                           |

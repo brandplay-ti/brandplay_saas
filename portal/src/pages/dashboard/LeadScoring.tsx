@@ -3,11 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/common/StatusBadge";
+import { type StatusTone } from "@/lib/statusTone";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sparkles, Loader2, Flame, Snowflake, ThermometerSun, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useOrganization } from "@/hooks/useOrganization";
+import { avisarErroDeIA } from "@/lib/erroDeIA";
+import { PageHeader } from "@/components/common/PageHeader";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 interface Property { id: string; name: string; }
 interface Score {
@@ -26,10 +31,10 @@ interface Score {
 }
 interface NameMap { [id: string]: string; }
 
-const classUI: Record<Score["classification"], { label: string; cls: string; Icon: typeof Flame }> = {
-  quente: { label: "Quente", cls: "bg-destructive/15 text-destructive border-destructive/30", Icon: Flame },
-  morno: { label: "Morno", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30", Icon: ThermometerSun },
-  frio: { label: "Frio", cls: "bg-sky-500/15 text-sky-600 border-sky-500/30", Icon: Snowflake },
+const classUI: Record<Score["classification"], { label: string; tone: StatusTone; Icon: typeof Flame }> = {
+  quente: { label: "Quente", tone: "danger", Icon: Flame },
+  morno: { label: "Morno", tone: "warning", Icon: ThermometerSun },
+  frio: { label: "Frio", tone: "info", Icon: Snowflake },
 };
 
 export default function LeadScoring() {
@@ -44,6 +49,8 @@ export default function LeadScoring() {
   const [scoring, setScoring] = useState(false);
 
   useEffect(() => {
+    // A propriedade escolhida é da organização anterior: não vale na nova.
+    setPropertyId("");
     if (!orgId) return;
     supabase.from("sports_properties").select("id,name").eq("organization_id", orgId).order("name").then(({ data }) => {
       setProperties((data ?? []) as Property[]);
@@ -53,7 +60,7 @@ export default function LeadScoring() {
   const load = async () => {
     if (!orgId) return;
     setLoading(true);
-    let q = supabase.from("lead_scores").select("*").order("score", { ascending: false }).limit(100);
+    let q = supabase.from("lead_scores").select("*").eq("organization_id", orgId).order("score", { ascending: false }).limit(100);
     if (scopeMode === "property" && propertyId) q = q.eq("property_id", propertyId);
     else q = q.is("property_id", null);
     const { data: rows } = await q;
@@ -76,6 +83,7 @@ export default function LeadScoring() {
   useEffect(() => { load(); }, [scopeMode, propertyId, orgId]);
 
   const runScoring = async () => {
+    if (!orgId) return;
     if (scopeMode === "property" && !propertyId) {
       toast.error("Selecione uma propriedade.");
       return;
@@ -83,14 +91,18 @@ export default function LeadScoring() {
     setScoring(true);
     try {
       const { data, error } = await supabase.functions.invoke("score-leads", {
-        body: { property_id: scopeMode === "property" ? propertyId : null },
+        body: { organization_id: orgId, property_id: scopeMode === "property" ? propertyId : null },
       });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success(`IA avaliou ${(data as any)?.count ?? 0} leads.`);
+      if (error || data?.error) {
+        await avisarErroDeIA(error, data, "Falha ao gerar scores");
+        return;
+      }
+      if (data?.saved === false) {
+        toast.warning("A IA avaliou os leads, mas as notas não foram gravadas. Tente novamente.");
+        return;
+      }
+      toast.success(`IA avaliou ${data?.count ?? 0} leads.`);
       await load();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao gerar scores");
     } finally {
       setScoring(false);
     }
@@ -107,36 +119,39 @@ export default function LeadScoring() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Sparkles className="h-6 w-6 text-primary" /> Prospecção Inteligente</h1>
-          <p className="text-sm text-muted-foreground">Ranking de leads por probabilidade de fechamento, gerado por IA.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={scopeMode} onValueChange={(v) => setScopeMode(v as any)}>
-            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="global">Score global</SelectItem>
-              <SelectItem value="property">Por propriedade</SelectItem>
-            </SelectContent>
-          </Select>
-          {scopeMode === "property" && (
-            <Select value={propertyId} onValueChange={setPropertyId}>
-              <SelectTrigger className="w-[220px]"><SelectValue placeholder="Selecione propriedade" /></SelectTrigger>
-              <SelectContent>
-                {properties.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          )}
-          <Button onClick={runScoring} disabled={scoring}>
-            {scoring ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
-            Gerar / Atualizar com IA
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Prospecção Inteligente"
+        description="Ranking de leads por probabilidade de fechamento, gerado por IA."
+        icon={Sparkles}
+        actions={
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={scopeMode} onValueChange={(v) => setScopeMode(v as "global" | "property")}>
+                <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="global">Score global</SelectItem>
+                  <SelectItem value="property">Por propriedade</SelectItem>
+                </SelectContent>
+              </Select>
+              {scopeMode === "property" && (
+                <Select value={propertyId} onValueChange={setPropertyId}>
+                  <SelectTrigger className="w-[220px]"><SelectValue placeholder="Selecione propriedade" /></SelectTrigger>
+                  <SelectContent>
+                    {properties.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+              <Button onClick={runScoring} disabled={scoring || !orgId}>
+                {scoring ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
+                Gerar / Atualizar com IA
+              </Button>
+            </div>
+          </>
+        }
+      />
 
       {loading ? (
-        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        <LoadingSkeleton variant="cards" count={3} />
       ) : scores.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
@@ -146,7 +161,7 @@ export default function LeadScoring() {
       ) : (
         <div className="grid gap-4 md:grid-cols-3">
           {(["quente", "morno", "frio"] as const).map((cls) => {
-            const { Icon, label, cls: badgeCls } = classUI[cls];
+            const { Icon, label, tone } = classUI[cls];
             const list = grouped[cls];
             return (
               <Card key={cls}>
@@ -167,7 +182,7 @@ export default function LeadScoring() {
                             {s.target_type === "sponsor" ? "Patrocinador" : "Oportunidade"}
                           </div>
                         </div>
-                        <Badge className={badgeCls}>{s.score}</Badge>
+                        <StatusBadge tone={tone}>{s.score}</StatusBadge>
                       </div>
                       {s.approach_argument && (
                         <p className="text-xs text-foreground/80 italic">"{s.approach_argument}"</p>

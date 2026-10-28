@@ -38,8 +38,16 @@ feature/* ──PR──▶ dev ──PR──▶ hml ──PR──▶ main
 
 Roda em todo PR e em push para `dev`, `hml` e `main`.
 
-**Job `portal`**: `npm ci` → lint → `type-check` → `test` → `build`, no
-workspace `portal`.
+**Job `portal`**: `npm ci` → lint → `type-check` → `test` → `test:tools` →
+`build`. `test` é o Vitest do portal. `test:tools` é o diagnóstico de
+homologação (`supabase/tools/diagnostico/`), sem rede.
+
+**Job `funcoes`**: `deno test --allow-read supabase/functions/_shared/`, com
+o Deno fixado na `v2.1.4` (a mesma da imagem `denoland/deno` usada
+localmente). Cobre a camada de IA (`_shared/ai/`) e a cifra das chaves
+(`_shared/ai-crypto.ts`), sem rede de fornecedor nem banco. Bloqueante.
+Sem Deno instalado, rode localmente pela imagem:
+`docker run --rm -v "$PWD/supabase:/app/supabase:ro" -w /app denoland/deno:2.1.4 test --allow-read supabase/functions/_shared/`.
 
 **Job `migrations`**:
 
@@ -53,12 +61,14 @@ workspace `portal`.
 3. **Idempotência** — roda o runner de novo e exige "nenhuma migration
    pendente".
 4. **Seed + testes de segurança** — `supabase:seed` exercita os gatilhos de
-   cadastro (`handle_new_user`) e `supabase:test` roda
-   `supabase/tests/seguranca.sql` (RLS para `anon`).
+   cadastro (`handle_new_user`) e `supabase:test` roda as suítes de
+   `supabase/tests/`: `seguranca.sql` (RLS e isolamento), `cobranca.sql`,
+   `superadmin.sql` e `ia.sql` (chaves, uso e guardas da IA).
 
 O que o CI **não** cobre hoje: testes E2E (dependem do stack completo e de
-dados) e isolamento entre organizações com usuários reais (roteiro comentado em
-`seguranca.sql`).
+dados), isolamento entre organizações com usuários reais (roteiro comentado em
+`seguranca.sql`) e as Edge Functions fora de `_shared/` (o `deno test` só
+encontra testes ali).
 
 ### Dívida conhecida
 
@@ -104,11 +114,17 @@ não um só com prefixos: apontar homologação para o banco de produção por e
 de variável é o acidente que o desenho torna impossível. O DSN fica **na VPS**,
 não nos secrets do GitHub. Passo a passo em `docs/runbooks/primeira-carga.md`.
 
+Da máquina local, `npm run supabase:diagnosticar` lista as migrations
+pendentes de homologação em sessão somente leitura e ainda olha a API e os
+logs do Dockploy. A senha do banco não vem para o laptop. Runbook:
+`docs/runbooks/diagnostico-homologacao.md`.
+
 Secrets do repositório: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`. Secrets de cada
 environment: `DOCKPLOY_DEPLOY_WEBHOOK` e `APP_HEALTH_URL`.
 
-Os segredos de runtime (`SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`,
-`RESEND_API_KEY`, ...) **não** entram no GitHub Actions: vivem no Dockploy.
+Os segredos de runtime (`SERVICE_ROLE_KEY`, `AI_KEYS_MASTER_KEY`, chaves de
+fornecedor de IA, `RESEND_API_KEY`, ...) **não** entram no GitHub Actions:
+vivem no Dockploy (`docs/runbooks/ia.md`).
 
 ## Runner de migrations
 

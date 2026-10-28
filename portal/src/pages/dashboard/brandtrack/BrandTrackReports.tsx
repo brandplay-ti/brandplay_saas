@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/common/PageHeader";
 
 const BrandTrackReports = () => {
   const [events, setEvents] = useState<{ id: string; name: string }[]>([]);
@@ -47,10 +48,7 @@ const BrandTrackReports = () => {
 
   return (
     <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-3xl font-bold">Relatórios BrandTrack</h1>
-        <p className="text-muted-foreground">Exporte um relatório executivo de exposição de marcas.</p>
-      </div>
+      <PageHeader title="Relatórios BrandTrack" description="Exporte um relatório executivo de exposição de marcas." />
 
       <Card>
         <CardHeader>

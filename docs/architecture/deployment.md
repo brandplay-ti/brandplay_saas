@@ -61,8 +61,11 @@ As que mudam por ambiente e mais costumam ficar esquecidas:
 | `ADDITIONAL_REDIRECT_URLS` | `https://hml.<dominio>/**`  | `https://<dominio>/**`  |
 | `APP_URL`                  | `https://hml.<dominio>`     | `https://<dominio>`     |
 | `SMTP_*`                   | provedor real, com TLS      | provedor real, com TLS  |
-| `ANTHROPIC_API_KEY`        | chave de homologação        | chave de produção       |
+| `AI_KEYS_MASTER_KEY` (+ `AI_KEYS_*`) | gerada por ambiente (cofre) | idem |
+| `AI_DEFAULT_*` (semente)   | opcional se usar `/admin/ia` depois | idem |
 | `RESEND_API_KEY`           | chave de homologação        | chave de produção       |
+
+Detalhe de IA: `docs/runbooks/ia.md`.
 
 `ADDITIONAL_REDIRECT_URLS` precisa cobrir os caminhos de retorno do cadastro:
 `pages/Auth.tsx` manda `emailRedirectTo` para `/onboarding/organizacao` e o

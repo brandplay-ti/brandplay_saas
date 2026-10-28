@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -84,7 +84,6 @@ export default function AssetBulkImportDialog({
   onCategoriesCreated,
   onImported,
 }: Props) {
-  const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [raw, setRaw] = useState("");
   const [importing, setImporting] = useState(false);
@@ -175,7 +174,7 @@ export default function AssetBulkImportDialog({
   const onFile = async (file?: File) => {
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      return toast({ title: "Arquivo muito grande", description: "Limite de 5 MB.", variant: "destructive" });
+      return toast.error("Arquivo muito grande", { description: "Limite de 5 MB." });
     }
     setRaw(await file.text());
   };
@@ -208,7 +207,7 @@ export default function AssetBulkImportDialog({
 
       if (error) {
         setImporting(false);
-        return toast({ title: "Erro na importação", description: error.message, variant: "destructive" });
+        return toast.error("Erro na importação", { description: error.message });
       }
 
       (data ?? []).forEach((row: { id: string }, idx: number) => {
@@ -229,10 +228,7 @@ export default function AssetBulkImportDialog({
     if (newCategories.length > 0) onCategoriesCreated(newCategories);
 
     setImporting(false);
-    toast({
-      title: "Importação concluída",
-      description: `${created} ativo(s) importado(s)${invalidRows.length ? `, ${invalidRows.length} linha(s) ignorada(s)` : ""}.`,
-    });
+    toast.success("Importação concluída", { description: `${created} ativo(s) importado(s)${invalidRows.length ? `, ${invalidRows.length} linha(s) ignorada(s)` : ""}.` });
     reset();
     onOpenChange(false);
     onImported();
@@ -329,7 +325,7 @@ export default function AssetBulkImportDialog({
                           {r.errors.length > 0 ? (
                             <span className="text-destructive">{r.errors.join("; ")}</span>
                           ) : r.warnings.length > 0 ? (
-                            <span className="text-amber-600 dark:text-amber-500">{r.warnings.join("; ")}</span>
+                            <span className="text-warning-strong">{r.warnings.join("; ")}</span>
                           ) : (
                             <span className="text-muted-foreground">Ok</span>
                           )}

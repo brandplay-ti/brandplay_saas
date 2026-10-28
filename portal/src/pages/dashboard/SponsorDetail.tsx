@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  ArrowLeft, Mail, Phone, Globe, Activity, ShieldCheck, Users as UsersIcon, Sparkles,
+  Mail, Phone, Globe, Activity, ShieldCheck, Users as UsersIcon, Sparkles,
   Handshake, FileText, Package, ListChecks, Tag, AlertTriangle, RefreshCw, FolderUp,
 } from "lucide-react";
 import { LogoFrame, logoFrameIconClass } from "@/components/LogoFrame";
@@ -35,6 +35,8 @@ import {
   PRIORITY_LABEL, computeAccountFit, formatBRL, formatDate, daysSince,
   type Health, type Lifecycle, type Priority,
 } from "@/lib/crmAccount";
+import { Breadcrumbs } from "@/components/common/Breadcrumbs";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 const db = supabase as any;
 
@@ -52,7 +54,6 @@ interface Contact { id: string; name: string; role: string | null; email: string
 export default function SponsorDetail() {
   const { id } = useParams();
   const { orgId, can } = useOrganization();
-  const { toast } = useToast();
   const [sponsor, setSponsor] = useState<Sponsor | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [opportunities, setOpportunities] = useState<any[]>([]);
@@ -135,17 +136,17 @@ export default function SponsorDetail() {
 
   const createRenewal = async (contractId: string) => {
     const { error } = await db.rpc("create_renewal_opportunity", { _contract_id: contractId });
-    if (error) return toast({ title: "Erro", description: error.message, variant: "destructive" });
-    toast({ title: "Renovação criada", description: "Uma nova negociação foi aberta no pipeline." });
+    if (error) return toast.error("Erro", { description: error.message });
+    toast.success("Renovação criada", { description: "Uma nova negociação foi aberta no pipeline." });
     load();
   };
 
   const patch = async (values: Record<string, unknown>) => {
     if (!sponsor) return;
     const { error } = await db.from("sponsors").update(values).eq("id", sponsor.id);
-    if (error) return toast({ title: "Erro", description: error.message, variant: "destructive" });
+    if (error) return toast.error("Erro", { description: error.message });
     setSponsor({ ...sponsor, ...(values as any) });
-    toast({ title: "Conta atualizada" });
+    toast.success("Conta atualizada");
   };
 
   const saveProfile = async () => {
@@ -154,7 +155,7 @@ export default function SponsorDetail() {
   };
 
 
-  if (loading) return <p className="text-sm text-muted-foreground">Carregando…</p>;
+  if (loading) return <LoadingSkeleton variant="detalhe" />;
   if (!sponsor) return <p className="text-sm text-muted-foreground">Patrocinador não encontrado.</p>;
 
   const logoUrl = sponsor.logo_path
@@ -166,9 +167,9 @@ export default function SponsorDetail() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" asChild>
-          <Link to="/dashboard/patrocinadores"><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Link>
-        </Button>
+        <Breadcrumbs
+          items={[{ label: "Patrocinadores", to: "/dashboard/patrocinadores" }, { label: sponsor.trade_name || sponsor.name }]}
+        />
         {sponsor.archived_at && <Badge variant="outline">Conta arquivada</Badge>}
       </div>
 
@@ -177,7 +178,7 @@ export default function SponsorDetail() {
           <LogoFrame src={logoUrl} alt={sponsor.name} size="lg" fallback={<UsersIcon className={`${logoFrameIconClass("lg")} text-muted-foreground`} />} />
           <div className="flex-1 min-w-[240px]">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl font-semibold truncate">{sponsor.trade_name || sponsor.name}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight truncate">{sponsor.trade_name || sponsor.name}</h1>
               <Badge variant="outline" className={LIFECYCLE_CLASS[sponsor.lifecycle]}>{LIFECYCLE_LABEL[sponsor.lifecycle]}</Badge>
               <Badge variant="outline" className={HEALTH_CLASS[sponsor.health]}>{HEALTH_LABEL[sponsor.health]}</Badge>
               <Badge variant="secondary">Prioridade {sponsor.priority}</Badge>
@@ -313,7 +314,7 @@ export default function SponsorDetail() {
               </div>
               {fit.gaps.length > 0 && (
                 <div className="rounded-md border border-dashed p-3">
-                  <p className="text-sm font-medium flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-amber-500" /> Lacunas de informação</p>
+                  <p className="text-sm font-medium flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-warning-strong" /> Lacunas de informação</p>
                   <ul className="mt-1 text-xs text-muted-foreground list-disc pl-5 space-y-0.5">
                     {fit.gaps.map((g) => <li key={g}>{g}</li>)}
                   </ul>

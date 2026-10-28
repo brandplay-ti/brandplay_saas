@@ -88,14 +88,14 @@ export default function PortalLogin() {
   return (
     <div className="min-h-screen grid md:grid-cols-2 bg-background">
       <div className="hidden md:flex relative bg-gradient-brand p-12 flex-col justify-between text-primary-foreground">
-        <Logo showWordmark={false} sizeClassName="h-20 w-20" />
+        <Logo tone="white" sizeClassName="h-10" className="self-start" />
         <div>
           <h2 className="text-4xl font-bold leading-tight">Portal do Patrocinador</h2>
           <p className="mt-4 text-primary-foreground/80 text-lg">
             Acompanhe entregas, contratos e relatórios das suas ativações em tempo real.
           </p>
         </div>
-        <p className="text-sm text-primary-foreground/70">© {new Date().getFullYear()} BrandPlay</p>
+        <p className="text-sm text-primary-foreground/70">© {new Date().getFullYear()} Brandplay</p>
       </div>
 
       <div className="flex items-center justify-center p-6 md:p-12">
@@ -105,7 +105,7 @@ export default function PortalLogin() {
           </Link>
 
           <div className="md:hidden mb-6">
-            <Logo sizeClassName="h-14" />
+            <Logo sizeClassName="h-9" />
           </div>
 
           <h1 className="text-2xl font-bold tracking-tight">

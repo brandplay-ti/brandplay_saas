@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import { Loader2, Mail, UserPlus, Shield, Trash2, Copy, Check, RotateCcw, X, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,9 +32,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization, type OrgRole } from "@/hooks/useOrganization";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const ROLE_LABEL: Record<OrgRole, string> = {
   owner: "Proprietário",
@@ -74,8 +75,16 @@ type Invite = {
   created_at: string;
 };
 
-export const TeamManagement = () => {
-  const { toast } = useToast();
+export type ControleDeEdicao = {
+  salvar: () => Promise<boolean>;
+  descartar: () => void;
+};
+
+export const TeamManagement = forwardRef<ControleDeEdicao, { editando: boolean }>(function TeamManagement(
+  { editando },
+  ref,
+) {
+  const confirm = useConfirm();
   const { orgId, isAdmin, role: myRole, loading: orgLoading } = useOrganization();
   const avisarLimiteDoPlano = usePlanLimitNotice();
 
@@ -97,6 +106,7 @@ export const TeamManagement = () => {
   const [createRole, setCreateRole] = useState<OrgRole>("comercial");
 
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [papeis, setPapeis] = useState<Record<string, OrgRole>>({});
 
   const load = async () => {
     if (!orgId) return;
@@ -130,8 +140,11 @@ export const TeamManagement = () => {
   };
 
   useEffect(() => {
+    setPapeis({});
     if (orgId) load();
   }, [orgId]);
+
+  const papelDe = (membro: Member) => (editando ? papeis[membro.id] ?? membro.role : membro.role);
 
   const callFn = async (payload: any) => {
     setBusy(true);
@@ -142,15 +155,44 @@ export const TeamManagement = () => {
       // "non-2xx status code".
       const corpo = await readEdgeFunctionError(error, data);
       if (avisarLimiteDoPlano(corpo)) return false;
-      toast({
-        title: "Erro",
-        description: corpo.error || "Falha na operação",
-        variant: "destructive",
-      });
+      toast.error("Erro", { description: corpo.error || "Falha na operação" });
       return false;
     }
     return true;
   };
+
+  useImperativeHandle(ref, () => ({
+    descartar: () => setPapeis({}),
+    salvar: async () => {
+      const pendentes = members.filter((membro) => papeis[membro.id] && papeis[membro.id] !== membro.role);
+      if (pendentes.length === 0) {
+        setPapeis({});
+        return true;
+      }
+      const restantes = { ...papeis };
+      let salvou = false;
+      for (const membro of pendentes) {
+        const papel = restantes[membro.id];
+        const ok = await callFn({
+          action: "update_role",
+          member_id: membro.id,
+          role: papel,
+          organization_id: orgId,
+        });
+        if (!ok) {
+          setPapeis(restantes);
+          await load();
+          return false;
+        }
+        delete restantes[membro.id];
+        salvou = true;
+      }
+      setPapeis({});
+      if (salvou) toast.success(pendentes.length === 1 ? "Papel atualizado" : "Papéis atualizados");
+      await load();
+      return true;
+    },
+  }));
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
@@ -161,7 +203,7 @@ export const TeamManagement = () => {
       organization_id: orgId,
     });
     if (ok) {
-      toast({ title: "Convite enviado" });
+      toast.success("Convite enviado");
       setInviteEmail("");
       setInviteOpen(false);
       load();
@@ -170,7 +212,7 @@ export const TeamManagement = () => {
 
   const handleCreate = async () => {
     if (!createEmail.trim() || createPassword.length < 6) {
-      toast({ title: "Preencha e-mail e senha (mín. 6)", variant: "destructive" });
+      toast.error("Preencha e-mail e senha (mín. 6)");
       return;
     }
     const ok = await callFn({
@@ -182,7 +224,7 @@ export const TeamManagement = () => {
       organization_id: orgId,
     });
     if (ok) {
-      toast({ title: "Usuário criado", description: "E-mail enviado com credenciais." });
+      toast.success("Usuário criado", { description: "E-mail enviado com credenciais." });
       setCreateEmail("");
       setCreateName("");
       setCreatePassword("");
@@ -191,28 +233,20 @@ export const TeamManagement = () => {
     }
   };
 
-  const handleUpdateRole = async (memberId: string, newRole: OrgRole) => {
-    const ok = await callFn({
-      action: "update_role",
-      member_id: memberId,
-      role: newRole,
-      organization_id: orgId,
-    });
-    if (ok) {
-      toast({ title: "Papel atualizado" });
-      load();
-    }
-  };
-
   const handleRevoke = async (memberId: string) => {
-    if (!confirm("Revogar acesso deste membro?")) return;
+    const confirmado = await confirm({
+      title: "Revogar acesso deste membro?",
+      confirmLabel: "Revogar acesso",
+      destructive: true,
+    });
+    if (!confirmado) return;
     const ok = await callFn({
       action: "revoke",
       member_id: memberId,
       organization_id: orgId,
     });
     if (ok) {
-      toast({ title: "Acesso revogado" });
+      toast.success("Acesso revogado");
       load();
     }
   };
@@ -224,7 +258,7 @@ export const TeamManagement = () => {
       organization_id: orgId,
     });
     if (ok) {
-      toast({ title: "Acesso reativado" });
+      toast.success("Acesso reativado");
       load();
     }
   };
@@ -236,20 +270,26 @@ export const TeamManagement = () => {
       organization_id: orgId,
     });
     if (ok) {
-      toast({ title: "Convite reenviado" });
+      toast.success("Convite reenviado");
       load();
     }
   };
 
   const handleRevokeInvite = async (inviteId: string) => {
-    if (!confirm("Cancelar este convite?")) return;
+    const confirmado = await confirm({
+      title: "Cancelar este convite?",
+      confirmLabel: "Cancelar convite",
+      cancelLabel: "Voltar",
+      destructive: true,
+    });
+    if (!confirmado) return;
     const ok = await callFn({
       action: "revoke_invite",
       invite_id: inviteId,
       organization_id: orgId,
     });
     if (ok) {
-      toast({ title: "Convite cancelado" });
+      toast.success("Convite cancelado");
       load();
     }
   };
@@ -411,15 +451,15 @@ export const TeamManagement = () => {
                     <div className="font-medium">{m.profile?.full_name || "—"}</div>
                   </TableCell>
                   <TableCell>
-                    {m.role === "owner" ? (
-                      <Badge variant="secondary">{ROLE_LABEL.owner}</Badge>
+                    {m.role === "owner" || !editando ? (
+                      <Badge variant={m.role === "owner" ? "secondary" : "outline"}>{ROLE_LABEL[papelDe(m)]}</Badge>
                     ) : (
                       <Select
-                        value={m.role}
-                        onValueChange={(v) => handleUpdateRole(m.id, v as OrgRole)}
+                        value={papelDe(m)}
+                        onValueChange={(v) => setPapeis((atual) => ({ ...atual, [m.id]: v as OrgRole }))}
                         disabled={busy}
                       >
-                        <SelectTrigger className="w-40 h-8">
+                        <SelectTrigger className="w-40 h-8" aria-label={`Papel de ${m.profile?.full_name || "membro"}`}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -437,12 +477,12 @@ export const TeamManagement = () => {
                   </TableCell>
                   <TableCell>
                     {m.role !== "owner" && m.status === "ativo" && (
-                      <Button size="icon" variant="ghost" onClick={() => handleRevoke(m.id)} disabled={busy} title="Desativar acesso">
+                      <Button aria-label="Desativar acesso" size="icon" variant="ghost" onClick={() => handleRevoke(m.id)} disabled={busy} title="Desativar acesso">
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     )}
                     {m.role !== "owner" && m.status !== "ativo" && (
-                      <Button size="icon" variant="ghost" onClick={() => handleReactivate(m.id)} disabled={busy} title="Reativar acesso">
+                      <Button aria-label="Reativar acesso" size="icon" variant="ghost" onClick={() => handleReactivate(m.id)} disabled={busy} title="Reativar acesso">
                         <RotateCcw className="h-4 w-4 text-primary" />
                       </Button>
                     )}
@@ -504,4 +544,4 @@ export const TeamManagement = () => {
       )}
     </div>
   );
-};
+});

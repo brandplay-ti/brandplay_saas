@@ -53,6 +53,7 @@ export interface AdminClientDetail {
     access: boolean;
     access_source: AccessSource;
     trial_ends_at: string | null;
+    exemption_ends_at: string | null;
     stripe_customer_id: string | null;
     plan: {
       id: string;
@@ -147,6 +148,7 @@ export interface RevenueProjection {
 
 export const ACCESS_SOURCE_LABEL: Record<AccessSource, string> = {
   subscription: "Assinante",
+  exemption: "Isento",
   trial: "Em teste",
   provisional: "Liberação provisória",
   none: "Sem acesso",
@@ -154,6 +156,7 @@ export const ACCESS_SOURCE_LABEL: Record<AccessSource, string> = {
 
 export const ACCESS_SOURCE_TONE: Record<AccessSource, StatusTone> = {
   subscription: "ok",
+  exemption: "ok",
   trial: "ok",
   provisional: "warn",
   none: "danger",
@@ -172,6 +175,12 @@ const ACAO_DE_AUDITORIA: Record<string, string> = {
   plano_criado: "Plano criado",
   plano_alterado: "Plano alterado",
   plano_sincronizado: "Plano sincronizado com o Stripe",
+  desconto_registrado: "Desconto registrado",
+  desconto_aplicado: "Desconto aplicado",
+  desconto_revogado: "Desconto revogado",
+  sessao_suporte_aberta: "Sessão de suporte aberta",
+  sessao_suporte_encerrada: "Sessão de suporte encerrada",
+  sessao_suporte_substituida: "Sessão de suporte substituída",
   superadmin_concedido: "Superadmin concedido",
   superadmin_revogado: "Superadmin revogado",
 };
@@ -217,7 +226,7 @@ export interface ClientsSummary {
 /** Contagens da visão geral. `agora` é injetável para teste. */
 export function summarizeClients(clientes: AdminClient[], dias = 3, agora: Date = new Date()): ClientsSummary {
   const limite = agora.getTime() + dias * 86_400_000;
-  const bySource: Record<AccessSource, number> = { subscription: 0, trial: 0, provisional: 0, none: 0 };
+  const bySource: Record<AccessSource, number> = { subscription: 0, exemption: 0, trial: 0, provisional: 0, none: 0 };
   for (const c of clientes) bySource[c.access_source] += 1;
 
   return {

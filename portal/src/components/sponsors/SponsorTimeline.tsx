@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/common/StatusBadge";
+import { STATUS_TONE_CLASS, type StatusTone } from "@/lib/statusTone";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +21,7 @@ import {
   Phone, Mail, MessageSquare, StickyNote, Users as UsersIcon,
   FileText, FileSignature, Target, Package, DollarSign, Sparkles,
   Plus, Paperclip, Bell, Trash2, Check,
+  type LucideIcon,
 } from "lucide-react";
 
 type Type =
@@ -40,18 +43,18 @@ interface Interaction {
   metadata: any;
 }
 
-const TYPE_UI: Record<Type, { label: string; icon: any; cls: string }> = {
-  reuniao:     { label: "Reunião",     icon: UsersIcon,     cls: "bg-blue-500/15 text-blue-600 border-blue-500/30" },
-  ligacao:     { label: "Ligação",     icon: Phone,         cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
-  email:       { label: "E-mail",      icon: Mail,          cls: "bg-violet-500/15 text-violet-600 border-violet-500/30" },
-  whatsapp:    { label: "WhatsApp",    icon: MessageSquare, cls: "bg-green-500/15 text-green-600 border-green-500/30" },
-  nota:        { label: "Nota",        icon: StickyNote,    cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
-  proposta:    { label: "Proposta",    icon: FileText,      cls: "bg-indigo-500/15 text-indigo-600 border-indigo-500/30" },
-  contrato:    { label: "Contrato",    icon: FileSignature, cls: "bg-sky-500/15 text-sky-600 border-sky-500/30" },
-  oportunidade:{ label: "Oportunidade",icon: Target,        cls: "bg-pink-500/15 text-pink-600 border-pink-500/30" },
-  entrega:     { label: "Entrega",     icon: Package,       cls: "bg-orange-500/15 text-orange-600 border-orange-500/30" },
-  parcela:     { label: "Parcela",     icon: DollarSign,    cls: "bg-teal-500/15 text-teal-600 border-teal-500/30" },
-  sistema:     { label: "Sistema",     icon: Sparkles,      cls: "bg-muted text-muted-foreground border-border" },
+const TYPE_UI: Record<Type, { label: string; icon: LucideIcon; tone: StatusTone }> = {
+  reuniao:     { label: "Reunião",     icon: UsersIcon,     tone: "info" },
+  ligacao:     { label: "Ligação",     icon: Phone,         tone: "success" },
+  email:       { label: "E-mail",      icon: Mail,          tone: "brand" },
+  whatsapp:    { label: "WhatsApp",    icon: MessageSquare, tone: "success" },
+  nota:        { label: "Nota",        icon: StickyNote,    tone: "warning" },
+  proposta:    { label: "Proposta",    icon: FileText,      tone: "brand" },
+  contrato:    { label: "Contrato",    icon: FileSignature, tone: "info" },
+  oportunidade:{ label: "Oportunidade",icon: Target,        tone: "brand" },
+  entrega:     { label: "Entrega",     icon: Package,       tone: "warning" },
+  parcela:     { label: "Parcela",     icon: DollarSign,    tone: "success" },
+  sistema:     { label: "Sistema",     icon: Sparkles,      tone: "neutral" },
 };
 
 const MANUAL_TYPES: Type[] = ["reuniao", "ligacao", "email", "whatsapp", "nota"];
@@ -250,16 +253,16 @@ export function SponsorTimeline({ sponsorId }: Props) {
             const Icon = TYPE_UI[it.type].icon;
             return (
               <div key={it.id} className="relative">
-                <div className={`absolute -left-[18px] top-3 h-5 w-5 rounded-full border ${TYPE_UI[it.type].cls} flex items-center justify-center`}>
+                <div className={`absolute -left-[18px] top-3 h-5 w-5 rounded-full border ${STATUS_TONE_CLASS[TYPE_UI[it.type].tone]} flex items-center justify-center`}>
                   <Icon className="h-3 w-3" />
                 </div>
                 <Card className="p-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant="outline" className={`text-[10px] ${TYPE_UI[it.type].cls}`}>
+                        <StatusBadge tone={TYPE_UI[it.type].tone} className="text-[10px]">
                           {TYPE_UI[it.type].label}
-                        </Badge>
+                        </StatusBadge>
                         {it.source === "auto" && (
                           <Badge variant="secondary" className="text-[10px]">auto</Badge>
                         )}
@@ -294,12 +297,12 @@ export function SponsorTimeline({ sponsorId }: Props) {
                               </p>
                             )}
                           </div>
-                          {it.next_action_done && <Check className="h-4 w-4 text-emerald-600" />}
+                          {it.next_action_done && <Check className="h-4 w-4 text-success-strong" />}
                         </div>
                       )}
                     </div>
                     {it.source === "manual" && (
-                      <Button size="icon" variant="ghost" className="h-7 w-7"
+                      <Button aria-label="Excluir interação" size="icon" variant="ghost" className="h-7 w-7"
                         onClick={() => remove(it.id)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>

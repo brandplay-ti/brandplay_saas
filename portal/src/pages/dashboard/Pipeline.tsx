@@ -51,6 +51,7 @@ import {
 import { useDraggable } from "@dnd-kit/core";
 import type { Database } from "@/integrations/supabase/types";
 import { logBackendDbError } from "@/lib/backendErrorLogger";
+import { lerErroDeIA, type MensagemDeErroDeIA } from "@/lib/erroDeIA";
 import { PipelineMetrics } from "@/components/pipeline/PipelineMetrics";
 import { OpportunityDrawer } from "@/components/pipeline/OpportunityDrawer";
 import { getOpportunityStageChecklistIssues } from "@/lib/opportunityStageChecklist";
@@ -61,6 +62,9 @@ import {
 } from "@/components/pipeline/StageProbabilitiesDialog";
 import { cn } from "@/lib/utils";
 import { dataLocal } from "@/lib/datas";
+import { PageHeader } from "@/components/common/PageHeader";
+import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 type Stage = Database["public"]["Enums"]["opportunity_stage"];
 
@@ -137,12 +141,12 @@ type AdvancedFiltersState = {
 type StageConfig = { id: Stage; label: string; color: string; slaDays: number | null };
 
 const STAGES: StageConfig[] = [
-  { id: "prospect", label: "Prospect", color: "bg-slate-500", slaDays: 7 },
-  { id: "reuniao", label: "Reunião", color: "bg-blue-500", slaDays: 5 },
-  { id: "proposta_enviada", label: "Proposta enviada", color: "bg-amber-500", slaDays: 10 },
-  { id: "negociacao", label: "Negociação", color: "bg-purple-500", slaDays: 14 },
-  { id: "fechado", label: "Fechado", color: "bg-emerald-500", slaDays: null },
-  { id: "perdido", label: "Perdido", color: "bg-rose-500", slaDays: null },
+  { id: "prospect", label: "Prospect", color: "bg-muted-foreground", slaDays: 7 },
+  { id: "reuniao", label: "Reunião", color: "bg-info", slaDays: 5 },
+  { id: "proposta_enviada", label: "Proposta enviada", color: "bg-warning", slaDays: 10 },
+  { id: "negociacao", label: "Negociação", color: "bg-primary", slaDays: 14 },
+  { id: "fechado", label: "Fechado", color: "bg-success", slaDays: null },
+  { id: "perdido", label: "Perdido", color: "bg-destructive", slaDays: null },
 ];
 
 const SORT_OPTIONS: { value: SortMode; label: string }[] = [
@@ -948,16 +952,24 @@ export default function Pipeline() {
 
     setPrioritizing(true);
     try {
+      const falhas: MensagemDeErroDeIA[] = [];
       const recommendations = await Promise.all(candidates.map(async ({ opp, priority, reasons }) => {
         const { data, error } = await supabase.functions.invoke("suggest-next-steps", {
           body: { context: "opportunity", target_id: opp.id },
         });
         const response = data as SuggestedStepsResponse | null;
-        if (error || response?.error) throw new Error(response?.error || error?.message || "Erro ao gerar sugestão");
+        if (error || response?.error) {
+          falhas.push(await lerErroDeIA(error, data, "Erro ao priorizar o dia"));
+          return null;
+        }
         const steps = response?.steps ?? [];
         const step = steps.find((s) => s.priority === "alta") ?? steps[0];
         return step ? { opportunity: opp, priority, reasons, step, selected: true } : null;
       }));
+      if (falhas.length) {
+        toast.error(falhas[0].titulo, { description: falhas[0].descricao });
+        return;
+      }
       setBoardRecommendations(recommendations.filter(Boolean) as BoardRecommendation[]);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao priorizar o dia");
@@ -1074,87 +1086,87 @@ export default function Pipeline() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Pipeline comercial</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Arraste os cards entre as colunas. Clique em um card para detalhes, atividades e ações.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handlePrioritizeDay} disabled={prioritizing || loading}>
-            {prioritizing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-            Priorizar meu dia
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowInsights((current) => !current)}>
-            <Activity className="h-4 w-4 mr-2" /> {showInsights ? "Ocultar Atenção hoje" : "Ver Atenção hoje"}
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setProbDialogOpen(true)}>
-            <Settings2 className="h-4 w-4 mr-2" /> Probabilidades
-          </Button>
-          {isAdmin && (
-            <Button variant="outline" size="sm" onClick={openSlaDialog}>
-              <Clock className="h-4 w-4 mr-2" /> SLAs
-            </Button>
-          )}
-          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 mr-2" />Nova oportunidade</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Nova oportunidade</DialogTitle>
-                <DialogDescription>Cadastre uma oportunidade de patrocínio no pipeline.</DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="brand">Marca *</Label>
-                  <Input id="brand" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} placeholder="Ex.: Nike" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="value">Valor (R$)</Label>
-                    <Input id="value" type="number" min="0" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="50000" />
+      <PageHeader
+        title="Pipeline comercial"
+        description="Arraste os cards entre as colunas. Clique em um card para detalhes, atividades e ações."
+        actions={
+          <>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={handlePrioritizeDay} disabled={prioritizing || loading}>
+                {prioritizing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                Priorizar meu dia
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowInsights((current) => !current)}>
+                <Activity className="h-4 w-4 mr-2" /> {showInsights ? "Ocultar Atenção hoje" : "Ver Atenção hoje"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setProbDialogOpen(true)}>
+                <Settings2 className="h-4 w-4 mr-2" /> Probabilidades
+              </Button>
+              {isAdmin && (
+                <Button variant="outline" size="sm" onClick={openSlaDialog}>
+                  <Clock className="h-4 w-4 mr-2" /> SLAs
+                </Button>
+              )}
+              <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
+                <DialogTrigger asChild>
+                  <Button><Plus className="h-4 w-4 mr-2" />Nova oportunidade</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>Nova oportunidade</DialogTitle>
+                    <DialogDescription>Cadastre uma oportunidade de patrocínio no pipeline.</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-2">
+                    <div className="grid gap-2">
+                      <Label htmlFor="brand">Marca *</Label>
+                      <Input id="brand" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} placeholder="Ex.: Nike" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="value">Valor (R$)</Label>
+                        <Input id="value" type="number" min="0" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="50000" />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="stage">Estágio</Label>
+                        <Select value={form.stage} onValueChange={(v) => setForm({ ...form, stage: v as Stage })}>
+                          <SelectTrigger id="stage"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {STAGES.map((s) => (<SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="property">Propriedade</Label>
+                        <Select value={form.property_id} onValueChange={(v) => setForm({ ...form, property_id: v })}>
+                          <SelectTrigger id="property"><SelectValue placeholder="Nenhuma" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Nenhuma</SelectItem>
+                            {properties.map((p) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="close">Data prevista</Label>
+                        <Input id="close" type="date" value={form.expected_close_date} onChange={(e) => setForm({ ...form, expected_close_date: e.target.value })} />
+                      </div>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="notes">Observações</Label>
+                      <Textarea id="notes" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+                    </div>
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="stage">Estágio</Label>
-                    <Select value={form.stage} onValueChange={(v) => setForm({ ...form, stage: v as Stage })}>
-                      <SelectTrigger id="stage"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {STAGES.map((s) => (<SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="property">Propriedade</Label>
-                    <Select value={form.property_id} onValueChange={(v) => setForm({ ...form, property_id: v })}>
-                      <SelectTrigger id="property"><SelectValue placeholder="Nenhuma" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Nenhuma</SelectItem>
-                        {properties.map((p) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="close">Data prevista</Label>
-                    <Input id="close" type="date" value={form.expected_close_date} onChange={(e) => setForm({ ...form, expected_close_date: e.target.value })} />
-                  </div>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="notes">Observações</Label>
-                  <Textarea id="notes" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-                <Button onClick={handleCreate}>Criar</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+                    <Button onClick={handleCreate}>Criar</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </>
+        }
+      />
 
       <PipelineMetrics opportunities={opportunities} probabilities={probabilities} />
 
@@ -1413,7 +1425,7 @@ export default function Pipeline() {
       </Card>
 
       {loading ? (
-        <div className="text-sm text-muted-foreground">Carregando pipeline...</div>
+        <LoadingSkeleton variant="quadro" />
       ) : viewMode === "kanban" ? (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="flex gap-4 overflow-x-auto pb-4 -mx-2 px-2">
@@ -1690,7 +1702,7 @@ function StageConversionBottlenecks({ steps }: { steps: (ConversionStep & { from
       </div>
       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
         {steps.map((step) => (
-          <div key={step.key} className={cn("rounded-md border border-border bg-background p-3", weakest?.key === step.key && "border-amber-500/60 bg-amber-500/5")}>
+          <div key={step.key} className={cn("rounded-md border border-border bg-background p-3", weakest?.key === step.key && "border-warning/60 bg-warning/5")}>
             <div className="flex items-start justify-between gap-2">
               <span className="text-xs text-muted-foreground leading-snug">{step.label}</span>
               <Badge variant={weakest?.key === step.key ? "default" : "secondary"}>{step.rate}%</Badge>
@@ -1782,7 +1794,7 @@ function AssigneePerformanceDashboard({ items }: { items: AssigneePerformance[] 
                 <td className="py-3 px-3 text-right">{item.conversionRate}%</td>
                 <td className="py-3 px-3 text-right whitespace-nowrap">{item.averageCycleDays === null ? "—" : `${item.averageCycleDays}d`}</td>
                 <td className="py-3 pl-3 text-right">
-                  <Badge variant={item.staleCount > 0 ? "outline" : "secondary"} className={item.staleCount > 0 ? "border-amber-500/60 text-amber-600" : ""}>
+                  <Badge variant={item.staleCount > 0 ? "outline" : "secondary"} className={item.staleCount > 0 ? "border-warning/60 text-warning-strong" : ""}>
                     {item.staleCount}
                   </Badge>
                 </td>
@@ -1875,7 +1887,7 @@ function PriorityBadge({ priority }: { priority?: OpportunityPriority }) {
     <Badge variant="outline" className="gap-1.5">
       <span className={cn(
         "h-2 w-2 rounded-full",
-        priority.label === "Alta" ? "bg-destructive" : priority.label === "Média" ? "bg-amber-500" : "bg-muted-foreground",
+        priority.label === "Alta" ? "bg-destructive" : priority.label === "Média" ? "bg-warning" : "bg-muted-foreground",
       )} />
       {priority.score} · {priority.label}
     </Badge>
@@ -1963,8 +1975,8 @@ function PipelineTableView({
               return (
                 <tr
                   key={opp.id}
-                  className="border-b border-border/70 hover:bg-muted/40 cursor-pointer transition-colors"
-                  onClick={() => onOpen(opp.id)}
+                  className={`border-b border-border/70 hover:bg-muted/40 cursor-pointer transition-colors ${FOCO_CLICAVEL}`}
+                  {...clicavel(() => onOpen(opp.id), { linha: true })}
                 >
                   <td className="px-4 py-3 font-medium min-w-[180px]">{opp.brand}</td>
                   <td className="px-4 py-3 min-w-[150px]">
@@ -1981,7 +1993,7 @@ function PipelineTableView({
                   <td className="px-4 py-3 text-muted-foreground min-w-[180px]">{nextActivityLabel ?? "—"}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {stale ? (
-                      <Badge variant="outline" className="border-amber-500/60 text-amber-600">
+                      <Badge variant="outline" className="border-warning/60 text-warning-strong">
                         <AlertTriangle className="h-3 w-3 mr-1" />
                         {daysSince(opp.last_stage_change_at)}d / SLA {slaDays}d
                       </Badge>
@@ -1991,6 +2003,7 @@ function PipelineTableView({
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Button
+                      aria-label="Excluir oportunidade"
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-muted-foreground hover:text-destructive"
@@ -2048,8 +2061,8 @@ function PipelineCompactView({
         return (
           <Card
             key={opp.id}
-            className={`p-3 cursor-pointer hover:bg-muted/30 transition-colors ${stale ? "border-amber-500/60" : ""}`}
-            onClick={() => onOpen(opp.id)}
+            className={`p-3 cursor-pointer hover:bg-muted/30 transition-colors ${stale ? "border-warning/60" : ""} ${FOCO_CLICAVEL}`}
+            {...clicavel(() => onOpen(opp.id))}
           >
             <div className="flex items-center gap-3 min-w-0">
               <span className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${stage.color}`} />
@@ -2059,7 +2072,7 @@ function PipelineCompactView({
                   <PriorityBadge priority={priority} />
                   <Badge variant="secondary" className="text-[10px] py-0 flex-shrink-0">{stage.label}</Badge>
                   {stale && (
-                    <Badge variant="outline" className="text-[10px] py-0 border-amber-500/60 text-amber-600 flex-shrink-0">
+                    <Badge variant="outline" className="text-[10px] py-0 border-warning/60 text-warning-strong flex-shrink-0">
                       <AlertTriangle className="h-2.5 w-2.5 mr-1" />
                       {daysSince(opp.last_stage_change_at)}d / SLA {slaDays}d
                     </Badge>
@@ -2097,6 +2110,7 @@ function PipelineCompactView({
                   <PanelRightOpen className="h-4 w-4" />
                 </Button>
                 <Button
+                  aria-label="Excluir oportunidade"
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 text-muted-foreground hover:text-destructive"
@@ -2278,8 +2292,8 @@ function OpportunityCard({
     <Card
       className={`p-3 group hover:shadow-md transition-shadow cursor-pointer ${
         dragging ? "shadow-lg rotate-2" : ""
-      } ${isStale ? "border-amber-500/60" : ""}`}
-      onClick={() => onOpen?.(opp.id)}
+      } ${isStale ? "border-warning/60" : ""} ${FOCO_CLICAVEL}`}
+      {...clicavel(() => onOpen?.(opp.id))}
     >
       <div className="flex items-start gap-2">
         <button
@@ -2371,7 +2385,7 @@ function OpportunityCard({
               </div>
             )}
             {isStale && (
-              <Badge variant="outline" className="text-[10px] py-0 border-amber-500/60 text-amber-600">
+              <Badge variant="outline" className="text-[10px] py-0 border-warning/60 text-warning-strong">
                 <AlertTriangle className="h-2.5 w-2.5 mr-1" />
                 {daysSince(opp.last_stage_change_at)}d sem mover · SLA {slaDays}d
               </Badge>

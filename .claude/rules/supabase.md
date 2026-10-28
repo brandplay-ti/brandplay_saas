@@ -160,9 +160,26 @@ exposta ao browser. Variáveis `VITE_*` são públicas.
 Toda Edge Function que recebe requisição autenticada deve validar o JWT,
 derivar `user.id` dele, escopar por organização consultando
 `organization_members` (nunca aceitar `organization_id` do body) e checar
-papel quando a operação exigir. Funções que chamam a Anthropic API devem
-manter `ANTHROPIC_API_KEY` só no ambiente da função — nunca retorná-la ou
-logá-la.
+papel quando a operação exigir.
+
+Rota nova segue o log transacional do despachante
+(`docs/infrastructure/monitoring.md`). `request.inicio` e `request.fim` já
+saem para toda função. Depois de validar o JWT, chame `logContexto` em
+`supabase/functions/_shared/observabilidade.ts` com `user_id`,
+`organization_id` e um `code` curto. Não logue corpo, senha, token, documento
+nem `Authorization`. Não crie outro formato de log de request. Métrica de
+tráfego é `GET /functions/v1/metricas` (token `EDGE_METRICS_TOKEN`); o nome
+`metricas` é reservado pelo despachante.
+
+### Tabelas de IA (0031–0032, ADR-0010)
+
+Padrão **cobrança restrita** para `ai_org_settings` e `ai_usage_events`:
+leitura `has_org_role(organization_id, ['owner','admin'])`, sem escrita para
+`authenticated`. `ai_credentials` e `ai_model_prices`: só `service_role` —
+superadmin lê metadados por funções `admin_ia_*`, escrita por `admin-ai`.
+Nunca policy de SELECT em `key_ciphertext`/`key_iv` para roles do client.
+Detalhe: `supabase/migrations/SCHEMA_NOTES.md` (IA). Chaves de fornecedor e
+`AI_KEYS_MASTER_KEY` só no ambiente `functions`.
 
 ## Ambiente local
 

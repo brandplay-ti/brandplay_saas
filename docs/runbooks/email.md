@@ -29,7 +29,7 @@ No Dockploy, serviço **Compose do Supabase** do ambiente:
 
 ```
 RESEND_API_KEY=re_...
-EMAIL_FROM=BrandPlay <nao-responda@mail.brandplay.com.br>
+EMAIL_FROM=Brandplay <nao-responda@mail.brandplay.com.br>
 APP_URL=https://app.brandplay.com.br        # base dos links de convite e notificação
 PORTAL_URL=                                  # vazio = SITE_URL
 ```
@@ -108,7 +108,10 @@ Ao editar um template:
 
 - mantenha `{{ .ConfirmationURL }}` (no `reautenticacao.html`, `{{ .Token }}`):
   é o link de verificação. O E2E `portal/e2e/recuperacao-senha.spec.ts` extrai
-  do `href` o link com `/auth/v1/verify`. Também disponíveis: `{{ .Email }}`,
+  do `href` o link com `/auth/v1/verify` e confere assunto/corpo PT-BR (template
+  versionado, não o padrão em inglês do GoTrue). Testes unitários em
+  `portal/src/lib/authEmailTemplates.test.ts` validam os seis HTML do repositório.
+  Também disponíveis: `{{ .Email }}`,
   `{{ .NewEmail }}` (troca de e-mail), `{{ .Token }}`, `{{ .SiteURL }}`;
 - o layout é repetido nos seis arquivos (o GoTrue não tem include): mudou um,
   confira os outros;

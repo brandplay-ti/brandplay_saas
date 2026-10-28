@@ -238,7 +238,7 @@ produção) e `docs/runbooks/primeira-carga.md`.
 - [ ] Exportar o código atual do Lovable e importar numa branch (`sync/…`).
 - [ ] Schema versionado em `supabase/migrations/` (o Lovable traz as próprias
       em `supabase/migrations/<timestamp>_<uuid>.sql`: guarde-as como
-      referência em `supabase/lovable-migrations/` e escreva migrations
+      referência em `docs/archive/lovable/lovable-migrations/` e escreva migrations
       numeradas, reconciliadas — ver ADR-0004/0005 do brandplay).
 - [ ] Trocar o gateway de IA do Lovable (`LOVABLE_API_KEY`,
       `ai.gateway.lovable.dev`) pela API do provedor (no brandplay: Anthropic,
@@ -252,7 +252,7 @@ produção) e `docs/runbooks/primeira-carga.md`.
       `docker/supabase/.env`; regenerar os segredos que já estiveram em commit.
 - [ ] Domínio `.lovable.app` → domínio próprio; links de e-mail via `APP_URL`.
 - [ ] Migração de dados com ensaio em homologação (ferramentas em
-      `supabase/tools/migracao-lovable/` do brandplay).
+      `docs/archive/lovable/migracao-dados/` do brandplay).
 
 ## 7. Claude Code
 

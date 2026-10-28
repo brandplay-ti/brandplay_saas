@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface MediaItem {
   id: string;
@@ -58,6 +59,7 @@ function isVideoExt(name: string) {
 }
 
 export default function PropertyMediaGallery({ propertyId, ownerId }: Props) {
+  const confirm = useConfirm();
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -142,7 +144,12 @@ export default function PropertyMediaGallery({ propertyId, ownerId }: Props) {
   };
 
   const removeItem = async (item: MediaItem) => {
-    if (!confirm("Excluir esta mídia?")) return;
+    const confirmado = await confirm({
+      title: "Excluir esta mídia?",
+      confirmLabel: "Excluir",
+      destructive: true,
+    });
+    if (!confirmado) return;
     if (item.storage_path) {
       await supabase.storage.from("property-media").remove([item.storage_path]);
     }
@@ -259,6 +266,7 @@ export default function PropertyMediaGallery({ propertyId, ownerId }: Props) {
                   <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
                     {m.media_type !== "link" && (
                       <Button
+                        aria-label={m.is_cover ? "Remover capa" : "Definir como capa"}
                         size="icon"
                         variant="secondary"
                         className="h-7 w-7"
@@ -269,6 +277,7 @@ export default function PropertyMediaGallery({ propertyId, ownerId }: Props) {
                       </Button>
                     )}
                     <Button
+                      aria-label="Excluir mídia"
                       size="icon"
                       variant="destructive"
                       className="h-7 w-7"

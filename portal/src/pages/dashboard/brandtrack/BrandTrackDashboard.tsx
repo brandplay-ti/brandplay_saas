@@ -20,6 +20,7 @@ import {
   Line,
 } from "recharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 type BrandAgg = {
   name: string;
@@ -163,7 +164,7 @@ const BrandTrackDashboard = () => {
       <div>
         <div className="flex items-center gap-2">
           <Sparkles className="h-6 w-6 text-primary" />
-          <h1 className="text-3xl font-bold">BrandTrack</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">BrandTrack</h1>
           <Badge variant="secondary">Análise de exposição com IA</Badge>
         </div>
         <p className="text-muted-foreground mt-1">
@@ -194,7 +195,7 @@ const BrandTrackDashboard = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-muted-foreground text-sm">Carregando…</p>
+            <LoadingSkeleton variant="cards" count={3} />
           ) : brands.length === 0 ? (
             <EmptyState />
           ) : (
@@ -314,7 +315,7 @@ const BrandTrackDashboard = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Trophy className="h-4 w-4 text-amber-500" /> Momento de Ouro
+              <Trophy className="h-4 w-4 text-warning-strong" /> Momento de Ouro
             </CardTitle>
           </CardHeader>
           <CardContent>

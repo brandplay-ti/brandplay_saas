@@ -2,7 +2,6 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { LogoFrame, logoFrameIconClass } from "@/components/LogoFrame";
 import {
-  ArrowLeft,
   Trophy,
   Calendar,
   Users,
@@ -46,6 +45,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/common/StatusBadge";
+import { type StatusTone } from "@/lib/statusTone";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
@@ -82,6 +83,10 @@ import { dataLocal } from "@/lib/datas";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { SponsorSocialDashboard } from "@/components/sponsors/SponsorProfileFields";
+import { useConfirm } from "@/hooks/useConfirm";
+import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
+import { Breadcrumbs } from "@/components/common/Breadcrumbs";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 const fmtBRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -92,6 +97,7 @@ const fmtDateTime = (s?: string | null) =>
 
 interface Property {
   id: string;
+  organization_id: string;
   name: string;
   category: string;
   status: string;
@@ -249,12 +255,13 @@ const EVENT_TYPES = [
 ];
 
 const ASSET_STATUS_COLOR: Record<string, string> = {
-  ativo: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
-  inativo: "bg-slate-500/10 text-slate-700 border-slate-500/30",
-  manutencao: "bg-amber-500/10 text-amber-700 border-amber-500/30",
+  ativo: "bg-success/10 text-success-strong border-success/30",
+  inativo: "bg-muted text-muted-foreground border-border",
+  manutencao: "bg-warning/10 text-warning-strong border-warning/30",
 };
 
 export default function PropertyDetail() {
+  const confirm = useConfirm();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -332,12 +339,12 @@ export default function PropertyDetail() {
     return map;
   }, [assetDeliveries]);
 
-  const DELIVERY_STATUS_META: Record<string, { label: string; className: string }> = {
-    pendente: { label: "Pendente", className: "bg-muted text-muted-foreground border-transparent" },
-    em_producao: { label: "Em produção", className: "bg-blue-500/10 text-blue-700 border-blue-500/30" },
-    entregue: { label: "Entregue", className: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30" },
-    aprovada: { label: "Aprovada", className: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30" },
-    atrasada: { label: "Atrasada", className: "bg-destructive/10 text-destructive border-destructive/30" },
+  const DELIVERY_STATUS_META: Record<string, { label: string; tone: StatusTone }> = {
+    pendente: { label: "Pendente", tone: "neutral" },
+    em_producao: { label: "Em produção", tone: "info" },
+    entregue: { label: "Entregue", tone: "success" },
+    aprovada: { label: "Aprovada", tone: "success" },
+    atrasada: { label: "Atrasada", tone: "danger" },
   };
 
   const STATUS_ORDER = ["atrasada", "pendente", "em_producao", "entregue", "aprovada"];
@@ -384,9 +391,9 @@ export default function PropertyDetail() {
               className="inline-flex items-center gap-1 rounded-md border bg-card/50 px-1.5 py-0.5 hover:underline"
               title={`${g.label} · abrir no módulo de Entregas`}
             >
-              <Badge variant="outline" className={`text-[10px] px-1.5 ${meta.className}`}>
+              <StatusBadge tone={meta.tone} className="text-[10px] px-1.5">
                 {meta.label}
-              </Badge>
+              </StatusBadge>
               <span className="text-[10px] font-medium truncate max-w-[110px]">{g.label}</span>
               {!compact && (
                 <span className="text-[10px] text-muted-foreground">
@@ -790,7 +797,7 @@ export default function PropertyDetail() {
 
   const saveTier = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !id) return;
+    if (!user || !id || !property) return;
 
     const payload = {
       property_id: id,
@@ -815,7 +822,7 @@ export default function PropertyDetail() {
     } else {
       const { data, error } = await supabase
         .from("sponsorship_tiers")
-        .insert(payload)
+        .insert({ ...payload, organization_id: property.organization_id })
         .select("id")
         .single();
       if (error) return toast.error(error.message);
@@ -1096,7 +1103,7 @@ export default function PropertyDetail() {
         td.c { text-align: center; } td.r { text-align: right; }
         .muted { color: #6b7280; font-size: 10px; }
         tr.excl td { background: #fffbeb; }
-        a { color: #1d4ed8; text-decoration: none; }
+        a { color: #6206C8; text-decoration: none; }
         .dv { margin-bottom: 2px; }
       </style></head><body>
       <h1>Mapa de ativos</h1>
@@ -1196,7 +1203,13 @@ export default function PropertyDetail() {
 
 
   const deleteTier = async (tierId: string) => {
-    if (!confirm("Excluir esta cota? Vendas associadas serão removidas.")) return;
+    const confirmado = await confirm({
+      title: "Excluir esta cota?",
+      description: "Vendas associadas serão removidas.",
+      confirmLabel: "Excluir",
+      destructive: true,
+    });
+    if (!confirmado) return;
     const { error } = await supabase.from("sponsorship_tiers").delete().eq("id", tierId);
     if (error) return toast.error(error.message);
     toast.success("Cota excluída");
@@ -1252,7 +1265,12 @@ export default function PropertyDetail() {
   };
 
   const deleteEvent = async (evId: string) => {
-    if (!confirm("Excluir este evento?")) return;
+    const confirmado = await confirm({
+      title: "Excluir este evento?",
+      confirmLabel: "Excluir",
+      destructive: true,
+    });
+    if (!confirmado) return;
     const { error } = await supabase.from("property_events").delete().eq("id", evId);
     if (error) return toast.error(error.message);
     toast.success("Evento excluído");
@@ -1298,6 +1316,7 @@ export default function PropertyDetail() {
       .from("sports_properties")
       .insert({
         owner_id: user.id,
+        organization_id: property.organization_id,
         name: seasonForm.name || `${property.name} ${seasonForm.season_year}`,
         category: property.category,
         status: "planejamento",
@@ -1315,11 +1334,7 @@ export default function PropertyDetail() {
   };
 
   if (loading || !property) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingSkeleton variant="detalhe" className="mx-auto max-w-7xl" />;
   }
 
   const upcomingEvents = events.filter((e) => new Date(e.starts_at) >= new Date());
@@ -1328,17 +1343,15 @@ export default function PropertyDetail() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
       {/* HEADER */}
+      <Breadcrumbs items={[{ label: "Propriedades", to: "/dashboard/propriedades" }, { label: property.name }]} />
       <div className="flex items-start gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/propriedades")}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
             <div className="h-12 w-12 rounded-lg bg-gradient-brand text-primary-foreground flex items-center justify-center">
               <Trophy className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">{property.name}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{property.name}</h1>
               <p className="text-sm text-muted-foreground">
                 {property.category}
                 {property.season_year && ` · Temporada ${property.season_year}`}
@@ -1621,7 +1634,7 @@ export default function PropertyDetail() {
                   <div className="grid grid-cols-3 gap-3">
                     <div className="rounded-md border border-border p-3">
                       <p className="text-xs text-muted-foreground">Concluídas</p>
-                      <p className="text-xl font-bold text-emerald-600">{checklistSummary.done}</p>
+                      <p className="text-xl font-bold text-success-strong">{checklistSummary.done}</p>
                     </div>
                     <div className="rounded-md border border-border p-3">
                       <p className="text-xs text-muted-foreground">Pendentes</p>
@@ -1734,10 +1747,10 @@ export default function PropertyDetail() {
                           <p className="text-xs text-muted-foreground">por vaga</p>
                         </div>
                         <div className="flex gap-1">
-                          <Button size="icon" variant="ghost" onClick={() => openTierDialog(t)}>
+                          <Button aria-label="Editar cota" size="icon" variant="ghost" onClick={() => openTierDialog(t)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button size="icon" variant="ghost" onClick={() => deleteTier(t.id)}>
+                          <Button aria-label="Excluir cota" size="icon" variant="ghost" onClick={() => deleteTier(t.id)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
@@ -1746,7 +1759,7 @@ export default function PropertyDetail() {
                       <div>
                         <div className="flex justify-between text-xs mb-1">
                           <span>Disponibilidade</span>
-                          <span className={available === 0 ? "text-destructive font-medium" : "text-emerald-600 font-medium"}>
+                          <span className={available === 0 ? "text-destructive font-medium" : "text-success-strong font-medium"}>
                             {available === 0 ? "Esgotada" : `${available} vaga(s) livre(s)`}
                           </span>
                         </div>
@@ -1842,7 +1855,7 @@ export default function PropertyDetail() {
                     <ClipboardPaste className="h-4 w-4 mr-1.5" />
                     Colar
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => setShowTierMap((v) => !v)}>
+                  <Button aria-label={showTierMap ? "Ocultar mapa das cotas" : "Mostrar mapa das cotas"} aria-pressed={showTierMap} variant="ghost" size="icon" onClick={() => setShowTierMap((v) => !v)}>
                     {showTierMap ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
@@ -1891,8 +1904,8 @@ export default function PropertyDetail() {
                                   return (
                                     <tr
                                       key={a.id}
-                                      className="border-b last:border-0 cursor-pointer hover:bg-muted/40"
-                                      onClick={() => openMapAssetEditor(a)}
+                                      className={`border-b last:border-0 cursor-pointer hover:bg-muted/40 ${FOCO_CLICAVEL}`}
+                                      {...clicavel(() => openMapAssetEditor(a), { linha: true })}
                                       title="Clique para editar o ativo e as quantidades por cota"
                                     >
                                       <td className="py-1.5 pr-3">
@@ -1979,7 +1992,7 @@ export default function PropertyDetail() {
         <TabsContent value="assets" className="space-y-4 mt-4">
           <div className="flex items-center gap-3 text-xs flex-wrap">
             <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Disponível
+              <span className="h-2.5 w-2.5 rounded-full bg-success" /> Disponível
             </span>
             <span className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-primary" /> Em cota
@@ -2043,6 +2056,7 @@ export default function PropertyDetail() {
                 ["compact", Rows3],
               ] as const).map(([mode, Icon]) => (
                 <Button
+                  aria-label={{ grid: "Ver em grade", list: "Ver em lista", compact: "Ver compacto" }[mode]} aria-pressed={mapView === mode}
                   key={mode}
                   variant={mapView === mode ? "secondary" : "ghost"}
                   size="icon"
@@ -2113,17 +2127,17 @@ export default function PropertyDetail() {
                           ? "bg-destructive"
                           : a.in_tier
                           ? "bg-primary"
-                          : "bg-emerald-500";
+                          : "bg-success";
                         return (
                           <Card
                             key={a.id}
-                            onClick={() => openMapAssetEditor(a)}
+                            {...clicavel(() => openMapAssetEditor(a))}
                             title="Clique para editar o ativo e as quantidades por cota"
                             className={`relative overflow-hidden cursor-pointer ${
                               a.sold ? "opacity-60" : ""
                             } ${
-                              a.is_exclusive ? "ring-2 ring-amber-500/60 border-amber-500/40 bg-amber-500/[0.04]" : ""
-                            } hover:shadow-md transition`}
+                              a.is_exclusive ? "ring-2 ring-warning/60 border-warning/40 bg-warning/[0.04]" : ""
+                            } hover:shadow-md transition ${FOCO_CLICAVEL}`}
                           >
                             <div className="aspect-video bg-muted overflow-hidden">
                               {a.cover_url ? (
@@ -2149,7 +2163,7 @@ export default function PropertyDetail() {
                               <div className="flex gap-1 mt-2 flex-wrap items-center">
                                 {a.is_exclusive && (
                                   <Badge
-                                    className="text-[10px] px-1.5 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40"
+                                    className="text-[10px] px-1.5 bg-warning/15 text-warning-strong border-warning/40"
                                     variant="outline"
                                     title={(a.exclusivity_terms ?? []).join(", ") || "Ativo exclusivo"}
                                   >
@@ -2179,7 +2193,7 @@ export default function PropertyDetail() {
                   {mapView === "list" && (
                     <div className="border rounded-md divide-y">
                       {list.map((a) => (
-                        <div key={a.id} onClick={() => openMapAssetEditor(a)} title="Clique para editar o ativo e as quantidades por cota" className={`flex items-center gap-3 p-2.5 cursor-pointer hover:bg-muted/50 transition ${a.sold ? "opacity-60" : ""} ${a.is_exclusive ? "bg-amber-500/[0.06] border-l-2 border-l-amber-500" : ""}`}>
+                        <div key={a.id} {...clicavel(() => openMapAssetEditor(a))} title="Clique para editar o ativo e as quantidades por cota" className={`flex items-center gap-3 p-2.5 cursor-pointer hover:bg-muted/50 transition ${a.sold ? "opacity-60" : ""} ${a.is_exclusive ? "bg-warning/[0.06] border-l-2 border-l-amber-500" : ""} ${FOCO_CLICAVEL}`}>
                           <div className="h-10 w-14 rounded bg-muted overflow-hidden shrink-0">
                             {a.cover_url ? (
                               <img src={a.cover_url} alt={a.name} className="w-full h-full object-cover" />
@@ -2191,7 +2205,7 @@ export default function PropertyDetail() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate flex items-center gap-1">
-                              {a.is_exclusive && <Crown className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
+                              {a.is_exclusive && <Crown className="h-3.5 w-3.5 text-warning-strong shrink-0" />}
                               <span className="truncate">{a.name}</span>
                             </p>
                             <p className="text-xs text-muted-foreground">
@@ -2207,7 +2221,7 @@ export default function PropertyDetail() {
                           {a.is_exclusive && (
                             <Badge
                               variant="outline"
-                              className="text-[10px] px-1.5 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40"
+                              className="text-[10px] px-1.5 bg-warning/15 text-warning-strong border-warning/40"
                               title={(a.exclusivity_terms ?? []).join(", ") || "Ativo exclusivo"}
                             >
                               <Crown className="h-2.5 w-2.5 mr-1" /> Exclusivo
@@ -2228,14 +2242,14 @@ export default function PropertyDetail() {
                   {mapView === "compact" && (
                     <div className="border rounded-md divide-y">
                       {list.map((a) => (
-                        <div key={a.id} onClick={() => openMapAssetEditor(a)} title="Clique para editar o ativo e as quantidades por cota" className={`flex items-center gap-2 px-2.5 py-1.5 text-xs cursor-pointer hover:bg-muted/50 transition ${a.sold ? "opacity-60" : ""} ${a.is_exclusive ? "bg-amber-500/[0.06] border-l-2 border-l-amber-500" : ""}`}>
+                        <div key={a.id} {...clicavel(() => openMapAssetEditor(a))} title="Clique para editar o ativo e as quantidades por cota" className={`flex items-center gap-2 px-2.5 py-1.5 text-xs cursor-pointer hover:bg-muted/50 transition ${a.sold ? "opacity-60" : ""} ${a.is_exclusive ? "bg-warning/[0.06] border-l-2 border-l-amber-500" : ""} ${FOCO_CLICAVEL}`}>
                           <span
                             className={`h-2 w-2 rounded-full shrink-0 ${
-                              a.sold ? "bg-destructive" : a.in_tier ? "bg-primary" : "bg-emerald-500"
+                              a.sold ? "bg-destructive" : a.in_tier ? "bg-primary" : "bg-success"
                             }`}
                           />
                           {a.is_exclusive && (
-                            <Crown className="h-3 w-3 text-amber-500 shrink-0" aria-label="Ativo exclusivo" />
+                            <Crown className="h-3 w-3 text-warning-strong shrink-0" aria-label="Ativo exclusivo" />
                           )}
                           <span className="flex-1 min-w-0 truncate">{a.name}</span>
                           <span className="text-muted-foreground">×{a.quantity}</span>
@@ -2294,7 +2308,7 @@ export default function PropertyDetail() {
                           <p className="text-xs text-muted-foreground">📍 {e.location}</p>
                         )}
                       </div>
-                      <Button variant="ghost" size="icon" onClick={() => deleteEvent(e.id)}>
+                      <Button aria-label="Excluir evento" variant="ghost" size="icon" onClick={() => deleteEvent(e.id)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -2340,10 +2354,10 @@ export default function PropertyDetail() {
             {seasons.map((s) => (
               <Card
                 key={s.id}
-                onClick={() => s.id !== property.id && navigate(`/dashboard/propriedades/${s.id}`)}
+                {...clicavel(() => s.id !== property.id && navigate(`/dashboard/propriedades/${s.id}`))}
                 className={`cursor-pointer hover:border-primary/40 transition ${
                   s.id === property.id ? "border-primary ring-1 ring-primary" : ""
-                }`}
+                } ${FOCO_CLICAVEL}`}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
@@ -2460,7 +2474,7 @@ export default function PropertyDetail() {
               </div>
 
               {pubForm.is_published && pubForm.public_slug && (
-                <div className="p-3 bg-emerald-500/10 text-emerald-700 rounded-md text-sm border border-emerald-500/30">
+                <div className="p-3 bg-success/10 text-success-strong rounded-md text-sm border border-success/30">
                   ✅ Página publicada em <strong>{window.location.origin}/p/{pubForm.public_slug}</strong>
                 </div>
               )}
@@ -2626,8 +2640,8 @@ export default function PropertyDetail() {
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {activeSponsors.map((sp) => (
-                <Card key={sp.id} className="hover:shadow-md transition cursor-pointer"
-                  onClick={() => navigate("/dashboard/patrocinadores")}>
+                <Card key={sp.id} className={`hover:shadow-md transition cursor-pointer ${FOCO_CLICAVEL}`}
+                  {...clicavel(() => navigate("/dashboard/patrocinadores"))}>
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
                       <LogoFrame src={sp.logo_url} alt={sp.name} size="md" fallback={<Building2 className={`${logoFrameIconClass("md")} text-muted-foreground`} />} />

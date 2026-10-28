@@ -13,6 +13,8 @@ import { FileText, CalendarDays, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { dataLocal } from "@/lib/datas";
+import { PageHeader } from "@/components/common/PageHeader";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 interface Contract {
   id: string;
@@ -38,16 +40,16 @@ interface Installment {
 
 const statusUI: Record<string, string> = {
   rascunho: "bg-muted text-muted-foreground",
-  em_assinatura: "bg-amber-500/15 text-amber-600 border-amber-500/30",
-  ativo: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
-  vencendo: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+  em_assinatura: "bg-warning/15 text-warning-strong border-warning/30",
+  ativo: "bg-success/15 text-success-strong border-success/30",
+  vencendo: "bg-warning/15 text-warning-strong border-warning/30",
   encerrado: "bg-muted text-muted-foreground",
   cancelado: "bg-destructive/15 text-destructive border-destructive/30",
 };
 
 const installmentUI: Record<string, string> = {
-  pendente: "bg-amber-500/15 text-amber-600",
-  pago: "bg-emerald-500/15 text-emerald-600",
+  pendente: "bg-warning/15 text-warning-strong",
+  pago: "bg-success/15 text-success-strong",
   atrasado: "bg-destructive/15 text-destructive",
   cancelado: "bg-muted text-muted-foreground",
 };
@@ -106,14 +108,11 @@ export default function PortalContracts() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <FileText className="h-6 w-6 text-primary" /> Contratos
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Visualize seus contratos ativos e cronograma financeiro.
-        </p>
-      </div>
+      <PageHeader
+        title="Contratos"
+        description="Visualize seus contratos ativos e cronograma financeiro."
+        icon={FileText}
+      />
 
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
         <Card>
@@ -129,7 +128,7 @@ export default function PortalContracts() {
             <CardTitle className="text-xs text-muted-foreground">Pago</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-600">{fmt(totals.paid)}</div>
+            <div className="text-2xl font-bold text-success-strong">{fmt(totals.paid)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -143,7 +142,7 @@ export default function PortalContracts() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-muted-foreground py-8 text-center">Carregando…</p>
+        <LoadingSkeleton count={3} />
       ) : contracts.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-muted-foreground">

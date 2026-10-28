@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { withProfileNames } from "@/lib/profileNames";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,9 @@ import {
   PRIORITY_LABEL, type Health, type Lifecycle, type Priority,
   formatBRL, formatDate, daysSince, toCsv, downloadCsv,
 } from "@/lib/crmAccount";
+import { PageHeader } from "@/components/common/PageHeader";
+import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 const db = supabase as any;
 const VIEW_KEY = "crm_sponsors_view_v1";
@@ -59,7 +62,6 @@ const logoUrl = (p: string | null) =>
 export default function Sponsors() {
   const { user } = useAuth();
   const { orgId, can, isAdmin } = useOrganization();
-  const { toast } = useToast();
   const navigate = useNavigate();
 
   const [rows, setRows] = useState<SponsorRow[]>([]);
@@ -206,12 +208,12 @@ export default function Sponsors() {
       trade_name: profile.trade_name.trim() || form.trade_name.trim() || null,
 
     }).select("id").single();
-    if (error) return toast({ title: "Erro", description: error.message, variant: "destructive" });
+    if (error) return toast.error("Erro", { description: error.message });
     await db.from("sponsor_crm_profiles").insert({
       sponsor_id: data.id, organization_id: orgId, owner_id: user.id,
       segment: form.segment.trim() || null, notes: form.notes.trim() || null,
     });
-    toast({ title: "Conta criada" });
+    toast.success("Conta criada");
     setOpen(false);
     setForm({ name: "", trade_name: "", segment: "", website: "", domain: "", priority: "B", lifecycle: "prospect", notes: "" });
     setProfile(emptySponsorProfile());
@@ -222,8 +224,8 @@ export default function Sponsors() {
   const bulkUpdate = async (patch: Record<string, unknown>) => {
     if (selectedIds.length === 0) return;
     const { error } = await db.from("sponsors").update(patch).in("id", selectedIds);
-    if (error) return toast({ title: "Erro", description: error.message, variant: "destructive" });
-    toast({ title: "Contas atualizadas", description: `${selectedIds.length} registro(s).` });
+    if (error) return toast.error("Erro", { description: error.message });
+    toast.success("Contas atualizadas", { description: `${selectedIds.length} registro(s).` });
     setSelectedIds([]);
     load();
   };
@@ -232,9 +234,9 @@ export default function Sponsors() {
     for (const id of selectedIds) {
       const { error } = await db.rpc(archive ? "archive_sponsor" : "unarchive_sponsor",
         archive ? { _sponsor_id: id, _reason: "Arquivado em lote" } : { _sponsor_id: id });
-      if (error) return toast({ title: "Erro", description: error.message, variant: "destructive" });
+      if (error) return toast.error("Erro", { description: error.message });
     }
-    toast({ title: archive ? "Contas arquivadas" : "Contas restauradas" });
+    toast.success(archive ? "Contas arquivadas" : "Contas restauradas");
     setSelectedIds([]);
     load();
   };
@@ -243,9 +245,9 @@ export default function Sponsors() {
     if (!mergeTarget || selectedIds.length === 0) return;
     for (const id of selectedIds.filter((i) => i !== mergeTarget)) {
       const { error } = await db.rpc("merge_sponsors", { _target_id: mergeTarget, _duplicate_id: id });
-      if (error) return toast({ title: "Erro ao mesclar", description: error.message, variant: "destructive" });
+      if (error) return toast.error("Erro ao mesclar", { description: error.message });
     }
-    toast({ title: "Contas mescladas", description: "O histórico foi preservado e a duplicada foi arquivada." });
+    toast.success("Contas mescladas", { description: "O histórico foi preservado e a duplicada foi arquivada." });
     setMergeOpen(false);
     setSelectedIds([]);
     load();
@@ -275,15 +277,16 @@ export default function Sponsors() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Users className="h-6 w-6 text-primary" /> Patrocinadores
-          </h1>
-          <p className="text-sm text-muted-foreground">Conta 360º: relacionamento, negociações, contratos, entregas e resultados.</p>
-        </div>
-        {can("crm") && <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-2" /> Nova conta</Button>}
-      </div>
+      <PageHeader
+        title="Patrocinadores"
+        description="Conta 360º: relacionamento, negociações, contratos, entregas e resultados."
+        icon={Users}
+        actions={
+          <>
+            {can("crm") && <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-2" /> Nova conta</Button>}
+          </>
+        }
+      />
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-6">
         {[
@@ -342,7 +345,7 @@ export default function Sponsors() {
                 <Archive className="h-4 w-4 mr-2" /> Arquivadas
               </Button>
               <Button variant="outline" size="sm" onClick={exportCsv}><Download className="h-4 w-4 mr-2" /> CSV</Button>
-              <Button variant="outline" size="icon" onClick={() => setLayout(layout === "table" ? "cards" : "table")} title="Alternar visualização">
+              <Button aria-label={layout === "table" ? "Ver em cartões" : "Ver em tabela"} variant="outline" size="icon" onClick={() => setLayout(layout === "table" ? "cards" : "table")} title="Alternar visualização">
                 {layout === "table" ? <LayoutGrid className="h-4 w-4" /> : <Rows3 className="h-4 w-4" />}
               </Button>
             </div>
@@ -382,7 +385,7 @@ export default function Sponsors() {
 
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">Carregando…</p>
+            <LoadingSkeleton />
           ) : filtered.length === 0 ? (
             <p className="py-12 text-center text-sm text-muted-foreground">Nenhuma conta encontrada com os filtros atuais.</p>
           ) : layout === "cards" ? (
@@ -427,7 +430,7 @@ export default function Sponsors() {
                   {filtered.map((s) => {
                     const d = daysSince(s.last_contact_at);
                     return (
-                      <TableRow key={s.id} className="cursor-pointer" onClick={() => navigate(`/dashboard/patrocinadores/${s.id}`)}>
+                      <TableRow key={s.id} className={`cursor-pointer ${FOCO_CLICAVEL}`} {...clicavel(() => navigate(`/dashboard/patrocinadores/${s.id}`), { linha: true })}>
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           <Checkbox
                             checked={selectedIds.includes(s.id)}
@@ -453,7 +456,7 @@ export default function Sponsors() {
                         <TableCell>
                           <div className="flex gap-1 flex-wrap">
                             {s.overdueInstallments > 0 && <Badge variant="outline" className="text-[10px] bg-destructive/15 text-destructive border-destructive/30">{s.overdueInstallments} parcela(s)</Badge>}
-                            {s.lateDeliveries > 0 && <Badge variant="outline" className="text-[10px] bg-amber-500/15 text-amber-600 border-amber-500/30">{s.lateDeliveries} entrega(s)</Badge>}
+                            {s.lateDeliveries > 0 && <Badge variant="outline" className="text-[10px] bg-warning/15 text-warning-strong border-warning/30">{s.lateDeliveries} entrega(s)</Badge>}
                           </div>
                         </TableCell>
                       </TableRow>

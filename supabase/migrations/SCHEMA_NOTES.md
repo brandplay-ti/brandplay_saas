@@ -366,7 +366,7 @@ pura de nome/assinatura, sem nenhuma pista adicional).
 ## Reconciliação com o schema real do Lovable (0012–0019, 2026-10-02)
 
 O export do Lovable trouxe as 95 migrations reais do banco de origem
-(`supabase/lovable-migrations/`). A comparação completa está em
+(`docs/archive/lovable/lovable-migrations/`). A comparação completa está em
 `docs/architecture/reconciliacao-schema-2026-10-02.md` e a decisão de manter a
 reconstrução, corrigindo-a com migrations novas, na **ADR-0005**. Depois de
 `0012`–`0019`, tabelas, colunas (tipo e default), enums, triggers, view e
@@ -399,6 +399,8 @@ Efeito sobre as seções anteriores deste documento:
 - **`organization_id` nulo**: 45 triggers reais preenchem `organization_id` a
   partir do pai ou do usuário. Atenção: quando vem do usuário, usam
   `get_user_org()` (a organização ativa mais antiga), não a selecionada na UI.
+  Desde a `0033`, a linha que referencia um registro pai herda a organização
+  dele; `get_user_org()` ficou só para a linha sem pai (ver a seção da 0033).
 
 Diferenças deliberadas que permanecem:
 
@@ -531,3 +533,259 @@ segue o Lovable.
 - **Contrato**: `_contract_id` precisa ser da própria oportunidade; se não
   for, a função devolve `null` e a Edge Function responde 404. Sem contrato
   informado, vale o mais recente da oportunidade, como no Lovable.
+
+## IA por organização (0031, plano `docs/architecture/plano-ia-por-cliente.md`)
+
+Tabelas novas, não vindas do Lovable. Backlog IA-01.
+
+| Tabela             | O que é                                                        | Leitura                        | Escrita          |
+| ------------------ | -------------------------------------------------------------- | ------------------------------ | ---------------- |
+| `ai_credentials`   | chave de API cifrada; `organization_id` nulo = chave padrão     | ninguém pela API               | só service role  |
+| `ai_org_settings`  | por organização: IA habilitada, orçamento, % de alerta, corte  | owner/admin                    | só service role  |
+| `ai_usage_events`  | uma linha por chamada: tokens, custo estimado, resultado       | owner/admin                    | só service role; imutável pela API |
+| `ai_model_prices`  | preço por 1M de tokens, por modelo e vigência                   | ninguém pela API               | só service role  |
+
+`billing_plans` ganhou `ai_enabled` (padrão `true`) e
+`ai_monthly_budget_cents` (padrão nulo = sem teto): o padrão de IA do plano
+para organizações sem `ai_org_settings`. Monetização fica para depois.
+
+Segue o padrão 8 (cobrança): leitura `has_org_role(organization_id,
+['owner','admin'])`, nenhuma policy de escrita, `insert/update/delete`
+revogados de `authenticated`. O superadmin lê pelas funções `admin_ia_*`
+(IA-02), nunca por policy.
+
+Suposições registradas:
+
+- **A chave nunca chega ao banco em claro.** A Edge Function cifra com
+  AES-GCM e a chave mestra do ambiente (`AI_KEYS_MASTER_KEY`); o banco guarda
+  cifra, IV, versão da chave mestra e os últimos caracteres (`key_hint`).
+- `ai_credentials` fica **fora** da policy restritiva de cobrança e na lista
+  de exceções do teste `(m)`: é dado da plataforma e `authenticated` não tem
+  nenhum privilégio nela. `ai_org_settings` e `ai_usage_events` têm a policy.
+- **Custo em reais.** O orçamento é em R$ (decisão Q5), então os preços em
+  `ai_model_prices` são cadastrados em reais, convertidos por quem opera. Os
+  fornecedores cobram em dólar: o custo é estimativa e o câmbio da conversão
+  fica a cargo de quem cadastra o preço.
+- **Sem preço inicial.** Os preços disponíveis no planejamento vinham de
+  agregadores, não das páginas oficiais. Modelo sem preço grava
+  `estimated_cost_brl` nulo; os tokens ficam e o custo pode ser recalculado.
+- `ai_usage_events` sem `updated_at`, como `platform_admin_audit_log`:
+  imutável. `user_id` sem FK (como `platform_admin_audit_log.admin_user_id`),
+  nulo para rotina sem usuário.
+- Organização apagada leva credenciais, configuração e uso junto
+  (`on delete cascade`): não há fluxo de exclusão de organização no produto,
+  e o histórico de uso só tem sentido com ela.
+- `last_error` guarda só a categoria neutra (`chave_invalida`, `sem_saldo`...),
+  nunca a mensagem crua do fornecedor, que pode ecoar a chave.
+
+### Leitura e guardas (0032, backlog IA-02)
+
+| Função                        | Quem executa              | O que devolve |
+| ----------------------------- | ------------------------- | ------------- |
+| `ia_parametros(org)`          | service role (interna)    | parâmetros efetivos e gasto do mês |
+| `ia_consumo_detalhado(org)`   | service role (interna)    | mês por funcionalidade, 30 dias por dia |
+| `ia_situacao(org, user)`      | service role              | bloqueio, orçamento, contagens do limite de taxa |
+| `ia_consumo_organizacao(org)` | owner/admin da organização | resumo do mês, sem fornecedor nem chave |
+| `admin_ia_padrao()`, `admin_ia_clientes()`, `admin_ia_cliente_detalhe(org)`, `admin_ia_consumo(meses)`, `admin_ia_precos()` | superadmin (`platform_admin_require()`) | metadados, consumo e preços — nunca `key_ciphertext`/`key_iv` |
+
+Suposições registradas:
+
+- **Parâmetro efetivo**: a linha de `ai_org_settings`, quando existe,
+  prevalece campo a campo; sem ela, vale o plano com acesso
+  (`billing_access_plan`). Organização sem plano (cobrança bloqueada) aparece
+  com IA habilitada e é barrada por `cobranca_bloqueada`, não por
+  `ia_desabilitada` — o motivo certo para a mensagem ao usuário.
+- **Ordem do bloqueio** em `ia_situacao`: `ia_desabilitada` →
+  `cobranca_bloqueada` → `orcamento_esgotado`.
+- **Mês** = `date_trunc('month', now())` do servidor, como o faturamento da
+  0028. Gasto do mês inclui eventos `via_padrao` (decisão Q4: custo do
+  cliente); evento sem preço conta zero.
+- **Requisições** e limite de taxa contam só eventos que chegaram ao
+  fornecedor (`status <> 'bloqueado'`).
+- `ia_situacao` recusa usuário que não é membro ativo da organização, mesmo a
+  Edge Function já tendo validado (defesa em profundidade). `_user_id` nulo =
+  rotina sem usuário.
+- `ia_consumo_organizacao` segue a policy restritiva da 0026: organização sem
+  acesso não lê o próprio uso.
+- Auditoria da IA em `platform_admin_audit_log` com `target_type`
+  `ai_credential` e `ai_org_settings` (gravada a partir da IA-23).
+
+## Organização herdada do registro pai (0033, 2026-10-23)
+
+Bug de isolamento (ADR-0002), reproduzido num stack local: dono das
+organizações A e B cria um contrato ativo na B; `generate_contract_installments`
+inseria as parcelas sem `organization_id`, e o gatilho `set_org_id`
+(`tg_set_organization_id`) preenchia com `get_user_org(owner_id)` = A. Membros
+só da A liam, pela RLS, valor, vencimento e `contract_id` das parcelas da B. O
+mesmo valia para toda linha inserida sem `organization_id` numa tabela com
+`tg_set_organization_id` ou `tg_set_org_from_membership_default`.
+
+O que a 0033 muda:
+
+- `generate_contract_installments` grava o `organization_id` do contrato
+  (`generate_contract_deliveries` já gravava).
+- `tg_set_organization_id` e `tg_set_org_from_membership_default`, quando
+  `organization_id` vem nulo, herdam a organização do pai via
+  `organizacao_do_registro_pai(tabela, linha)` (só service role executa):
+
+  | Tabela | Pai (na ordem) |
+  | --- | --- |
+  | `installments`, `contract_churn_risk` | contrato |
+  | `deliveries` | contrato → oportunidade → patrocinador → propriedade |
+  | `contracts` | oportunidade → patrocinador → propriedade |
+  | `proposals` | patrocinador → propriedade |
+  | `proposal_versions` | proposta |
+  | `delivery_attachments` | entrega |
+  | `sponsorship_tiers`, `brandtrack_events` | propriedade |
+  | `brandtrack_media`, `brandtrack_event_brands` | evento do BrandTrack |
+  | `brandtrack_detections` | mídia do BrandTrack |
+  | `brandtrack_brands`, `sponsor_executive_summaries` | patrocinador |
+  | `lead_scores` | alvo (`target_type` sponsor/opportunity) → propriedade |
+  | `sellout_reports` | propriedade → `property_events` |
+
+Decisões e suposições:
+
+- **`organization_id` enviado vale como veio.** A 0033 não passou a validar o
+  valor explícito contra o do pai (só onde já havia `validate_parent_org`:
+  `delivery_attachments`, `contract_assets`, `contract_clauses`,
+  `proposal_items`, `tier_assets`). Validar em todas as filhas é um passo
+  seguinte possível.
+- **Pai sem organização → filha nula** (invisível, como o pai), não cai no
+  `get_user_org`.
+- **`get_user_org` continua** para a linha que não referencia pai nenhum:
+  `sponsors`, `sports_properties`, `assets`, um contrato/proposta sem
+  oportunidade, patrocinador nem propriedade; e em `opportunities`
+  (`set_default_pipeline_funnel` e `validate_opportunity_org_access` resolvem
+  antes) e nas preferências por usuário (`set_org_from_user_membership`). Para
+  essas, a correção é o portal enviar a organização ativa. Conhecidos sem
+  envio: `ProposalWizardDialog` (proposta; agora herda do patrocinador ou da
+  propriedade), `BrandTrackUploads` (evento herda da propriedade).
+- `delivery_attachments` sem `organization_id` (`FieldDeliveryDetail`) era
+  **recusado** para entrega fora da primeira organização do usuário ("Registro
+  pai pertence a outra organização"): não vazava, mas o anexo não subia. Agora
+  herda da entrega.
+
+Correção dos dados (UPDATE, nada apagado; a migration imprime a contagem por
+tabela): `installments`, `contract_churn_risk`, `proposal_versions`,
+`sponsor_executive_summaries`, `lead_scores`, `brandtrack_events`,
+`brandtrack_media`, `brandtrack_event_brands` e `brandtrack_detections` passam
+para a organização do pai quando diferente (inclusive nula). `updated_at` muda
+nas tabelas com gatilho de `updated_at`. O acesso aos arquivos do bucket
+`brandtrack-media` segue a linha de `brandtrack_media`, então acompanha a
+correção.
+
+**Não corrigidos pela migration** (só contados, em NOTICE):
+
+- `deliveries` e `delivery_attachments`. Os arquivos de evidência ficam em
+  `delivery-evidence/{org_id}/...` e a policy do bucket decide pelo prefixo:
+  mover a linha sem mover o arquivo tiraria o acesso de quem deve ver e o
+  deixaria com quem não deve. A versão do Lovable de
+  `generate_contract_deliveries` anterior a 2026-08-07 não gravava
+  `organization_id` nem `contract_id`, então entregas importadas podem estar
+  na organização errada. Para conferir num ambiente:
+
+  ```sql
+  select d.id, d.organization_id,
+         coalesce(c.organization_id, o.organization_id) as organizacao_do_pai,
+         (select count(*) from public.delivery_attachments a where a.delivery_id = d.id) as anexos
+    from public.deliveries d
+    left join public.contracts c on c.id = d.contract_id
+    left join public.opportunities o on o.id = d.opportunity_id
+   where coalesce(c.organization_id, o.organization_id) is not null
+     and d.organization_id is distinct from coalesce(c.organization_id, o.organization_id);
+  ```
+
+  Havendo linhas, a correção é manual e por entrega: mover os objetos do
+  Storage para o prefixo da organização certa (API do Storage, não SQL),
+  atualizar `delivery_attachments.storage_path`/`organization_id`,
+  `delivery_approval_log.organization_id` e por fim `deliveries.organization_id`.
+- `brandtrack_brands` criadas pela `brandtrack-detect-image` com a
+  organização de uma mídia errada ficam onde estão (marca sem patrocinador não
+  tem pai); uma detecção corrigida pode apontar para marca de outra
+  organização.
+- Contratos e propostas em organização diferente da do patrocinador (raiz, não
+  filha): não movidos.
+
+## Marca da organização (0034)
+
+Cada organização pode ter uma linha em `organization_brand_kits` (primária e
+secundária, `#RRGGBB`) e até seis arquivos em `organization_brand_assets`
+(`horizontal`, `vertical`, `icone`, `sem_fundo`, `clara`, `escura`). Sem o kit,
+relatório, proposta, contrato, entrega e BrandTrack usam `#6206C8` e `#2962FF`.
+Sem a peça pedida, o gerador usa a próxima da ordem e, por último,
+`organizations.logo_path`. Owner e admin gravam; qualquer membro lê. A cor
+primária também substitui `--primary` no painel, e o texto sobre ela fica
+branco ou grafite conforme o contraste com branco passe de 4,5. E-mails da
+plataforma continuam na cor da BrandPlay. As duas tabelas entram no bloqueio
+de cobrança (`billing_access_restrictive`, 0038), como as demais tabelas da
+organização.
+
+## Desconto e sessão de suporte (0035)
+
+O superadmin concede desconto percentual (1 a 100, por 1 a 12 meses) e abre
+uma sessão para ver uma organização como admin. 100% no prazo é a isenção.
+Estender teste e liberar acesso provisório continuam sendo outra coisa: eles
+destrancam o painel, não zeram a fatura do Stripe.
+
+| Tabela | O que é | Leitura | Escrita |
+| --- | --- | --- | --- |
+| `billing_discounts` | percentual, prazo, cupom Stripe, revogação | owner/admin da organização e superadmin | só a Edge Function `admin-discounts` (service role) |
+| `platform_support_sessions` | sessão do operador, prazo máximo de 8 horas | o próprio superadmin | só `admin_abrir_sessao_suporte` / `admin_encerrar_sessao_suporte` |
+
+Suposições:
+
+- Um desconto vigente por organização. Vigente = `revoked_at` nulo, status
+  diferente de `falhou` e ainda dentro de `duration_months` meses de
+  calendário a partir de `created_at`. Aplicar outro exige revogar o atual.
+  A revogação tira o cupom da assinatura; fatura já emitida não muda.
+- Com assinatura vigente o cupom entra nela (`stripe_status = aplicado`).
+  Sem assinatura, fica `aguardando_checkout` e o próximo checkout de
+  `manage-billing` manda `discounts: [{ coupon }]`. Sem `STRIPE_SECRET_KEY`
+  a linha fica `pendente` e a resposta avisa que o Stripe não foi atualizado.
+- Desde 0039, 100% vigente também é fonte de acesso (`billing_isencao_ate`,
+  `source = exemption`), com os limites do plano de teste, mesmo depois que
+  o teste acaba. O aviso de dias restantes some. Assinatura com acesso
+  prevalece. Desconto abaixo de 100%, revogado, `falhou` ou fora do prazo
+  não destranca. O fim é `created_at` mais N meses de calendário em UTC.
+- A sessão altera as funções de um argumento `is_org_member(uuid)` e
+  `has_org_role(uuid, text[])`. O papel emprestado é `admin`: policy que
+  exige só `owner` continua recusando. `is_org_member(user_id, org_id)` não
+  muda — a sessão não é membership. Desde 0037, `can_access_module` também
+  aceita a sessão, e só quando `_user_id` é o `auth.uid()` dela: o acesso é
+  o da linha `admin` em `organization_role_grants`. `none` nesse módulo
+  esconde o dado da sessão também.
+- O bloqueio de cobrança (`billing_blocked_orgs`) olha `organization_members`.
+  O operador em sessão não é membro, então vê o dado mesmo com a organização
+  sem acesso. A tela não manda essa sessão para a página de plano.
+- `manage-billing` e `manage-team-access` continuam exigindo um membro real.
+  A sessão não inicia cobrança nem convite em nome do cliente.
+- As duas tabelas ficam fora da policy restritiva `billing_access_restrictive`
+  (exceção do teste `(m)`): desconto é dado de cobrança, sessão é dado da
+  plataforma.
+
+## Permissões por organização (0036)
+
+`organization_role_grants` guarda, por papel, o acesso (`none`, `read`,
+`write`) em `crm`, `operacional`, `financeiro` e `team`. `can_access_module`
+passa a ler essa tabela. Organização nova recebe as linhas no insert; as que
+já existiam foram preenchidas na mesma migration.
+
+O padrão é o comportamento do banco em 0012, com `team` em `none` para
+comercial, operacional e financeiro. A matriz desenhada na tela dizia que
+operacional não via o CRM; o banco deixava ler, e o teste `(d)` de
+`seguranca.sql` depende disso. O padrão segue o banco.
+
+Suposições:
+
+- O proprietário permanece com `write` nos quatro módulos. A linha não é
+  atualizável pela API e o gatilho recusa qualquer outro valor.
+- Administrador edita comercial, operacional, financeiro e os outros módulos
+  do administrador. O módulo `team` do administrador só o proprietário muda,
+  para a conta não ficar sem quem gerencia a equipe.
+- Leitura de patrocinadores, oportunidades, propostas, entregas e parcelas
+  passa a usar `can_access_module(..., false)`. Com o padrão, todo papel
+  continua lendo o que já lia. `none` esconde a lista. As tabelas filhas que
+  ainda usam só `is_org_member` na leitura continuam visíveis a qualquer
+  membro; a escrita delas já passava por `can_access_module`.
+- A alteração grava `permission_changed` em `team_audit_log`, com o módulo e
+  o acesso anterior e o novo em `metadata`.

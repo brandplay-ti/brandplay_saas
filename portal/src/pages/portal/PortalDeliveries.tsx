@@ -4,6 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSponsorAccess } from "@/hooks/useSponsorAccess";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/common/StatusBadge";
+import { type StatusTone } from "@/lib/statusTone";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -14,11 +16,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CheckCircle2, Clock, FileCheck, FolderKanban, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, FileCheck, FolderKanban, XCircle, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { dataLocal } from "@/lib/datas";
+import { PageHeader } from "@/components/common/PageHeader";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 interface Delivery {
   id: string;
@@ -44,10 +48,10 @@ interface ApprovalLog {
   decided_by_role: string;
 }
 
-const approvalUI: Record<string, { label: string; cls: string; icon: any }> = {
-  pendente: { label: "Pendente", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30", icon: Clock },
-  aprovada: { label: "Aprovada", cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30", icon: CheckCircle2 },
-  reprovada: { label: "Reprovada", cls: "bg-destructive/15 text-destructive border-destructive/30", icon: XCircle },
+const approvalUI: Record<string, { label: string; tone: StatusTone; icon: LucideIcon }> = {
+  pendente: { label: "Pendente", tone: "warning", icon: Clock },
+  aprovada: { label: "Aprovada", tone: "success", icon: CheckCircle2 },
+  reprovada: { label: "Reprovada", tone: "danger", icon: XCircle },
 };
 
 export default function PortalDeliveries() {
@@ -159,14 +163,11 @@ export default function PortalDeliveries() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <FolderKanban className="h-6 w-6 text-primary" /> Entregas
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Aprove ou reprove as entregas das suas ativações.
-        </p>
-      </div>
+      <PageHeader
+        title="Entregas"
+        description="Aprove ou reprove as entregas das suas ativações."
+        icon={FolderKanban}
+      />
 
       <div className="grid gap-3 grid-cols-3">
         {(["pendente", "aprovada", "reprovada"] as const).map((k) => {
@@ -192,7 +193,7 @@ export default function PortalDeliveries() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">Carregando…</p>
+            <LoadingSkeleton count={4} />
           ) : deliveries.length === 0 ? (
             <p className="py-12 text-center text-sm text-muted-foreground">
               Nenhuma entrega disponível.
@@ -207,9 +208,9 @@ export default function PortalDeliveries() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-medium">{d.title}</h3>
-                          <Badge variant="outline" className={Ui.cls}>
+                          <StatusBadge tone={Ui.tone}>
                             <Ui.icon className="h-3 w-3 mr-1" /> {Ui.label}
-                          </Badge>
+                          </StatusBadge>
                           <Badge variant="secondary" className="text-[10px]">
                             {d.brand}
                           </Badge>
@@ -304,9 +305,9 @@ export default function PortalDeliveries() {
                   {logs.map((l) => (
                     <div key={l.id} className="text-xs p-2 rounded border">
                       <div className="flex justify-between gap-2">
-                        <Badge variant="outline" className={approvalUI[l.decision]?.cls}>
+                        <StatusBadge tone={approvalUI[l.decision]?.tone ?? "neutral"}>
                           {approvalUI[l.decision]?.label}
-                        </Badge>
+                        </StatusBadge>
                         <span className="text-muted-foreground">
                           {format(new Date(l.created_at), "dd/MM HH:mm", { locale: ptBR })}
                         </span>

@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/hooks/useOrganization";
+import { avisarErroDeIA, avisarIAParcial, traduzirErroDeIA } from "@/lib/erroDeIA";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,18 +22,39 @@ interface Item {
   variance_percent: number | null;
 }
 
+const SEM_MERCADO = "Estimativa de mercado indisponível";
+
 export function TicketBenchmarkWidget() {
+  const { orgId } = useOrganization();
   const [items, setItems] = useState<Item[]>([]);
+  const [aviso, setAviso] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const load = async (force = false) => {
+  // Da organização ativa. A falha só da estimativa de mercado (IA) fica como
+  // nota; o toast é só na atualização manual, para não aparecer a cada visita.
+  const load = useCallback(async (force = false) => {
+    setAviso(null);
+    if (!orgId) {
+      setItems([]);
+      return;
+    }
     setLoading(true);
-    const { data, error } = await supabase.functions.invoke("ticket-benchmark-ai", { body: { force } });
-    if (!error) setItems((data?.items ?? []) as Item[]);
-    setLoading(false);
-  };
+    try {
+      const { data, error } = await supabase.functions.invoke("ticket-benchmark-ai", { body: { organization_id: orgId, force } });
+      if (error || data?.error) {
+        setItems([]);
+        await avisarErroDeIA(error, data, "Erro ao calcular o benchmark");
+        return;
+      }
+      setItems((data?.items ?? []) as Item[]);
+      if (data?.aviso_ia) setAviso(traduzirErroDeIA(data.aviso_ia, SEM_MERCADO).descricao);
+      if (force) avisarIAParcial(data?.aviso_ia, SEM_MERCADO);
+    } finally {
+      setLoading(false);
+    }
+  }, [orgId]);
 
-  useEffect(() => { load(false); }, []);
+  useEffect(() => { load(false); }, [load]);
 
   return (
     <Card>
@@ -39,7 +62,7 @@ export function TicketBenchmarkWidget() {
         <div>
           <CardTitle className="flex items-center gap-2 text-base">
             <Scale className="h-4 w-4 text-primary" /> Benchmark de ticket médio
-            <Sparkles className="h-3 w-3 text-amber-500" />
+            <Sparkles className="h-3 w-3 text-warning-strong" />
           </CardTitle>
           <p className="text-xs text-muted-foreground mt-1">Sua média por segmento vs. estimativa de mercado (IA)</p>
         </div>
@@ -48,6 +71,9 @@ export function TicketBenchmarkWidget() {
         </Button>
       </CardHeader>
       <CardContent>
+        {aviso && items.length > 0 && (
+          <p className="text-xs text-muted-foreground mb-2">{SEM_MERCADO}: {aviso}</p>
+        )}
         {items.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center">
             {loading ? "Calculando…" : "Sem contratos ativos para comparar."}
@@ -87,7 +113,7 @@ export function TicketBenchmarkWidget() {
                           variant="outline"
                           className={
                             i.variance_percent >= 0
-                              ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/30"
+                              ? "bg-success/10 text-success-strong border-success/30"
                               : "bg-destructive/10 text-destructive border-destructive/30"
                           }
                         >

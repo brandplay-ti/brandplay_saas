@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Upload as TusUpload } from "tus-js-client";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -10,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/common/StatusBadge";
+import { type StatusTone } from "@/lib/statusTone";
 import { PaymentScheduleFields } from "@/components/contracts/PaymentScheduleFields";
 
 import {
@@ -78,9 +79,11 @@ import { ContractAISummary } from "@/components/contracts/ContractAISummary";
 import { NextStepsAI } from "@/components/pipeline/NextStepsAI";
 import { AssetCatalogToolbar, filterAndSortAssets, type AssetSortBy } from "@/components/assets/AssetCatalogToolbar";
 import { buildContractClauses, CONTRACT_SECTION_TITLES } from "@/lib/contractClauseTemplates";
-import { generateContractDocx, downloadBlob } from "@/lib/contractDocx";
 
 import { Switch } from "@/components/ui/switch";
+import { PageHeader } from "@/components/common/PageHeader";
+import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 type Status = Database["public"]["Enums"]["contract_status"];
 type PayMethod = Database["public"]["Enums"]["payment_method"];
@@ -119,13 +122,13 @@ type AssetItem = { id: string; contract_id: string; asset_id?: string | null; na
 type Property = { id: string; name: string };
 type Opportunity = { id: string; brand: string };
 
-const STATUS_META: Record<Status, { label: string; className: string }> = {
-  rascunho: { label: "Rascunho", className: "bg-slate-500/15 text-slate-700 border-slate-500/30" },
-  em_assinatura: { label: "Em assinatura", className: "bg-amber-500/15 text-amber-700 border-amber-500/30" },
-  ativo: { label: "Ativo", className: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30" },
-  vencendo: { label: "Vencendo", className: "bg-orange-500/15 text-orange-700 border-orange-500/30" },
-  encerrado: { label: "Encerrado", className: "bg-slate-500/15 text-slate-700 border-slate-500/30" },
-  cancelado: { label: "Cancelado", className: "bg-rose-500/15 text-rose-700 border-rose-500/30" },
+const STATUS_META: Record<Status, { label: string; tone: StatusTone }> = {
+  rascunho: { label: "Rascunho", tone: "neutral" },
+  em_assinatura: { label: "Em assinatura", tone: "info" },
+  ativo: { label: "Ativo", tone: "success" },
+  vencendo: { label: "Vencendo", tone: "warning" },
+  encerrado: { label: "Encerrado", tone: "neutral" },
+  cancelado: { label: "Cancelado", tone: "danger" },
 };
 
 const PAY_LABELS: Record<PayMethod, string> = {
@@ -348,138 +351,138 @@ export default function Contracts() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Contratos</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Gerencie contratos, cláusulas, ativos e arquivos assinados.
-          </p>
-        </div>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2" />Novo contrato</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Novo contrato</DialogTitle>
-              <DialogDescription>Cadastre um contrato manual ou a partir de uma oportunidade.</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-2">
-              <div className="grid gap-2">
-                <Label>Origem (oportunidade)</Label>
-                <Select value={form.opportunity_id} onValueChange={handlePickOpportunity}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Manual (sem oportunidade)</SelectItem>
-                    {opportunities.map((o) => (<SelectItem key={o.id} value={o.id}>{o.brand}</SelectItem>))}
-                  </SelectContent>
-                </Select>
-              </div>
+      <PageHeader
+        title="Contratos"
+        description="Gerencie contratos, cláusulas, ativos e arquivos assinados."
+        actions={
+          <>
+            <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
+              <DialogTrigger asChild>
+                <Button><Plus className="h-4 w-4 mr-2" />Novo contrato</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Novo contrato</DialogTitle>
+                  <DialogDescription>Cadastre um contrato manual ou a partir de uma oportunidade.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-2">
+                  <div className="grid gap-2">
+                    <Label>Origem (oportunidade)</Label>
+                    <Select value={form.opportunity_id} onValueChange={handlePickOpportunity}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Manual (sem oportunidade)</SelectItem>
+                        {opportunities.map((o) => (<SelectItem key={o.id} value={o.id}>{o.brand}</SelectItem>))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="num">Número</Label>
-                  <Input id="num" value={form.contract_number} onChange={(e) => setForm({ ...form, contract_number: e.target.value })} placeholder="CTR-2026-001" />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="brand">Marca *</Label>
-                  <Input id="brand" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} />
-                </div>
-              </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="num">Número</Label>
+                      <Input id="num" value={form.contract_number} onChange={(e) => setForm({ ...form, contract_number: e.target.value })} placeholder="CTR-2026-001" />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="brand">Marca *</Label>
+                      <Input id="brand" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} />
+                    </div>
+                  </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="title">Título *</Label>
-                <Input id="title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Patrocínio master 2026" />
-              </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="title">Título *</Label>
+                    <Input id="title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Patrocínio master 2026" />
+                  </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="value">Valor total (R$)</Label>
-                  <Input id="value" type="number" min="0" value={form.total_value} onChange={(e) => setForm({ ...form, total_value: e.target.value })} />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="start">Início</Label>
-                  <Input id="start" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="end">Fim</Label>
-                  <Input id="end" type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
-                </div>
-              </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="value">Valor total (R$)</Label>
+                      <Input id="value" type="number" min="0" value={form.total_value} onChange={(e) => setForm({ ...form, total_value: e.target.value })} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="start">Início</Label>
+                      <Input id="start" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="end">Fim</Label>
+                      <Input id="end" type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label>Status</Label>
-                  <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as Status })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {(Object.keys(STATUS_META) as Status[]).map((s) => (
-                        <SelectItem key={s} value={s}>{STATUS_META[s].label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label>Propriedade</Label>
-                  <Select value={form.property_id} onValueChange={(v) => setForm({ ...form, property_id: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Nenhuma</SelectItem>
-                      {properties.map((p) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label>Status</Label>
+                      <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as Status })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {(Object.keys(STATUS_META) as Status[]).map((s) => (
+                            <SelectItem key={s} value={s}>{STATUS_META[s].label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Propriedade</Label>
+                      <Select value={form.property_id} onValueChange={(v) => setForm({ ...form, property_id: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Nenhuma</SelectItem>
+                          {properties.map((p) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div className="grid gap-2">
-                  <Label>Pagamento</Label>
-                  <Select value={form.payment_method} onValueChange={(v) => setForm({ ...form, payment_method: v as PayMethod })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {(Object.keys(PAY_LABELS) as PayMethod[]).map((p) => (
-                        <SelectItem key={p} value={p}>{PAY_LABELS[p]}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="inst">Parcelas</Label>
-                  <Input id="inst" type="number" min="1" value={form.installments} onChange={(e) => setForm({ ...form, installments: e.target.value })} />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="due">Dia venc.</Label>
-                  <Input id="due" type="number" min="1" max="31" value={form.due_day} onChange={(e) => setForm({ ...form, due_day: e.target.value })} />
-                </div>
-              </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="grid gap-2">
+                      <Label>Pagamento</Label>
+                      <Select value={form.payment_method} onValueChange={(v) => setForm({ ...form, payment_method: v as PayMethod })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {(Object.keys(PAY_LABELS) as PayMethod[]).map((p) => (
+                            <SelectItem key={p} value={p}>{PAY_LABELS[p]}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="inst">Parcelas</Label>
+                      <Input id="inst" type="number" min="1" value={form.installments} onChange={(e) => setForm({ ...form, installments: e.target.value })} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="due">Dia venc.</Label>
+                      <Input id="due" type="number" min="1" max="31" value={form.due_day} onChange={(e) => setForm({ ...form, due_day: e.target.value })} />
+                    </div>
+                  </div>
 
-              <PaymentScheduleFields
-                dueDays={form.due_days}
-                onDueDaysChange={(v) => setForm({ ...form, due_days: v })}
-                dates={form.custom_due_dates}
-                onDatesChange={(d) => setForm({ ...form, custom_due_dates: d })}
-                startDate={form.start_date}
-              />
+                  <PaymentScheduleFields
+                    dueDays={form.due_days}
+                    onDueDaysChange={(v) => setForm({ ...form, due_days: v })}
+                    dates={form.custom_due_dates}
+                    onDatesChange={(d) => setForm({ ...form, custom_due_dates: d })}
+                    startDate={form.start_date}
+                  />
 
 
 
-              <div className="grid gap-2">
-                <Label htmlFor="sig">Signatários</Label>
-                <Input id="sig" value={form.signatories} onChange={(e) => setForm({ ...form, signatories: e.target.value })} placeholder="João Silva, Maria Santos" />
-              </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="sig">Signatários</Label>
+                    <Input id="sig" value={form.signatories} onChange={(e) => setForm({ ...form, signatories: e.target.value })} placeholder="João Silva, Maria Santos" />
+                  </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="notes">Observações</Label>
-                <Textarea id="notes" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={handleCreate}>Criar</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="notes">Observações</Label>
+                    <Textarea id="notes" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+                  <Button onClick={handleCreate}>Criar</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -493,7 +496,7 @@ export default function Contracts() {
         </Card>
         <Card className="p-4">
           <p className="text-xs text-muted-foreground">Vencendo (30 dias)</p>
-          <p className="text-2xl font-semibold mt-1 text-orange-600">{totals.vencendo}</p>
+          <p className="text-2xl font-semibold mt-1 text-warning-strong">{totals.vencendo}</p>
         </Card>
       </div>
 
@@ -521,7 +524,7 @@ export default function Contracts() {
 
       {/* Lista */}
       {loading ? (
-        <div className="text-sm text-muted-foreground">Carregando contratos...</div>
+        <LoadingSkeleton />
       ) : filtered.length === 0 ? (
         <Card className="p-12 text-center">
           <FileSignature className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
@@ -547,8 +550,8 @@ export default function Contracts() {
                 {filtered.map((c) => (
                   <TableRow
                     key={c.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => setDetailId(c.id)}
+                    className={`cursor-pointer hover:bg-muted/50 ${FOCO_CLICAVEL}`}
+                    {...clicavel(() => setDetailId(c.id), { linha: true })}
                   >
                     <TableCell className="font-mono text-xs text-muted-foreground">{c.contract_number ?? "—"}</TableCell>
                     <TableCell className="font-medium">{c.title}</TableCell>
@@ -561,9 +564,9 @@ export default function Contracts() {
                     </TableCell>
                     <TableCell className="text-right font-medium">{formatBRL(Number(c.total_value))}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={STATUS_META[c.status].className}>
+                      <StatusBadge tone={STATUS_META[c.status].tone}>
                         {STATUS_META[c.status].label}
-                      </Badge>
+                      </StatusBadge>
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <Button
@@ -965,6 +968,8 @@ function ContractDetail({
       }
 
       const projectUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL as string;
+      // Carregado só no upload: fica fora do chunk da página de contratos.
+      const { Upload: TusUpload } = await import("tus-js-client");
 
       await new Promise<void>((resolve, reject) => {
         const upload = new TusUpload(file, {
@@ -1039,6 +1044,8 @@ function ContractDetail({
     }
     setGeneratingDocx(true);
     try {
+      // A biblioteca docx pesa centenas de kB: só baixa quando alguém exporta.
+      const { generateContractDocx, downloadBlob } = await import("@/lib/contractDocx");
       const blob = await generateContractDocx({
         title: contract.title,
         contractNumber: contract.contract_number,
@@ -1141,9 +1148,9 @@ function ContractDetail({
               <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
                 <Pencil className="h-3.5 w-3.5 mr-1" />Editar
               </Button>
-              <Badge variant="outline" className={STATUS_META[contract.status].className}>
+              <StatusBadge tone={STATUS_META[contract.status].tone}>
                 {STATUS_META[contract.status].label}
-              </Badge>
+              </StatusBadge>
             </div>
           </div>
         </SheetHeader>
@@ -1164,7 +1171,7 @@ function ContractDetail({
           {/* Assinatura + status */}
           <div className="space-y-3">
             {contract.status === "ativo" ? (
-              <div className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700">
+              <div className="flex items-center gap-2 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-xs text-success-strong">
                 <CheckCircle2 className="h-4 w-4" />
                 <span>Contrato assinado — ativos enviados para Entregas.</span>
                 <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => navigate("/dashboard/entregas")}>

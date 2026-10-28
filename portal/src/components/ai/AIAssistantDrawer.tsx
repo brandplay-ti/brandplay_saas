@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/hooks/useOrganization";
+import { avisarErroDeIA } from "@/lib/erroDeIA";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -12,7 +14,6 @@ import {
 import { Sparkles, Send, Plus, Loader2, MessageSquare } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -45,6 +46,7 @@ export function AIAssistantDrawer({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
+  const { orgId } = useOrganization();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -53,9 +55,15 @@ export function AIAssistantDrawer({
   const [showHistory, setShowHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // As conversas são da organização ativa: trocou, a aberta sai da tela.
   useEffect(() => {
-    if (open) loadConversations();
-  }, [open]);
+    setActiveConvId(null);
+    setMessages([]);
+  }, [orgId]);
+
+  useEffect(() => {
+    if (open) loadConversations(orgId);
+  }, [open, orgId]);
 
   useEffect(() => {
     if (activeConvId) loadMessages(activeConvId);
@@ -68,10 +76,15 @@ export function AIAssistantDrawer({
     }
   }, [messages, sending]);
 
-  async function loadConversations() {
+  async function loadConversations(org: string | null) {
+    if (!org) {
+      setConversations([]);
+      return;
+    }
     const { data } = await supabase
       .from("ai_conversations")
       .select("id, title, last_message_at")
+      .eq("organization_id", org)
       .order("last_message_at", { ascending: false })
       .limit(30);
     setConversations(data || []);
@@ -88,7 +101,7 @@ export function AIAssistantDrawer({
 
   async function sendMessage(text: string) {
     const trimmed = text.trim();
-    if (!trimmed || sending) return;
+    if (!trimmed || sending || !orgId) return;
 
     const optimistic: Message = {
       id: `tmp-${Date.now()}`,
@@ -101,20 +114,23 @@ export function AIAssistantDrawer({
     setSending(true);
 
     try {
+      // Conversa nova nasce na organização ativa; a existente segue na dela.
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
-        body: { conversationId: activeConvId, message: trimmed },
+        body: { conversationId: activeConvId, message: trimmed, organization_id: orgId },
       });
-      if (error) throw error;
-      const newConvId = (data as any)?.conversationId;
+      if (error || data?.error) {
+        await avisarErroDeIA(error, data, "Erro ao enviar mensagem");
+        setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+        setInput(trimmed);
+        return;
+      }
+      const newConvId = data?.conversationId as string | undefined;
       if (newConvId && newConvId !== activeConvId) {
         setActiveConvId(newConvId);
       } else if (activeConvId) {
         await loadMessages(activeConvId);
       }
-      loadConversations();
-    } catch (e: any) {
-      toast.error(e?.message || "Erro ao enviar mensagem");
-      setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+      loadConversations(orgId);
     } finally {
       setSending(false);
     }
@@ -138,6 +154,7 @@ export function AIAssistantDrawer({
             </SheetTitle>
             <div className="flex gap-1">
               <Button
+                aria-label="Histórico de conversas" aria-pressed={showHistory}
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowHistory((v) => !v)}
@@ -146,6 +163,7 @@ export function AIAssistantDrawer({
                 <MessageSquare className="h-4 w-4" />
               </Button>
               <Button
+                aria-label="Nova conversa"
                 variant="ghost"
                 size="icon"
                 onClick={() => {
@@ -271,7 +289,7 @@ export function AIAssistantDrawer({
                 disabled={sending}
                 autoFocus
               />
-              <Button type="submit" size="icon" disabled={sending || !input.trim()}>
+              <Button aria-label="Enviar mensagem" type="submit" size="icon" disabled={sending || !input.trim()}>
                 <Send className="h-4 w-4" />
               </Button>
             </form>

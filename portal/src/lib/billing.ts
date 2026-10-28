@@ -22,9 +22,11 @@ export interface BillingPlanSummary {
 export interface BillingStatus {
   organization_id: string;
   access: boolean;
-  /** De onde vem o acesso: assinatura, teste grátis ou liberação provisória do boleto. */
-  source: "subscription" | "trial" | "provisional" | "none";
+  /** De onde vem o acesso: assinatura, isenção de 100%, teste grátis ou liberação provisória. */
+  source: "subscription" | "exemption" | "trial" | "provisional" | "none";
   trial_ends_at: string | null;
+  /** Fim da isenção de 100% vigente. Nulo quando não há isenção. */
+  exemption_ends_at: string | null;
   has_customer: boolean;
   /** Prazo, em horas, de uma liberação provisória (`billing_settings`). */
   provisional_access_hours: number;
@@ -116,11 +118,30 @@ export interface StatusSummary {
   detail: string;
 }
 
+/**
+ * Aviso de teste no topo do painel. Isenção de 100% e assinatura não entram:
+ * o cliente não deve ver os dias restantes do teste.
+ */
+export function showsTrialNotice(status: BillingStatus): boolean {
+  const sub = status.subscription;
+  return status.source === "trial" && (!sub || sub.status === "incompleta");
+}
+
 /** Resumo do estado da cobrança para o selo da tela de plano. */
 export function describeStatus(status: BillingStatus, agora: Date = new Date()): StatusSummary {
   const sub = status.subscription;
   const dias = daysLeft(status.trial_ends_at, agora);
   const textoDias = `${dias} ${dias === 1 ? "dia restante" : "dias restantes"}`;
+
+  if (status.source === "exemption") {
+    return {
+      label: "Isento",
+      tone: "ok",
+      detail: status.exemption_ends_at
+        ? `Isenção de 100% até ${formatDate(status.exemption_ends_at)}. Sem cobrança nesse prazo.`
+        : "Isenção de 100% vigente. Sem cobrança nesse prazo.",
+    };
+  }
 
   if (sub) {
     switch (sub.status) {

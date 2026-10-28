@@ -65,7 +65,7 @@ Monorepo no padrão do central-check (ADR-0006,
 ```
 .claude/            regras e skills do Claude Code
 .github/workflows/  ci.yml (portal + migrations) e deploy.yml (manual, VPS)
-docs/               adr/, architecture/, infrastructure/, runbooks/
+docs/               adr/, architecture/, infrastructure/, runbooks/, archive/lovable/
 docker/             compose único do Supabase (local/hml/produção) + files/volumes
 portal/             aplicação React (workspace npm) — Dockerfile, nixpacks.toml
   src/
@@ -79,11 +79,10 @@ portal/             aplicação React (workspace npm) — Dockerfile, nixpacks.t
   scripts/          guardas de build (checar-build, checar-node)
 supabase/
   migrations/       schema versionado (fonte única de verdade do banco)
-  lovable-migrations/  migrations originais do Lovable — referência, não aplicadas
   functions/        Edge Functions (Deno), assadas na imagem do edge-runtime
   seed/             usuário de exemplo — SÓ local
   tests/            testes de segurança/RLS
-  tools/            migrate, chaves, bundle, checar-supabase, migração do Lovable
+  tools/            migrate, chaves, bundle, checar-supabase, diagnosticar, avaliar-ia
 ```
 
 O npm roda em workspaces: os comandos do portal (`dev`, `build`, `lint`,
@@ -118,9 +117,10 @@ O npm roda em workspaces: os comandos do portal (`dev`, `build`, `lint`,
 
 ### Integrações
 
-- Anthropic API (`ANTHROPIC_API_KEY`) para as funcionalidades de IA, chamada
-  direto pelas Edge Functions (ADR-0003; histórico da conversão em
-  `supabase/functions/MIGRATION_NOTES.md`).
+- **IA multi-fornecedor** (ADR-0010): OpenAI, Google Gemini e Anthropic via
+  camada `_shared/ai/`; credenciais cifradas no banco (`AI_KEYS_MASTER_KEY`);
+  semente opcional `AI_DEFAULT_*`; gestão em `/admin/ia` e Edge Function
+  `admin-ai`. Runbook: `docs/runbooks/ia.md`.
 - Resend (e-mail transacional) — chave apenas em Edge Functions.
 - Stripe (cobrança da organização: planos, teste grátis, assinatura) —
   `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` apenas em Edge Functions
@@ -162,11 +162,12 @@ npm run supabase:up            # sobe o Supabase local (Docker)
 npm run supabase:migrate       # aplica migrations pendentes
 npm run supabase:migrate:status
 npm run supabase:seed          # usuário de exemplo (só local)
-npm run supabase:test          # testes de segurança/RLS, cobrança e superadmin (supabase/tests/)
+npm run supabase:test          # testes de segurança/RLS, cobrança, superadmin e IA (supabase/tests/)
 npm run supabase:superadmin -- -v email=<e-mail> -v comentario=<motivo>   # concede superadmin (local)
 npm run supabase:down / :reset
 npm run supabase:bundle        # migrations achatadas para o SQL Editor do Studio
 npm run supabase:checar -- <url> <anon_key> [--portal <url>]   # diagnóstico de um ambiente
+npm run supabase:diagnosticar   # homologação só leitura: migrations, erros, logs do Dockploy
 ```
 
 Portas locais (bloco próprio, convive com o central-check): portal 8080, API
@@ -313,9 +314,10 @@ Nunca:
 - aceitar `organization_id`, `user_id` ou papel vindos do corpo da requisição
   sem validar contra o JWT/sessão autenticada;
 - commitar secrets ou colocar tokens no código;
-- expor `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`,
-  `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` ou qualquer credencial
-  privilegiada no client (nunca com prefixo `VITE_`);
+- expor `SUPABASE_SERVICE_ROLE_KEY`, `AI_KEYS_MASTER_KEY`, chaves de API de
+  fornecedores de IA, `RESEND_API_KEY`, `STRIPE_SECRET_KEY`,
+  `STRIPE_WEBHOOK_SECRET` ou qualquer credencial privilegiada no client (nunca
+  com prefixo `VITE_`);
 - logar dado sensível (senha, token, header de autorização, service role,
   documento pessoal);
 - expor dados de outra organização ou de outro usuário.
@@ -394,7 +396,8 @@ feature/* → PR → dev → PR → hml (homologação) → PR → main (produç
 ```
 
 - **CI** (`.github/workflows/ci.yml`): portal (lint não bloqueante por dívida
-  herdada, type-check, test, build) e migrations (guarda destrutiva, banco
+  herdada, type-check, test, build), funcoes (`deno test` de
+  `supabase/functions/_shared/`) e migrations (guarda destrutiva, banco
   limpo, idempotência, seed, testes de RLS).
 - **CD**: o Dockploy publica cada ambiente a partir da branch dele. O
   workflow `Deploy (VPS)` é manual e **não escreve no banco** — só lista
@@ -413,7 +416,8 @@ máquina local como parte do fluxo normal. Ver `.claude/rules/cicd.md`.
 ## 10.1 Produção
 
 Produção é um ambiente protegido. Segredos (`JWT_SECRET`, `SERVICE_ROLE_KEY`,
-`POSTGRES_PASSWORD`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, Stripe, SMTP) vivem no
+`POSTGRES_PASSWORD`, `AI_KEYS_MASTER_KEY`, chaves de IA de fornecedor,
+`RESEND_API_KEY`, Stripe, SMTP) vivem no
 Dockploy; nunca proponha commitá-los nem copiá-los para o ambiente local.
 Nunca execute alterações destrutivas diretamente em produção, e nunca use
 dados reais de produção (ou exportações do Lovable em `.migracao-lovable/`)

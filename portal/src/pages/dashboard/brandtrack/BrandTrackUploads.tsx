@@ -10,8 +10,12 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Upload, Image as ImageIcon, Video, Loader2, CheckCircle2, AlertCircle, Clock, Trash2, BarChart3, Instagram, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
+import { avisarErroDeIA } from "@/lib/erroDeIA";
 import { useAuth } from "@/hooks/useAuth";
 import FieldEvidenceImportDialog from "@/components/brandtrack/FieldEvidenceImportDialog";
+import { useConfirm } from "@/hooks/useConfirm";
+import { PageHeader } from "@/components/common/PageHeader";
+import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 
 type Media = {
   id: string;
@@ -41,7 +45,7 @@ type MediaDetection = {
   review_status: string;
 };
 
-type EventRow = { id: string; name: string; property_id?: string | null };
+type EventRow = { id: string; name: string; property_id?: string | null; organization_id?: string | null };
 const FILTERS_KEY = "brandtrack-uploads-filters";
 
 type ExpectedBrand = { id: string; display_name: string; aliases: string[]; sponsor_status: string; priority: number; is_active: boolean };
@@ -57,12 +61,15 @@ const exposureLabels: Record<string, string> = {
 };
 
 const BrandTrackUploads = () => {
+  const confirm = useConfirm();
   const { user } = useAuth();
   const [medias, setMedias] = useState<Media[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [properties, setProperties] = useState<EventRow[]>([]);
   const [expectedBrands, setExpectedBrands] = useState<ExpectedBrand[]>([]);
   const [eventId, setEventId] = useState<string>("");
+  // Organização do evento selecionado: as mídias novas são gravadas nela.
+  const [eventOrgId, setEventOrgId] = useState<string | null>(null);
   const [propertyId, setPropertyId] = useState<string>("");
   const [resolvingProperty, setResolvingProperty] = useState(false);
 
@@ -134,7 +141,7 @@ const BrandTrackUploads = () => {
     const [{ data: m }, { data: ev }, { data: props }] = await Promise.all([
       db.from("brandtrack_media").select("*, detections:brandtrack_detections(id,brand_name,corrected_brand_name,bes_score,confidence,screen_percentage,exposure_type,start_time,evidence_path,review_status)").order("created_at", { ascending: false }),
       supabase.from("brandtrack_events").select("id,name,property_id").order("created_at", { ascending: false }),
-      supabase.from("sports_properties").select("id,name").order("name", { ascending: true }),
+      supabase.from("sports_properties").select("id,name,organization_id").order("name", { ascending: true }),
     ]);
     setMedias(m ?? []);
     setEvents((ev ?? []) as any);
@@ -155,28 +162,34 @@ const BrandTrackUploads = () => {
   }, [eventId]);
 
   /** Finds (or creates) the BrandTrack workspace linked to a registered property. */
-  const resolveEventForProperty = async (propId: string): Promise<string | null> => {
+  const resolveEventForProperty = async (propId: string): Promise<EventRow | null> => {
     if (!user) return null;
     const { data: existing } = await db
       .from("brandtrack_events")
-      .select("id")
+      .select("id,name,property_id,organization_id")
       .eq("property_id", propId)
       .limit(1)
       .maybeSingle();
-    if (existing?.id) return existing.id as string;
+    if (existing?.id) return existing as EventRow;
 
+    // O evento fica na organização da propriedade, não na mais antiga do usuário.
     const property = properties.find((p) => p.id === propId);
     const { data, error } = await db
       .from("brandtrack_events")
-      .insert({ name: property?.name ?? "Propriedade", owner_id: user.id, property_id: propId })
-      .select("id,name,property_id")
+      .insert({
+        name: property?.name ?? "Propriedade",
+        owner_id: user.id,
+        organization_id: property?.organization_id,
+        property_id: propId,
+      })
+      .select("id,name,property_id,organization_id")
       .single();
     if (error) {
       toast.error(error.message);
       return null;
     }
     setEvents((p) => [data as any, ...p]);
-    return data.id as string;
+    return data as EventRow;
   };
 
   const selectProperty = async (propId: string) => {
@@ -184,13 +197,14 @@ const BrandTrackUploads = () => {
     setResolvingProperty(true);
     const resolved = await resolveEventForProperty(propId);
     setResolvingProperty(false);
-    setEventId(resolved ?? "");
+    setEventId(resolved?.id ?? "");
+    setEventOrgId(resolved?.organization_id ?? null);
   };
 
 
   const analyzeImage = async (mediaId: string) => {
-    const { error } = await supabase.functions.invoke("brandtrack-detect-image", { body: { media_id: mediaId } });
-    if (error) toast.error(`Análise falhou: ${error.message}`);
+    const { data, error } = await supabase.functions.invoke("brandtrack-detect-image", { body: { media_id: mediaId } });
+    if (error || data?.error) await avisarErroDeIA(error, data, "Análise falhou");
   };
 
   const analyzeVideo = async (mediaId: string, file: File) => {
@@ -230,7 +244,7 @@ const BrandTrackUploads = () => {
         });
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const frameDataUrl = canvas.toDataURL("image/jpeg", 0.78);
-        const { error } = await supabase.functions.invoke("brandtrack-detect-image", {
+        const { data, error } = await supabase.functions.invoke("brandtrack-detect-image", {
           body: {
             media_id: mediaId,
             frame_data_url: frameDataUrl,
@@ -240,7 +254,10 @@ const BrandTrackUploads = () => {
             finalize: index === timestamps.length - 1,
           },
         });
-        if (error) throw new Error(error.message);
+        if (error || data?.error) {
+          await avisarErroDeIA(error, data, "Análise de vídeo falhou");
+          return;
+        }
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Análise de vídeo falhou");
@@ -277,6 +294,7 @@ const BrandTrackUploads = () => {
         .from("brandtrack_media")
         .insert({
           owner_id: user.id,
+          organization_id: eventOrgId,
           event_id: eventId,
           title: file.name,
           media_type: isImage ? "image" : "video",
@@ -312,6 +330,7 @@ const BrandTrackUploads = () => {
     setAddingInstagram(true);
     const { error } = await supabase.from("brandtrack_media").insert({
       owner_id: user.id,
+      organization_id: eventOrgId,
       event_id: eventId,
       title: getInstagramTitle(normalizedUrl),
       media_type: "instagram" as any,
@@ -332,7 +351,12 @@ const BrandTrackUploads = () => {
   };
 
   const removeMedia = async (id: string, path: string | null) => {
-    if (!confirm("Remover este arquivo e suas detecções?")) return;
+    const confirmado = await confirm({
+      title: "Remover este arquivo e suas detecções?",
+      confirmLabel: "Remover",
+      destructive: true,
+    });
+    if (!confirmado) return;
     if (path) await supabase.storage.from("brandtrack-media").remove([path]);
     await supabase.from("brandtrack_media").delete().eq("id", id);
     toast.success("Removido");
@@ -376,7 +400,12 @@ const BrandTrackUploads = () => {
 
   const bulkDelete = async () => {
     if (selectedIds.length === 0) return;
-    if (!confirm(`Remover ${selectedIds.length} mídia(s) e suas detecções?`)) return;
+    const confirmado = await confirm({
+      title: `Remover ${selectedIds.length} mídia(s) e suas detecções?`,
+      confirmLabel: "Remover",
+      destructive: true,
+    });
+    if (!confirmado) return;
     setBulkBusy(true);
     const paths = medias.filter((m) => selectedIds.includes(m.id) && m.storage_path).map((m) => m.storage_path as string);
     if (paths.length > 0) await supabase.storage.from("brandtrack-media").remove(paths);
@@ -399,7 +428,7 @@ const BrandTrackUploads = () => {
       setBulkBusy(false);
       return;
     }
-    const { error } = await supabase.from("brandtrack_media").update({ event_id: targetEvent }).in("id", selectedIds);
+    const { error } = await supabase.from("brandtrack_media").update({ event_id: targetEvent.id }).in("id", selectedIds);
 
     setBulkBusy(false);
     if (error) {
@@ -462,10 +491,10 @@ const BrandTrackUploads = () => {
 
   return (
     <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-3xl font-bold">Uploads & Processamento</h1>
-        <p className="text-muted-foreground">Envie imagens ou vídeos para análise automática de marcas.</p>
-      </div>
+      <PageHeader
+        title="Uploads & Processamento"
+        description="Envie imagens ou vídeos para análise automática de marcas."
+      />
 
       <Card>
         <CardHeader>
@@ -516,16 +545,16 @@ const BrandTrackUploads = () => {
               setDragOver(false);
               void handleFiles(e.dataTransfer.files);
             }}
-            onClick={() => {
+            {...clicavel(() => {
               if (!eventId) {
                 toast.error("Escolha uma propriedade antes de selecionar arquivos.");
                 return;
               }
               inputRef.current?.click();
-            }}
+            })}
             className={`border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors ${
               dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
-            }`}
+            } ${FOCO_CLICAVEL}`}
           >
             <Upload className="h-10 w-10 mx-auto mb-2 text-muted-foreground" />
             <p className="font-medium">Arraste arquivos aqui ou clique para selecionar</p>
@@ -548,6 +577,7 @@ const BrandTrackUploads = () => {
             </div>
             <FieldEvidenceImportDialog
               eventId={eventId}
+              organizationId={eventOrgId}
               excludedIds={importedFieldIds}
               onImported={(mediaId, file, isImage, attachmentId) => {
                 if (attachmentId) setImportedFieldIds((cur) => (cur.includes(attachmentId) ? cur : [...cur, attachmentId]));
@@ -668,13 +698,14 @@ const BrandTrackUploads = () => {
                         {editingId === m.id ? (
                           <div className="flex items-center gap-2">
                             <Input value={editingTitle} onChange={(e) => setEditingTitle(e.target.value)} className="h-8" />
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => void saveTitle(m.id)}><Check className="h-4 w-4" /></Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingId(null)}><X className="h-4 w-4" /></Button>
+                            <Button aria-label="Salvar título" size="icon" variant="ghost" className="h-8 w-8" onClick={() => void saveTitle(m.id)}><Check className="h-4 w-4" /></Button>
+                            <Button aria-label="Cancelar edição" size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingId(null)}><X className="h-4 w-4" /></Button>
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
                             <div className="truncate font-medium">{m.title}</div>
                             <Button
+                              aria-label="Editar título"
                               size="icon"
                               variant="ghost"
                               className="h-6 w-6 shrink-0"
@@ -710,7 +741,7 @@ const BrandTrackUploads = () => {
                         <BarChart3 className="h-4 w-4" />
                         Análise
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => void removeMedia(m.id, m.storage_path)}>
+                      <Button aria-label="Remover mídia" variant="ghost" size="icon" onClick={() => void removeMedia(m.id, m.storage_path)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>

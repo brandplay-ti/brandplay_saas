@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Wand2, Loader2, Copy, ChevronRight, ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
+import { avisarErroDeIA } from "@/lib/erroDeIA";
 
 type Sponsor = { id: string; name: string };
 type Property = { id: string; name: string };
@@ -38,6 +40,7 @@ const sanitizeEmailHtml = (html: string) => DOMPurify.sanitize(html, {
 });
 
 export function ProposalWizardDialog({ sponsors, properties, onSaved }: Props) {
+  const { orgId } = useOrganization();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -59,11 +62,13 @@ export function ProposalWizardDialog({ sponsors, properties, onSaved }: Props) {
   };
 
   const generate = async () => {
+    if (!orgId) return;
     if (!brand.trim()) { toast.error("Informe a marca."); return; }
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-proposal-wizard", {
         body: {
+          organization_id: orgId,
           brand,
           objective,
           budget: budget ? Number(budget) : undefined,
@@ -72,19 +77,19 @@ export function ProposalWizardDialog({ sponsors, properties, onSaved }: Props) {
           extra_context: extra,
         },
       });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
+      if (error || data?.error) {
+        await avisarErroDeIA(error, data, "Falha ao gerar a proposta");
+        return;
+      }
       setOut(data as WizardOutput);
       setStep(2);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao gerar");
     } finally {
       setLoading(false);
     }
   };
 
   const save = async () => {
-    if (!out) return;
+    if (!out || !orgId) return;
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -93,6 +98,7 @@ export function ProposalWizardDialog({ sponsors, properties, onSaved }: Props) {
       const total = out.items.reduce((s, i) => s + i.quantity * i.unit_value, 0);
       const { data: prop, error: pErr } = await supabase.from("proposals").insert({
         owner_id: user.id,
+        organization_id: orgId,
         title: out.title,
         brand,
         sponsor_id: sponsorId === "none" ? null : sponsorId,
@@ -126,6 +132,7 @@ export function ProposalWizardDialog({ sponsors, properties, onSaved }: Props) {
       await supabase.from("proposal_versions").insert(versions.map((v) => ({
         proposal_id: proposalId,
         owner_id: user.id,
+        organization_id: orgId,
         ...v,
         model: "google/gemini-2.5-pro",
       })));
@@ -294,7 +301,7 @@ export function ProposalWizardDialog({ sponsors, properties, onSaved }: Props) {
             </Button>
           )}
           {step === 1 ? (
-            <Button onClick={generate} disabled={loading}>
+            <Button onClick={generate} disabled={loading || !orgId}>
               {loading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Wand2 className="h-4 w-4 mr-1" />}
               Gerar com IA <ChevronRight className="h-4 w-4 ml-1" />
             </Button>

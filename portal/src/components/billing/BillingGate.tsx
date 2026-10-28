@@ -5,7 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useBillingStatus } from "@/hooks/useBilling";
 import { useOrganization } from "@/hooks/useOrganization";
-import { BILLING_ROUTE, daysLeft, formatDateTime, type BillingStatus } from "@/lib/billing";
+import { BILLING_ROUTE, daysLeft, formatDateTime, showsTrialNotice, type BillingStatus } from "@/lib/billing";
 
 /**
  * Aplica no painel a regra de acesso que o banco calcula (`billing_status`).
@@ -20,7 +20,7 @@ import { BILLING_ROUTE, daysLeft, formatDateTime, type BillingStatus } from "@/l
  * a navegação por um erro transitório só pioraria a experiência.
  */
 export const BillingGate = ({ children }: { children: ReactNode }) => {
-  const { orgId, orgName, isAdmin, loading: orgLoading } = useOrganization();
+  const { orgId, orgName, isAdmin, loading: orgLoading, organizations } = useOrganization();
   const location = useLocation();
   const { data: status, isLoading, isError } = useBillingStatus(orgId);
 
@@ -35,8 +35,9 @@ export const BillingGate = ({ children }: { children: ReactNode }) => {
   if (!orgId || isError || !status) return <>{children}</>;
 
   const naTelaDePlano = location.pathname.startsWith(BILLING_ROUTE);
+  const emSuporte = organizations.some((o) => o.id === orgId && o.suporte);
 
-  if (!status.access && !naTelaDePlano) {
+  if (!status.access && !naTelaDePlano && !emSuporte) {
     if (isAdmin) return <Navigate to={BILLING_ROUTE} replace />;
     return <AccessSuspended orgName={orgName} />;
   }
@@ -90,14 +91,13 @@ const BillingNotice = ({ status }: { status: BillingStatus }) => {
         <AlertDescription>
           {sub?.status === "incompleta"
             ? "Liberado enquanto o boleto compensa. Quando o pagamento for confirmado, a assinatura fica ativa sozinha."
-            : "Liberado pela equipe do BrandPlay. Assine um plano para manter o acesso depois do prazo."}
+            : "Liberado pela equipe do Brandplay. Assine um plano para manter o acesso depois do prazo."}
         </AlertDescription>
       </Alert>
     );
   }
 
-  const emTeste = status.source === "trial" && (!sub || sub.status === "incompleta");
-  if (!emTeste) return null;
+  if (!showsTrialNotice(status)) return null;
 
   const dias = daysLeft(status.trial_ends_at);
   const aguardando = sub?.status === "incompleta";

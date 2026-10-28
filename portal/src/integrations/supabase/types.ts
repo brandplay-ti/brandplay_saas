@@ -50,6 +50,80 @@ export type Database = {
           },
         ]
       }
+      ai_credentials: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          key_ciphertext: string
+          key_hint: string
+          key_iv: string
+          key_version: number
+          last_error: string | null
+          last_error_at: string | null
+          last_validated_at: string | null
+          model_padrao: string
+          model_rapido: string
+          model_visao: string | null
+          organization_id: string | null
+          provider: string
+          revoked_at: string | null
+          revoked_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          key_ciphertext: string
+          key_hint: string
+          key_iv: string
+          key_version?: number
+          last_error?: string | null
+          last_error_at?: string | null
+          last_validated_at?: string | null
+          model_padrao: string
+          model_rapido: string
+          model_visao?: string | null
+          organization_id?: string | null
+          provider: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          key_ciphertext?: string
+          key_hint?: string
+          key_iv?: string
+          key_version?: number
+          last_error?: string | null
+          last_error_at?: string | null
+          last_validated_at?: string | null
+          model_padrao?: string
+          model_rapido?: string
+          model_visao?: string | null
+          organization_id?: string | null
+          provider?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_credentials_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_messages: {
         Row: {
           content: string | null
@@ -90,6 +164,83 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_model_prices: {
+        Row: {
+          cache_write_input_brl_per_mtok: number | null
+          cached_input_brl_per_mtok: number | null
+          created_at: string
+          id: string
+          input_brl_per_mtok: number
+          model: string
+          output_brl_per_mtok: number
+          provider: string
+          updated_at: string
+          valid_from: string
+        }
+        Insert: {
+          cache_write_input_brl_per_mtok?: number | null
+          cached_input_brl_per_mtok?: number | null
+          created_at?: string
+          id?: string
+          input_brl_per_mtok: number
+          model: string
+          output_brl_per_mtok: number
+          provider: string
+          updated_at?: string
+          valid_from?: string
+        }
+        Update: {
+          cache_write_input_brl_per_mtok?: number | null
+          cached_input_brl_per_mtok?: number | null
+          created_at?: string
+          id?: string
+          input_brl_per_mtok?: number
+          model?: string
+          output_brl_per_mtok?: number
+          provider?: string
+          updated_at?: string
+          valid_from?: string
+        }
+        Relationships: []
+      }
+      ai_org_settings: {
+        Row: {
+          ai_enabled: boolean
+          alert_threshold_pct: number
+          created_at: string
+          hard_limit: boolean | null
+          monthly_budget_cents: number | null
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          ai_enabled?: boolean
+          alert_threshold_pct?: number
+          created_at?: string
+          hard_limit?: boolean | null
+          monthly_budget_cents?: number | null
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          ai_enabled?: boolean
+          alert_threshold_pct?: number
+          created_at?: string
+          hard_limit?: boolean | null
+          monthly_budget_cents?: number | null
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_org_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -149,6 +300,84 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ai_suggestions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_usage_events: {
+        Row: {
+          cache_write_input_tokens: number
+          cached_input_tokens: number
+          created_at: string
+          credential_id: string | null
+          credential_scope: string
+          error_code: string | null
+          estimated_cost_brl: number | null
+          feature: string
+          id: string
+          input_tokens: number
+          latency_ms: number | null
+          model: string
+          organization_id: string
+          output_tokens: number
+          provider: string
+          status: string
+          tier: string
+          user_id: string | null
+        }
+        Insert: {
+          cache_write_input_tokens?: number
+          cached_input_tokens?: number
+          created_at?: string
+          credential_id?: string | null
+          credential_scope: string
+          error_code?: string | null
+          estimated_cost_brl?: number | null
+          feature: string
+          id?: string
+          input_tokens?: number
+          latency_ms?: number | null
+          model: string
+          organization_id: string
+          output_tokens?: number
+          provider: string
+          status: string
+          tier: string
+          user_id?: string | null
+        }
+        Update: {
+          cache_write_input_tokens?: number
+          cached_input_tokens?: number
+          created_at?: string
+          credential_id?: string | null
+          credential_scope?: string
+          error_code?: string | null
+          estimated_cost_brl?: number | null
+          feature?: string
+          id?: string
+          input_tokens?: number
+          latency_ms?: number | null
+          model?: string
+          organization_id?: string
+          output_tokens?: number
+          provider?: string
+          status?: string
+          tier?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_events_credential_id_fkey"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "ai_credentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_usage_events_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -460,6 +689,50 @@ export type Database = {
           },
         ]
       }
+      billing_discounts: {
+        Row: {
+          comment: string
+          created_at: string
+          duration_months: number
+          id: string
+          organization_id: string
+          percent_off: number
+          revoked_at: string | null
+          stripe_coupon_id: string | null
+          stripe_status: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string
+          duration_months: number
+          id?: string
+          organization_id: string
+          percent_off: number
+          revoked_at?: string | null
+          stripe_coupon_id?: string | null
+          stripe_status?: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          duration_months?: number
+          id?: string
+          organization_id?: string
+          percent_off?: number
+          revoked_at?: string | null
+          stripe_coupon_id?: string | null
+          stripe_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_discounts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_invoices: {
         Row: {
           amount_cents: number
@@ -532,6 +805,8 @@ export type Database = {
       billing_plans: {
         Row: {
           active: boolean
+          ai_enabled: boolean
+          ai_monthly_budget_cents: number | null
           created_at: string
           description: string
           features: string[]
@@ -548,6 +823,8 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          ai_enabled?: boolean
+          ai_monthly_budget_cents?: number | null
           created_at?: string
           description?: string
           features?: string[]
@@ -564,6 +841,8 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          ai_enabled?: boolean
+          ai_monthly_budget_cents?: number | null
           created_at?: string
           description?: string
           features?: string[]
@@ -2458,6 +2737,73 @@ export type Database = {
           },
         ]
       }
+      organization_brand_assets: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          organization_id: string
+          storage_path: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          organization_id: string
+          storage_path: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          organization_id?: string
+          storage_path?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_brand_assets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_brand_kits: {
+        Row: {
+          created_at: string
+          organization_id: string
+          primary_hex: string
+          secondary_hex: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          organization_id: string
+          primary_hex?: string
+          secondary_hex?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          organization_id?: string
+          primary_hex?: string
+          secondary_hex?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_brand_kits_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_invites: {
         Row: {
           accepted_at: string | null
@@ -2539,6 +2885,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_role_grants: {
+        Row: {
+          access: string
+          module: string
+          organization_id: string
+          role: Database["public"]["Enums"]["org_role"]
+          updated_at: string
+        }
+        Insert: {
+          access: string
+          module: string
+          organization_id: string
+          role: Database["public"]["Enums"]["org_role"]
+          updated_at?: string
+        }
+        Update: {
+          access?: string
+          module?: string
+          organization_id?: string
+          role?: Database["public"]["Enums"]["org_role"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_role_grants_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -2816,6 +3194,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      platform_support_sessions: {
+        Row: {
+          admin_user_id: string
+          comment: string
+          created_at: string
+          ended_at: string | null
+          expires_at: string
+          id: string
+          organization_id: string
+        }
+        Insert: {
+          admin_user_id: string
+          comment: string
+          created_at?: string
+          ended_at?: string | null
+          expires_at: string
+          id?: string
+          organization_id: string
+        }
+        Update: {
+          admin_user_id?: string
+          comment?: string
+          created_at?: string
+          ended_at?: string | null
+          expires_at?: string
+          id?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_support_sessions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       property_checklist_items: {
         Row: {
@@ -4961,6 +5377,14 @@ export type Database = {
           users_active: number
         }[]
       }
+      admin_abrir_sessao_suporte: {
+        Args: { _comentario: string; _horas: number; _org_id: string }
+        Returns: Json
+      }
+      admin_encerrar_sessao_suporte: {
+        Args: { _comentario: string; _sessao_id: string }
+        Returns: Json
+      }
       admin_estender_teste: {
         Args: { _comentario: string; _dias: number; _org_id: string }
         Returns: Json
@@ -4980,6 +5404,72 @@ export type Database = {
           revenue_cents: number
         }[]
       }
+      admin_ia_cliente_detalhe: { Args: { _org_id: string }; Returns: Json }
+      admin_ia_clientes: {
+        Args: never
+        Returns: {
+          ai_enabled: boolean
+          alert_threshold_pct: number
+          budget_cents: number
+          hard_limit: boolean
+          input_tokens_month: number
+          key_hint: string
+          last_call_at: string
+          last_call_error: string
+          last_call_status: string
+          last_error: string
+          last_error_at: string
+          mode: string
+          model_padrao: string
+          name: string
+          organization_id: string
+          output_tokens_month: number
+          pct_used: number
+          plan_id: string
+          provider: string
+          requests_month: number
+          spent_brl: number
+          via_padrao_month: number
+        }[]
+      }
+      admin_ia_consumo: { Args: { _meses?: number }; Returns: Json }
+      admin_ia_padrao: {
+        Args: never
+        Returns: {
+          created_at: string
+          created_by: string
+          credential_id: string
+          key_hint: string
+          last_error: string
+          last_error_at: string
+          last_validated_at: string
+          model_padrao: string
+          model_rapido: string
+          model_visao: string
+          provider: string
+        }[]
+      }
+      admin_ia_precos: {
+        Args: never
+        Returns: {
+          cache_write_input_brl_per_mtok: number | null
+          cached_input_brl_per_mtok: number | null
+          created_at: string
+          id: string
+          input_brl_per_mtok: number
+          model: string
+          output_brl_per_mtok: number
+          provider: string
+          updated_at: string
+          valid_from: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ai_model_prices"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       admin_liberar_acesso: {
         Args: { _comentario: string; _horas: number; _org_id: string }
         Returns: Json
@@ -4988,6 +5478,7 @@ export type Database = {
         Args: { _comentario: string; _grant_id: string }
         Returns: Json
       }
+      admin_sessao_suporte_ativa: { Args: never; Returns: Json }
       archive_sponsor: {
         Args: { _reason: string; _sponsor_id: string }
         Returns: undefined
@@ -4996,6 +5487,8 @@ export type Database = {
         Args: { _org_id: string }
         Returns: {
           active: boolean
+          ai_enabled: boolean
+          ai_monthly_budget_cents: number | null
           created_at: string
           description: string
           features: string[]
@@ -5022,6 +5515,8 @@ export type Database = {
         Args: { _org_id: string }
         Returns: {
           active: boolean
+          ai_enabled: boolean
+          ai_monthly_budget_cents: number | null
           created_at: string
           description: string
           features: string[]
@@ -5178,6 +5673,25 @@ export type Database = {
         Args: { target_sponsor_id: string }
         Returns: boolean
       }
+      ia_consumo_detalhado: { Args: { _org_id: string }; Returns: Json }
+      ia_consumo_organizacao: { Args: { _org_id: string }; Returns: Json }
+      ia_parametros: {
+        Args: { _org_id: string }
+        Returns: {
+          ai_enabled: boolean
+          alert_threshold_pct: number
+          budget_cents: number
+          hard_limit: boolean
+          has_exclusive: boolean
+          plan_id: string
+          requests_month: number
+          spent_brl: number
+        }[]
+      }
+      ia_situacao: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: Json
+      }
       is_asset_publicly_visible: {
         Args: { target_asset_id: string }
         Returns: boolean
@@ -5221,6 +5735,10 @@ export type Database = {
       merge_sponsors: {
         Args: { _duplicate_id: string; _target_id: string }
         Returns: Json
+      }
+      organizacao_do_registro_pai: {
+        Args: { _linha: Json; _tabela: string }
+        Returns: Record<string, unknown>
       }
       platform_admin_grant: {
         Args: { _comment: string; _email: string }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +22,6 @@ interface SponsorBrand {
 export const SponsorBrandsPanel = ({ sponsorId }: { sponsorId: string }) => {
   const { user } = useAuth();
   const { orgId, can } = useOrganization();
-  const { toast } = useToast();
   const [brands, setBrands] = useState<SponsorBrand[]>([]);
   const [form, setForm] = useState({ name: "", category: "", website: "" });
   const [loading, setLoading] = useState(true);
@@ -51,7 +50,7 @@ export const SponsorBrandsPanel = ({ sponsorId }: { sponsorId: string }) => {
       website: form.website.trim() || null,
       created_by: user?.id ?? null,
     });
-    if (error) return toast({ title: "Erro", description: error.message, variant: "destructive" });
+    if (error) return toast.error("Erro", { description: error.message });
     setForm({ name: "", category: "", website: "" });
     load();
   };
@@ -89,7 +88,7 @@ export const SponsorBrandsPanel = ({ sponsorId }: { sponsorId: string }) => {
                   <Button size="sm" variant="ghost" onClick={() => toggleActive(b)}>
                     {b.is_active ? "Desativar" : "Ativar"}
                   </Button>
-                  <Button size="icon" variant="ghost" onClick={() => remove(b)}><Trash2 className="h-4 w-4" /></Button>
+                  <Button aria-label="Remover marca" size="icon" variant="ghost" onClick={() => remove(b)}><Trash2 className="h-4 w-4" /></Button>
                 </div>
               )}
             </CardContent>

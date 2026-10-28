@@ -8,8 +8,8 @@
 //
 //   RESEND_API_KEY      chave do Resend. Vazia = envio desligado: a operação
 //                       segue e o resultado diz `nao_configurado`.
-//   EMAIL_FROM          remetente completo, ex.: "BrandPlay <nao-responda@brandplay.com.br>".
-//   RESEND_FROM_DOMAIN  sem EMAIL_FROM, monta "BrandPlay <nao-responda@<domínio>>".
+//   EMAIL_FROM          remetente completo, ex.: "Brandplay <nao-responda@brandplay.com.br>".
+//   RESEND_FROM_DOMAIN  sem EMAIL_FROM, monta "Brandplay <nao-responda@<domínio>>".
 //                       Sem os dois, cai no remetente de teste do Resend, que
 //                       só entrega para o dono da conta.
 //   APP_URL             base dos links que saem por e-mail (`appUrl()`); vazia,
@@ -38,7 +38,7 @@ export interface EmailProvider {
   send(message: EmailMessage & { from: string }): Promise<EmailResult>;
 }
 
-const REMETENTE_DE_TESTE = "BrandPlay <onboarding@resend.dev>";
+const REMETENTE_DE_TESTE = "Brandplay <onboarding@resend.dev>";
 
 /** Lê uma variável de ambiente; `env` é injetável para teste. */
 type Env = (nome: string) => string | undefined;
@@ -84,7 +84,7 @@ export function senderAddress(env: Env = envDoDeno): string {
   const completo = env("EMAIL_FROM")?.trim();
   if (completo) return completo;
   const dominio = env("RESEND_FROM_DOMAIN")?.trim().replace(/^@/, "");
-  if (dominio) return `BrandPlay <nao-responda@${dominio}>`;
+  if (dominio) return `Brandplay <nao-responda@${dominio}>`;
   return REMETENTE_DE_TESTE;
 }
 

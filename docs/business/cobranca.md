@@ -49,6 +49,7 @@ Fonte: tabela `billing_plans`, editada pelo superadmin em `/admin/planos`
 A organização tem acesso quando:
 
 - tem assinatura `ativa`, `trialing` ou `inadimplente`; **ou**
+- tem isenção de 100% vigente; **ou**
 - está dentro do teste grátis; **ou**
 - tem uma liberação provisória vigente (abaixo).
 
@@ -130,6 +131,24 @@ owner/admin).
 
 Se o limite de um plano diminuir, quem já está acima continua com o que tem,
 mas não cresce até voltar para baixo do limite.
+
+## Desconto e isenção
+
+O superadmin registra, na ficha do cliente, um percentual de 1 a 100 por 1 a
+12 meses. 100% isenta a cobrança nesse prazo. O motivo fica na auditoria.
+
+- Com assinatura vigente, o cupom entra nela na hora. A situação continua
+  "assinante": a assinatura prevalece sobre a isenção.
+- Sem assinatura, o cupom entra no próximo checkout. Enquanto a isenção de
+  100% está vigente, o acesso vem dela (`exemption`), com os limites do plano
+  de teste, mesmo depois que o teste acaba. O aviso de dias restantes some.
+  Desconto abaixo de 100% não muda o acesso nem esse aviso.
+- Um desconto vigente por organização. Outro percentual começa pela revogação
+  do atual, que tira o cupom da assinatura e, no caso dos 100%, o acesso pela
+  isenção. Fatura já emitida permanece.
+- Estender o teste e liberar acesso provisório destrancam o painel. Eles não
+  alteram o valor cobrado no Stripe. A isenção de 100% também destranca, e
+  prevalece sobre o teste e sobre a liberação provisória.
 
 ## Faturamento da plataforma
 

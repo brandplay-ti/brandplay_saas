@@ -1,63 +1,73 @@
+import { Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GlobalErrorReporter } from "@/components/GlobalErrorReporter";
+import { DocumentTitle } from "@/components/DocumentTitle";
+import { ConfirmProvider } from "@/hooks/useConfirm";
 import Landing from "./pages/Landing";
-import Auth from "./pages/Auth";
-import EsqueciSenha from "./pages/EsqueciSenha";
-import ResetarSenha from "./pages/ResetarSenha";
-import OrganizationSetup from "./pages/onboarding/OrganizationSetup";
-import PublicMediaKit from "./pages/PublicMediaKit";
-import DashboardLayout from "./pages/dashboard/DashboardLayout";
-import Dashboard from "./pages/dashboard/Dashboard";
-import Properties from "./pages/dashboard/Properties";
-import PropertyDetail from "./pages/dashboard/PropertyDetail";
-import Pipeline from "./pages/dashboard/Pipeline";
-import Deliveries from "./pages/dashboard/Deliveries";
-import Contracts from "./pages/dashboard/Contracts";
-import Finance from "./pages/dashboard/Finance";
-import Assets from "./pages/dashboard/Assets";
-import Sponsors from "./pages/dashboard/Sponsors";
-import SponsorDetail from "./pages/dashboard/SponsorDetail";
-import Proposals from "./pages/dashboard/Proposals";
-import LeadScoring from "./pages/dashboard/LeadScoring";
-import Reports from "./pages/dashboard/Reports";
-import Notifications from "./pages/dashboard/Notifications";
-import CalendarPage from "./pages/dashboard/Calendar";
-import PortalAccess from "./pages/dashboard/PortalAccess";
-import Settings from "./pages/dashboard/Settings";
-import Team from "./pages/dashboard/Team";
-import FailureLogs from "./pages/dashboard/FailureLogs";
-import Plan from "./pages/dashboard/Plan";
-import BrandTrackLayout from "./pages/dashboard/brandtrack/BrandTrackLayout";
-import BrandTrackDashboard from "./pages/dashboard/brandtrack/BrandTrackDashboard";
-import BrandTrackUploads from "./pages/dashboard/brandtrack/BrandTrackUploads";
-import BrandTrackBrands from "./pages/dashboard/brandtrack/BrandTrackBrands";
-import BrandTrackBrandDetail from "./pages/dashboard/brandtrack/BrandTrackBrandDetail";
-import BrandTrackExpectedBrands from "./pages/dashboard/brandtrack/BrandTrackExpectedBrands";
-import BrandTrackEvidence from "./pages/dashboard/brandtrack/BrandTrackEvidence";
-import BrandTrackReports from "./pages/dashboard/brandtrack/BrandTrackReports";
-import PortalLayout from "./pages/portal/PortalLayout";
-import PortalLogin from "./pages/portal/PortalLogin";
-import PortalDeliveries from "./pages/portal/PortalDeliveries";
-import PortalContracts from "./pages/portal/PortalContracts";
-import PortalReports from "./pages/portal/PortalReports";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import FieldLayout from "./pages/field/FieldLayout";
-import FieldDeliveries from "./pages/field/FieldDeliveries";
-import FieldDeliveryDetail from "./pages/field/FieldDeliveryDetail";
-import FieldEvents from "./pages/field/FieldEvents";
-import FieldEventChecklist from "./pages/field/FieldEventChecklist";
-import AdminLayout from "./pages/admin/AdminLayout";
-import AdminOverview from "./pages/admin/AdminOverview";
-import AdminClients from "./pages/admin/AdminClients";
-import AdminClientDetail from "./pages/admin/AdminClientDetail";
-import AdminPlans from "./pages/admin/AdminPlans";
-import AdminRevenue from "./pages/admin/AdminRevenue";
-import NotFound from "./pages/NotFound.tsx";
+import { PageLoader } from "@/components/PageLoader";
+import { lazyPage } from "@/lib/lazyPage";
+
+// Landing no pacote principal (primeira tela de quem chega); o resto, um chunk
+// por página, carregado ao navegar.
+const Auth = lazyPage(() => import("./pages/Auth"));
+const EsqueciSenha = lazyPage(() => import("./pages/EsqueciSenha"));
+const ResetarSenha = lazyPage(() => import("./pages/ResetarSenha"));
+const OrganizationSetup = lazyPage(() => import("./pages/onboarding/OrganizationSetup"));
+const PublicMediaKit = lazyPage(() => import("./pages/PublicMediaKit"));
+const DashboardLayout = lazyPage(() => import("./pages/dashboard/DashboardLayout"));
+const Dashboard = lazyPage(() => import("./pages/dashboard/Dashboard"));
+const Properties = lazyPage(() => import("./pages/dashboard/Properties"));
+const PropertyDetail = lazyPage(() => import("./pages/dashboard/PropertyDetail"));
+const Pipeline = lazyPage(() => import("./pages/dashboard/Pipeline"));
+const Deliveries = lazyPage(() => import("./pages/dashboard/Deliveries"));
+const Contracts = lazyPage(() => import("./pages/dashboard/Contracts"));
+const Finance = lazyPage(() => import("./pages/dashboard/Finance"));
+const Assets = lazyPage(() => import("./pages/dashboard/Assets"));
+const Sponsors = lazyPage(() => import("./pages/dashboard/Sponsors"));
+const SponsorDetail = lazyPage(() => import("./pages/dashboard/SponsorDetail"));
+const Proposals = lazyPage(() => import("./pages/dashboard/Proposals"));
+const LeadScoring = lazyPage(() => import("./pages/dashboard/LeadScoring"));
+const Reports = lazyPage(() => import("./pages/dashboard/Reports"));
+const Notifications = lazyPage(() => import("./pages/dashboard/Notifications"));
+const CalendarPage = lazyPage(() => import("./pages/dashboard/Calendar"));
+const PortalAccess = lazyPage(() => import("./pages/dashboard/PortalAccess"));
+const Settings = lazyPage(() => import("./pages/dashboard/Settings"));
+const Team = lazyPage(() => import("./pages/dashboard/Team"));
+const FailureLogs = lazyPage(() => import("./pages/dashboard/FailureLogs"));
+const Plan = lazyPage(() => import("./pages/dashboard/Plan"));
+const BrandTrackLayout = lazyPage(() => import("./pages/dashboard/brandtrack/BrandTrackLayout"));
+const BrandTrackDashboard = lazyPage(() => import("./pages/dashboard/brandtrack/BrandTrackDashboard"));
+const BrandTrackUploads = lazyPage(() => import("./pages/dashboard/brandtrack/BrandTrackUploads"));
+const BrandTrackBrands = lazyPage(() => import("./pages/dashboard/brandtrack/BrandTrackBrands"));
+const BrandTrackBrandDetail = lazyPage(() => import("./pages/dashboard/brandtrack/BrandTrackBrandDetail"));
+const BrandTrackExpectedBrands = lazyPage(() => import("./pages/dashboard/brandtrack/BrandTrackExpectedBrands"));
+const BrandTrackEvidence = lazyPage(() => import("./pages/dashboard/brandtrack/BrandTrackEvidence"));
+const BrandTrackReports = lazyPage(() => import("./pages/dashboard/brandtrack/BrandTrackReports"));
+const PortalLayout = lazyPage(() => import("./pages/portal/PortalLayout"));
+const PortalLogin = lazyPage(() => import("./pages/portal/PortalLogin"));
+const PortalDeliveries = lazyPage(() => import("./pages/portal/PortalDeliveries"));
+const PortalContracts = lazyPage(() => import("./pages/portal/PortalContracts"));
+const PortalReports = lazyPage(() => import("./pages/portal/PortalReports"));
+const FieldLayout = lazyPage(() => import("./pages/field/FieldLayout"));
+const FieldDeliveries = lazyPage(() => import("./pages/field/FieldDeliveries"));
+const FieldDeliveryDetail = lazyPage(() => import("./pages/field/FieldDeliveryDetail"));
+const FieldEvents = lazyPage(() => import("./pages/field/FieldEvents"));
+const FieldEventChecklist = lazyPage(() => import("./pages/field/FieldEventChecklist"));
+const AdminLayout = lazyPage(() => import("./pages/admin/AdminLayout"));
+const AdminOverview = lazyPage(() => import("./pages/admin/AdminOverview"));
+const AdminClients = lazyPage(() => import("./pages/admin/AdminClients"));
+const AdminClientDetail = lazyPage(() => import("./pages/admin/AdminClientDetail"));
+const AdminPlans = lazyPage(() => import("./pages/admin/AdminPlans"));
+const AdminRevenue = lazyPage(() => import("./pages/admin/AdminRevenue"));
+const AdminAi = lazyPage(() => import("./pages/admin/AdminAi"));
+const AdminAiClientDetail = lazyPage(() => import("./pages/admin/AdminAiClientDetail"));
+const AdminAiPrecos = lazyPage(() => import("./pages/admin/AdminAiPrecos"));
+const NotFound = lazyPage(() => import("./pages/NotFound.tsx"));
 
 const queryClient = new QueryClient();
 
@@ -65,10 +75,14 @@ const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
+        <ConfirmProvider>
+        {/* Tema fixo enquanto o app não tem modo escuro: com "system", o toast
+            ficava escuro sobre a interface clara em quem usa o SO no escuro. */}
+        <Sonner theme="light" />
         <GlobalErrorReporter />
         <BrowserRouter>
+        <DocumentTitle />
+        <Suspense fallback={<PageLoader fullScreen />}>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
@@ -135,6 +149,9 @@ const App = () => (
             <Route path="clientes/:id" element={<AdminClientDetail />} />
             <Route path="planos" element={<AdminPlans />} />
             <Route path="faturamento" element={<AdminRevenue />} />
+            <Route path="ia" element={<AdminAi />} />
+            <Route path="ia/clientes/:id" element={<AdminAiClientDetail />} />
+            <Route path="ia/precos" element={<AdminAiPrecos />} />
           </Route>
           <Route path="/campo" element={<FieldLayout />}>
             <Route index element={<FieldDeliveries />} />
@@ -145,7 +162,9 @@ const App = () => (
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
         </BrowserRouter>
+        </ConfirmProvider>
       </TooltipProvider>
     </QueryClientProvider>
   </ErrorBoundary>

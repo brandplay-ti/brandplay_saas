@@ -25,10 +25,10 @@ export const focusMissingField = (fieldKey: string) => {
     const el = document.querySelector<HTMLElement>(`[data-field="${fieldKey}"]`);
     if (!el) return;
     el.scrollIntoView({ behavior: "smooth", block: "center" });
-    el.classList.add("ring-2", "ring-amber-500", "rounded-md");
+    el.classList.add("ring-2", "ring-warning", "rounded-md");
     const focusable = el.querySelector<HTMLElement>("input, textarea, button, [role='combobox']");
     focusable?.focus();
-    setTimeout(() => el.classList.remove("ring-2", "ring-amber-500", "rounded-md"), 2500);
+    setTimeout(() => el.classList.remove("ring-2", "ring-warning", "rounded-md"), 2500);
   }, 250);
 };
 
@@ -50,7 +50,7 @@ export function MissingInfoDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            <AlertTriangle className="h-4 w-4 text-warning-strong" />
             {state?.title ?? "Faltam informações"}
           </DialogTitle>
           <DialogDescription>
@@ -81,7 +81,7 @@ export function MissingInfoDialog({
                 className={`flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 ${clickable ? "cursor-pointer hover:bg-muted" : ""}`}
               >
                 <span className="flex items-start gap-2">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-warning" />
                   <span className="capitalize">{item.label}</span>
                 </span>
                 {clickable && (

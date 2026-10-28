@@ -23,6 +23,7 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 import {
   adminClient,
   corsHeaders,
+  cupomDeDescontoVigente,
   ensurePlanPrice,
   idOf,
   json,
@@ -219,9 +220,12 @@ async function checkout(
 
   const customerId = await garantirCustomer(db, stripe, orgId, email);
   const priceId = await ensurePlanPrice(db, stripe, plano);
+  const cupom = await cupomDeDescontoVigente(db, orgId);
 
   // Cartão e boleto. Pix recorrente no Stripe exige Pix Automático, que não
   // está disponível para contas brasileiras (ADR-0007).
+  // O cupom, quando existe, é o desconto do superadmin (0035). Não combina
+  // com código promocional digitado pelo cliente.
   const sessao = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: customerId,
@@ -237,6 +241,7 @@ async function checkout(
     locale: "pt-BR",
     metadata: { organization_id: orgId, plan_id: plano.id },
     subscription_data: { metadata: { organization_id: orgId, plan_id: plano.id } },
+    ...(cupom ? { discounts: [{ coupon: cupom }] } : {}),
     success_url: `${appUrl}/dashboard/plano?checkout=sucesso`,
     cancel_url: `${appUrl}/dashboard/plano?checkout=cancelado`,
   });
