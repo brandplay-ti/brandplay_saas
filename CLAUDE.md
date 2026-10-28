@@ -82,7 +82,7 @@ supabase/
   functions/        Edge Functions (Deno), assadas na imagem do edge-runtime
   seed/             usuário de exemplo — SÓ local
   tests/            testes de segurança/RLS
-  tools/            migrate, chaves, bundle, checar-supabase, avaliar-ia
+  tools/            migrate, chaves, bundle, checar-supabase, diagnosticar, avaliar-ia
 ```
 
 O npm roda em workspaces: os comandos do portal (`dev`, `build`, `lint`,
@@ -167,6 +167,7 @@ npm run supabase:superadmin -- -v email=<e-mail> -v comentario=<motivo>   # conc
 npm run supabase:down / :reset
 npm run supabase:bundle        # migrations achatadas para o SQL Editor do Studio
 npm run supabase:checar -- <url> <anon_key> [--portal <url>]   # diagnóstico de um ambiente
+npm run supabase:diagnosticar   # homologação só leitura: migrations, erros, logs do Dockploy
 ```
 
 Portas locais (bloco próprio, convive com o central-check): portal 8080, API

@@ -12,3 +12,12 @@ Checagem rápida de um ambiente, só leitura:
 npm run supabase:checar -- https://api.<dominio> <ANON_KEY> --portal https://<dominio>
 curl -fsS https://api.<dominio>/functions/v1/saude
 ```
+
+Homologação a partir da máquina local — migrations pendentes, erros recentes
+do banco e logs do Dockploy, sem aplicar nada:
+
+```bash
+npm run supabase:diagnosticar
+```
+
+Credenciais e limites: `docs/runbooks/diagnostico-homologacao.md`.
