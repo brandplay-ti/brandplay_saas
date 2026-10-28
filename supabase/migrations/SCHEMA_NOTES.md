@@ -742,6 +742,11 @@ Suposições:
   Sem assinatura, fica `aguardando_checkout` e o próximo checkout de
   `manage-billing` manda `discounts: [{ coupon }]`. Sem `STRIPE_SECRET_KEY`
   a linha fica `pendente` e a resposta avisa que o Stripe não foi atualizado.
+- Desde 0039, 100% vigente também é fonte de acesso (`billing_isencao_ate`,
+  `source = exemption`), com os limites do plano de teste, mesmo depois que
+  o teste acaba. O aviso de dias restantes some. Assinatura com acesso
+  prevalece. Desconto abaixo de 100%, revogado, `falhou` ou fora do prazo
+  não destranca. O fim é `created_at` mais N meses de calendário em UTC.
 - A sessão altera as funções de um argumento `is_org_member(uuid)` e
   `has_org_role(uuid, text[])`. O papel emprestado é `admin`: policy que
   exige só `owner` continua recusando. `is_org_member(user_id, org_id)` não

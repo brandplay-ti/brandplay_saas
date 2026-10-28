@@ -299,6 +299,9 @@ const AdminClientDetail = () => {
             <dl className="grid gap-3">
               <Campo rotulo="Plano vigente" valor={plano ? `${plano.name} · ${formatCents(plano.price_cents)}` : "Nenhum (sem acesso)"} />
               <Campo rotulo="Fim do teste grátis" valor={formatDateTime(billing.trial_ends_at)} />
+              {billing.exemption_ends_at && (
+                <Campo rotulo="Isenção de 100%" valor={`até ${formatDateTime(billing.exemption_ends_at)}`} />
+              )}
               <Campo
                 rotulo="Customer no Stripe"
                 valor={billing.stripe_customer_id ? <code className="text-xs">{billing.stripe_customer_id}</code> : "Ainda não contratou"}

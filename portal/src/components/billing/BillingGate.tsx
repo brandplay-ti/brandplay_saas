@@ -5,7 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useBillingStatus } from "@/hooks/useBilling";
 import { useOrganization } from "@/hooks/useOrganization";
-import { BILLING_ROUTE, daysLeft, formatDateTime, type BillingStatus } from "@/lib/billing";
+import { BILLING_ROUTE, daysLeft, formatDateTime, showsTrialNotice, type BillingStatus } from "@/lib/billing";
 
 /**
  * Aplica no painel a regra de acesso que o banco calcula (`billing_status`).
@@ -97,8 +97,7 @@ const BillingNotice = ({ status }: { status: BillingStatus }) => {
     );
   }
 
-  const emTeste = status.source === "trial" && (!sub || sub.status === "incompleta");
-  if (!emTeste) return null;
+  if (!showsTrialNotice(status)) return null;
 
   const dias = daysLeft(status.trial_ends_at);
   const aguardando = sub?.status === "incompleta";
