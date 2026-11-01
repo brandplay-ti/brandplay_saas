@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/Logo";
 import { PasswordInput } from "@/components/PasswordInput";
 import { linkParaEsqueciSenha } from "@/lib/recuperacaoSenha";
+import { rotuloDoPapel } from "@/lib/permissoes";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
@@ -22,10 +23,28 @@ const Auth = () => {
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const inviteToken = searchParams.get("invite");
+  const [convite, setConvite] = useState<{ organization_name: string; role: string } | null>(null);
 
   useEffect(() => {
     if (!loading && user) navigate("/onboarding/organizacao", { replace: true });
   }, [user, loading, navigate]);
+
+  // Link do convite: mostra para qual organização é. O aceite acontece depois
+  // de entrar, no onboarding (`convites_de_organizacao_pendentes`); quem se
+  // cadastra pelo link já entra pelo gatilho de cadastro.
+  useEffect(() => {
+    if (!inviteToken) return;
+    void (async () => {
+      const { data } = await supabase.rpc("get_organization_invite_by_token", { p_token: inviteToken }).maybeSingle();
+      if (!data) {
+        toast.error("Convite inválido ou expirado");
+        return;
+      }
+      setEmail(data.email);
+      setConvite({ organization_name: data.organization_name, role: data.role });
+    })();
+  }, [inviteToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,6 +120,14 @@ const Auth = () => {
               ? "Acesse o painel da sua propriedade."
               : "Comece grátis em menos de 1 minuto."}
           </p>
+
+          {convite && (
+            <div className="mt-6 rounded-md border border-primary/30 bg-primary/5 p-4 text-sm" role="status">
+              Você foi convidado para <strong className="break-words">{convite.organization_name}</strong> como{" "}
+              <strong>{rotuloDoPapel(convite.role)}</strong>. Entre com sua conta ou crie uma com este e-mail para
+              aceitar.
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
             {mode === "signup" && (

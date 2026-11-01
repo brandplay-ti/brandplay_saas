@@ -203,7 +203,7 @@ export const TeamManagement = forwardRef<ControleDeEdicao, { editando: boolean }
       organization_id: orgId,
     });
     if (ok) {
-      toast.success("Convite enviado");
+      toast.success("Convite enviado", { description: "A pessoa entra na organização quando aceitar." });
       setInviteEmail("");
       setInviteOpen(false);
       load();

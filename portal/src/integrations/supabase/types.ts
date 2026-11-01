@@ -3168,33 +3168,6 @@ export type Database = {
         }
         Relationships: []
       }
-      profiles: {
-        Row: {
-          avatar_url: string | null
-          company: string | null
-          created_at: string
-          full_name: string | null
-          id: string
-          updated_at: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          company?: string | null
-          created_at?: string
-          full_name?: string | null
-          id: string
-          updated_at?: string
-        }
-        Update: {
-          avatar_url?: string | null
-          company?: string | null
-          created_at?: string
-          full_name?: string | null
-          id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       platform_support_sessions: {
         Row: {
           admin_user_id: string
@@ -3232,6 +3205,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          company: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          company?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          company?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       property_checklist_items: {
         Row: {
@@ -5351,6 +5351,14 @@ export type Database = {
         Args: { p_token: string }
         Returns: boolean
       }
+      aceitar_convite_de_organizacao: {
+        Args: { _invite_id: string }
+        Returns: string
+      }
+      admin_abrir_sessao_suporte: {
+        Args: { _comentario: string; _horas: number; _org_id: string }
+        Returns: Json
+      }
       admin_cliente_detalhe: { Args: { _org_id: string }; Returns: Json }
       admin_clientes: {
         Args: never
@@ -5376,10 +5384,6 @@ export type Database = {
           trial_ends_at: string
           users_active: number
         }[]
-      }
-      admin_abrir_sessao_suporte: {
-        Args: { _comentario: string; _horas: number; _org_id: string }
-        Returns: Json
       }
       admin_encerrar_sessao_suporte: {
         Args: { _comentario: string; _sessao_id: string }
@@ -5554,6 +5558,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      billing_isencao_ate: { Args: { _org_id: string }; Returns: string }
       billing_limits_bypassed: { Args: never; Returns: boolean }
       billing_raise_without_plan: { Args: never; Returns: undefined }
       billing_status: { Args: { _org_id: string }; Returns: Json }
@@ -5587,6 +5592,39 @@ export type Database = {
           _write: boolean
         }
         Returns: boolean
+      }
+      convite_da_conta: {
+        Args: { _invite_id: string }
+        Returns: {
+          accepted_at: string | null
+          accepted_user_id: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          organization_id: string
+          role: Database["public"]["Enums"]["org_role"]
+          status: string
+          token: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "organization_invites"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      convites_de_organizacao_pendentes: {
+        Args: never
+        Returns: {
+          expires_at: string
+          id: string
+          invited_by_name: string
+          organization_id: string
+          organization_name: string
+          role: Database["public"]["Enums"]["org_role"]
+        }[]
       }
       copy_opportunity_tier_to_contract: {
         Args: { _contract_id: string; _opportunity_id: string }
@@ -5732,6 +5770,15 @@ export type Database = {
         Args: { _owner: string }
         Returns: undefined
       }
+      membro_da_organizacao_por_email: {
+        Args: { _email: string; _org_id: string }
+        Returns: {
+          member_id: string
+          role: Database["public"]["Enums"]["org_role"]
+          status: string
+          user_id: string
+        }[]
+      }
       merge_sponsors: {
         Args: { _duplicate_id: string; _target_id: string }
         Returns: Json
@@ -5749,7 +5796,19 @@ export type Database = {
         Args: { _comment: string; _email: string }
         Returns: string
       }
+      recusar_convite_de_organizacao: {
+        Args: { _invite_id: string }
+        Returns: undefined
+      }
       safe_uuid: { Args: { value: string }; Returns: string }
+      semear_permissoes_da_organizacao: {
+        Args: { _org_id: string }
+        Returns: undefined
+      }
+      sessao_suporte_vigente: {
+        Args: { target_org_id: string }
+        Returns: boolean
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       sync_opportunity_contact_to_sponsor: {

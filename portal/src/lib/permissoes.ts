@@ -19,6 +19,10 @@ export const PAPEIS_DE_PERMISSAO: { key: PapelDePermissao; label: string }[] = [
   { key: "financeiro", label: "Financeiro" },
 ];
 
+export function rotuloDoPapel(role: string): string {
+  return PAPEIS_DE_PERMISSAO.find((p) => p.key === role)?.label ?? role;
+}
+
 export const ACESSO_DE_MODULO: Record<AcessoDeModulo, string> = {
   none: "Sem acesso",
   read: "Lê",

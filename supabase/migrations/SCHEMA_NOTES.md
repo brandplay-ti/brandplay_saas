@@ -347,6 +347,7 @@ pura de nome/assinatura, sem nenhuma pista adicional).
   `manage-team-access/index.ts` já gera. `get_organization_invite_by_token`
   foi reconstruída (leitura pura), mas o mecanismo de aceite em si não existe
   em lugar nenhum — precisa ser decidido/implementado como tarefa própria.
+  **Resolvido na 0041** (seção "Aceite de convite de organização").
 - **Bug pré-existente no frontend** (não corrigido, fora do escopo — não se
   toca em `src/`): em `OpportunityDrawer.tsx`, `convertToContract()` reusa a
   RPC `copy_opportunity_tier_to_proposal` passando o id do **contrato**
@@ -392,7 +393,7 @@ Efeito sobre as seções anteriores deste documento:
   organização pessoal), com a correção de `0018`.
 - **"Aceite de convite de equipe" (gap acima)**: o aceite existe no Lovable,
   dentro de `handle_new_user`, para o e-mail convidado que se cadastra. Não há
-  aceite para quem já tem conta.
+  aceite para quem já tem conta (até a 0041).
 - **`generate_contract_installments` / `trigger_contract_activated`**: o
   trigger da reconstrução foi removido. Valem os triggers reais
   `trg_contracts_generate_installments`/`_deliveries` com as funções reais.
@@ -789,3 +790,49 @@ Suposições:
   membro; a escrita delas já passava por `can_access_module`.
 - A alteração grava `permission_changed` em `team_audit_log`, com o módulo e
   o acesso anterior e o novo em `metadata`.
+
+## Aceite de convite de organização (0041)
+
+Fase 0 de `docs/architecture/plano-equipes.md`. Fecha o gap do aceite de
+convite por quem já tem conta.
+
+Antes, `manage-team-access` (ação `invite`) procurava o e-mail nos 200
+primeiros usuários da plataforma. Achando, adicionava a pessoa direto como
+membro ativo, sem aceite, e o `upsert` trocava o papel de quem já era membro
+(inclusive o do proprietário). Não achando, criava um convite que só o
+cadastro novo (`handle_new_user`) aceitava.
+
+Agora a função só cria o convite, com a mesma resposta com ou sem conta, e
+recusa (409) e-mail de membro ativo e e-mail com convite pendente na
+organização. Quem já tem conta aceita ou recusa depois de entrar, na tela de
+onboarding.
+
+| Função | Quem executa | O que faz |
+| --- | --- | --- |
+| `convites_de_organizacao_pendentes()` | `authenticated` | Convites pendentes e válidos para o e-mail confirmado da conta logada, um por organização, sem as organizações em que ela já é membro ativo |
+| `aceitar_convite_de_organizacao(_invite_id)` | `authenticated` | Vira membro ativo com o papel do convite; devolve a organização; grava `invite_accepted` |
+| `recusar_convite_de_organizacao(_invite_id)` | `authenticated` | `status = 'recusado'`; grava `invite_declined` |
+| `convite_da_conta(_invite_id)` | `service_role` (interna) | Valida convite pendente, não vencido e do e-mail confirmado de `auth.uid()` |
+| `membro_da_organizacao_por_email(_org_id, _email)` | `service_role` | Usada por `manage-team-access` para saber se o e-mail já é membro, sem listar usuários |
+
+Suposições:
+
+- A autorização é o **e-mail confirmado** da conta (`email_confirmed_at`) ser
+  o do convite, sem diferença de maiúsculas. O token do link continua só para
+  mostrar o convite antes do login (`get_organization_invite_by_token`).
+- Convite de outro e-mail, vencido, já usado ou inexistente dá o mesmo erro
+  (`P0002`, "Convite inválido ou expirado"): a resposta não revela se o id
+  existe.
+- Membro ativo que aceita convite **mantém o papel**; o convite só é
+  encerrado. Troca de papel continua em "Editar" (`update_role`).
+- Membro revogado volta com o papel do convite **só se o convite for posterior
+  à revogação** (`organization_members.updated_at`). Revogar depois de
+  convidar vale mais que o convite.
+- `recusado` é um status novo em `organization_invites.status` (a coluna não
+  tem `check`).
+- O limite de usuários do plano continua no gatilho `trg_zz_billing_limit`;
+  como o convite já ocupa a vaga, o aceite não é bloqueado (`cobranca.md`).
+- O cadastro novo pelo link continua aceitando sozinho em `handle_new_user`;
+  esta migration não o altera.
+
+Testes: `supabase/tests/convites.sql`.
