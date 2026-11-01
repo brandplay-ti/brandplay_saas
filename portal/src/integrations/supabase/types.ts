@@ -2816,6 +2816,7 @@ export type Database = {
           organization_id: string
           role: Database["public"]["Enums"]["org_role"]
           status: string
+          team_ids: string[]
           token: string
         }
         Insert: {
@@ -2829,6 +2830,7 @@ export type Database = {
           organization_id: string
           role?: Database["public"]["Enums"]["org_role"]
           status?: string
+          team_ids?: string[]
           token?: string
         }
         Update: {
@@ -2842,6 +2844,7 @@ export type Database = {
           organization_id?: string
           role?: Database["public"]["Enums"]["org_role"]
           status?: string
+          team_ids?: string[]
           token?: string
         }
         Relationships: [
@@ -2898,6 +2901,7 @@ export type Database = {
           module: string
           organization_id: string
           role: Database["public"]["Enums"]["org_role"]
+          scope: string
           updated_at: string
         }
         Insert: {
@@ -2905,6 +2909,7 @@ export type Database = {
           module: string
           organization_id: string
           role: Database["public"]["Enums"]["org_role"]
+          scope?: string
           updated_at?: string
         }
         Update: {
@@ -2912,6 +2917,7 @@ export type Database = {
           module?: string
           organization_id?: string
           role?: Database["public"]["Enums"]["org_role"]
+          scope?: string
           updated_at?: string
         }
         Relationships: [
@@ -5333,6 +5339,137 @@ export type Database = {
           },
         ]
       }
+      work_team_members: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          organization_id: string
+          status: string
+          team_id: string
+          team_role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          organization_id: string
+          status?: string
+          team_id: string
+          team_role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          organization_id?: string
+          status?: string
+          team_id?: string
+          team_role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_team_members_member_fkey"
+            columns: ["organization_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["organization_id", "user_id"]
+          },
+          {
+            foreignKeyName: "work_team_members_team_fkey"
+            columns: ["organization_id", "team_id"]
+            isOneToOne: false
+            referencedRelation: "work_teams"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      work_team_properties: {
+        Row: {
+          access: string
+          created_at: string
+          include_children: boolean
+          organization_id: string
+          property_id: string
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          access?: string
+          created_at?: string
+          include_children?: boolean
+          organization_id: string
+          property_id: string
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          access?: string
+          created_at?: string
+          include_children?: boolean
+          organization_id?: string
+          property_id?: string
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_team_properties_property_fkey"
+            columns: ["organization_id", "property_id"]
+            isOneToOne: false
+            referencedRelation: "sports_properties"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "work_team_properties_team_fkey"
+            columns: ["organization_id", "team_id"]
+            isOneToOne: false
+            referencedRelation: "work_teams"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      work_teams: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          organization_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_teams_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       crm_unlinked_records: {
@@ -5354,6 +5491,16 @@ export type Database = {
       aceitar_convite_de_organizacao: {
         Args: { _invite_id: string }
         Returns: string
+      }
+      acesso_do_membro: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: {
+          access: string
+          parent_property_id: string
+          property_id: string
+          property_name: string
+          team_names: string[]
+        }[]
       }
       admin_abrir_sessao_suporte: {
         Args: { _comentario: string; _horas: number; _org_id: string }
@@ -5606,6 +5753,7 @@ export type Database = {
           organization_id: string
           role: Database["public"]["Enums"]["org_role"]
           status: string
+          team_ids: string[]
           token: string
         }
         SetofOptions: {
@@ -5750,6 +5898,7 @@ export type Database = {
         Args: { target_tier_id: string }
         Returns: boolean
       }
+      lidera_equipe: { Args: { _team_id: string }; Returns: boolean }
       log_sponsor_interaction: {
         Args: {
           _contract_id: string
@@ -5795,6 +5944,14 @@ export type Database = {
       platform_admin_revoke: {
         Args: { _comment: string; _email: string }
         Returns: string
+      }
+      projetos_das_equipes: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: {
+          access: string
+          property_id: string
+          team_ids: string[]
+        }[]
       }
       recusar_convite_de_organizacao: {
         Args: { _invite_id: string }
