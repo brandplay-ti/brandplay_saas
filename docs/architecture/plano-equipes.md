@@ -1,8 +1,9 @@
 # Plano: equipes de trabalho e escopo por projeto
 
 - **Data**: 2026-10-31
-- **Status**: **proposta com decisões fechadas em 2026-11-01** (seção 11).
-  Fase 0 entregue em 2026-11-01 (seção 10); fases 1 a 5 não iniciadas.
+- **Status**: **decisões D1–D12 fechadas em 2026-11-01** (seção 11) e
+  registradas na ADR-0012. Fase 0 entregue em 2026-11-01 (seção 10); fases 1
+  a 5 não iniciadas.
 - **Escopo**: dentro de uma organização, separar quem trabalha em quais
   projetos (`sports_properties`), para que uma equipe não veja o que é de
   outra. Vincular usuários que já têm conta a organização, equipe e projeto, e
@@ -28,12 +29,15 @@
 4. **Opt-in e sem mudança para quem não usar.** O escopo padrão é
    "Organização inteira", que é o comportamento de hoje. Uma organização só
    passa a isolar equipes quando o administrador muda o escopo de um papel.
-5. **Pré-requisito: aceite de convite por quem já tem conta.** Hoje o convite
-   só funciona para quem se cadastra depois dele (gatilho `handle_new_user`).
-   Não existe `accept_organization_invite_by_token` (gap registrado em
-   `SCHEMA_NOTES.md`). Sem isso, "vincular usuário já cadastrado" a outra
-   organização não funciona. É a fase 0.
-6. **Sem serviço externo de autorização.** OpenFGA/SpiceDB resolveriam, mas
+5. **O administrador monta a estrutura (D12).** Dono e administrador veem
+   todas as propriedades, criam propriedades e equipes e vinculam membros e
+   projetos às equipes. O membro em escopo equipe herda os projetos das suas
+   equipes e não cria propriedade (7.7).
+6. **Pré-requisito: aceite de convite por quem já tem conta** (fase 0,
+   entregue na `0041`). Antes dela, o convite só funcionava para quem se
+   cadastrava depois dele (gatilho `handle_new_user`), e "vincular usuário já
+   cadastrado" a outra organização não funcionava.
+7. **Sem serviço externo de autorização.** OpenFGA/SpiceDB resolveriam, mas
    tiram a decisão da RLS, que é a fronteira de segurança do projeto. A
    regra fica em funções `SECURITY DEFINER` no banco, no mesmo padrão de
    `can_access_module` e `billing_blocked_orgs`.
@@ -189,7 +193,8 @@ Notas:
 - **FK composta** `(organization_id, id)` torna impossível, no próprio
   esquema, vincular equipe de uma organização a projeto ou usuário de outra
   (`CLAUDE.md` seção 6). Exige `unique (organization_id, id)` em
-  `sports_properties`; `organization_members (organization_id, user_id)` já
+  `sports_properties` (fase 1) e em `sponsors` (fase 3) — nenhuma tabela tem
+  essa restrição hoje; `organization_members (organization_id, user_id)` já
   é único (`organization_members_org_user_unique`, 0003).
 - `organization_id` das tabelas filhas vem **da equipe**, por gatilho, e o
   valor enviado pelo cliente é descartado (padrão de `tg_relatorio_vinculos`,
@@ -328,6 +333,47 @@ usuário:
 - Busca global (`CommandMenu`) e realtime: respeitam a RLS se continuarem no
   cliente do usuário.
 
+### 7.7 Propriedades (D12)
+
+O administrador monta a estrutura: dono e administrador veem todas as
+propriedades, criam propriedades e subprojetos, criam equipes e vinculam
+membros e projetos a elas. O membro não recebe propriedade uma a uma: herda
+os projetos das equipes em que está, com os subprojetos quando o vínculo tem
+`include_children`.
+
+| Operação em `sports_properties` | Papel em escopo organização (hoje) | Papel em escopo equipe |
+|---|---|---|
+| Ler | todas (`is_org_member`) | só as de `projetos_visiveis` |
+| Criar propriedade ou subprojeto | CRM ou operacional com edição | não cria; o administrador cria |
+| Editar | CRM ou operacional com edição | só com vínculo `access = 'write'`; nunca muda `parent_property_id` |
+| Excluir | só owner/admin (0017) | só owner/admin |
+
+Regras:
+
+- **União entre módulos.** `sports_properties` serve ao CRM e ao
+  operacional, e o financeiro lê a propriedade de cada contrato. A
+  propriedade é visível quando o papel tem escopo `organizacao` em algum
+  módulo a que tem acesso, ou quando está nos projetos das equipes do
+  usuário. Para isolar um papel, todos os módulos dele vão para "Minhas
+  equipes" (a predefinição da 8.1 faz isso).
+- **`parent_property_id` não muda por quem está em escopo equipe** (o
+  gatilho recusa). Mover um subprojeto para baixo da propriedade de outra
+  equipe abriria os dados dele para essa equipe.
+- **Propriedade nova não entra sozinha em equipe nenhuma.** O administrador
+  a vincula, na tela da equipe ou no cartão "Equipes com acesso" da
+  propriedade. Subprojeto novo de uma propriedade vinculada com
+  `include_children` já nasce visível para a equipe, porque
+  `projetos_visiveis` percorre a árvore na consulta.
+- O media kit público (`*_public_read`) e o portal do patrocinador não
+  mudam.
+
+Suposição registrada em 2026-11-01: a criação só pelo administrador vale
+para papel em escopo equipe. Em escopo organização, Comercial e Operacional
+continuam criando propriedade como hoje (item 4 do resumo: nada muda para
+quem não isola equipes). Se a criação tiver de ser só do administrador em
+qualquer caso, a policy `sports_properties_module_insert` da 0017 muda para
+todas as organizações, e isso precisa de decisão própria.
+
 ## 8. Perfis e permissões
 
 ### 8.1 Primeira entrega: papéis atuais + escopo
@@ -345,12 +391,15 @@ A matriz da aba Permissões ganha o escopo em cada célula:
 O ▾ troca entre Organização e Minhas equipes ("Meus registros" fica para
 depois, D6). Os valores
 acima são o padrão de 0036 com escopo Organização: nada muda até o
-administrador mexer.
+administrador mexer. O ▾ só aparece na fase 2: na fase 1 a coluna `scope`
+já existe, mas a tela não oferece "Minhas equipes", que ainda não teria
+efeito.
 
 Sugestão de **predefinição** "Ativar isolamento por equipe": um botão que
-põe Comercial e Operacional em "Minhas equipes" e deixa Financeiro em
-"Organização" (o financeiro normalmente concilia tudo). O administrador
-ajusta depois.
+põe **todos os módulos** de Comercial e Operacional em "Minhas equipes" e
+deixa Financeiro em "Organização" (o financeiro normalmente concilia tudo).
+Um módulo deixado em Organização mantém o papel vendo todas as propriedades
+(7.7). O administrador ajusta depois.
 
 ### 8.2 Líder de equipe (administração delegada)
 
@@ -456,15 +505,16 @@ Fechadas com o usuário em 2026-11-01.
 | D9 | Poderes do líder de equipe | Só membros da própria equipe, entre os que já são da organização, e data de fim; não convida nem vincula projetos |
 | D10 | Equipes limitadas por plano? | Recurso dos planos pagos acima do de entrada; coluna `max_teams` em `billing_plans`, gatilho `trg_zz_billing_limit`. Quais planos e quantas equipes: definir em `docs/business/cobranca.md` na fase 4 |
 | D11 | Financeiro em escopo equipe vê parcelas só dos projetos dele? | Sim, se configurado; a predefinição deixa o financeiro na organização |
+| D12 | Quem vê e cria propriedades com escopo equipe | O administrador (dono/admin) vê todas, cria propriedades, subprojetos e equipes, e vincula membros e projetos às equipes. O membro herda os projetos das suas equipes e não cria propriedade (7.7) |
 
 ## 12. Fases
 
 | Fase | Entrega | Banco | Risco |
 |---|---|---|---|
 | **0** ✅ | Aceite de convite por quem já tem conta | `0041`; teste em `convites.sql` | Baixo |
-| **1** | Equipes e vínculos, sem efeito na visibilidade: cadastro, membros, projetos, auditoria, "Ver como" | `work_teams*`, coluna `scope` (padrão `organizacao`), ações do audit log | Baixo: só tabelas novas |
-| **2** | Escopo "Minhas equipes" nas tabelas com `property_id` e nas filhas | `projetos_visiveis`, `no_escopo`, policies de leitura **e escrita** do padrão 7 | **Alto**: muda policies de ~30 tabelas |
-| **3** | Patrocinadores (D5, D7, D7a) e revisão da seção 7.6 | `work_team_sponsors`, policies `sponsor_*`, RPCs definer, storage | Alto |
+| **1** | Equipes e vínculos, sem efeito na visibilidade: cadastro, membros, projetos, auditoria, "Ver como", equipes no convite | `work_teams*`, `unique (organization_id, id)` em `sports_properties`, coluna `scope` (padrão `organizacao`, sem seletor na tela), ações do audit log, `organization_invites.team_ids` | Baixo: só tabelas novas |
+| **2** | Escopo "Minhas equipes" em `sports_properties` (7.7), nas tabelas com `property_id` e nas filhas; seletor de escopo na matriz | `projetos_visiveis`, `no_escopo`, policies de leitura **e escrita** do padrão 7 e de `sports_properties`, gatilho de `parent_property_id` | **Alto**: muda policies de ~30 tabelas |
+| **3** | Patrocinadores (D5, D7, D7a) e revisão da seção 7.6 | `work_team_sponsors`, `unique (organization_id, id)` em `sponsors`, policies `sponsor_*`, RPCs definer, storage | Alto |
 | **4** | Predefinição, aviso de impacto, tela da propriedade, limite por plano | `max_teams` | Baixo |
 | **5** | Perfis personalizados e módulos novos (8.3) | troca da chave da matriz | Alto; só com demanda |
 
@@ -484,6 +534,9 @@ com duas equipes A e B na mesma organização e uma segunda organização:
 - escopo `organizacao` (padrão) vê tudo, igual a hoje — os testes atuais de
   `seguranca.sql`, `cobranca.sql` e `relatorios.sql` passam sem mudança;
 - owner, admin e sessão de suporte veem tudo;
+- membro em escopo equipe vê só as propriedades das suas equipes (com o
+  subprojeto, quando `include_children`), não cria propriedade nem muda
+  `parent_property_id`; papel com um módulo em escopo organização vê todas;
 - não é possível vincular equipe a projeto ou usuário de outra organização
   (FK composta) nem enviar `organization_id` diferente (gatilho descarta);
 - membro revogado da organização perde a equipe; vínculo vencido deixa de
