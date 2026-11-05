@@ -347,6 +347,7 @@ pura de nome/assinatura, sem nenhuma pista adicional).
   `manage-team-access/index.ts` já gera. `get_organization_invite_by_token`
   foi reconstruída (leitura pura), mas o mecanismo de aceite em si não existe
   em lugar nenhum — precisa ser decidido/implementado como tarefa própria.
+  **Resolvido na 0041** (seção "Aceite de convite de organização").
 - **Bug pré-existente no frontend** (não corrigido, fora do escopo — não se
   toca em `src/`): em `OpportunityDrawer.tsx`, `convertToContract()` reusa a
   RPC `copy_opportunity_tier_to_proposal` passando o id do **contrato**
@@ -392,7 +393,7 @@ Efeito sobre as seções anteriores deste documento:
   organização pessoal), com a correção de `0018`.
 - **"Aceite de convite de equipe" (gap acima)**: o aceite existe no Lovable,
   dentro de `handle_new_user`, para o e-mail convidado que se cadastra. Não há
-  aceite para quem já tem conta.
+  aceite para quem já tem conta (até a 0041).
 - **`generate_contract_installments` / `trigger_contract_activated`**: o
   trigger da reconstrução foi removido. Valem os triggers reais
   `trg_contracts_generate_installments`/`_deliveries` com as funções reais.
@@ -841,6 +842,113 @@ Tabelas novas: `property_posts` (posts, vídeos e matérias por link),
   página: cota vendida (`tier_sales.status` diferente de `cancelada`/
   `cancelado`) numa cota da propriedade, ou contrato `ativo`, `vencendo` ou
   `encerrado` nela.
+
+## Aceite de convite de organização (0041)
+
+Fase 0 de `docs/architecture/plano-equipes.md`. Fecha o gap do aceite de
+convite por quem já tem conta.
+
+Antes, `manage-team-access` (ação `invite`) procurava o e-mail nos 200
+primeiros usuários da plataforma. Achando, adicionava a pessoa direto como
+membro ativo, sem aceite, e o `upsert` trocava o papel de quem já era membro
+(inclusive o do proprietário). Não achando, criava um convite que só o
+cadastro novo (`handle_new_user`) aceitava.
+
+Agora a função só cria o convite, com a mesma resposta com ou sem conta, e
+recusa (409) e-mail de membro ativo e e-mail com convite pendente na
+organização. Quem já tem conta aceita ou recusa depois de entrar, na tela de
+onboarding.
+
+| Função | Quem executa | O que faz |
+| --- | --- | --- |
+| `convites_de_organizacao_pendentes()` | `authenticated` | Convites pendentes e válidos para o e-mail confirmado da conta logada, um por organização, sem as organizações em que ela já é membro ativo |
+| `aceitar_convite_de_organizacao(_invite_id)` | `authenticated` | Vira membro ativo com o papel do convite; devolve a organização; grava `invite_accepted` |
+| `recusar_convite_de_organizacao(_invite_id)` | `authenticated` | `status = 'recusado'`; grava `invite_declined` |
+| `convite_da_conta(_invite_id)` | `service_role` (interna) | Valida convite pendente, não vencido e do e-mail confirmado de `auth.uid()` |
+| `membro_da_organizacao_por_email(_org_id, _email)` | `service_role` | Usada por `manage-team-access` para saber se o e-mail já é membro, sem listar usuários |
+
+Suposições:
+
+- A autorização é o **e-mail confirmado** da conta (`email_confirmed_at`) ser
+  o do convite, sem diferença de maiúsculas. O token do link continua só para
+  mostrar o convite antes do login (`get_organization_invite_by_token`).
+- Convite de outro e-mail, vencido, já usado ou inexistente dá o mesmo erro
+  (`P0002`, "Convite inválido ou expirado"): a resposta não revela se o id
+  existe.
+- Membro ativo que aceita convite **mantém o papel**; o convite só é
+  encerrado. Troca de papel continua em "Editar" (`update_role`).
+- Membro revogado volta com o papel do convite **só se o convite for posterior
+  à revogação** (`organization_members.updated_at`). Revogar depois de
+  convidar vale mais que o convite.
+- `recusado` é um status novo em `organization_invites.status` (a coluna não
+  tem `check`).
+- O limite de usuários do plano continua no gatilho `trg_zz_billing_limit`;
+  como o convite já ocupa a vaga, o aceite não é bloqueado (`cobranca.md`).
+- O cadastro novo pelo link continua aceitando sozinho em `handle_new_user`;
+  esta migration não o altera.
+
+Testes: `supabase/tests/convites.sql`.
+
+## Equipes de trabalho (0042, ADR-0012)
+
+Fase 1 de `docs/architecture/plano-equipes.md`: cadastro de equipes, membros
+e projetos, **sem efeito na visibilidade**. Nenhuma policy de domínio olha as
+equipes ainda; isso é a fase 2.
+
+| Tabela | Chave | Quem escreve |
+| --- | --- | --- |
+| `work_teams` | `id`; `unique (organization_id, id)` para as FKs compostas; nome único (sem caixa e espaços) entre as **ativas** | owner/admin; sem `DELETE` (arquivar) |
+| `work_team_members` | `(team_id, user_id)`; FK `(organization_id, user_id)` → `organization_members` | owner/admin; o líder, só membros comuns da própria equipe (D9); sem `DELETE` (revogar) |
+| `work_team_properties` | `(team_id, property_id)`; FK `(organization_id, property_id)` → `sports_properties` | owner/admin |
+
+Leitura: qualquer membro ativo da organização (padrão 4). As três têm
+`billing_access_restrictive`.
+
+Mudanças em tabelas existentes:
+
+- `sports_properties`: `unique (organization_id, id)`, alvo da FK composta.
+  Sem efeito nos dados (o `id` já é único).
+- `organization_role_grants.scope` (`organizacao` | `equipe`, padrão
+  `organizacao`). Owner, admin e o módulo `team` ficam sempre em
+  `organizacao` (`check`). Mudança de escopo grava `scope_changed`. Nenhuma
+  policy lê a coluna nesta fase, e a tela ainda não oferece o seletor.
+- `organization_invites.team_ids uuid[]`: equipes que o convite leva. O
+  gatilho recusa equipe de outra organização ou arquivada e tira repetição.
+  Quando o convite vira `aceito` (pelo `handle_new_user` ou por
+  `aceitar_convite_de_organizacao`), a pessoa entra nas equipes que continuam
+  ativas.
+- `team_audit_log.action` ganha `team_created`, `team_updated`,
+  `team_archived`, `team_restored`, `team_member_added`,
+  `team_member_updated`, `team_member_removed`, `team_property_added`,
+  `team_property_updated`, `team_property_removed` e `scope_changed`. A
+  metadata guarda nomes da equipe, do membro e do projeto no momento da ação.
+
+| Função | Quem executa | O que faz |
+| --- | --- | --- |
+| `lidera_equipe(_team_id)` | `authenticated` (policies) | `auth.uid()` é líder vigente de equipe ativa e membro ativo da organização |
+| `projetos_das_equipes(_org_id, _user_id)` | `service_role` (interna) | Projetos que a pessoa alcança pelas equipes, com subprojetos quando `include_children`; edição vence leitura. Base de `projetos_visiveis` na fase 2 |
+| `acesso_do_membro(_org_id, _user_id)` | `authenticated`, só owner/admin | "Ver como" da tela de equipe |
+
+Suposições:
+
+- `organization_id` dos vínculos vem **da equipe**, por gatilho; o valor do
+  cliente é descartado. A FK composta impede vincular projeto ou pessoa de
+  outra organização.
+- Só **membro ativo** da organização entra ou volta para uma equipe. Membro
+  revogado da organização mantém a linha em `work_team_members`, mas
+  `lidera_equipe` e `projetos_das_equipes` olham o status nas duas tabelas:
+  o vínculo não vale até ele ser reativado.
+- `expires_at` precisa ser futura ao gravar; vencido, o vínculo deixa de
+  valer sem limpeza.
+- Equipe arquivada não recebe membro nem projeto; os vínculos ficam guardados
+  e voltam a valer se ela for restaurada.
+- Auditoria só com `auth.uid()`: o cadastro pelo GoTrue (sem sessão) e a
+  service role não geram linha. Projeto excluído leva o vínculo junto e grava
+  `team_property_removed`, sem o nome; organização excluída não grava nada.
+- Ciclo em `parent_property_id` não trava `projetos_das_equipes` (a CTE usa
+  `union`).
+
+Testes: `supabase/tests/equipes.sql`.
 
 ## Tipo de cliente: agência e marca (0043–0044, ADR-0013)
 

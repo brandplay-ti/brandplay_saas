@@ -10,6 +10,7 @@
 - 0008 Superadmin da plataforma (papel em tabela própria, leitura mínima, auditoria)
 - 0010 IA multi-fornecedor com chave por organização (substitui 0003)
 - 0011 Relatório de resultados em landing page (blocos, dados vivos, `report-view`)
+- 0012 Equipes de trabalho e escopo por projeto (sub-escopo dentro da organização)
 - 0013 Tipo de cliente: agência e marca (módulo `vendas`, teto por tipo no banco)
 
 Use `NNNN-titulo-curto.md`. Status possíveis: Proposed, Accepted, Superseded,

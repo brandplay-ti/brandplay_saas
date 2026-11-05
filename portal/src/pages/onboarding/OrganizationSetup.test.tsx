@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 type Resposta = { data: unknown; error: { message: string } | null };
 
@@ -33,15 +34,20 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 import OrganizationSetup from "./OrganizationSetup";
 
+// A tela espera a lista de convites pendentes (0041) antes de decidir o
+// destino; o rpc do mock devolve nenhum convite.
 function abrir() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <MemoryRouter initialEntries={["/onboarding/organizacao"]}>
-      <Routes>
-        <Route path="/onboarding/organizacao" element={<OrganizationSetup />} />
-        <Route path="/admin" element={<p>tela admin</p>} />
-        <Route path="/dashboard" element={<p>tela dashboard</p>} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={client}>
+      <MemoryRouter initialEntries={["/onboarding/organizacao"]}>
+        <Routes>
+          <Route path="/onboarding/organizacao" element={<OrganizationSetup />} />
+          <Route path="/admin" element={<p>tela admin</p>} />
+          <Route path="/dashboard" element={<p>tela dashboard</p>} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
