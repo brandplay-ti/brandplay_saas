@@ -17,6 +17,7 @@ const TITULOS: [padrao: string, titulo: string | null][] = [
   ["/resetar-senha", "Definir nova senha"],
   ["/onboarding/organizacao", "Criar organização"],
   ["/p/:slug", null],
+  ["/r/:slug", null],
 
   ["/portal/login", "Entrar no Portal do Patrocinador"],
   ["/portal", "Entregas · Portal do Patrocinador"],
@@ -37,6 +38,8 @@ const TITULOS: [padrao: string, titulo: string | null][] = [
   ["/dashboard/propriedades", "Propriedades"],
   ["/dashboard/ativos", "Ativos"],
   ["/dashboard/entregas", "Entregas"],
+  ["/dashboard/relatorios/paginas/:id", "Relatório de resultado"],
+  ["/dashboard/relatorios/paginas", "Relatórios de resultado"],
   ["/dashboard/relatorios", "Relatórios"],
   ["/dashboard/equipe", "Equipe"],
   ["/dashboard/portal-access", "Acessos ao Portal"],

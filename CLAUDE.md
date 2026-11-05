@@ -126,6 +126,10 @@ O npm roda em workspaces: os comandos do portal (`dev`, `build`, `lint`,
   `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` apenas em Edge Functions
   (ADR-0007, `docs/business/cobranca.md`). Planos e limites ficam no banco
   (`billing_plans`); limites são aplicados por gatilho, não pela tela.
+- YouTube Data API v3 (métricas dos vídeos do relatório em landing page,
+  ADR-0011) — `YOUTUBE_API_KEY` apenas em Edge Functions; opcional. Regras do
+  relatório em `docs/business/relatorios.md`, operação em
+  `docs/runbooks/relatorios.md`.
 
 ### Infraestrutura
 
