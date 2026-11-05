@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/hooks/useOrganization";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +42,7 @@ const statusLabels: Record<ReviewStatus, string> = {
 };
 
 const BrandTrackEvidence = () => {
+  const { orgId } = useOrganization();
   const { user } = useAuth();
   const [items, setItems] = useState<EvidenceItem[]>([]);
   const [statusFilter, setStatusFilter] = useState<"all" | ReviewStatus>("pendente");
@@ -49,12 +51,15 @@ const BrandTrackEvidence = () => {
 
   useEffect(() => {
     void load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId]);
 
   const load = async () => {
+    if (!orgId) return;
     const { data, error } = await db
       .from("brandtrack_detections")
       .select("id, brand_name, corrected_brand_name, bes_score, exposure_type, corrected_exposure_type, start_time, confidence, screen_percentage, evidence_path, review_status, review_notes, media:brandtrack_media(storage_path,media_type,title)")
+      .eq("organization_id", orgId)
       .order("start_time", { ascending: true })
       .order("bes_score", { ascending: false })
       .limit(120);

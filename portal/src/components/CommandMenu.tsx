@@ -23,7 +23,7 @@ const ehMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigat
  */
 export const CommandMenu = () => {
   const navigate = useNavigate();
-  const { orgId, can, isAdmin, loading } = useOrganization();
+  const { orgId, can, clientType, isAdmin, loading } = useOrganization();
   const { isPlatformAdmin } = useIsPlatformAdmin();
   const [open, setOpen] = useState(false);
   const [entrada, setEntrada] = useState("");
@@ -48,10 +48,10 @@ export const CommandMenu = () => {
 
   const paginas = useMemo(
     () =>
-      gruposVisiveis({ can, isAdmin, loading, isPlatformAdmin }).flatMap((g) =>
+      gruposVisiveis({ can, clientType, isAdmin, loading, isPlatformAdmin }).flatMap((g) =>
         g.items.map((i) => ({ ...i, grupo: g.label })),
       ),
-    [can, isAdmin, loading, isPlatformAdmin],
+    [can, clientType, isAdmin, loading, isPlatformAdmin],
   );
   const paginasFiltradas = filtrarPaginas(paginas, entrada);
 

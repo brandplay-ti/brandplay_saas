@@ -93,7 +93,7 @@ async function contextoDaOportunidade(r: Requisicao, id: string) {
     "opportunities",
     "id, brand, value, stage, expected_close_date, last_stage_change_at, notes, sponsor_id, property_id",
     id,
-    "crm",
+    "vendas",
     "Oportunidade não encontrada",
   );
   const c = r.cliente;
@@ -346,7 +346,7 @@ async function contextoDaProposta(r: Requisicao, id: string) {
     "proposals",
     "id, title, brand, status, total_value, sent_at, valid_until, message, sponsor_id, property_id, created_at",
     id,
-    "crm",
+    "vendas",
     "Proposta não encontrada",
   );
   const c = r.cliente;

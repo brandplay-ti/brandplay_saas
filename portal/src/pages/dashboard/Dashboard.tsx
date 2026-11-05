@@ -111,7 +111,17 @@ const DEFAULT_WIDGETS: { id: WidgetId; visible: boolean }[] = [
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { orgId } = useOrganization();
+  const { orgId, can, clientType } = useOrganization();
+  const marca = clientType === "marca";
+  const temVendas = can("vendas");
+  // Funil e propostas só com o módulo vendas; o risco de churn é a visão de
+  // quem vende patrocínio e fica fora da marca (plano-visao-de-marca.md, D8).
+  const widgetDisponivel = (id: WidgetId) =>
+    (temVendas || (id !== "funnel" && id !== "recentProposals")) && !(marca && id === "churnRisk");
+  // Para a marca a parcela é pagamento feito, não recebido (D6).
+  const rotulo = marca
+    ? { recebido: "Pago", previsto: "A pagar" }
+    : { recebido: "Recebido", previsto: "Previsto" };
   const [counts, setCounts] = useState({
     properties: 0, assets: 0, sponsors: 0, proposals: 0, contracts: 0, opportunities: 0,
   });
@@ -265,20 +275,28 @@ const Dashboard = () => {
       case "kpis":
         return (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <KpiCard icon={<Wallet className="h-4 w-4" />} label="Recebido (3m)" value={fmtMoney(kpis.received)} accent="text-primary" />
-            <KpiCard icon={<TrendingUp className="h-4 w-4" />} label="Previsto" value={fmtMoney(kpis.expected)} />
-            <KpiCard icon={<Briefcase className="h-4 w-4" />} label="Pipeline aberto" value={fmtMoney(kpis.pipelineOpen)} />
+            <KpiCard icon={<Wallet className="h-4 w-4" />} label={`${rotulo.recebido} (3m)`} value={fmtMoney(kpis.received)} accent="text-primary" />
+            <KpiCard icon={<TrendingUp className="h-4 w-4" />} label={rotulo.previsto} value={fmtMoney(kpis.expected)} />
+            {temVendas ? (
+              <KpiCard icon={<Briefcase className="h-4 w-4" />} label="Pipeline aberto" value={fmtMoney(kpis.pipelineOpen)} />
+            ) : (
+              <KpiCard icon={<FileSignature className="h-4 w-4" />} label="Contratos ativos" value={String(contracts.length)} />
+            )}
             <KpiCard icon={<AlertTriangle className="h-4 w-4" />} label="Entregas atrasadas" value={String(kpis.overdueDeliveries)} accent={kpis.overdueDeliveries > 0 ? "text-destructive" : ""} />
           </div>
         );
       case "modules":
         return (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            <ModuleCard to="/dashboard/patrocinadores" icon={<Users className="h-4 w-4" />} label="Patrocinadores" value={counts.sponsors} />
+            <ModuleCard to="/dashboard/patrocinadores" icon={<Users className="h-4 w-4" />} label={marca ? "Marcas" : "Patrocinadores"} value={counts.sponsors} />
             <ModuleCard to="/dashboard/propriedades" icon={<Trophy className="h-4 w-4" />} label="Propriedades" value={counts.properties} />
             <ModuleCard to="/dashboard/ativos" icon={<Boxes className="h-4 w-4" />} label="Ativos" value={counts.assets} />
-            <ModuleCard to="/dashboard/propostas" icon={<FileText className="h-4 w-4" />} label="Propostas" value={counts.proposals} />
-            <ModuleCard to="/dashboard/pipeline" icon={<Briefcase className="h-4 w-4" />} label="Oportunidades" value={counts.opportunities} />
+            {temVendas && (
+              <>
+                <ModuleCard to="/dashboard/propostas" icon={<FileText className="h-4 w-4" />} label="Propostas" value={counts.proposals} />
+                <ModuleCard to="/dashboard/pipeline" icon={<Briefcase className="h-4 w-4" />} label="Oportunidades" value={counts.opportunities} />
+              </>
+            )}
             <ModuleCard to="/dashboard/contratos" icon={<FileSignature className="h-4 w-4" />} label="Contratos" value={counts.contracts} />
           </div>
         );
@@ -314,8 +332,8 @@ const Dashboard = () => {
                   <YAxis tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                   <Tooltip formatter={(v: number) => fmtMoney(v)} />
                   <Legend />
-                  <Bar dataKey="recebido" stackId="a" fill="hsl(var(--primary))" name="Recebido" />
-                  <Bar dataKey="previsto" stackId="a" fill="hsl(var(--chart-2))" name="Previsto" />
+                  <Bar dataKey="recebido" stackId="a" fill="hsl(var(--primary))" name={rotulo.recebido} />
+                  <Bar dataKey="previsto" stackId="a" fill="hsl(var(--chart-2))" name={rotulo.previsto} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -453,7 +471,7 @@ const Dashboard = () => {
   };
 
   // Group consecutive non-full widgets in a 3-col grid for layout coherence
-  const visibleWidgets = widgets.filter((w) => w.visible);
+  const visibleWidgets = widgets.filter((w) => w.visible && widgetDisponivel(w.id));
   const renderedRows: React.ReactNode[] = [];
   let buffer: WidgetId[] = [];
   const flushBuffer = (key: string) => {
@@ -498,7 +516,7 @@ const Dashboard = () => {
                 </SheetDescription>
               </SheetHeader>
               <div className="mt-4 space-y-2">
-                {widgets.map((w, idx) => (
+                {widgets.map((w, idx) => widgetDisponivel(w.id) && (
                   <div
                     key={w.id}
                     draggable

@@ -9,6 +9,8 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const BodySchema = z.object({
   name: z.string().trim().min(2).max(160),
   cnpj: z.string().max(32).nullable().optional(),
+  // Tipo de cliente da organização nova (0043). Sem o campo, agência.
+  client_type: z.enum(["agencia", "marca"]).default("agencia"),
 });
 
 const diagnoseCreateOrganizationError = (message: string, code?: string) => {
@@ -92,6 +94,7 @@ Deno.serve(async (req) => {
     _owner_id: claimsData.claims.sub,
     _name: parsed.data.name,
     _cnpj: parsed.data.cnpj ?? null,
+    _client_type: parsed.data.client_type,
   });
 
   if (error) {

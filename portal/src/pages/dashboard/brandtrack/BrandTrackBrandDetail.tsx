@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/hooks/useOrganization";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Video } from "lucide-react";
@@ -10,6 +11,7 @@ import { Breadcrumbs } from "@/components/common/Breadcrumbs";
 const TYPES = ["all", "uniforme", "placa", "backdrop", "led", "transmissao", "outro"] as const;
 
 const BrandTrackBrandDetail = () => {
+  const { orgId } = useOrganization();
   const { brand } = useParams<{ brand: string }>();
   const brandName = decodeURIComponent(brand ?? "");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -19,12 +21,15 @@ const BrandTrackBrandDetail = () => {
 
   useEffect(() => {
     void load();
-  }, [brandName]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brandName, orgId]);
 
   const load = async () => {
+    if (!orgId) return;
     const { data } = await supabase
       .from("brandtrack_detections")
       .select("*, media:brandtrack_media(id,title,storage_path,media_type)")
+      .eq("organization_id", orgId)
       .or(`brand_name.eq.${brandName},corrected_brand_name.eq.${brandName}`)
       .neq("review_status", "rejeitada")
       .order("bes_score", { ascending: false });

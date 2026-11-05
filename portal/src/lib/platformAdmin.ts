@@ -5,6 +5,7 @@
 // A tela só traduz o que elas devolvem.
 
 import type { BillingStatus, InvoiceStatus, PaymentMethod, StatusTone, SubscriptionStatus } from "@/lib/billing";
+import type { TipoDeCliente } from "@/lib/permissoes";
 
 export type AccessSource = BillingStatus["source"];
 
@@ -30,6 +31,17 @@ export interface AdminClient {
   invites_pending: number;
   open_invoices: number;
   last_paid_at: string | null;
+  /** De `admin_tipos_de_cliente` (0043); ausente enquanto não carregou. */
+  client_type?: TipoDeCliente;
+}
+
+/** Retorno de `admin_tipo_de_cliente(org)`: o tipo e o que fica oculto ao virar marca. */
+export interface AdminClientType {
+  client_type: TipoDeCliente;
+  open_opportunities: number;
+  proposals: number;
+  published_properties: number;
+  leads: number;
 }
 
 export type GrantKind = "confianca" | "manual" | "superadmin";
@@ -183,6 +195,7 @@ const ACAO_DE_AUDITORIA: Record<string, string> = {
   sessao_suporte_substituida: "Sessão de suporte substituída",
   superadmin_concedido: "Superadmin concedido",
   superadmin_revogado: "Superadmin revogado",
+  tipo_de_cliente_alterado: "Tipo de cliente alterado",
 };
 
 export function auditActionLabel(acao: string): string {
@@ -195,18 +208,22 @@ export interface ClientFilters {
   search: string;
   source: AccessSource | "todas";
   planId: string | "todos";
+  clientType?: TipoDeCliente | "todos";
 }
 
 function semAcento(texto: string): string {
   return texto.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
-/** Filtra por nome da organização, nome ou e-mail do owner, situação e plano vigente. */
+/** Filtra por nome da organização, nome ou e-mail do owner, situação, plano vigente e tipo de cliente. */
 export function filterClients(clientes: AdminClient[], filtros: ClientFilters): AdminClient[] {
   const termo = semAcento(filtros.search.trim());
   return clientes.filter((c) => {
     if (filtros.source !== "todas" && c.access_source !== filtros.source) return false;
     if (filtros.planId !== "todos" && c.plan_id !== filtros.planId) return false;
+    if (filtros.clientType && filtros.clientType !== "todos" && (c.client_type ?? "agencia") !== filtros.clientType) {
+      return false;
+    }
     if (!termo) return true;
     return [c.name, c.owner_name ?? "", c.owner_email ?? ""].some((campo) => semAcento(campo).includes(termo));
   });

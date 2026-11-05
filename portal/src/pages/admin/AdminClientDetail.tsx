@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AccessSourceBadge } from "@/components/admin/AccessSourceBadge";
+import { ClientTypeAdminCard } from "@/components/admin/ClientTypeAdminCard";
 import { CommentedActionDialog } from "@/components/admin/CommentedActionDialog";
 import { DiscountDialog } from "@/components/admin/DiscountDialog";
 import { useBillingSettings } from "@/hooks/useBilling";
@@ -270,6 +271,8 @@ const AdminClientDetail = () => {
           )}
         </CardContent>
       </Card>
+
+      <ClientTypeAdminCard orgId={id} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card>

@@ -68,7 +68,9 @@ lá). Três pontos dele não servem aqui:
    "Sincronizar" ou o próximo checkout refazem.
 8. **Área `/admin` no portal**, fora do layout das organizações (o superadmin
    não precisa ser membro de nenhuma). A guarda da rota é experiência; a
-   fronteira é o banco. Sem organização, o login leva direto a `/admin`.
+   fronteira é o banco. O login do superadmin leva direto a `/admin`, seja ou
+   não membro de alguma organização; quem também é membro chega ao painel
+   pelo atalho "Painel da organização".
 
 ## Consequências
 

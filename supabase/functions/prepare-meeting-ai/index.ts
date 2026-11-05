@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
     const org: string = sponsor.organization_id;
 
     // Só a equipe da organização (o portal do patrocinador não gera briefing interno).
-    await exigirModulo(cliente, usuario.id, org, "crm");
+    await exigirModulo(cliente, usuario.id, org, "vendas");
     const { data: canFinance } = await cliente.rpc("can_access_module", {
       _user_id: usuario.id,
       _org_id: org,

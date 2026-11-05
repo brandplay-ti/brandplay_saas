@@ -347,6 +347,7 @@ pura de nome/assinatura, sem nenhuma pista adicional).
   `manage-team-access/index.ts` já gera. `get_organization_invite_by_token`
   foi reconstruída (leitura pura), mas o mecanismo de aceite em si não existe
   em lugar nenhum — precisa ser decidido/implementado como tarefa própria.
+  **Resolvido na 0041** (seção "Aceite de convite de organização").
 - **Bug pré-existente no frontend** (não corrigido, fora do escopo — não se
   toca em `src/`): em `OpportunityDrawer.tsx`, `convertToContract()` reusa a
   RPC `copy_opportunity_tier_to_proposal` passando o id do **contrato**
@@ -392,7 +393,7 @@ Efeito sobre as seções anteriores deste documento:
   organização pessoal), com a correção de `0018`.
 - **"Aceite de convite de equipe" (gap acima)**: o aceite existe no Lovable,
   dentro de `handle_new_user`, para o e-mail convidado que se cadastra. Não há
-  aceite para quem já tem conta.
+  aceite para quem já tem conta (até a 0041).
 - **`generate_contract_installments` / `trigger_contract_activated`**: o
   trigger da reconstrução foi removido. Valem os triggers reais
   `trg_contracts_generate_installments`/`_deliveries` com as funções reais.
@@ -789,3 +790,222 @@ Suposições:
   membro; a escrita delas já passava por `can_access_module`.
 - A alteração grava `permission_changed` em `team_audit_log`, com o módulo e
   o acesso anterior e o novo em `metadata`.
+
+## Relatório em landing page (0040, ADR-0011)
+
+Tabelas novas: `property_posts` (posts, vídeos e matérias por link),
+`property_indicators` (números de fora da plataforma, com fonte) e `reports`
+(a página). `property_media` ganha `event_id`, `sponsor_id`, `tags` e
+`contains_minors`. Regras de negócio em `docs/business/relatorios.md`.
+
+- **Organização vem da propriedade.** O gatilho `tg_relatorio_vinculos`
+  sobrescreve `organization_id` das três tabelas novas com o da propriedade e
+  recusa (`23503`) patrocinador, momento ou contrato de outra organização ou
+  propriedade. Em `property_media` ele só valida, e só quando há momento ou
+  patrocinador: linha antiga continua como era.
+- **`external_id`** só aceita `[A-Za-z0-9_-]{1,64}`: o embed é montado a
+  partir dele, e o formato impede injetar algo no endereço do iframe. URL só
+  `https://`.
+- **Métricas** em `bigint` nulo: nulo é "não informado", diferente de zero.
+  `metrics_source` diz se o número veio da API (`api`, hoje só YouTube) ou foi
+  digitado (`manual`). `metrics_checked_at` é a última **tentativa** de busca,
+  e segura o cache de 1 hora mesmo quando a rede falha.
+- **Indicadores** em `numeric(20,4)`, com formato de exibição (`inteiro`,
+  `compacto`, `decimal`, `percentual`), prefixo e sufixo livres e curtos.
+  Zero só aparece com `show_zero` (decisão D8 do plano).
+- **`reports.slug`** é gerado pelo banco (`relatorio_slug`: título sem acento
+  + 6 hexadecimais de `gen_random_uuid()`), único e imutável. Excluído nunca é
+  reaproveitado porque a linha não é apagada. Não use `gen_random_bytes`
+  qualificado: o `pgcrypto` fica em `public` ou em `extensions` conforme o
+  ambiente (na imagem do Supabase, `extensions`), e `gen_random_uuid` é nativo.
+- **Sem `DELETE` em `reports`** (nem grant): excluir é `status = 'excluido'`,
+  definitivo. `published_*` e `deleted_*` são preenchidos pelo gatilho, não
+  pelo cliente.
+- **Papéis (D4)** no gatilho `tg_reports_regras`: criar e editar no modo
+  "organização" é de quem escreve em `crm` ou `operacional`
+  (`can_access_module`); modo público, editar relatório público e excluir são
+  de owner/admin. Sem `auth.uid()` (service role, SQL Editor) só valem as
+  regras de integridade.
+- **Suposição**: relatório some com a propriedade (`on delete cascade`). O
+  endereço some junto; como o sufixo é aleatório, não há como outro relatório
+  herdar o mesmo link.
+- **`reports.sponsor_id` sem `on delete`**, como `deliveries` e
+  `installments`: patrocinador com relatório não é apagado (é arquivado, no
+  fluxo normal). Com `set null`, o relatório do patrocinador viraria em
+  silêncio o da propriedade inteira. Em posts, indicadores e fotos o vínculo
+  vira `null` (o conteúdo passa a ser geral). Contrato apagado deixa o
+  relatório com todas as entregas do patrocinador na propriedade.
+- **`report_landing_data(_report_id, _publico)`** é a lista de campos da
+  página. Não lê `about`, `description` nem `key_notes` da propriedade (só os
+  campos `public_*`), nem descrição de momento ou de entrega, notas,
+  comentário de aprovação ou qualquer valor financeiro. Patrocinadores da
+  página: cota vendida (`tier_sales.status` diferente de `cancelada`/
+  `cancelado`) numa cota da propriedade, ou contrato `ativo`, `vencendo` ou
+  `encerrado` nela.
+
+## Aceite de convite de organização (0041)
+
+Fase 0 de `docs/architecture/plano-equipes.md`. Fecha o gap do aceite de
+convite por quem já tem conta.
+
+Antes, `manage-team-access` (ação `invite`) procurava o e-mail nos 200
+primeiros usuários da plataforma. Achando, adicionava a pessoa direto como
+membro ativo, sem aceite, e o `upsert` trocava o papel de quem já era membro
+(inclusive o do proprietário). Não achando, criava um convite que só o
+cadastro novo (`handle_new_user`) aceitava.
+
+Agora a função só cria o convite, com a mesma resposta com ou sem conta, e
+recusa (409) e-mail de membro ativo e e-mail com convite pendente na
+organização. Quem já tem conta aceita ou recusa depois de entrar, na tela de
+onboarding.
+
+| Função | Quem executa | O que faz |
+| --- | --- | --- |
+| `convites_de_organizacao_pendentes()` | `authenticated` | Convites pendentes e válidos para o e-mail confirmado da conta logada, um por organização, sem as organizações em que ela já é membro ativo |
+| `aceitar_convite_de_organizacao(_invite_id)` | `authenticated` | Vira membro ativo com o papel do convite; devolve a organização; grava `invite_accepted` |
+| `recusar_convite_de_organizacao(_invite_id)` | `authenticated` | `status = 'recusado'`; grava `invite_declined` |
+| `convite_da_conta(_invite_id)` | `service_role` (interna) | Valida convite pendente, não vencido e do e-mail confirmado de `auth.uid()` |
+| `membro_da_organizacao_por_email(_org_id, _email)` | `service_role` | Usada por `manage-team-access` para saber se o e-mail já é membro, sem listar usuários |
+
+Suposições:
+
+- A autorização é o **e-mail confirmado** da conta (`email_confirmed_at`) ser
+  o do convite, sem diferença de maiúsculas. O token do link continua só para
+  mostrar o convite antes do login (`get_organization_invite_by_token`).
+- Convite de outro e-mail, vencido, já usado ou inexistente dá o mesmo erro
+  (`P0002`, "Convite inválido ou expirado"): a resposta não revela se o id
+  existe.
+- Membro ativo que aceita convite **mantém o papel**; o convite só é
+  encerrado. Troca de papel continua em "Editar" (`update_role`).
+- Membro revogado volta com o papel do convite **só se o convite for posterior
+  à revogação** (`organization_members.updated_at`). Revogar depois de
+  convidar vale mais que o convite.
+- `recusado` é um status novo em `organization_invites.status` (a coluna não
+  tem `check`).
+- O limite de usuários do plano continua no gatilho `trg_zz_billing_limit`;
+  como o convite já ocupa a vaga, o aceite não é bloqueado (`cobranca.md`).
+- O cadastro novo pelo link continua aceitando sozinho em `handle_new_user`;
+  esta migration não o altera.
+
+Testes: `supabase/tests/convites.sql`.
+
+## Equipes de trabalho (0042, ADR-0012)
+
+Fase 1 de `docs/architecture/plano-equipes.md`: cadastro de equipes, membros
+e projetos, **sem efeito na visibilidade**. Nenhuma policy de domínio olha as
+equipes ainda; isso é a fase 2.
+
+| Tabela | Chave | Quem escreve |
+| --- | --- | --- |
+| `work_teams` | `id`; `unique (organization_id, id)` para as FKs compostas; nome único (sem caixa e espaços) entre as **ativas** | owner/admin; sem `DELETE` (arquivar) |
+| `work_team_members` | `(team_id, user_id)`; FK `(organization_id, user_id)` → `organization_members` | owner/admin; o líder, só membros comuns da própria equipe (D9); sem `DELETE` (revogar) |
+| `work_team_properties` | `(team_id, property_id)`; FK `(organization_id, property_id)` → `sports_properties` | owner/admin |
+
+Leitura: qualquer membro ativo da organização (padrão 4). As três têm
+`billing_access_restrictive`.
+
+Mudanças em tabelas existentes:
+
+- `sports_properties`: `unique (organization_id, id)`, alvo da FK composta.
+  Sem efeito nos dados (o `id` já é único).
+- `organization_role_grants.scope` (`organizacao` | `equipe`, padrão
+  `organizacao`). Owner, admin e o módulo `team` ficam sempre em
+  `organizacao` (`check`). Mudança de escopo grava `scope_changed`. Nenhuma
+  policy lê a coluna nesta fase, e a tela ainda não oferece o seletor.
+- `organization_invites.team_ids uuid[]`: equipes que o convite leva. O
+  gatilho recusa equipe de outra organização ou arquivada e tira repetição.
+  Quando o convite vira `aceito` (pelo `handle_new_user` ou por
+  `aceitar_convite_de_organizacao`), a pessoa entra nas equipes que continuam
+  ativas.
+- `team_audit_log.action` ganha `team_created`, `team_updated`,
+  `team_archived`, `team_restored`, `team_member_added`,
+  `team_member_updated`, `team_member_removed`, `team_property_added`,
+  `team_property_updated`, `team_property_removed` e `scope_changed`. A
+  metadata guarda nomes da equipe, do membro e do projeto no momento da ação.
+
+| Função | Quem executa | O que faz |
+| --- | --- | --- |
+| `lidera_equipe(_team_id)` | `authenticated` (policies) | `auth.uid()` é líder vigente de equipe ativa e membro ativo da organização |
+| `projetos_das_equipes(_org_id, _user_id)` | `service_role` (interna) | Projetos que a pessoa alcança pelas equipes, com subprojetos quando `include_children`; edição vence leitura. Base de `projetos_visiveis` na fase 2 |
+| `acesso_do_membro(_org_id, _user_id)` | `authenticated`, só owner/admin | "Ver como" da tela de equipe |
+
+Suposições:
+
+- `organization_id` dos vínculos vem **da equipe**, por gatilho; o valor do
+  cliente é descartado. A FK composta impede vincular projeto ou pessoa de
+  outra organização.
+- Só **membro ativo** da organização entra ou volta para uma equipe. Membro
+  revogado da organização mantém a linha em `work_team_members`, mas
+  `lidera_equipe` e `projetos_das_equipes` olham o status nas duas tabelas:
+  o vínculo não vale até ele ser reativado.
+- `expires_at` precisa ser futura ao gravar; vencido, o vínculo deixa de
+  valer sem limpeza.
+- Equipe arquivada não recebe membro nem projeto; os vínculos ficam guardados
+  e voltam a valer se ela for restaurada.
+- Auditoria só com `auth.uid()`: o cadastro pelo GoTrue (sem sessão) e a
+  service role não geram linha. Projeto excluído leva o vínculo junto e grava
+  `team_property_removed`, sem o nome; organização excluída não grava nada.
+- Ciclo em `parent_property_id` não trava `projetos_das_equipes` (a CTE usa
+  `union`).
+
+Testes: `supabase/tests/equipes.sql`.
+
+## Tipo de cliente: agência e marca (0043–0044, ADR-0013)
+
+`organizations.client_type` (`agencia` | `marca`, padrão `agencia`). Regras
+de negócio em `docs/business/tipo-de-cliente.md`; análise e decisões em
+`docs/architecture/plano-visao-de-marca.md`.
+
+- **Só duas funções mudam o tipo.** `tg_proteger_tipo_de_cliente` recusa
+  qualquer `UPDATE` de `client_type` sem o sinal de transação
+  `brandplay.tipo_de_cliente`, que só `corrigir_tipo_de_cliente` (owner, sem
+  nenhuma assinatura registrada, audita `client_type_changed` em
+  `team_audit_log`) e `admin_alterar_tipo_de_cliente` (superadmin, motivo
+  obrigatório, audita `tipo_de_cliente_alterado` em
+  `platform_admin_audit_log`) ligam. Correção manual por SQL precisa do mesmo
+  `set_config`.
+- **Módulo `vendas`** em `organization_role_grants`: o check aceita
+  `crm`, `vendas`, `operacional`, `financeiro`, `team` (25 linhas por
+  organização). O backfill copiou o `access` (e o `scope` da 0042, quando a
+  coluna existe) do `crm` de cada papel. `semear_permissoes_da_organizacao`
+  semeia `vendas` com os mesmos valores padrão do `crm`.
+- **Tabelas do módulo `vendas`**: `opportunities`, `opportunity_activities`,
+  `opportunity_audit_logs`, `opportunity_comments`,
+  `opportunity_comment_attachments`, `opportunity_contacts`, `proposals`,
+  `proposal_items`, `proposal_versions`, `sponsor_proposal_profiles`,
+  `lead_scores`, `property_leads`, `pipeline_funnels`, `pipeline_stage_slas`,
+  `user_stage_probabilities`. As policies que chamavam
+  `can_access_module(..., 'crm', ...)` nelas passaram a `'vendas'`, e as
+  demais expressões ficaram iguais. As leituras de filhas por
+  `is_org_member` continuam assim para a agência. O gatilho
+  `tg_validate_opportunity_org_access` e `create_renewal_opportunity`, que
+  conferiam `crm` com escrita, passaram a conferir `vendas`.
+- **Teto por tipo** (`modulo_disponivel(org, módulo)`, `SECURITY DEFINER`,
+  só `authenticated`/`service_role`): `false` para `vendas` na marca. Ele
+  entra em três lugares: em `can_access_module` (corpo da 0037), na policy
+  restritiva `vendas_tipo_de_cliente` de cada tabela acima (`for all to
+  authenticated`) e no gatilho `trg_zz_vendas_disponivel` (`before insert`
+  em `opportunities`, `proposals`, `lead_scores`), que pega as funções
+  definer (`create_renewal_opportunity`, `handle_lead_to_opportunity`). Só
+  INSERT: a sincronia de estágio de uma oportunidade antiga, vinda de um
+  contrato, continua sem erro.
+- **Media kit**: `is_property_published` exige `modulo_disponivel(org,
+  'vendas')`. `sports_properties_public_read` passou a usar a função (antes
+  lia `is_published` direto). `is_published` e `public_slug` não são tocados
+  na troca.
+- **Cadastro**: `handle_new_user` grava `user_metadata.client_type` (outro
+  valor vira `agencia`). `create_organization_with_owner` ganhou
+  `_client_type` (a assinatura de 3 parâmetros foi removida para não haver
+  sobrecarga ambígua).
+- **Leitura administrativa**: `admin_tipos_de_cliente()` (tipo de todas as
+  organizações) e `admin_tipo_de_cliente(org)` (tipo e contagens do que fica
+  oculto: oportunidades abertas, propostas, propriedades publicadas, leads).
+  Só contagens, como o resto da ADR-0008.
+- **`team_audit_log_action_check`** foi recriado com as ações da 0042
+  (equipes), que vem antes na ordem, mais `client_type_changed`. Uma migration
+  futura que mexa nesse check precisa partir da lista da 0043.
+- **Relatório de entregas por contrato** (0044):
+  `get_contract_delivery_report_data(contrato)`, mesmo conteúdo da 0030
+  recortado pelo contrato, com `subject` (marca e valor do contrato) no lugar
+  de `opportunity`. Só `service_role`; `generate-delivery-report` confere
+  antes, com o client do usuário, que ele lê o contrato.

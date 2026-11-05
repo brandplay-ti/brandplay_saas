@@ -10,6 +10,8 @@ import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
 import { formatCNPJ, isValidCNPJ, onlyDigits } from "@/lib/cnpj";
 import { logBackendDbError } from "@/lib/backendErrorLogger";
+import { ClientTypeField } from "@/components/organization/ClientTypeField";
+import type { TipoDeCliente } from "@/lib/permissoes";
 
 type Props = { trigger?: React.ReactNode; onCreated?: (orgId: string) => void };
 
@@ -30,6 +32,7 @@ export const CreateOrganizationDialog = ({ trigger, onCreated }: Props) => {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [cnpj, setCnpj] = useState("");
+  const [clientType, setClientType] = useState<TipoDeCliente>("agencia");
   const [loading, setLoading] = useState(false);
 
   const handleCreate = async () => {
@@ -44,7 +47,7 @@ export const CreateOrganizationDialog = ({ trigger, onCreated }: Props) => {
     }
     setLoading(true);
     const { data, error } = await supabase.functions.invoke<CreateOrganizationResponse>("create-organization", {
-      body: { name: name.trim(), cnpj: onlyDigits(cnpj) },
+      body: { name: name.trim(), cnpj: onlyDigits(cnpj), client_type: clientType },
     });
     setLoading(false);
     if (error || data?.error) {
@@ -76,6 +79,7 @@ export const CreateOrganizationDialog = ({ trigger, onCreated }: Props) => {
     toast.success("Organização criada");
     setName("");
     setCnpj("");
+    setClientType("agencia");
     setOpen(false);
     await refresh();
     onCreated?.(data.organizationId);
@@ -110,6 +114,10 @@ export const CreateOrganizationDialog = ({ trigger, onCreated }: Props) => {
               onChange={(e) => setCnpj(formatCNPJ(e.target.value))}
               placeholder="00.000.000/0000-00"
             />
+          </div>
+          <div className="space-y-1.5">
+            <span className="text-sm font-medium leading-none">Tipo de cliente *</span>
+            <ClientTypeField value={clientType} onChange={setClientType} disabled={loading} idPrefix="nova-org-tipo" />
           </div>
         </div>
         <DialogFooter>

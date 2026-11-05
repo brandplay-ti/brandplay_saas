@@ -127,7 +127,9 @@ const isOverdue = (d: Delivery) => {
 
 export default function Deliveries() {
   const { user } = useAuth();
-  const { orgId } = useOrganization();
+  const { orgId, can } = useOrganization();
+  // Vínculo com oportunidade só existe com o funil (marca não tem).
+  const temVendas = can("vendas");
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
@@ -782,16 +784,18 @@ export default function Deliveries() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="opp">Oportunidade</Label>
-                      <Select value={form.opportunity_id} onValueChange={(v) => setForm({ ...form, opportunity_id: v })}>
-                        <SelectTrigger id="opp"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Nenhuma</SelectItem>
-                          {opportunities.map((o) => (<SelectItem key={o.id} value={o.id}>{o.brand}</SelectItem>))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {temVendas && (
+                      <div className="grid gap-2">
+                        <Label htmlFor="opp">Oportunidade</Label>
+                        <Select value={form.opportunity_id} onValueChange={(v) => setForm({ ...form, opportunity_id: v })}>
+                          <SelectTrigger id="opp"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Nenhuma</SelectItem>
+                            {opportunities.map((o) => (<SelectItem key={o.id} value={o.id}>{o.brand}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="evidence">URL de evidência</Label>
@@ -861,14 +865,16 @@ export default function Deliveries() {
                 {properties.map((p) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
               </SelectContent>
             </Select>
-            <Select value={filterOpportunity} onValueChange={setFilterOpportunity}>
-              <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Oportunidade" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas oportunidades</SelectItem>
-                <SelectItem value="none">Sem oportunidade</SelectItem>
-                {opportunities.map((o) => (<SelectItem key={o.id} value={o.id}>{o.brand}</SelectItem>))}
-              </SelectContent>
-            </Select>
+            {temVendas && (
+              <Select value={filterOpportunity} onValueChange={setFilterOpportunity}>
+                <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Oportunidade" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas oportunidades</SelectItem>
+                  <SelectItem value="none">Sem oportunidade</SelectItem>
+                  {opportunities.map((o) => (<SelectItem key={o.id} value={o.id}>{o.brand}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            )}
             <Button
               variant={showOverdueOnly ? "default" : "outline"}
               size="sm"
@@ -1075,6 +1081,8 @@ function DeliveriesTableView({
   onOpen: (d: Delivery) => void;
   onEdit: (d: Delivery) => void;
 }) {
+  const { can } = useOrganization();
+  const temVendas = can("vendas");
   if (items.length === 0) {
     return <div className="text-sm text-muted-foreground py-8 text-center border border-dashed rounded-md">Nenhuma entrega encontrada.</div>;
   }
@@ -1087,7 +1095,7 @@ function DeliveriesTableView({
             <TableHead>Marca</TableHead>
             <TableHead>Tipo</TableHead>
             <TableHead>Propriedade</TableHead>
-            <TableHead>Oportunidade</TableHead>
+            {temVendas && <TableHead>Oportunidade</TableHead>}
             <TableHead>Status</TableHead>
             <TableHead>Aprovação</TableHead>
             <TableHead>Prevista</TableHead>
@@ -1104,7 +1112,9 @@ function DeliveriesTableView({
               <TableCell className="text-sm">{d.brand}</TableCell>
               <TableCell className="text-sm text-muted-foreground">{d.asset_type ?? "—"}</TableCell>
               <TableCell className="text-sm text-muted-foreground">{d.property_id ? propertiesById[d.property_id] ?? "—" : "—"}</TableCell>
-              <TableCell className="text-sm text-muted-foreground">{d.opportunity_id ? opportunitiesById[d.opportunity_id] ?? "—" : "—"}</TableCell>
+              {temVendas && (
+                <TableCell className="text-sm text-muted-foreground">{d.opportunity_id ? opportunitiesById[d.opportunity_id] ?? "—" : "—"}</TableCell>
+              )}
               <TableCell><StatusBadge status={d.status} /></TableCell>
               <TableCell className="text-sm capitalize text-muted-foreground">{d.approval}</TableCell>
               <TableCell className={`text-sm ${isOverdue(d) ? "text-destructive font-medium" : "text-muted-foreground"}`}>
