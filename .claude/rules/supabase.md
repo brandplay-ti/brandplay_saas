@@ -113,6 +113,15 @@ Padrão da plataforma (ADR-0008, `0027`–`0029`):
    `platform_admin_audit_log`. `platform_admins` não tem policy de escrita e a
    concessão (`platform_admin_grant`) não é executável por `authenticated`.
 
+Equipes de trabalho (ADR-0012, `0042`): `work_teams`, `work_team_members` e
+`work_team_properties` seguem o padrão 4 (leitura por membro, escrita por
+owner/admin), mais o líder nos membros comuns da própria equipe
+(`lidera_equipe`). Vínculo entre equipe, pessoa e projeto é por FK composta
+`(organization_id, id)`, e o `organization_id` vem da equipe por gatilho.
+Equipe se arquiva e membro se revoga, sem `DELETE`. Até a fase 2 do plano,
+nenhuma policy de domínio olha as equipes nem `organization_role_grants.scope`:
+não use essas tabelas para esconder dado antes de ela existir.
+
 Uma tabela nova que represente algo **limitado por plano** precisa de gatilho
 `trg_zz_billing_limit` no padrão da `0024` (erro com
 `hint = 'limite_plano:<recurso>'` e plano sugerido em `detail`) e de uma

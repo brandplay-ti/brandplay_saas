@@ -2,8 +2,8 @@
 
 - **Data**: 2026-10-31
 - **Status**: **decisões D1–D12 fechadas em 2026-11-01** (seção 11) e
-  registradas na ADR-0012. Fase 0 entregue em 2026-11-01 (seção 10); fases 1
-  a 5 não iniciadas.
+  registradas na ADR-0012. Fase 0 entregue em 2026-11-01 (seção 10); fase 1
+  entregue em 2026-11-01 (`0042`, seção 12); fases 2 a 5 não iniciadas.
 - **Escopo**: dentro de uma organização, separar quem trabalha em quais
   projetos (`sports_properties`), para que uma equipe não veja o que é de
   outra. Vincular usuários que já têm conta a organização, equipe e projeto, e
@@ -512,11 +512,17 @@ Fechadas com o usuário em 2026-11-01.
 | Fase | Entrega | Banco | Risco |
 |---|---|---|---|
 | **0** ✅ | Aceite de convite por quem já tem conta | `0041`; teste em `convites.sql` | Baixo |
-| **1** | Equipes e vínculos, sem efeito na visibilidade: cadastro, membros, projetos, auditoria, "Ver como", equipes no convite | `work_teams*`, `unique (organization_id, id)` em `sports_properties`, coluna `scope` (padrão `organizacao`, sem seletor na tela), ações do audit log, `organization_invites.team_ids` | Baixo: só tabelas novas |
+| **1** ✅ | Equipes e vínculos, sem efeito na visibilidade: cadastro, membros, projetos, auditoria, "Ver como", equipes no convite | `0042`: `work_teams*`, `unique (organization_id, id)` em `sports_properties`, coluna `scope` (padrão `organizacao`, sem seletor na tela), ações do audit log, `organization_invites.team_ids`; teste em `equipes.sql` | Baixo: só tabelas novas |
 | **2** | Escopo "Minhas equipes" em `sports_properties` (7.7), nas tabelas com `property_id` e nas filhas; seletor de escopo na matriz | `projetos_visiveis`, `no_escopo`, policies de leitura **e escrita** do padrão 7 e de `sports_properties`, gatilho de `parent_property_id` | **Alto**: muda policies de ~30 tabelas |
 | **3** | Patrocinadores (D5, D7, D7a) e revisão da seção 7.6 | `work_team_sponsors`, `unique (organization_id, id)` em `sponsors`, policies `sponsor_*`, RPCs definer, storage | Alto |
 | **4** | Predefinição, aviso de impacto, tela da propriedade, limite por plano | `max_teams` | Baixo |
 | **5** | Perfis personalizados e módulos novos (8.3) | troca da chave da matriz | Alto; só com demanda |
+
+Pendente da fase 1: a tela do líder de equipe. O banco já aplica a D9
+(`lidera_equipe`, policies `work_team_members_lider_*`), mas a página
+"Equipe" só aparece no menu para quem tem o módulo `team`; o líder sem esse
+módulo ainda não tem onde gerenciar a própria equipe. Entra com as telas da
+fase 4.
 
 Fases 2 e 3 devem ir juntas para produção: escopo nos negócios sem escopo
 no patrocinador deixa a lista de patrocinadores aberta, e o contrário

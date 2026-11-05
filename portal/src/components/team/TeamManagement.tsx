@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PasswordInput } from "@/components/PasswordInput";
+import { useEquipesDeTrabalho } from "@/hooks/useEquipesDeTrabalho";
+import { equipesPorPessoa } from "@/lib/equipes";
 import { usePlanLimitNotice } from "@/hooks/usePlanLimitNotice";
 import { readEdgeFunctionError } from "@/lib/edgeFunctionError";
 import {
@@ -80,6 +83,43 @@ export type ControleDeEdicao = {
   descartar: () => void;
 };
 
+/** Equipes de trabalho que o convite leva (0042): a pessoa entra nelas ao aceitar. */
+function EscolhaDeEquipes({
+  equipes,
+  valor,
+  onChange,
+  prefixo,
+}: {
+  equipes: { id: string; name: string }[];
+  valor: string[];
+  onChange: (ids: string[]) => void;
+  prefixo: string;
+}) {
+  if (equipes.length === 0) return null;
+  return (
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-medium">Equipes de trabalho (opcional)</legend>
+      <div className="max-h-40 space-y-1.5 overflow-y-auto">
+        {equipes.map((e) => (
+          <div key={e.id} className="flex items-center gap-2">
+            <Checkbox
+              id={`${prefixo}-${e.id}`}
+              checked={valor.includes(e.id)}
+              onCheckedChange={(marcado) =>
+                onChange(marcado === true ? [...valor, e.id] : valor.filter((id) => id !== e.id))
+              }
+            />
+            <Label htmlFor={`${prefixo}-${e.id}`} className="font-normal">
+              {e.name}
+            </Label>
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground">A pessoa entra nessas equipes quando aceitar o convite.</p>
+    </fieldset>
+  );
+}
+
 export const TeamManagement = forwardRef<ControleDeEdicao, { editando: boolean }>(function TeamManagement(
   { editando },
   ref,
@@ -107,6 +147,14 @@ export const TeamManagement = forwardRef<ControleDeEdicao, { editando: boolean }
 
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [papeis, setPapeis] = useState<Record<string, OrgRole>>({});
+
+  // Equipes de trabalho: coluna, filtro e equipes do convite.
+  const { data: dadosEquipes } = useEquipesDeTrabalho(orgId);
+  const equipesAtivas = (dadosEquipes?.equipes ?? []).filter((e) => e.status === "ativo");
+  const equipesDe = equipesPorPessoa(dadosEquipes?.equipes ?? [], dadosEquipes?.membros ?? []);
+  const [filtroEquipe, setFiltroEquipe] = useState("todas");
+  const [inviteTeams, setInviteTeams] = useState<string[]>([]);
+  const [createTeams, setCreateTeams] = useState<string[]>([]);
 
   const load = async () => {
     if (!orgId) return;
@@ -201,10 +249,12 @@ export const TeamManagement = forwardRef<ControleDeEdicao, { editando: boolean }
       email: inviteEmail.trim(),
       role: inviteRole,
       organization_id: orgId,
+      team_ids: inviteTeams,
     });
     if (ok) {
       toast.success("Convite enviado", { description: "A pessoa entra na organização quando aceitar." });
       setInviteEmail("");
+      setInviteTeams([]);
       setInviteOpen(false);
       load();
     }
@@ -222,10 +272,12 @@ export const TeamManagement = forwardRef<ControleDeEdicao, { editando: boolean }
       full_name: createName,
       role: createRole,
       organization_id: orgId,
+      team_ids: createTeams,
     });
     if (ok) {
       toast.success("Usuário criado", { description: "E-mail enviado com credenciais." });
       setCreateEmail("");
+      setCreateTeams([]);
       setCreateName("");
       setCreatePassword("");
       setCreateOpen(false);
@@ -368,6 +420,7 @@ export const TeamManagement = forwardRef<ControleDeEdicao, { editando: boolean }
                       </SelectContent>
                     </Select>
                   </div>
+                  <EscolhaDeEquipes equipes={equipesAtivas} valor={inviteTeams} onChange={setInviteTeams} prefixo="convite-equipe" />
                 </div>
                 <DialogFooter>
                   <Button onClick={handleInvite} disabled={busy}>
@@ -423,6 +476,7 @@ export const TeamManagement = forwardRef<ControleDeEdicao, { editando: boolean }
                       </SelectContent>
                     </Select>
                   </div>
+                  <EscolhaDeEquipes equipes={equipesAtivas} valor={createTeams} onChange={setCreateTeams} prefixo="conta-equipe" />
                 </div>
                 <DialogFooter>
                   <Button onClick={handleCreate} disabled={busy}>
@@ -434,18 +488,36 @@ export const TeamManagement = forwardRef<ControleDeEdicao, { editando: boolean }
             </Dialog>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          {equipesAtivas.length > 0 && (
+            <Select value={filtroEquipe} onValueChange={setFiltroEquipe}>
+              <SelectTrigger className="w-56 h-8" aria-label="Filtrar por equipe">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas as equipes</SelectItem>
+                {equipesAtivas.map((e) => (
+                  <SelectItem key={e.id} value={e.id}>
+                    {e.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Papel</TableHead>
+                <TableHead>Equipes</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {members.map((m) => (
+              {members
+                .filter((m) => filtroEquipe === "todas" || equipesDe.get(m.user_id)?.some((e) => e.id === filtroEquipe))
+                .map((m) => (
                 <TableRow key={m.id}>
                   <TableCell>
                     <div className="font-medium">{m.profile?.full_name || "—"}</div>
@@ -471,6 +543,16 @@ export const TeamManagement = forwardRef<ControleDeEdicao, { editando: boolean }
                         </SelectContent>
                       </Select>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {(equipesDe.get(m.user_id) ?? []).map((e) => (
+                        <Badge key={e.id} variant="secondary" className="font-normal">
+                          {e.name}
+                        </Badge>
+                      ))}
+                      {!equipesDe.get(m.user_id)?.length && <span className="text-muted-foreground">—</span>}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge variant={m.status === "ativo" ? "outline" : "destructive"}>{m.status}</Badge>

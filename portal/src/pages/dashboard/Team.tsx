@@ -1,10 +1,11 @@
 import { useRef, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Users, Shield, History } from "lucide-react";
+import { Users, Shield, History, Network } from "lucide-react";
 import { TeamManagement, type ControleDeEdicao } from "@/components/team/TeamManagement";
 import { PermissionsMatrix } from "@/components/team/PermissionsMatrix";
 import { TeamAuditLog } from "@/components/team/TeamAuditLog";
+import { WorkTeams } from "@/components/team/WorkTeams";
 import { PageHeader } from "@/components/common/PageHeader";
 import { useOrganization } from "@/hooks/useOrganization";
 
@@ -59,6 +60,9 @@ const Team = () => {
           <TabsTrigger value="members">
             <Users className="h-4 w-4 mr-2" /> Membros
           </TabsTrigger>
+          <TabsTrigger value="teams">
+            <Network className="h-4 w-4 mr-2" /> Equipes de trabalho
+          </TabsTrigger>
           <TabsTrigger value="permissions">
             <Shield className="h-4 w-4 mr-2" /> Permissões
           </TabsTrigger>
@@ -69,6 +73,10 @@ const Team = () => {
 
         <TabsContent value="members" forceMount className="space-y-4 data-[state=inactive]:hidden">
           <TeamManagement ref={membros} editando={editando} />
+        </TabsContent>
+
+        <TabsContent value="teams">
+          <WorkTeams />
         </TabsContent>
 
         <TabsContent value="permissions" forceMount className="data-[state=inactive]:hidden">
