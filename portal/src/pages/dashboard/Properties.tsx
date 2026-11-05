@@ -34,6 +34,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { usePlanLimitNotice } from "@/hooks/usePlanLimitNotice";
 import { toast } from "sonner";
 import {
@@ -85,7 +86,7 @@ const Properties = () => {
   const avisarLimiteDoPlano = usePlanLimitNotice();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useFiltroSalvo("propriedades", "search", "");
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editing, setEditing] = useState<Property | null>(null);

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ComponentProps } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -126,18 +127,6 @@ const moveRecommendation = (items: BoardRecommendation[], id: string, direction:
   return next;
 };
 
-type AdvancedFiltersState = {
-  filterStage: string;
-  filterSponsor: string;
-  minValue: string;
-  maxValue: string;
-  closeFrom: string;
-  closeTo: string;
-  createdLastDays: string;
-  showNoActivityOnly: boolean;
-  showOverdueOnly: boolean;
-};
-
 type StageConfig = { id: Stage; label: string; color: string; slaDays: number | null };
 
 const STAGES: StageConfig[] = [
@@ -173,27 +162,6 @@ const LOSS_REASON_OPTIONS = [
   { key: "sem_fit", label: "Sem fit" },
   { key: "outros", label: "Outros" },
 ];
-
-const DEFAULT_ADVANCED_FILTERS: AdvancedFiltersState = {
-  filterStage: "all",
-  filterSponsor: "all",
-  minValue: "",
-  maxValue: "",
-  closeFrom: "",
-  closeTo: "",
-  createdLastDays: "",
-  showNoActivityOnly: false,
-  showOverdueOnly: false,
-};
-
-const getStoredAdvancedFilters = () => {
-  try {
-    const stored = localStorage.getItem("pipeline_advanced_filters");
-    return stored ? { ...DEFAULT_ADVANCED_FILTERS, ...JSON.parse(stored) } as AdvancedFiltersState : DEFAULT_ADVANCED_FILTERS;
-  } catch {
-    return DEFAULT_ADVANCED_FILTERS;
-  }
-};
 
 const formatBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(v);
@@ -323,7 +291,7 @@ export default function Pipeline() {
   const [slaDialogOpen, setSlaDialogOpen] = useState(false);
   const [slaForm, setSlaForm] = useState<Record<Stage, string>>(() => Object.fromEntries(STAGES.map((stage) => [stage.id, stage.slaDays?.toString() ?? ""])) as Record<Stage, string>);
   const [savingSlas, setSavingSlas] = useState(false);
-  const [activeFunnelId, setActiveFunnelId] = useState<string>("all");
+  const [activeFunnelId, setActiveFunnelId] = useFiltroSalvo("pipeline", "activeFunnelId", "all");
   const [properties, setProperties] = useState<Property[]>([]);
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -356,20 +324,19 @@ export default function Pipeline() {
   });
 
   // filtros
-  const initialAdvancedFilters = getStoredAdvancedFilters();
-  const [search, setSearch] = useState("");
-  const [filterProperty, setFilterProperty] = useState<string>("all");
-  const [filterAssignee, setFilterAssignee] = useState<string>("all");
-  const [filterStage, setFilterStage] = useState<string>(initialAdvancedFilters.filterStage);
-  const [filterSponsor, setFilterSponsor] = useState<string>(initialAdvancedFilters.filterSponsor);
-  const [minValue, setMinValue] = useState(initialAdvancedFilters.minValue);
-  const [maxValue, setMaxValue] = useState(initialAdvancedFilters.maxValue);
-  const [closeFrom, setCloseFrom] = useState(initialAdvancedFilters.closeFrom);
-  const [closeTo, setCloseTo] = useState(initialAdvancedFilters.closeTo);
-  const [createdLastDays, setCreatedLastDays] = useState(initialAdvancedFilters.createdLastDays);
-  const [showStaleOnly, setShowStaleOnly] = useState(false);
-  const [showNoActivityOnly, setShowNoActivityOnly] = useState(initialAdvancedFilters.showNoActivityOnly);
-  const [showOverdueOnly, setShowOverdueOnly] = useState(initialAdvancedFilters.showOverdueOnly);
+  const [search, setSearch] = useFiltroSalvo("pipeline", "search", "");
+  const [filterProperty, setFilterProperty] = useFiltroSalvo("pipeline", "filterProperty", "all");
+  const [filterAssignee, setFilterAssignee] = useFiltroSalvo("pipeline", "filterAssignee", "all");
+  const [filterStage, setFilterStage] = useFiltroSalvo("pipeline", "filterStage", "all");
+  const [filterSponsor, setFilterSponsor] = useFiltroSalvo("pipeline", "filterSponsor", "all");
+  const [minValue, setMinValue] = useFiltroSalvo("pipeline", "minValue", "");
+  const [maxValue, setMaxValue] = useFiltroSalvo("pipeline", "maxValue", "");
+  const [closeFrom, setCloseFrom] = useFiltroSalvo("pipeline", "closeFrom", "");
+  const [closeTo, setCloseTo] = useFiltroSalvo("pipeline", "closeTo", "");
+  const [createdLastDays, setCreatedLastDays] = useFiltroSalvo("pipeline", "createdLastDays", "");
+  const [showStaleOnly, setShowStaleOnly] = useFiltroSalvo("pipeline", "showStaleOnly", false);
+  const [showNoActivityOnly, setShowNoActivityOnly] = useFiltroSalvo("pipeline", "showNoActivityOnly", false);
+  const [showOverdueOnly, setShowOverdueOnly] = useFiltroSalvo("pipeline", "showOverdueOnly", false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
 
@@ -482,20 +449,6 @@ export default function Pipeline() {
   useEffect(() => {
     localStorage.setItem("pipeline_sort_mode", sortMode);
   }, [sortMode]);
-
-  useEffect(() => {
-    localStorage.setItem("pipeline_advanced_filters", JSON.stringify({
-      filterStage,
-      filterSponsor,
-      minValue,
-      maxValue,
-      closeFrom,
-      closeTo,
-      createdLastDays,
-      showNoActivityOnly,
-      showOverdueOnly,
-    }));
-  }, [filterStage, filterSponsor, minValue, maxValue, closeFrom, closeTo, createdLastDays, showNoActivityOnly, showOverdueOnly]);
 
   const propertiesById = useMemo(
     () => Object.fromEntries(properties.map((p) => [p.id, p.name])),

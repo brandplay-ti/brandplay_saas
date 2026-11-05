@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -70,8 +71,10 @@ const CalendarPage = () => {
   const [items, setItems] = useState<CalItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string>(toKey(new Date()));
-  const [filterSource, setFilterSource] = useState<string>("todos");
-  const [showDone, setShowDone] = useState(false);
+  const [filterSource, setFilterSource] = useFiltroSalvo("calendario", "filterSource", "todos", {
+    permitidos: ["todos", "crm", "atividade", "checklist"],
+  });
+  const [showDone, setShowDone] = useFiltroSalvo("calendario", "showDone", false);
 
   const monthStart = useMemo(() => new Date(cursor.getFullYear(), cursor.getMonth(), 1), [cursor]);
   const monthEnd = useMemo(() => new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0), [cursor]);

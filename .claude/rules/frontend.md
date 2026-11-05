@@ -42,6 +42,18 @@ está migrando (ver `.claude/rules/architecture.md`). Não é obrigatório
 reescrever telas existentes que já usam o padrão manual fora do escopo da
 tarefa.
 
+## Filtros de listagem
+
+Filtro de tela de listagem (busca, status, ordenação, "mostrar arquivados")
+usa o `useFiltroSalvo` (`portal/src/hooks/useFiltroSalvo.ts`, issue #51), não
+`useState` nem `localStorage` direto. Ele tem a assinatura do `useState`,
+guarda o valor por organização ativa (`brandplay:filtros:<org>:<tela>`) e
+descarta valor salvo de tipo errado ou fora de `permitidos`. Nomeie a tela em
+PT-BR (`"propostas"`, `"brandtrack-uploads"`); na área `/admin`, passe
+`{ escopo: "plataforma" }`. Para select de opções fixas, passe o tipo e
+`permitidos`. Preferência de visualização (modo kanban/lista) não é filtro e
+fica fora.
+
 ## Performance
 
 Não otimizar prematuramente. Antes de usar `useMemo`, `useCallback` ou

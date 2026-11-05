@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -74,6 +75,13 @@ const addDaysInput = (days: number) => {
 const formatDateBR = (value: string | null) => value ? new Date(`${value}T00:00:00`).toLocaleDateString("pt-BR") : "prazo a definir";
 const escapeHtml = (value: string | number) => String(value ?? "").replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char] ?? char));
 
+const VALIDITY_FILTERS = ["all", "expired", "7d", "30d", "none"] as const;
+type ValidityFilter = (typeof VALIDITY_FILTERS)[number];
+const VALUE_FILTERS = ["all", "under10k", "10k50k", "50k100k", "100kplus"] as const;
+type ValueFilter = (typeof VALUE_FILTERS)[number];
+const PROPOSAL_SORTS = ["recent", "oldest", "value_desc", "value_asc", "title", "validity"] as const;
+type ProposalSort = (typeof PROPOSAL_SORTS)[number];
+
 export default function Proposals() {
   const confirm = useConfirm();
   const { user } = useAuth();
@@ -91,14 +99,14 @@ export default function Proposals() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [sponsorFilter, setSponsorFilter] = useState("all");
-  const [propertyFilter, setPropertyFilter] = useState("all");
-  const [validityFilter, setValidityFilter] = useState<"all" | "expired" | "7d" | "30d" | "none">("all");
-  const [valueFilter, setValueFilter] = useState<"all" | "under10k" | "10k50k" | "50k100k" | "100kplus">("all");
-  const [sortBy, setSortBy] = useState<"recent" | "oldest" | "value_desc" | "value_asc" | "title" | "validity">("recent");
-  const [showFilters, setShowFilters] = useState(false);
+  const [search, setSearch] = useFiltroSalvo("propostas", "search", "");
+  const [statusFilter, setStatusFilter] = useFiltroSalvo("propostas", "statusFilter", "all");
+  const [sponsorFilter, setSponsorFilter] = useFiltroSalvo("propostas", "sponsorFilter", "all");
+  const [propertyFilter, setPropertyFilter] = useFiltroSalvo("propostas", "propertyFilter", "all");
+  const [validityFilter, setValidityFilter] = useFiltroSalvo<ValidityFilter>("propostas", "validityFilter", "all", { permitidos: VALIDITY_FILTERS });
+  const [valueFilter, setValueFilter] = useFiltroSalvo<ValueFilter>("propostas", "valueFilter", "all", { permitidos: VALUE_FILTERS });
+  const [sortBy, setSortBy] = useFiltroSalvo<ProposalSort>("propostas", "sortBy", "recent", { permitidos: PROPOSAL_SORTS });
+  const [showFilters, setShowFilters] = useFiltroSalvo("propostas", "showFilters", false);
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: "", brand: "", sponsor_id: "", property_id: "", valid_until: "", message: "" });
