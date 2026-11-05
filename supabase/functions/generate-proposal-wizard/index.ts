@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
     const sponsorId = corpo?.sponsor_id ? uuidDoCorpo(corpo, "sponsor_id") : null;
     const propertyId = corpo?.property_id ? uuidDoCorpo(corpo, "property_id") : null;
     if (!brand || !objective) throw new ErroDaRequisicao(400, "brand e objective são obrigatórios");
-    await exigirModulo(cliente, usuario.id, org, "crm");
+    await exigirModulo(cliente, usuario.id, org, "vendas");
 
     let propriedade: Linha | null = null;
     let ativos: Linha[] = [];

@@ -61,7 +61,7 @@ const logoUrl = (p: string | null) =>
 
 export default function Sponsors() {
   const { user } = useAuth();
-  const { orgId, can, isAdmin } = useOrganization();
+  const { orgId, can, clientType, isAdmin } = useOrganization();
   const navigate = useNavigate();
 
   const [rows, setRows] = useState<SponsorRow[]>([]);
@@ -278,8 +278,12 @@ export default function Sponsors() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Patrocinadores"
-        description="Conta 360º: relacionamento, negociações, contratos, entregas e resultados."
+        title={clientType === "marca" ? "Marcas" : "Patrocinadores"}
+        description={
+          clientType === "marca"
+            ? "As marcas do grupo que patrocinam: contratos, entregas e resultados."
+            : "Conta 360º: relacionamento, negociações, contratos, entregas e resultados."
+        }
         icon={Users}
         actions={
           <>

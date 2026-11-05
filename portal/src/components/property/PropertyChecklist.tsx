@@ -102,7 +102,8 @@ const fmtDate = (s?: string | null) =>
 
 export default function PropertyChecklist({ propertyId, ownerId }: Props) {
   const confirm = useConfirm();
-  const { orgId } = useOrganization();
+  const { orgId, can } = useOrganization();
+  const temVendas = can("vendas");
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [deliveries, setDeliveries] = useState<DeliveryRef[]>([]);
   const [events, setEvents] = useState<EventRef[]>([]);
@@ -454,7 +455,7 @@ export default function PropertyChecklist({ propertyId, ownerId }: Props) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
+              {temVendas && <div className="space-y-1.5">
                 <Label>Oportunidade</Label>
                 <Select
                   value={form.opportunity_id || "none"}
@@ -481,7 +482,7 @@ export default function PropertyChecklist({ propertyId, ownerId }: Props) {
                       ))}
                   </SelectContent>
                 </Select>
-              </div>
+              </div>}
             </div>
             <div className="space-y-1.5">
               <Label>Vincular a um evento</Label>

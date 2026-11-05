@@ -164,7 +164,9 @@ const computeAutoStatus = (c: Contract): Status => {
 
 export default function Contracts() {
   const { user } = useAuth();
-  const { orgId } = useOrganization();
+  const { orgId, can } = useOrganization();
+  // Sem o funil (marca, ou papel sem vendas), o contrato nasce direto.
+  const temVendas = can("vendas");
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
@@ -363,19 +365,23 @@ export default function Contracts() {
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Novo contrato</DialogTitle>
-                  <DialogDescription>Cadastre um contrato manual ou a partir de uma oportunidade.</DialogDescription>
+                  <DialogDescription>
+                    {temVendas ? "Cadastre um contrato manual ou a partir de uma oportunidade." : "Cadastre o contrato de patrocínio."}
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-2">
-                  <div className="grid gap-2">
-                    <Label>Origem (oportunidade)</Label>
-                    <Select value={form.opportunity_id} onValueChange={handlePickOpportunity}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Manual (sem oportunidade)</SelectItem>
-                        {opportunities.map((o) => (<SelectItem key={o.id} value={o.id}>{o.brand}</SelectItem>))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {temVendas && (
+                    <div className="grid gap-2">
+                      <Label>Origem (oportunidade)</Label>
+                      <Select value={form.opportunity_id} onValueChange={handlePickOpportunity}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Manual (sem oportunidade)</SelectItem>
+                          {opportunities.map((o) => (<SelectItem key={o.id} value={o.id}>{o.brand}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
@@ -651,6 +657,7 @@ function ContractDetail({
   const [uploading, setUploading] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [generatingReport, setGeneratingReport] = useState(false);
   const [generatingDocx, setGeneratingDocx] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [hasTemplate, setHasTemplate] = useState(false);
@@ -1037,6 +1044,27 @@ function ContractDetail({
     toast.success("Contrato em PDF gerado");
   };
 
+  // Prestação de contas pelo contrato (0044): vale também sem oportunidade, como na marca.
+  const handleDeliveryReport = async () => {
+    if (!contract.organization_id) return;
+    setGeneratingReport(true);
+    const { data, error } = await supabase.functions.invoke("generate-delivery-report", {
+      body: { contract_id: contract.id, organization_id: contract.organization_id },
+    });
+    setGeneratingReport(false);
+    if (error || !data?.pdf) {
+      toast.error("Erro ao gerar relatório de entregas");
+      return;
+    }
+    const link = document.createElement("a");
+    link.href = `data:application/pdf;base64,${data.pdf}`;
+    link.download = data.file_name || `relatorio-entrega-${contract.brand}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    toast.success("Relatório de entregas gerado");
+  };
+
   const handleGenerateDocx = async () => {
     if (!clauses.length) {
       toast.error("Gere a estrutura de cláusulas antes de exportar o documento");
@@ -1144,6 +1172,10 @@ function ContractDetail({
               <Button size="sm" variant="outline" onClick={handleGenerateDocx} disabled={generatingDocx}>
                 <FileText className="h-3.5 w-3.5 mr-1" />
                 {generatingDocx ? "Gerando..." : "Gerar Word"}
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleDeliveryReport} disabled={generatingReport}>
+                <FileText className="h-3.5 w-3.5 mr-1" />
+                {generatingReport ? "Gerando..." : "Relatório de entregas"}
               </Button>
               <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
                 <Pencil className="h-3.5 w-3.5 mr-1" />Editar
@@ -1544,6 +1576,7 @@ function EditContractDialog({
   opportunities: Opportunity[];
   onSaved: () => void;
 }) {
+  const { can } = useOrganization();
   const [form, setForm] = useState({
     contract_number: contract.contract_number ?? "",
     title: contract.title,
@@ -1632,16 +1665,18 @@ function EditContractDialog({
           <DialogDescription>Atualize qualquer informação do contrato.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-2">
-          <div className="grid gap-2">
-            <Label>Oportunidade vinculada</Label>
-            <Select value={form.opportunity_id} onValueChange={(v) => setForm({ ...form, opportunity_id: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhuma</SelectItem>
-                {opportunities.map((o) => (<SelectItem key={o.id} value={o.id}>{o.brand}</SelectItem>))}
-              </SelectContent>
-            </Select>
-          </div>
+          {can("vendas") && (
+            <div className="grid gap-2">
+              <Label>Oportunidade vinculada</Label>
+              <Select value={form.opportunity_id} onValueChange={(v) => setForm({ ...form, opportunity_id: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma</SelectItem>
+                  {opportunities.map((o) => (<SelectItem key={o.id} value={o.id}>{o.brand}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">

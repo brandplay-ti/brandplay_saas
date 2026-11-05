@@ -53,7 +53,11 @@ interface Contact { id: string; name: string; role: string | null; email: string
 
 export default function SponsorDetail() {
   const { id } = useParams();
-  const { orgId, can } = useOrganization();
+  const { orgId, can, clientType } = useOrganization();
+  // Sem o módulo vendas (marca, ou papel sem acesso): sem negociações,
+  // propostas, preparação de reunião nem renovação pelo funil.
+  const temVendas = can("vendas");
+  const marca = clientType === "marca";
   const [sponsor, setSponsor] = useState<Sponsor | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [opportunities, setOpportunities] = useState<any[]>([]);
@@ -220,9 +224,11 @@ export default function SponsorDetail() {
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
         {[
-          { label: "Em negociação", value: formatBRL(metrics.openValue), hint: `${metrics.openOpps.length} negociação(ões)` },
+          ...(temVendas
+            ? [{ label: "Em negociação", value: formatBRL(metrics.openValue), hint: `${metrics.openOpps.length} negociação(ões)` }]
+            : []),
           { label: "Contratado ativo", value: formatBRL(metrics.contractedValue), hint: `${metrics.activeContracts.length} contrato(s)` },
-          { label: "Recebido", value: formatBRL(metrics.paidValue), hint: `${installments.filter((i) => i.status === "pago").length} parcela(s)` },
+          { label: marca ? "Pago" : "Recebido", value: formatBRL(metrics.paidValue), hint: `${installments.filter((i) => i.status === "pago").length} parcela(s)` },
           { label: "Em atraso", value: formatBRL(metrics.overdueValue), hint: `${metrics.overdue.length} parcela(s)` },
           { label: "Entregas aprovadas", value: String(metrics.approvedDeliveries), hint: `${metrics.lateDeliveries.length} atrasada(s)` },
         ].map((k) => (
@@ -239,7 +245,7 @@ export default function SponsorDetail() {
           <TabsTrigger value="sobre">Sobre & Dados</TabsTrigger>
           <TabsTrigger value="relacionamento"><Activity className="h-4 w-4 mr-2" /> Relacionamento</TabsTrigger>
           <TabsTrigger value="contatos">Contatos</TabsTrigger>
-          <TabsTrigger value="comercial"><Handshake className="h-4 w-4 mr-2" /> Comercial</TabsTrigger>
+          {temVendas && <TabsTrigger value="comercial"><Handshake className="h-4 w-4 mr-2" /> Comercial</TabsTrigger>}
           <TabsTrigger value="contratos"><FileText className="h-4 w-4 mr-2" /> Contratos</TabsTrigger>
           <TabsTrigger value="entregas"><Package className="h-4 w-4 mr-2" /> Entregas</TabsTrigger>
           <TabsTrigger value="marcas"><Tag className="h-4 w-4 mr-2" /> Marcas</TabsTrigger>
@@ -359,7 +365,7 @@ export default function SponsorDetail() {
           ))}
         </TabsContent>
 
-        <TabsContent value="comercial" className="pt-4 space-y-3">
+        {temVendas && <TabsContent value="comercial" className="pt-4 space-y-3">
           <Card>
             <CardHeader className="pb-2"><CardTitle className="text-base">Negociações</CardTitle></CardHeader>
             <CardContent className="space-y-2">
@@ -390,7 +396,7 @@ export default function SponsorDetail() {
               ))}
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent>}
 
         <TabsContent value="contratos" className="pt-4 space-y-3">
           <Card>
@@ -405,7 +411,7 @@ export default function SponsorDetail() {
                   </div>
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium">{formatBRL(Number(c.total_value ?? 0))}</p>
-                    {editable && c.status === "ativo" && (
+                    {editable && temVendas && c.status === "ativo" && (
                       <Button size="sm" variant="outline" onClick={() => createRenewal(c.id)}>
                         <RefreshCw className="h-4 w-4 mr-2" /> Gerar renovação
                       </Button>
@@ -471,7 +477,7 @@ export default function SponsorDetail() {
 
 
         <TabsContent value="ia" className="pt-4 space-y-4">
-          <MeetingPrepAI sponsorId={sponsor.id} onTaskCreated={() => load({ silent: true })} />
+          {temVendas && <MeetingPrepAI sponsorId={sponsor.id} onTaskCreated={() => load({ silent: true })} />}
           <NextStepsAI context="sponsor" targetId={sponsor.id} />
         </TabsContent>
 

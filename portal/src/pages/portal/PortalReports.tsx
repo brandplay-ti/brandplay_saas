@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSponsorAccess } from "@/hooks/useSponsorAccess";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, ExternalLink } from "lucide-react";
+import { Briefcase, ExternalLink, Presentation } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
@@ -22,6 +23,58 @@ interface Property {
 
 const coverUrl = (p: string | null) =>
   p ? supabase.storage.from("property-media").getPublicUrl(p).data.publicUrl : null;
+
+/**
+ * Relatórios de resultado publicados para os patrocinadores do usuário. A RLS
+ * (`reports_sponsor_portal_read`, 0040) só devolve os publicados do próprio
+ * patrocinador; a página abre pela `report-view`, que confere o mesmo acesso.
+ */
+function RelatoriosPublicados({ sponsorIds }: { sponsorIds: string[] }) {
+  const { data: relatorios } = useQuery({
+    queryKey: ["portal", "relatorios", sponsorIds],
+    enabled: sponsorIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("reports")
+        .select("id, slug, title, subtitle, published_at")
+        .in("sponsor_id", sponsorIds)
+        .eq("status", "publicado")
+        .order("published_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+  if (!relatorios?.length) return null;
+  return (
+    <section className="space-y-3" aria-labelledby="relatorios-publicados">
+      <h2 id="relatorios-publicados" className="text-lg font-semibold">
+        Relatórios de resultado
+      </h2>
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+        {relatorios.map((r) => (
+          <Card key={r.id}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Presentation className="h-4 w-4 text-primary" aria-hidden /> {r.title}
+              </CardTitle>
+              {r.subtitle && <p className="text-xs text-muted-foreground">{r.subtitle}</p>}
+            </CardHeader>
+            <CardContent>
+              <a
+                href={`/r/${r.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+              >
+                <ExternalLink className="h-4 w-4" /> Abrir relatório
+              </a>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export default function PortalReports() {
   const { accesses } = useSponsorAccess();
@@ -68,6 +121,8 @@ export default function PortalReports() {
         description="Acesse os mídia kits e materiais das propriedades onde você é patrocinador."
         icon={Briefcase}
       />
+
+      <RelatoriosPublicados sponsorIds={sponsorIds} />
 
       {loading ? (
         <LoadingSkeleton variant="cards" count={3} />

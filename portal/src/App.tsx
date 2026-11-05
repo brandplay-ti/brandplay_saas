@@ -9,6 +9,7 @@ import { DocumentTitle } from "@/components/DocumentTitle";
 import { ConfirmProvider } from "@/hooks/useConfirm";
 import Landing from "./pages/Landing";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { ModuleRoute } from "./components/ModuleRoute";
 import { PageLoader } from "@/components/PageLoader";
 import { lazyPage } from "@/lib/lazyPage";
 
@@ -19,6 +20,7 @@ const EsqueciSenha = lazyPage(() => import("./pages/EsqueciSenha"));
 const ResetarSenha = lazyPage(() => import("./pages/ResetarSenha"));
 const OrganizationSetup = lazyPage(() => import("./pages/onboarding/OrganizationSetup"));
 const PublicMediaKit = lazyPage(() => import("./pages/PublicMediaKit"));
+const RelatorioPublico = lazyPage(() => import("./pages/RelatorioPublico"));
 const DashboardLayout = lazyPage(() => import("./pages/dashboard/DashboardLayout"));
 const Dashboard = lazyPage(() => import("./pages/dashboard/Dashboard"));
 const Properties = lazyPage(() => import("./pages/dashboard/Properties"));
@@ -33,6 +35,8 @@ const SponsorDetail = lazyPage(() => import("./pages/dashboard/SponsorDetail"));
 const Proposals = lazyPage(() => import("./pages/dashboard/Proposals"));
 const LeadScoring = lazyPage(() => import("./pages/dashboard/LeadScoring"));
 const Reports = lazyPage(() => import("./pages/dashboard/Reports"));
+const RelatoriosDeResultado = lazyPage(() => import("./pages/dashboard/RelatoriosDeResultado"));
+const RelatorioEditor = lazyPage(() => import("./pages/dashboard/RelatorioEditor"));
 const Notifications = lazyPage(() => import("./pages/dashboard/Notifications"));
 const CalendarPage = lazyPage(() => import("./pages/dashboard/Calendar"));
 const PortalAccess = lazyPage(() => import("./pages/dashboard/PortalAccess"));
@@ -90,6 +94,7 @@ const App = () => (
           <Route path="/resetar-senha" element={<ResetarSenha />} />
           <Route path="/onboarding/organizacao" element={<OrganizationSetup />} />
           <Route path="/p/:slug" element={<PublicMediaKit />} />
+          <Route path="/r/:slug" element={<RelatorioPublico />} />
           <Route path="/portal/login" element={<PortalLogin />} />
           <Route path="/portal" element={<PortalLayout />}>
             <Route index element={<PortalDeliveries />} />
@@ -110,13 +115,15 @@ const App = () => (
             <Route path="ativos" element={<Assets />} />
             <Route path="patrocinadores" element={<Sponsors />} />
             <Route path="patrocinadores/:id" element={<SponsorDetail />} />
-            <Route path="propostas" element={<Proposals />} />
-            <Route path="lead-scoring" element={<LeadScoring />} />
-            <Route path="pipeline" element={<Pipeline />} />
+            <Route path="propostas" element={<ModuleRoute module="vendas"><Proposals /></ModuleRoute>} />
+            <Route path="lead-scoring" element={<ModuleRoute module="vendas"><LeadScoring /></ModuleRoute>} />
+            <Route path="pipeline" element={<ModuleRoute module="vendas"><Pipeline /></ModuleRoute>} />
             <Route path="entregas" element={<Deliveries />} />
             <Route path="contratos" element={<Contracts />} />
             <Route path="financeiro" element={<Finance />} />
             <Route path="relatorios" element={<Reports />} />
+            <Route path="relatorios/paginas" element={<RelatoriosDeResultado />} />
+            <Route path="relatorios/paginas/:id" element={<RelatorioEditor />} />
             <Route path="calendario" element={<CalendarPage />} />
             <Route path="notificacoes" element={<Notifications />} />
             <Route path="portal-access" element={<PortalAccess />} />

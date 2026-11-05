@@ -2938,6 +2938,7 @@ export type Database = {
           address_number: string | null
           address_state: string | null
           address_street: string | null
+          client_type: string
           cnpj: string | null
           created_at: string
           currency: string
@@ -2964,6 +2965,7 @@ export type Database = {
           address_number?: string | null
           address_state?: string | null
           address_street?: string | null
+          client_type?: string
           cnpj?: string | null
           created_at?: string
           currency?: string
@@ -2990,6 +2992,7 @@ export type Database = {
           address_number?: string | null
           address_state?: string | null
           address_street?: string | null
+          client_type?: string
           cnpj?: string | null
           created_at?: string
           currency?: string
@@ -3417,6 +3420,91 @@ export type Database = {
           },
         ]
       }
+      property_indicators: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          format: string
+          group_name: string | null
+          id: string
+          label: string
+          organization_id: string
+          position: number
+          prefix: string | null
+          property_id: string
+          reference_date: string | null
+          show_zero: boolean
+          source: string | null
+          sponsor_id: string | null
+          suffix: string | null
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          format?: string
+          group_name?: string | null
+          id?: string
+          label: string
+          organization_id: string
+          position?: number
+          prefix?: string | null
+          property_id: string
+          reference_date?: string | null
+          show_zero?: boolean
+          source?: string | null
+          sponsor_id?: string | null
+          suffix?: string | null
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          format?: string
+          group_name?: string | null
+          id?: string
+          label?: string
+          organization_id?: string
+          position?: number
+          prefix?: string | null
+          property_id?: string
+          reference_date?: string | null
+          show_zero?: boolean
+          source?: string | null
+          sponsor_id?: string | null
+          suffix?: string | null
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_indicators_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_indicators_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "sports_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_indicators_sponsor_id_fkey"
+            columns: ["sponsor_id"]
+            isOneToOne: false
+            referencedRelation: "sponsors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       property_leads: {
         Row: {
           budget_range: string | null
@@ -3500,7 +3588,9 @@ export type Database = {
       property_media: {
         Row: {
           caption: string | null
+          contains_minors: boolean
           created_at: string
+          event_id: string | null
           external_url: string | null
           id: string
           is_cover: boolean
@@ -3509,13 +3599,17 @@ export type Database = {
           owner_id: string
           position: number
           property_id: string
+          sponsor_id: string | null
           storage_path: string | null
+          tags: string[]
           thumbnail_url: string | null
           updated_at: string
         }
         Insert: {
           caption?: string | null
+          contains_minors?: boolean
           created_at?: string
+          event_id?: string | null
           external_url?: string | null
           id?: string
           is_cover?: boolean
@@ -3524,13 +3618,17 @@ export type Database = {
           owner_id: string
           position?: number
           property_id: string
+          sponsor_id?: string | null
           storage_path?: string | null
+          tags?: string[]
           thumbnail_url?: string | null
           updated_at?: string
         }
         Update: {
           caption?: string | null
+          contains_minors?: boolean
           created_at?: string
+          event_id?: string | null
           external_url?: string | null
           id?: string
           is_cover?: boolean
@@ -3539,11 +3637,20 @@ export type Database = {
           owner_id?: string
           position?: number
           property_id?: string
+          sponsor_id?: string | null
           storage_path?: string | null
+          tags?: string[]
           thumbnail_url?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "property_media_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "property_events"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "property_media_organization_id_fkey"
             columns: ["organization_id"]
@@ -3556,6 +3663,123 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "sports_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_media_sponsor_id_fkey"
+            columns: ["sponsor_id"]
+            isOneToOne: false
+            referencedRelation: "sponsors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_posts: {
+        Row: {
+          comments: number | null
+          created_at: string
+          created_by: string | null
+          event_id: string | null
+          external_id: string | null
+          id: string
+          is_highlight: boolean
+          kind: string
+          likes: number | null
+          metrics_checked_at: string | null
+          metrics_source: string
+          metrics_updated_at: string | null
+          network: string
+          organization_id: string
+          position: number
+          property_id: string
+          published_at: string | null
+          shares: number | null
+          source_name: string | null
+          sponsor_id: string | null
+          title: string | null
+          updated_at: string
+          url: string
+          views: number | null
+        }
+        Insert: {
+          comments?: number | null
+          created_at?: string
+          created_by?: string | null
+          event_id?: string | null
+          external_id?: string | null
+          id?: string
+          is_highlight?: boolean
+          kind?: string
+          likes?: number | null
+          metrics_checked_at?: string | null
+          metrics_source?: string
+          metrics_updated_at?: string | null
+          network: string
+          organization_id: string
+          position?: number
+          property_id: string
+          published_at?: string | null
+          shares?: number | null
+          source_name?: string | null
+          sponsor_id?: string | null
+          title?: string | null
+          updated_at?: string
+          url: string
+          views?: number | null
+        }
+        Update: {
+          comments?: number | null
+          created_at?: string
+          created_by?: string | null
+          event_id?: string | null
+          external_id?: string | null
+          id?: string
+          is_highlight?: boolean
+          kind?: string
+          likes?: number | null
+          metrics_checked_at?: string | null
+          metrics_source?: string
+          metrics_updated_at?: string | null
+          network?: string
+          organization_id?: string
+          position?: number
+          property_id?: string
+          published_at?: string | null
+          shares?: number | null
+          source_name?: string | null
+          sponsor_id?: string | null
+          title?: string | null
+          updated_at?: string
+          url?: string
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_posts_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "property_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_posts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_posts_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "sports_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_posts_sponsor_id_fkey"
+            columns: ["sponsor_id"]
+            isOneToOne: false
+            referencedRelation: "sponsors"
             referencedColumns: ["id"]
           },
         ]
@@ -3788,6 +4012,113 @@ export type Database = {
           },
           {
             foreignKeyName: "proposals_sponsor_id_fkey"
+            columns: ["sponsor_id"]
+            isOneToOne: false
+            referencedRelation: "sponsors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          access_mode: string
+          contract_id: string | null
+          created_at: string
+          created_by: string | null
+          cta_label: string | null
+          cta_url: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          download_url: string | null
+          hidden_blocks: string[]
+          id: string
+          organization_id: string
+          property_id: string
+          published_at: string | null
+          published_by: string | null
+          slug: string
+          sponsor_id: string | null
+          status: string
+          style: string
+          subtitle: string | null
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          access_mode?: string
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          cta_url?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          download_url?: string | null
+          hidden_blocks?: string[]
+          id?: string
+          organization_id: string
+          property_id: string
+          published_at?: string | null
+          published_by?: string | null
+          slug: string
+          sponsor_id?: string | null
+          status?: string
+          style?: string
+          subtitle?: string | null
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          access_mode?: string
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          cta_url?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          download_url?: string | null
+          hidden_blocks?: string[]
+          id?: string
+          organization_id?: string
+          property_id?: string
+          published_at?: string | null
+          published_by?: string | null
+          slug?: string
+          sponsor_id?: string | null
+          status?: string
+          style?: string
+          subtitle?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "sports_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_sponsor_id_fkey"
             columns: ["sponsor_id"]
             isOneToOne: false
             referencedRelation: "sponsors"
@@ -5506,6 +5837,10 @@ export type Database = {
         Args: { _comentario: string; _horas: number; _org_id: string }
         Returns: Json
       }
+      admin_alterar_tipo_de_cliente: {
+        Args: { _comentario: string; _org_id: string; _tipo: string }
+        Returns: Json
+      }
       admin_cliente_detalhe: { Args: { _org_id: string }; Returns: Json }
       admin_clientes: {
         Args: never
@@ -5630,6 +5965,14 @@ export type Database = {
         Returns: Json
       }
       admin_sessao_suporte_ativa: { Args: never; Returns: Json }
+      admin_tipo_de_cliente: { Args: { _org_id: string }; Returns: Json }
+      admin_tipos_de_cliente: {
+        Args: never
+        Returns: {
+          client_type: string
+          organization_id: string
+        }[]
+      }
       archive_sponsor: {
         Args: { _reason: string; _sponsor_id: string }
         Returns: undefined
@@ -5786,8 +6129,17 @@ export type Database = {
         Args: { _contract_id: string; _proposal_id: string }
         Returns: undefined
       }
+      corrigir_tipo_de_cliente: {
+        Args: { _org_id: string; _tipo: string }
+        Returns: string
+      }
       create_organization_with_owner: {
-        Args: { _cnpj?: string; _name: string; _owner_id: string }
+        Args: {
+          _client_type?: string
+          _cnpj?: string
+          _name: string
+          _owner_id: string
+        }
         Returns: string
       }
       create_renewal_opportunity: {
@@ -5802,6 +6154,10 @@ export type Database = {
       generate_contract_installments: {
         Args: { _contract_id: string }
         Returns: undefined
+      }
+      get_contract_delivery_report_data: {
+        Args: { _contract_id: string }
+        Returns: Json
       }
       get_delivery_report_data: {
         Args: { _contract_id?: string; _opportunity_id: string }
@@ -5932,6 +6288,10 @@ export type Database = {
         Args: { _duplicate_id: string; _target_id: string }
         Returns: Json
       }
+      modulo_disponivel: {
+        Args: { _module: string; _org_id: string }
+        Returns: boolean
+      }
       organizacao_do_registro_pai: {
         Args: { _linha: Json; _tabela: string }
         Returns: Record<string, unknown>
@@ -5956,6 +6316,22 @@ export type Database = {
       recusar_convite_de_organizacao: {
         Args: { _invite_id: string }
         Returns: undefined
+      }
+      relatorio_slug: { Args: { _titulo: string }; Returns: string }
+      report_landing_acesso: {
+        Args: { _slug: string }
+        Returns: {
+          access_mode: string
+          id: string
+          organization_id: string
+          property_id: string
+          sponsor_id: string
+          status: string
+        }[]
+      }
+      report_landing_data: {
+        Args: { _publico: boolean; _report_id: string }
+        Returns: Json
       }
       safe_uuid: { Args: { value: string }; Returns: string }
       semear_permissoes_da_organizacao: {

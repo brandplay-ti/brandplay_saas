@@ -23,7 +23,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
-import { ACESSO_DE_MODULO, MODULOS_DE_PERMISSAO, PAPEIS_DE_PERMISSAO, type AcessoDeModulo } from "@/lib/permissoes";
+import {
+  ACESSO_DE_MODULO,
+  MODULOS_DE_PERMISSAO,
+  PAPEIS_DE_PERMISSAO,
+  TIPOS_DE_CLIENTE,
+  type AcessoDeModulo,
+} from "@/lib/permissoes";
 import { ESCOPO_DE_PERMISSAO } from "@/lib/equipes";
 
 type LogRow = {
@@ -58,6 +64,7 @@ const ACTION_META: Record<string, { icon: any; label: string; color: string }> =
   member_revoked: { icon: UserX, label: "Acesso revogado", color: "text-destructive" },
   member_reactivated: { icon: ShieldCheck, label: "Acesso reativado", color: "text-primary" },
   permission_changed: { icon: UserCog, label: "Permissão alterada", color: "text-primary" },
+  client_type_changed: { icon: UserCog, label: "Tipo de cliente corrigido", color: "text-primary" },
   scope_changed: { icon: UserCog, label: "Escopo alterado", color: "text-primary" },
   team_created: { icon: Network, label: "Equipe criada", color: "text-primary" },
   team_updated: { icon: Pencil, label: "Equipe editada", color: "text-primary" },
@@ -145,6 +152,12 @@ export const TeamAuditLog = () => {
                           {MODULOS_DE_PERMISSAO.find((m) => m.key === r.metadata?.module)?.label ?? r.metadata?.module}
                           : {ACESSO_DE_MODULO[r.metadata?.before as AcessoDeModulo] ?? r.metadata?.before} →{" "}
                           {ACESSO_DE_MODULO[r.metadata?.after as AcessoDeModulo] ?? r.metadata?.after}
+                        </Badge>
+                      )}
+                      {r.action === "client_type_changed" && (
+                        <Badge variant="secondary" className="text-xs font-normal">
+                          {TIPOS_DE_CLIENTE.find((t) => t.key === r.metadata?.before)?.label ?? r.metadata?.before} →{" "}
+                          {TIPOS_DE_CLIENTE.find((t) => t.key === r.metadata?.after)?.label ?? r.metadata?.after}
                         </Badge>
                       )}
                       {r.action === "scope_changed" && (

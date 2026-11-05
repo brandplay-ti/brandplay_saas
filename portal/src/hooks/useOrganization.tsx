@@ -2,7 +2,14 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { logBackendDbError } from "@/lib/backendErrorLogger";
-import { podeVerModulo, podeVerModuloPadrao, type AcessoDeModulo, type ModuloDePermissao } from "@/lib/permissoes";
+import {
+  moduloDisponivel,
+  podeVerModulo,
+  podeVerModuloPadrao,
+  type AcessoDeModulo,
+  type ModuloDePermissao,
+  type TipoDeCliente,
+} from "@/lib/permissoes";
 
 export type OrgRole = "owner" | "admin" | "comercial" | "operacional" | "financeiro";
 
@@ -11,6 +18,8 @@ export type OrgSummary = {
   name: string;
   role: OrgRole;
   logo_path?: string | null;
+  /** Tipo de cliente (0043). Sem leitura da organização, agência. */
+  client_type?: TipoDeCliente;
   /** Sessão de suporte do superadmin nesta organização (0035). Não é membership. */
   suporte?: { id: string; expires_at: string };
 };
@@ -22,8 +31,10 @@ type OrganizationContextValue = {
   orgName: string;
   orgLogoPath: string | null;
   role: OrgRole | null;
+  /** Tipo de cliente da organização ativa. A marca não tem funil (módulo `vendas`). */
+  clientType: TipoDeCliente;
   isAdmin: boolean;
-  can: (module: "crm" | "operacional" | "financeiro" | "team") => boolean;
+  can: (module: ModuloDePermissao) => boolean;
   loading: boolean;
   organizations: OrgSummary[];
   switchOrganization: (newOrgId: string) => void;
@@ -33,7 +44,7 @@ type OrganizationContextValue = {
 type OrganizationMemberRow = {
   role: OrgRole;
   organization_id: string;
-  organization: { name: string | null; logo_path: string | null } | null;
+  organization: { name: string | null; logo_path: string | null; client_type: string | null } | null;
 };
 
 const OrganizationContext = createContext<OrganizationContextValue | null>(null);
@@ -43,6 +54,7 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
   const [orgId, setOrgIdState] = useState<string | null>(null);
   const [orgName, setOrgName] = useState<string>("");
   const [orgLogoPath, setOrgLogoPath] = useState<string | null>(null);
+  const [clientType, setClientType] = useState<TipoDeCliente>("agencia");
   const [role, setRole] = useState<OrgRole | null>(null);
   const [organizations, setOrganizations] = useState<OrgSummary[]>([]);
   const [grants, setGrants] = useState<
@@ -53,7 +65,7 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
   const loadOrganizations = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from("organization_members")
-      .select("role, organization_id, organization:organizations(name, logo_path)")
+      .select("role, organization_id, organization:organizations(name, logo_path, client_type)")
       .eq("user_id", userId)
       .eq("status", "ativo")
       .order("created_at", { ascending: true });
@@ -74,6 +86,7 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
       name: m.organization?.name ?? "",
       role: m.role as OrgRole,
       logo_path: m.organization?.logo_path ?? null,
+      client_type: m.organization?.client_type === "marca" ? "marca" : "agencia",
     }));
 
     const { data: sessaoRaw, error: erroSessao } = await supabase.rpc("admin_sessao_suporte_ativa");
@@ -89,11 +102,18 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
       if (existente) {
         existente.suporte = suporte;
       } else {
+        // A sessão vale como membro (is_org_member, 0035): a organização é legível.
+        const { data: orgDoSuporte } = await supabase
+          .from("organizations")
+          .select("client_type")
+          .eq("id", sessao.organization_id)
+          .maybeSingle();
         list.push({
           id: sessao.organization_id,
           name: sessao.organization_name ?? "Organização em suporte",
           role: "admin",
           logo_path: null,
+          client_type: orgDoSuporte?.client_type === "marca" ? "marca" : "agencia",
           suporte,
         });
       }
@@ -131,6 +151,7 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
       setOrgName("");
       setRole(null);
       setOrgLogoPath(null);
+      setClientType("agencia");
       return;
     }
     const stored = desiredId ?? localStorage.getItem(ACTIVE_ORG_KEY);
@@ -139,6 +160,7 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
     setOrgName(found.name);
     setRole(found.role);
     setOrgLogoPath(found.logo_path ?? null);
+    setClientType(found.client_type ?? "agencia");
     localStorage.setItem(ACTIVE_ORG_KEY, found.id);
   }, []);
 
@@ -163,6 +185,7 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
         setOrgName(found.name);
         setRole(found.role);
         setOrgLogoPath(found.logo_path ?? null);
+        setClientType(found.client_type ?? "agencia");
       }
       window.location.reload();
     },
@@ -177,8 +200,9 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
 
   const value = useMemo<OrganizationContextValue>(() => {
     const isAdmin = role === "owner" || role === "admin";
+    // Mesmo teto do banco (modulo_disponivel); o banco continua sendo a fronteira.
     const can = (module: ModuloDePermissao) => {
-      if (!role) return false;
+      if (!role || !moduloDisponivel(clientType, module)) return false;
       if (!grants) return podeVerModuloPadrao(role, module);
       const acesso = grants.find((g) => g.organization_id === orgId && g.role === role && g.module === module)?.access;
       return podeVerModulo(acesso);
@@ -188,6 +212,7 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
       orgName,
       orgLogoPath,
       role,
+      clientType,
       isAdmin,
       can,
       loading,
@@ -195,7 +220,7 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
       switchOrganization,
       refresh,
     };
-  }, [orgId, orgName, orgLogoPath, role, loading, organizations, grants, switchOrganization, refresh]);
+  }, [orgId, orgName, orgLogoPath, clientType, role, loading, organizations, grants, switchOrganization, refresh]);
 
   return <OrganizationContext.Provider value={value}>{children}</OrganizationContext.Provider>;
 };
@@ -210,6 +235,7 @@ export const useOrganization = (): OrganizationContextValue => {
     orgName: "",
     orgLogoPath: null,
     role: null,
+    clientType: "agencia",
     isAdmin: false,
     can: () => false,
     loading: false,

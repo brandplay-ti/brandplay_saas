@@ -139,6 +139,9 @@ const FERRAMENTAS: Ferramenta[] = [
   },
 ];
 
+/** Ferramentas do funil: só para quem lê o módulo `vendas` (a marca não tem funil). */
+const FERRAMENTAS_DO_FUNIL = new Set(["search_opportunities", "create_opportunity_activity"]);
+
 const SISTEMA = `Você é o "BrandAI", assistente do CRM de patrocínio esportivo.
 Você ajuda o usuário a entender seu pipeline, patrocinadores, contratos, entregas e finanças.
 
@@ -393,6 +396,11 @@ Deno.serve(async (req) => {
       if (error) console.error(`${FUNCIONALIDADE}: mensagem não gravada (${error.code ?? "?"})`);
     };
 
+    const { data: lerVendas } = await cliente.rpc("can_access_module", {
+      _user_id: usuario.id, _org_id: org, _module: "vendas", _write: false,
+    });
+    const ferramentas = lerVendas === true ? FERRAMENTAS : FERRAMENTAS.filter((f) => !FERRAMENTAS_DO_FUNIL.has(f.nome));
+
     const mensagens: Mensagem[] = [...historico, { papel: "usuario", conteudo: pergunta }];
     const deps = dependenciasDaCamada();
     let perguntaGravada = false;
@@ -404,7 +412,7 @@ Deno.serve(async (req) => {
         nivel: "padrao",
         sistema: SISTEMA,
         mensagens,
-        ferramentas: FERRAMENTAS,
+        ferramentas,
         maxTokens: 4096,
       }, deps);
 
