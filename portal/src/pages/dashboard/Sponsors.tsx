@@ -103,7 +103,7 @@ export default function Sponsors() {
         .order("name"),
       db.from("opportunities").select("id,sponsor_id,stage,value").eq("organization_id", orgId).not("sponsor_id", "is", null),
       db.from("contracts").select("id,sponsor_id,status,total_value").eq("organization_id", orgId).not("sponsor_id", "is", null),
-      db.from("installments").select("id,sponsor_id,status").not("sponsor_id", "is", null),
+      db.from("installments").select("id,sponsor_id,status").eq("organization_id", orgId).not("sponsor_id", "is", null),
       db.from("deliveries").select("id,sponsor_id,status,due_date").eq("organization_id", orgId).not("sponsor_id", "is", null),
       supabase.from("organization_members").select("user_id").eq("organization_id", orgId).eq("status", "ativo"),
     ]);

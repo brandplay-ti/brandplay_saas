@@ -41,6 +41,7 @@ import { DueDateEditor } from "@/components/common/DueDateEditor";
 import { TaskInsightsButton } from "@/components/common/TaskInsightsButton";
 import { dataLocal } from "@/lib/datas";
 import { useConfirm } from "@/hooks/useConfirm";
+import { useOrganization } from "@/hooks/useOrganization";
 
 interface ChecklistItem {
   id: string;
@@ -101,6 +102,7 @@ const fmtDate = (s?: string | null) =>
 
 export default function PropertyChecklist({ propertyId, ownerId }: Props) {
   const confirm = useConfirm();
+  const { orgId } = useOrganization();
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [deliveries, setDeliveries] = useState<DeliveryRef[]>([]);
   const [events, setEvents] = useState<EventRef[]>([]);
@@ -138,10 +140,13 @@ export default function PropertyChecklist({ propertyId, ownerId }: Props) {
         .select("id, title, starts_at")
         .eq("property_id", propertyId)
         .order("starts_at", { ascending: false }),
-      supabase.from("sponsors").select("id, name").order("name"),
+      // Patrocinadores e oportunidades da organização ativa (a RLS também
+      // libera as de outras organizações do usuário e o portal do patrocinador).
+      supabase.from("sponsors").select("id, name").eq("organization_id", orgId ?? "").order("name"),
       supabase
         .from("opportunities")
         .select("id, brand, sponsor_id")
+        .eq("organization_id", orgId ?? "")
         .order("created_at", { ascending: false }),
     ]);
     setItems((itemsRes.data as ChecklistItem[]) ?? []);
@@ -155,7 +160,7 @@ export default function PropertyChecklist({ propertyId, ownerId }: Props) {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propertyId]);
+  }, [propertyId, orgId]);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useOrganization } from "@/hooks/useOrganization";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +62,7 @@ const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 const CalendarPage = () => {
   const { user } = useAuth();
+  const { orgId } = useOrganization();
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -75,7 +77,7 @@ const CalendarPage = () => {
   const monthEnd = useMemo(() => new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0), [cursor]);
 
   const load = async () => {
-    if (!user) return;
+    if (!user || !orgId) return;
     setLoading(true);
     const from = toKey(monthStart);
     const to = toKey(monthEnd);
@@ -86,6 +88,7 @@ const CalendarPage = () => {
         .select(
           "id,title,description,status,due_date,task_type,priority,sponsor_id,sponsors(name),opportunity_id,opportunities(id,brand,stage,value,sponsor_id,sponsors(name))",
         )
+        .eq("organization_id", orgId)
         .gte("due_date", from)
         .lte("due_date", to),
       db
@@ -93,11 +96,13 @@ const CalendarPage = () => {
         .select(
           "id,title,description,status,due_date,activity_type,opportunity_id,opportunities(id,brand,stage,value,sponsor_id,sponsors(name))",
         )
+        .eq("organization_id", orgId)
         .gte("due_date", `${from}T00:00:00`)
         .lte("due_date", `${to}T23:59:59`),
       db
         .from("property_checklist_items")
         .select("id,title,description,status,due_date,property_id,sports_properties(name)")
+        .eq("organization_id", orgId)
         .gte("due_date", from)
         .lte("due_date", to),
     ]);
@@ -163,7 +168,7 @@ const CalendarPage = () => {
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, cursor]);
+  }, [user, orgId, cursor]);
 
   const visible = useMemo(
     () => items.filter((i) => (filterSource === "todos" || i.source === filterSource) && (showDone || !i.done)),

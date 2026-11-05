@@ -96,16 +96,18 @@ const BrandTrackExpectedBrands = () => {
 
   useEffect(() => {
     void loadBase();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId]);
 
   useEffect(() => {
     if (eventId) void loadExpected(eventId);
   }, [eventId]);
 
   const loadBase = async () => {
+    if (!orgId) return;
     const [{ data: ev }, { data: sp }] = await Promise.all([
-      db.from("brandtrack_events").select("id,name").order("created_at", { ascending: false }),
-      supabase.from("sponsors").select("id,name,logo_path,sponsor_crm_profiles(tags,score,segment),sponsor_brandtrack_profiles(detection_aliases)").order("name"),
+      db.from("brandtrack_events").select("id,name").eq("organization_id", orgId).order("created_at", { ascending: false }),
+      supabase.from("sponsors").select("id,name,logo_path,sponsor_crm_profiles(tags,score,segment),sponsor_brandtrack_profiles(detection_aliases)").eq("organization_id", orgId).order("name"),
     ]);
     setEvents(ev ?? []);
     setSponsors(((sp ?? []) as any[]).map((s) => {
@@ -113,7 +115,7 @@ const BrandTrackExpectedBrands = () => {
       const bt = Array.isArray(s.sponsor_brandtrack_profiles) ? s.sponsor_brandtrack_profiles[0] : s.sponsor_brandtrack_profiles;
       return { id: s.id, name: s.name, logo_path: s.logo_path, tags: bt?.detection_aliases?.length ? bt.detection_aliases : crm?.tags ?? [], score: crm?.score ?? "morno", segment: crm?.segment ?? null };
     }));
-    if ((ev ?? []).length > 0) setEventId((ev ?? [])[0].id);
+    setEventId((ev ?? [])[0]?.id ?? "");
   };
 
   const loadExpected = async (selectedEventId: string) => {

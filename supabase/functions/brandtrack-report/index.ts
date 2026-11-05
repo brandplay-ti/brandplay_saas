@@ -11,7 +11,7 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const { event_id } = await req.json();
+    const { event_id, organization_id } = await req.json();
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
@@ -21,7 +21,10 @@ Deno.serve(async (req) => {
     if (!userRes?.user) throw new Error("Unauthorized");
 
     // Use userClient (respects RLS) so only the caller's org data is returned
+    // A organização ativa só estreita o que a RLS já libera: sem ela, "todos os
+    // eventos" misturaria as mídias de todas as organizações do usuário.
     let mediaQuery = userClient.from("brandtrack_media").select("id, title, event_id, organization_id");
+    if (organization_id) mediaQuery = mediaQuery.eq("organization_id", organization_id);
     if (event_id) mediaQuery = mediaQuery.eq("event_id", event_id);
     const { data: medias } = await mediaQuery;
     const mediaIds = (medias ?? []).map((m: { id: string }) => m.id);
@@ -62,8 +65,12 @@ Deno.serve(async (req) => {
 
     // Logos (marca própria ou patrocinador) para exibição padronizada no relatório
     const [{ data: btBrands }, { data: sponsorRows }] = await Promise.all([
-      userClient.from("brandtrack_brands").select("name, logo_path"),
-      userClient.from("sponsors").select("name, logo_path"),
+      orgDaMidia
+        ? userClient.from("brandtrack_brands").select("name, logo_path").eq("organization_id", orgDaMidia)
+        : userClient.from("brandtrack_brands").select("name, logo_path"),
+      orgDaMidia
+        ? userClient.from("sponsors").select("name, logo_path").eq("organization_id", orgDaMidia)
+        : userClient.from("sponsors").select("name, logo_path"),
     ]);
     const logoByName = new Map<string, string>();
     for (const row of [...(sponsorRows ?? []), ...(btBrands ?? [])] as { name: string; logo_path: string | null }[]) {
