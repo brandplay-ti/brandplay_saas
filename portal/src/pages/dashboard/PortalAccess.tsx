@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useConfirm } from "@/hooks/useConfirm";
+import { useOrganization } from "@/hooks/useOrganization";
 import { PageHeader } from "@/components/common/PageHeader";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
@@ -55,6 +56,7 @@ interface InviteRow {
 
 export default function PortalAccess() {
   const confirm = useConfirm();
+  const { orgId } = useOrganization();
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [selectedSponsor, setSelectedSponsor] = useState<string>("");
   const [email, setEmail] = useState("");
@@ -66,32 +68,36 @@ export default function PortalAccess() {
   const [inviting, setInviting] = useState(false);
 
   const load = async () => {
+    if (!orgId) return;
     setLoading(true);
     const [spRes, accRes, invRes] = await Promise.all([
-      supabase.from("sponsors").select("id,name").order("name"),
+      supabase.from("sponsors").select("id,name").eq("organization_id", orgId).order("name"),
       supabase
         .from("sponsor_portal_access")
         .select(
           "id,sponsor_id,user_id,status,created_at,sponsors(name)",
         )
+        .eq("organization_id", orgId)
         .order("created_at", { ascending: false }),
       supabase
         .from("sponsor_invites")
         .select("id,sponsor_id,email,token,status,expires_at,sponsors(name)")
+        .eq("organization_id", orgId)
         .order("created_at", { ascending: false }),
     ]);
     setSponsors((spRes.data ?? []) as Sponsor[]);
     setAccesses((await withProfileNames(accRes.data ?? [])) as any);
     setInvites((invRes.data ?? []) as any);
-    if (!selectedSponsor && spRes.data && spRes.data.length > 0) {
-      setSelectedSponsor(spRes.data[0].id);
-    }
+    // Mantém o patrocinador escolhido só se ele for da organização ativa.
+    const lista = spRes.data ?? [];
+    setSelectedSponsor((atual) => (lista.some((s) => s.id === atual) ? atual : (lista[0]?.id ?? "")));
     setLoading(false);
   };
 
   useEffect(() => {
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId]);
 
   const callManage = async (
     action: "activate" | "invite" | "revoke",

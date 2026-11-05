@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -84,6 +85,7 @@ const statusConfig: Record<InstallmentStatus, { label: string; tone: StatusTone 
 
 export default function Finance() {
   const { user } = useAuth();
+  const { orgId } = useOrganization();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -93,7 +95,7 @@ export default function Finance() {
   const [paidAmount, setPaidAmount] = useState("");
 
   const load = async () => {
-    if (!user) return;
+    if (!user || !orgId) return;
     setLoading(true);
     // Marca vencidas no servidor
     await supabase.rpc("mark_overdue_installments", { _owner: user.id });
@@ -101,6 +103,7 @@ export default function Finance() {
     const { data, error } = await supabase
       .from("installments")
       .select("*, contracts!inner(title,brand,contract_number)")
+      .eq("organization_id", orgId)
       .order("due_date", { ascending: true });
 
     if (error) {
@@ -131,7 +134,7 @@ export default function Finance() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, orgId]);
 
   const filtered = useMemo(() => {
     return rows.filter((r) => {

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LayoutGrid, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useOrganization } from "@/hooks/useOrganization";
 
 interface Tier {
   id: string;
@@ -17,17 +18,19 @@ interface Property { id: string; name: string; }
 interface Sale { tier_id: string; status: string; }
 
 export function QuotaHeatmapWidget() {
+  const { orgId } = useOrganization();
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
+    if (!orgId) return;
     setLoading(true);
     const [t, p, s] = await Promise.all([
-      supabase.from("sponsorship_tiers").select("id,name,level,property_id,total_slots,value"),
-      supabase.from("sports_properties").select("id,name"),
-      supabase.from("tier_sales").select("tier_id,status").neq("status", "cancelada"),
+      supabase.from("sponsorship_tiers").select("id,name,level,property_id,total_slots,value").eq("organization_id", orgId),
+      supabase.from("sports_properties").select("id,name").eq("organization_id", orgId),
+      supabase.from("tier_sales").select("tier_id,status").eq("organization_id", orgId).neq("status", "cancelada"),
     ]);
     setTiers((t.data ?? []) as Tier[]);
     setProperties((p.data ?? []) as Property[]);
@@ -35,7 +38,8 @@ export function QuotaHeatmapWidget() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [orgId]);
 
   const grid = useMemo(() => {
     return properties

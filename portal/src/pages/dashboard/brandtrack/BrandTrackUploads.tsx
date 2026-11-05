@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/hooks/useOrganization";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,6 +62,7 @@ const exposureLabels: Record<string, string> = {
 };
 
 const BrandTrackUploads = () => {
+  const { orgId } = useOrganization();
   const confirm = useConfirm();
   const { user } = useAuth();
   const [medias, setMedias] = useState<Media[]>([]);
@@ -135,13 +137,15 @@ const BrandTrackUploads = () => {
     return () => {
       void supabase.removeChannel(ch);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId]);
 
   const load = async () => {
+    if (!orgId) return;
     const [{ data: m }, { data: ev }, { data: props }] = await Promise.all([
-      db.from("brandtrack_media").select("*, detections:brandtrack_detections(id,brand_name,corrected_brand_name,bes_score,confidence,screen_percentage,exposure_type,start_time,evidence_path,review_status)").order("created_at", { ascending: false }),
-      supabase.from("brandtrack_events").select("id,name,property_id").order("created_at", { ascending: false }),
-      supabase.from("sports_properties").select("id,name,organization_id").order("name", { ascending: true }),
+      db.from("brandtrack_media").select("*, detections:brandtrack_detections(id,brand_name,corrected_brand_name,bes_score,confidence,screen_percentage,exposure_type,start_time,evidence_path,review_status)").eq("organization_id", orgId).order("created_at", { ascending: false }),
+      supabase.from("brandtrack_events").select("id,name,property_id").eq("organization_id", orgId).order("created_at", { ascending: false }),
+      supabase.from("sports_properties").select("id,name,organization_id").eq("organization_id", orgId).order("name", { ascending: true }),
     ]);
     setMedias(m ?? []);
     setEvents((ev ?? []) as any);

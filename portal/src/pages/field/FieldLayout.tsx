@@ -2,6 +2,7 @@ import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { Suspense, useEffect } from "react";
 import { PageLoader } from "@/components/PageLoader";
 import { useAuth } from "@/hooks/useAuth";
+import { OrganizationProvider } from "@/hooks/useOrganization";
 import { Truck, ListChecks, ArrowLeft, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,9 +53,13 @@ const FieldLayout = () => {
       </header>
 
       <main className="flex-1 pb-20">
-        <Suspense fallback={<PageLoader />}>
-          <Outlet />
-        </Suspense>
+        {/* Mesma organização ativa do painel: sem ela, as listas misturavam
+            todas as organizações do usuário. */}
+        <OrganizationProvider>
+          <Suspense fallback={<PageLoader />}>
+            <Outlet />
+          </Suspense>
+        </OrganizationProvider>
       </main>
 
       <nav className="fixed bottom-0 inset-x-0 z-40 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">

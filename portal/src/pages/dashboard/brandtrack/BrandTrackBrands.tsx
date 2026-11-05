@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/hooks/useOrganization";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +43,7 @@ const statusLabels: Record<string, string> = {
 const normalize = (value: string) => value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
 
 const BrandTrackBrands = () => {
+  const { orgId } = useOrganization();
   const [rows, setRows] = useState<Row[]>([]);
   const [expected, setExpected] = useState<ExpectedBrand[]>([]);
   const [search, setSearch] = useState("");
@@ -49,12 +51,14 @@ const BrandTrackBrands = () => {
 
   useEffect(() => {
     void load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId]);
 
   const load = async () => {
+    if (!orgId) return;
     const [{ data: detections }, { data: expectedBrands }] = await Promise.all([
-      supabase.from("brandtrack_detections").select("*").neq("review_status", "rejeitada"),
-      db.from("brandtrack_event_brands").select("id,event_id,display_name,aliases,sponsor_status,is_active").eq("is_active", true),
+      supabase.from("brandtrack_detections").select("*").eq("organization_id", orgId).neq("review_status", "rejeitada"),
+      db.from("brandtrack_event_brands").select("id,event_id,display_name,aliases,sponsor_status,is_active").eq("organization_id", orgId).eq("is_active", true),
     ]);
 
     const expectedList = (expectedBrands ?? []) as ExpectedBrand[];
