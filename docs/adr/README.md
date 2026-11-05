@@ -9,6 +9,7 @@
 - 0007 Cobrança por organização com Stripe (teste grátis, limites no banco)
 - 0008 Superadmin da plataforma (papel em tabela própria, leitura mínima, auditoria)
 - 0010 IA multi-fornecedor com chave por organização (substitui 0003)
+- 0012 Equipes de trabalho e escopo por projeto (sub-escopo dentro da organização)
 
 Use `NNNN-titulo-curto.md`. Status possíveis: Proposed, Accepted, Superseded,
 Deprecated. Não apague decisões históricas; supersede-as com uma ADR nova que

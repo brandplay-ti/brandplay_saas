@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Mail, UserPlus, ShieldAlert, ShieldCheck, RotateCcw, UserCog, UserX } from "lucide-react";
+import { Loader2, Mail, MailX, UserCheck, UserPlus, ShieldAlert, ShieldCheck, RotateCcw, UserCog, UserX } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +31,8 @@ const ACTION_META: Record<string, { icon: any; label: string; color: string }> =
   invite_sent: { icon: Mail, label: "Convite enviado", color: "text-primary" },
   invite_resent: { icon: RotateCcw, label: "Convite reenviado", color: "text-primary" },
   invite_revoked: { icon: ShieldAlert, label: "Convite revogado", color: "text-destructive" },
+  invite_accepted: { icon: UserCheck, label: "Convite aceito", color: "text-primary" },
+  invite_declined: { icon: MailX, label: "Convite recusado", color: "text-muted-foreground" },
   member_created: { icon: UserPlus, label: "Membro adicionado", color: "text-primary" },
   role_changed: { icon: UserCog, label: "Papel alterado", color: "text-primary" },
   member_revoked: { icon: UserX, label: "Acesso revogado", color: "text-destructive" },
