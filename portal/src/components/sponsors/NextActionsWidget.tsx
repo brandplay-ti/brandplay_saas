@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
 
 type Row = {
@@ -24,15 +25,18 @@ const fmtDate = (iso: string) => {
 const isOverdue = (iso: string) => new Date(iso).getTime() < Date.now();
 
 export const NextActionsWidget = () => {
+  const { orgId } = useOrganization();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState<string | null>(null);
 
   const load = async () => {
+    if (!orgId) return;
     setLoading(true);
     const { data, error } = await supabase
       .from("sponsor_interactions")
       .select("id, sponsor_id, title, next_action, next_action_at, sponsor:sponsors(name)")
+      .eq("organization_id", orgId)
       .eq("next_action_done", false)
       .not("next_action_at", "is", null)
       .order("next_action_at", { ascending: true })
@@ -47,7 +51,8 @@ export const NextActionsWidget = () => {
 
   useEffect(() => {
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId]);
 
   const markDone = async (id: string) => {
     setCompleting(id);

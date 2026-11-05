@@ -74,10 +74,11 @@ export function NextStepsAI({ context, targetId, opportunityId, ownerId, propert
   };
 
   const loadProperties = async () => {
-    if (properties) return;
+    if (properties || !orgId) return;
     const { data, error } = await supabase
       .from("sports_properties")
       .select("id,name")
+      .eq("organization_id", orgId)
       .order("name", { ascending: true });
     if (error) {
       toast.error("Erro ao carregar propriedades");

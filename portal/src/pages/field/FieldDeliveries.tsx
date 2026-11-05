@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useOrganization } from "@/hooks/useOrganization";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/common/StatusBadge";
@@ -37,6 +38,7 @@ const statusConfig: Record<string, { label: string; icon: typeof Clock; tone: St
 
 const FieldDeliveries = () => {
   const { user } = useAuth();
+  const { orgId } = useOrganization();
   const [items, setItems] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"todos" | "pendentes" | "entregues">("pendentes");
@@ -46,16 +48,17 @@ const FieldDeliveries = () => {
   const [assetCategories, setAssetCategories] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !orgId) return;
     (async () => {
       setLoading(true);
       const [{ data }, { data: assets }] = await Promise.all([
         supabase
           .from("deliveries")
           .select("id, title, brand, status, approval, due_date, delivered_at, evidence_url, property_id, quantity, asset_type")
+          .eq("organization_id", orgId)
           .order("due_date", { ascending: true, nullsFirst: false })
           .limit(200),
-        supabase.from("assets").select("name, category"),
+        supabase.from("assets").select("name, category").eq("organization_id", orgId),
       ]);
       const map: Record<string, string> = {};
       for (const a of assets ?? []) {
@@ -65,7 +68,7 @@ const FieldDeliveries = () => {
       setItems((data as Delivery[]) || []);
       setLoading(false);
     })();
-  }, [user]);
+  }, [user, orgId]);
 
   // Categoria conforme o módulo de Ativos (casada pelo nome do ativo/entrega)
   const categoryOf = useMemo(

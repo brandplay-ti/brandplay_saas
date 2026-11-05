@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useOrganization } from "@/hooks/useOrganization";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -22,16 +23,20 @@ type EventRow = {
 
 const FieldEvents = () => {
   const { user } = useAuth();
+  const { orgId } = useOrganization();
   const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !orgId) return;
     (async () => {
       setLoading(true);
       const { data: evs } = await supabase
         .from("property_events")
         .select("id, title, starts_at, ends_at, location, status, property_id, sports_properties(name)")
+        // Sem este filtro, a policy pública (0017) trazia eventos de propriedades
+        // publicadas de qualquer organização.
+        .eq("organization_id", orgId)
         .gte("starts_at", new Date(Date.now() - 7 * 86400000).toISOString())
         .order("starts_at", { ascending: true })
         .limit(50);
@@ -62,7 +67,7 @@ const FieldEvents = () => {
       );
       setLoading(false);
     })();
-  }, [user]);
+  }, [user, orgId]);
 
   return (
     <div className="px-4 pt-4 space-y-4">

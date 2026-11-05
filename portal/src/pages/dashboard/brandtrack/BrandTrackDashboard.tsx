@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/hooks/useOrganization";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -46,6 +47,7 @@ const PALETTE = [
 ];
 
 const BrandTrackDashboard = () => {
+  const { orgId } = useOrganization();
   const [loading, setLoading] = useState(true);
   const [brands, setBrands] = useState<BrandAgg[]>([]);
   const [types, setTypes] = useState<TypeAgg[]>([]);
@@ -61,14 +63,17 @@ const BrandTrackDashboard = () => {
 
   useEffect(() => {
     void load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId]);
 
   const load = async () => {
+    if (!orgId) return;
     setLoading(true);
     const { data: dets } = await supabase
       .from("brandtrack_detections")
-      .select("*, media:brandtrack_media(title, created_at)");
-    const { data: brandsData } = await supabase.from("brandtrack_brands").select("name, color");
+      .select("*, media:brandtrack_media(title, created_at)")
+      .eq("organization_id", orgId);
+    const { data: brandsData } = await supabase.from("brandtrack_brands").select("name, color").eq("organization_id", orgId);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const colorMap = new Map((brandsData ?? []).map((b: any) => [b.name.toLowerCase(), b.color]));
 

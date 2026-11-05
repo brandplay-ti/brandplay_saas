@@ -106,10 +106,18 @@ const Properties = () => {
   const [loadingAssets, setLoadingAssets] = useState(false);
 
   const load = async () => {
+    // Sem organização ativa não há o que listar. A RLS libera todas as
+    // organizações do usuário (e o portal do patrocinador); a tela mostra só a ativa.
+    if (!orgId) {
+      setProperties([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const { data, error } = await supabase
       .from("sports_properties")
       .select("*")
+      .eq("organization_id", orgId)
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     setProperties((data as Property[]) ?? []);
@@ -154,7 +162,8 @@ const Properties = () => {
 
   useEffect(() => {
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId]);
 
   const emptyForm = {
     name: "",
