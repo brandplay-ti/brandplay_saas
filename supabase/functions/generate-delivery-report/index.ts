@@ -52,8 +52,15 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const { opportunity_id, organization_id, contract_id } = body;
-    if (!isUuid(opportunity_id) || !isUuid(organization_id) || (contract_id != null && !isUuid(contract_id))) {
-      return new Response(JSON.stringify({ error: "opportunity_id e organization_id são obrigatórios (uuid); contract_id, se enviado, também" }), {
+    // Pela oportunidade (funil) ou só pelo contrato (0044): a marca não tem
+    // oportunidade e gera o relatório a partir do contrato.
+    const peloContrato = opportunity_id == null && isUuid(contract_id);
+    if (
+      !isUuid(organization_id) ||
+      (!peloContrato && !isUuid(opportunity_id)) ||
+      (contract_id != null && !isUuid(contract_id))
+    ) {
+      return new Response(JSON.stringify({ error: "organization_id e opportunity_id ou contract_id são obrigatórios (uuid)" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -73,15 +80,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify opportunity belongs to organization
-    const { data: oppCheck } = await userClient
-      .from("opportunities")
+    // O registro de origem precisa ser legível pelo usuário, sob RLS, nesta
+    // organização (a oportunidade some para a marca; o contrato, não).
+    const { data: origem } = await userClient
+      .from(peloContrato ? "contracts" : "opportunities")
       .select("id")
-      .eq("id", opportunity_id)
+      .eq("id", peloContrato ? contract_id : opportunity_id)
       .eq("organization_id", organization_id)
       .maybeSingle();
-    if (!oppCheck) {
-      return new Response(JSON.stringify({ error: "Oportunidade não encontrada" }), {
+    if (!origem) {
+      return new Response(JSON.stringify({ error: peloContrato ? "Contrato não encontrado" : "Oportunidade não encontrada" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -91,10 +99,12 @@ Deno.serve(async (req) => {
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
-    const { data: reportData, error: reportError } = await adminClient.rpc("get_delivery_report_data", {
-      _opportunity_id: opportunity_id,
-      _contract_id: contract_id || null,
-    });
+    const { data: reportData, error: reportError } = peloContrato
+      ? await adminClient.rpc("get_contract_delivery_report_data", { _contract_id: contract_id })
+      : await adminClient.rpc("get_delivery_report_data", {
+        _opportunity_id: opportunity_id,
+        _contract_id: contract_id || null,
+      });
     if (reportError) {
       console.error("get_delivery_report_data error", reportError);
       return new Response(JSON.stringify({ error: "Erro ao consolidar dados do relatório" }), {
@@ -111,11 +121,15 @@ Deno.serve(async (req) => {
     }
 
     const report = reportData as {
-      opportunity: { id: string; brand: string; value: number };
+      // `opportunity` vem de get_delivery_report_data; `subject`, do contrato (0044).
+      opportunity?: { id: string; brand: string; value: number };
+      subject?: { brand: string; value: number };
       contract: { id: string; title: string; total_value: number; start_date: string; end_date: string } | null;
       deliveries: { id: string; title: string; description: string; quantity: number; due_date: string; status: string; approval: string }[];
       evidence: { id: string; media_url: string; media_type: string; brand: string; detection_confidence: number; detected_at: string; event_name: string | null }[];
     };
+
+    const assunto = report.opportunity ?? report.subject ?? { brand: "", value: 0 };
 
     const pdf = await PDFDocument.create();
     const font = await pdf.embedFont(StandardFonts.Helvetica);
@@ -166,13 +180,13 @@ Deno.serve(async (req) => {
       tituloX = left + 64;
     }
     text("Relatório de Entrega", { x: tituloX, y: 822, size: 18, bold: true, color: rgb(1, 1, 1) });
-    text(`Marca: ${report.opportunity.brand}`, { x: tituloX, y: 807, size: 9, color: rgb(1, 1, 1) });
+    text(`Marca: ${assunto.brand}`, { x: tituloX, y: 807, size: 9, color: rgb(1, 1, 1) });
     y = 780;
 
     // Opportunity summary
-    text("Oportunidade", { bold: true, size: 13 });
+    text(report.opportunity ? "Oportunidade" : "Patrocínio", { bold: true, size: 13 });
     y -= 18;
-    text(`Valor: ${fmtMoney(report.opportunity.value)}`, { color: MUTED, size: 10 });
+    text(`Valor: ${fmtMoney(assunto.value)}`, { color: MUTED, size: 10 });
     y -= 14;
 
     // Contract summary
@@ -237,7 +251,7 @@ Deno.serve(async (req) => {
 
     const pdfBytes = await pdf.save();
     const base64 = btoa(String.fromCharCode(...new Uint8Array(pdfBytes)));
-    const fileName = `relatorio-entrega-${report.opportunity.brand.toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 10)}.pdf`;
+    const fileName = `relatorio-entrega-${assunto.brand.toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 10)}.pdf`;
 
     return new Response(JSON.stringify({ file_name: fileName, pdf: base64 }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -165,14 +165,15 @@ export const buildAnalytics = ({
   };
 };
 
-export const AnalyticsTab = (props: AnalyticsInput) => {
+/** `semFunil`: sem o módulo vendas (marca), somem os blocos que vêm das oportunidades. */
+export const AnalyticsTab = ({ semFunil = false, ...props }: AnalyticsInput & { semFunil?: boolean }) => {
   const a = useMemo(() => buildAnalytics(props), [props]);
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <MiniKpi label="Ticket médio por contrato" value={fmtMoney(a.ticketMedio)} />
-        <MiniKpi label="Ciclo médio de venda" value={`${a.cicloMedio.toFixed(0)} dias`} />
+        {!semFunil && <MiniKpi label="Ciclo médio de venda" value={`${a.cicloMedio.toFixed(0)} dias`} />}
         <MiniKpi label="Adimplência" value={`${a.adimplencia.toFixed(1)}%`} />
         <MiniKpi label="Entregas no prazo" value={`${a.slaRate.toFixed(1)}%`} />
       </div>
@@ -193,7 +194,7 @@ export const AnalyticsTab = (props: AnalyticsInput) => {
           </CardContent>
         </Card>
 
-        <Card>
+        {!semFunil && <Card>
           <CardHeader><CardTitle>Evolução mensal de negócios</CardTitle></CardHeader>
           <CardContent className="h-64">
             <ResponsiveContainer>
@@ -208,10 +209,10 @@ export const AnalyticsTab = (props: AnalyticsInput) => {
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
-        </Card>
+        </Card>}
       </div>
 
-      <Card>
+      {!semFunil && <Card>
         <CardHeader><CardTitle>Conversão entre etapas</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           {a.conversionRows.map((c) => (
@@ -226,7 +227,7 @@ export const AnalyticsTab = (props: AnalyticsInput) => {
             </div>
           ))}
         </CardContent>
-      </Card>
+      </Card>}
 
       <Card>
         <CardHeader><CardTitle>Receita por propriedade</CardTitle></CardHeader>
@@ -258,7 +259,7 @@ export const AnalyticsTab = (props: AnalyticsInput) => {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
+        {!semFunil && <Card>
           <CardHeader><CardTitle>Motivos de perda</CardTitle></CardHeader>
           <CardContent>
             <Table>
@@ -290,7 +291,7 @@ export const AnalyticsTab = (props: AnalyticsInput) => {
               </div>
             )}
           </CardContent>
-        </Card>
+        </Card>}
 
         <Card>
           <CardHeader><CardTitle>Entregas por categoria</CardTitle></CardHeader>

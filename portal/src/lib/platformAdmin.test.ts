@@ -62,6 +62,13 @@ describe("filterClients", () => {
     expect(filterClients(lista, { ...todos, source: "none" }).map((c) => c.organization_id)).toEqual(["3"]);
     expect(filterClients(lista, { ...todos, planId: "pro" }).map((c) => c.organization_id)).toEqual(["2"]);
   });
+
+  it("filtra por tipo de cliente; sem tipo carregado conta como agência", () => {
+    const comTipo = [cliente({ organization_id: "4", name: "Marca X", client_type: "marca" }), ...lista];
+    expect(filterClients(comTipo, { ...todos, clientType: "marca" }).map((c) => c.organization_id)).toEqual(["4"]);
+    expect(filterClients(comTipo, { ...todos, clientType: "agencia" }).map((c) => c.organization_id)).toEqual(["1", "2", "3"]);
+    expect(filterClients(comTipo, { ...todos, clientType: "todos" })).toHaveLength(4);
+  });
 });
 
 describe("summarizeClients", () => {

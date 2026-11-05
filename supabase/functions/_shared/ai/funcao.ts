@@ -37,7 +37,7 @@ export class ErroDaRequisicao extends Error {
   }
 }
 
-export const MODULOS = ["crm", "operacional", "financeiro"] as const;
+export const MODULOS = ["crm", "vendas", "operacional", "financeiro"] as const;
 export type Modulo = typeof MODULOS[number];
 
 export interface Requisicao {

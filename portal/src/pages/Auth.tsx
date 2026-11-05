@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/Logo";
 import { PasswordInput } from "@/components/PasswordInput";
+import { ClientTypeField } from "@/components/organization/ClientTypeField";
+import type { TipoDeCliente } from "@/lib/permissoes";
 import { linkParaEsqueciSenha } from "@/lib/recuperacaoSenha";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
@@ -19,6 +21,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [company, setCompany] = useState("");
+  const [clientType, setClientType] = useState<TipoDeCliente>("agencia");
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const { user, loading } = useAuth();
@@ -38,7 +41,8 @@ const Auth = () => {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/onboarding/organizacao`,
-            data: { full_name: fullName, company },
+            // handle_new_user grava o tipo na organização nova (0043).
+            data: { full_name: fullName, company, client_type: clientType },
           },
         });
         if (error) throw error;
@@ -123,6 +127,10 @@ const Auth = () => {
                     onChange={(e) => setCompany(e.target.value)}
                     placeholder="Nome da empresa"
                   />
+                </div>
+                <div className="space-y-2">
+                  <span className="text-sm font-medium leading-none">Tipo de cliente</span>
+                  <ClientTypeField value={clientType} onChange={setClientType} idPrefix="cadastro-tipo" />
                 </div>
               </>
             )}

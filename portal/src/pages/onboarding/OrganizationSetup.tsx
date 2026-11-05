@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { ClientTypeField } from "@/components/organization/ClientTypeField";
+import type { TipoDeCliente } from "@/lib/permissoes";
 import { toast } from "sonner";
 
 type SetupState = "checking" | "ready" | "failed" | "creating";
@@ -34,6 +36,12 @@ const OrganizationSetup = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [diagnostic, setDiagnostic] = useState<CreateOrganizationResponse["diagnostic"]>(null);
 
+  // O tipo escolhido no cadastro; a criação assistida deixa conferir.
+  const [clientType, setClientType] = useState<TipoDeCliente>("agencia");
+  useEffect(() => {
+    setClientType(user?.user_metadata?.client_type === "marca" ? "marca" : "agencia");
+  }, [user]);
+
   const companyName = useMemo(() => {
     const value = String(user?.user_metadata?.company ?? "").trim();
     return value.length >= 2 ? value : "Minha organização";
@@ -45,13 +53,29 @@ const OrganizationSetup = () => {
     setErrorMessage(null);
     setDiagnostic(null);
 
-    const { data, error } = await supabase
-      .from("organization_members")
-      .select("organization_id, role, organization:organizations(name)")
-      .eq("user_id", user.id)
-      .eq("status", "ativo")
-      .limit(1)
-      .maybeSingle();
+    const [{ data, error }, { data: superadmin }] = await Promise.all([
+      supabase
+        .from("organization_members")
+        .select("organization_id, role, organization:organizations(name)")
+        .eq("user_id", user.id)
+        .eq("status", "ativo")
+        .limit(1)
+        .maybeSingle(),
+      // Falha aqui não bloqueia o login: segue o fluxo de quem não é superadmin.
+      supabase.rpc("is_platform_admin"),
+    ]);
+
+    const member = error ? null : (data as OrganizationMember | null);
+    if (member?.organization_id) localStorage.setItem(ACTIVE_ORG_KEY, member.organization_id);
+
+    // O superadmin da plataforma entra sempre pela administração (ADR-0008),
+    // seja ou não membro de alguma organização; o painel dela fica a um clique
+    // em "Painel da organização". Redirecionamento é experiência: a fronteira
+    // é o banco.
+    if (superadmin === true) {
+      navigate("/admin", { replace: true });
+      return;
+    }
 
     if (error) {
       setState("failed");
@@ -59,20 +83,10 @@ const OrganizationSetup = () => {
       return;
     }
 
-    const member = data as OrganizationMember | null;
     if (member?.organization_id) {
-      localStorage.setItem(ACTIVE_ORG_KEY, member.organization_id);
       setState("ready");
       toast.success(`Organização pronta${member.organization?.name ? `: ${member.organization.name}` : ""}`);
       navigate("/dashboard", { replace: true });
-      return;
-    }
-
-    // O superadmin da plataforma não precisa ser membro de organização: sem
-    // nenhuma, vai para a administração em vez de ser convidado a criar uma.
-    const { data: superadmin } = await supabase.rpc("is_platform_admin");
-    if (superadmin === true) {
-      navigate("/admin", { replace: true });
       return;
     }
 
@@ -91,7 +105,7 @@ const OrganizationSetup = () => {
     setDiagnostic(null);
 
     const { data, error } = await supabase.functions.invoke<CreateOrganizationResponse>("create-organization", {
-      body: { name: companyName, cnpj: null },
+      body: { name: companyName, cnpj: null, client_type: clientType },
     });
 
     if (error || data?.error) {
@@ -184,6 +198,13 @@ const OrganizationSetup = () => {
               </div>
             )}
           </div>
+
+          {state === "failed" && (
+            <div className="mt-6 space-y-2">
+              <span className="text-sm font-medium leading-none">Tipo de cliente da organização</span>
+              <ClientTypeField value={clientType} onChange={setClientType} disabled={isBusy} idPrefix="setup-tipo" />
+            </div>
+          )}
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button onClick={verifyOrganization} disabled={isBusy} variant="outline" className="gap-2">

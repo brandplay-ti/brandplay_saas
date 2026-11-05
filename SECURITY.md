@@ -96,6 +96,15 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   insert público de leads. Qualquer dado exposto ali é público por definição
   — nunca adicione um campo a essa página ou às policies `*_public_read` sem
   confirmar que ele deveria mesmo ser visível sem login.
+- **Relatório em landing page** (`/r/:slug`, Edge Function `report-view`,
+  ADR-0011). Segunda superfície sem login, mas **sem** policy para `anon`: a
+  `report-view` usa service role, deriva organização e patrocinador do
+  próprio relatório e monta a página pela lista de campos de
+  `report_landing_data` (0040). Nunca entra valor financeiro (D7), nota
+  interna nem dado de outro patrocinador; no modo público, nunca foto marcada
+  com menores nem evidência de entrega (D10). Campo novo na página = campo
+  novo nessa função, com o teste de `supabase/tests/relatorios.sql`.
+  Embeds de redes sociais são montados pelo id validado, nunca pela URL crua.
 
 ## O que nunca deve vazar
 
@@ -104,6 +113,7 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   cadastradas em `ai_credentials`)
 - `RESEND_API_KEY`
 - `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET`
+- `YOUTUBE_API_KEY`
 - JWT secret, senha do Postgres, qualquer credencial de infraestrutura
 - Tokens de sessão, cookies, headers de autorização em logs
 

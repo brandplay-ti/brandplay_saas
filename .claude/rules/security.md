@@ -70,6 +70,12 @@ estender esse fluxo.
   precisa considerar que é acessível sem login, por qualquer visitante da
   internet — nunca exponha ali um campo que não esteja explicitamente
   destinado a ser público.
+- **Relatório em landing page** (`/r/:slug`, `report-view`, ADR-0011) — sem
+  login e sem policy `anon`: a função usa service role e só devolve os campos
+  de `report_landing_data` (0040). Nunca acrescente ali valor de contrato,
+  parcela ou cota, nota interna ou conteúdo de outro patrocinador; no modo
+  público, nada marcado com menores nem evidência privada. Embed de rede
+  social só pelo id validado (`external_id`), nunca pela URL crua.
 - **Edge Functions de IA** (`ai-assistant`, `score-leads`, etc.) — usam a
   camada `_shared/ai/` (ADR-0010), não API de fornecedor direta. Confirme
   `organization_id` derivado do JWT/`organization_members`, nunca do body;

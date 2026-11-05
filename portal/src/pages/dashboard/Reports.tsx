@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -51,6 +52,7 @@ import {
   FileText,
   RefreshCw,
   AlertTriangle,
+  Presentation,
 } from "lucide-react";
 import { SelloutReportGenerator } from "@/components/reports/SelloutReportGenerator";
 import { AnalyticsTab } from "@/components/reports/AnalyticsTab";
@@ -139,7 +141,11 @@ const downloadCSV = (filename: string, rows: (string | number)[][]) => {
 
 export default function Reports() {
   const { user } = useAuth();
-  const { orgId } = useOrganization();
+  const { orgId, can, clientType } = useOrganization();
+  // Sem o funil (marca, ou papel sem vendas): sem pipeline, win rate e previsão.
+  // Sell-out mede cota vendida, visão de quem vende (D7). Na marca, parcela é pagamento (D6).
+  const temVendas = can("vendas");
+  const clienteMarca = clientType === "marca";
   const marca = useMarca(orgId);
   const [loading, setLoading] = useState(true);
   const [exportingPdf, setExportingPdf] = useState(false);
@@ -443,6 +449,11 @@ export default function Reports() {
         actions={
           <>
             <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/dashboard/relatorios/paginas">
+                  <Presentation className="h-4 w-4 mr-2" /> Relatórios de resultado
+                </Link>
+              </Button>
               <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
                 <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Atualizar
               </Button>
@@ -494,14 +505,18 @@ export default function Reports() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard icon={<DollarSign className="h-4 w-4" />} label="Recebido" value={fmtMoney(kpis.received)} accent="text-primary" />
-        <KpiCard icon={<TrendingUp className="h-4 w-4" />} label="Previsto" value={fmtMoney(kpis.expected)} />
+        <KpiCard icon={<DollarSign className="h-4 w-4" />} label={clienteMarca ? "Pago" : "Recebido"} value={fmtMoney(kpis.received)} accent="text-primary" />
+        <KpiCard icon={<TrendingUp className="h-4 w-4" />} label={clienteMarca ? "A pagar" : "Previsto"} value={fmtMoney(kpis.expected)} />
         <KpiCard icon={<AlertTriangle className="h-4 w-4" />} label="Em atraso" value={fmtMoney(kpis.overdue)} accent="text-destructive" />
         <KpiCard icon={<FileSignature className="h-4 w-4" />} label="Contratos ativos" value={String(kpis.activeContracts)} />
-        <KpiCard icon={<Briefcase className="h-4 w-4" />} label="Pipeline aberto" value={fmtMoney(kpis.pipelineValue)} />
-        <KpiCard icon={<TrendingUp className="h-4 w-4" />} label="Win rate" value={`${kpis.winRate.toFixed(1)}%`} />
+        {temVendas && (
+          <>
+            <KpiCard icon={<Briefcase className="h-4 w-4" />} label="Pipeline aberto" value={fmtMoney(kpis.pipelineValue)} />
+            <KpiCard icon={<TrendingUp className="h-4 w-4" />} label="Win rate" value={`${kpis.winRate.toFixed(1)}%`} />
+          </>
+        )}
         <KpiCard icon={<Truck className="h-4 w-4" />} label="Entregas atrasadas" value={String(kpis.overdueDeliveries)} accent="text-destructive" />
-        <KpiCard icon={<Users className="h-4 w-4" />} label="Patrocinadores" value={String(sponsors.length)} />
+        <KpiCard icon={<Users className="h-4 w-4" />} label={clienteMarca ? "Marcas" : "Patrocinadores"} value={String(sponsors.length)} />
       </div>
 
       <Tabs defaultValue="executivo">
@@ -510,10 +525,10 @@ export default function Reports() {
           <TabsTrigger value="analitico">Analítico</TabsTrigger>
 
           <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
-          <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+          {temVendas && <TabsTrigger value="pipeline">Pipeline</TabsTrigger>}
           <TabsTrigger value="entregas">Entregas</TabsTrigger>
           <TabsTrigger value="patrocinadores">Patrocinadores</TabsTrigger>
-          <TabsTrigger value="sellout">Sell-out IA ✨</TabsTrigger>
+          {!clienteMarca && <TabsTrigger value="sellout">Sell-out IA ✨</TabsTrigger>}
           <TabsTrigger value="bi">Inteligência ✨</TabsTrigger>
         </TabsList>
 
@@ -537,7 +552,7 @@ export default function Reports() {
           </Card>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
+            {temVendas && <Card>
               <CardHeader><CardTitle>Funil de pipeline</CardTitle></CardHeader>
               <CardContent className="h-64">
                 <ResponsiveContainer>
@@ -550,7 +565,7 @@ export default function Reports() {
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
-            </Card>
+            </Card>}
 
             <Card>
               <CardHeader><CardTitle>Score dos patrocinadores</CardTitle></CardHeader>
@@ -777,7 +792,7 @@ export default function Reports() {
         </TabsContent>
 
         <TabsContent value="analitico" className="space-y-4">
-          <AnalyticsTab {...analyticsInput} />
+          <AnalyticsTab {...analyticsInput} semFunil={!temVendas} />
         </TabsContent>
 
         <TabsContent value="sellout" className="space-y-4">
@@ -786,9 +801,9 @@ export default function Reports() {
         </TabsContent>
 
         <TabsContent value="bi" className="space-y-4">
-          <RevenueForecastWidget />
+          {temVendas && <RevenueForecastWidget />}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <QuotaHeatmapWidget />
+            {!clienteMarca && <QuotaHeatmapWidget />}
             <TicketBenchmarkWidget />
           </div>
           <ROIWidget />
