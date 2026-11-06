@@ -20,11 +20,29 @@ describe("gruposVisiveis", () => {
     expect(u).not.toContain("/dashboard/equipe");
   });
 
-  it("quem tem os quatro módulos vê o painel, menos a área da plataforma", () => {
-    const u = urls(gruposVisiveis(acesso(["crm", "operacional", "financeiro", "team"])));
+  it("quem tem todos os módulos vê o painel, menos a área da plataforma", () => {
+    const u = urls(gruposVisiveis(acesso(["crm", "vendas", "operacional", "financeiro", "team"])));
     expect(u).toContain("/dashboard/equipe");
     expect(u).toContain("/dashboard/pipeline");
     expect(u).not.toContain("/admin");
+  });
+
+  it("crm sem vendas: patrocinadores sem pipeline, propostas e lead scoring", () => {
+    const u = urls(gruposVisiveis(acesso(["crm"])));
+    expect(u).toContain("/dashboard/patrocinadores");
+    expect(u).not.toContain("/dashboard/pipeline");
+    expect(u).not.toContain("/dashboard/propostas");
+    expect(u).not.toContain("/dashboard/lead-scoring");
+  });
+
+  it("marca não vê o funil nem durante o carregamento, e chama patrocinadores de Marcas", () => {
+    const grupos = gruposVisiveis(acesso(["crm", "vendas"], { clientType: "marca", loading: true }));
+    const u = urls(grupos);
+    expect(u).not.toContain("/dashboard/pipeline");
+    expect(u).not.toContain("/dashboard/propostas");
+    expect(u).toContain("/dashboard/patrocinadores");
+    const item = grupos.flatMap((g) => g.items).find((i) => i.url === "/dashboard/patrocinadores");
+    expect(item?.title).toBe("Marcas");
   });
 
   it("superadmin ganha o atalho da plataforma", () => {

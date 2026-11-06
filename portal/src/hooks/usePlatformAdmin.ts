@@ -7,6 +7,7 @@ import { readEdgeFunctionError } from "@/lib/edgeFunctionError";
 import type {
   AdminClient,
   AdminClientDetail,
+  AdminClientType,
   RevenueMonth,
   RevenueProjection,
   StripeSyncStatus,
@@ -23,6 +24,7 @@ export const adminKeys = {
   isAdmin: (userId: string | null) => ["admin", "is-admin", userId] as const,
   clients: ["admin", "clients"] as const,
   client: (orgId: string | null) => ["admin", "client", orgId] as const,
+  clientType: (orgId: string | null) => ["admin", "client", orgId, "client-type"] as const,
   revenue: (months: number) => ["admin", "revenue", months] as const,
   projection: (months: number) => ["admin", "projection", months] as const,
   plans: ["admin", "plans"] as const,
@@ -55,11 +57,19 @@ export function useAdminClients() {
     queryKey: adminKeys.clients,
     staleTime: 30_000,
     queryFn: async (): Promise<AdminClient[]> => {
-      const { data, error } = await supabase.rpc("admin_clientes");
+      const [{ data, error }, tipos] = await Promise.all([
+        supabase.rpc("admin_clientes"),
+        supabase.rpc("admin_tipos_de_cliente"),
+      ]);
       if (error) throw error;
+      if (tipos.error) throw tipos.error;
+      const tipoPorOrg = new Map((tipos.data ?? []).map((t) => [t.organization_id, t.client_type]));
       // `access_source`, `subscription_status` e `payment_method` chegam como
       // texto no tipo gerado; os valores possíveis estão fixados na 0028.
-      return (data ?? []) as AdminClient[];
+      return ((data ?? []) as AdminClient[]).map((c) => ({
+        ...c,
+        client_type: tipoPorOrg.get(c.organization_id) === "marca" ? "marca" : "agencia",
+      }));
     },
   });
 }
@@ -171,6 +181,36 @@ function invalidarCliente(queryClient: ReturnType<typeof useQueryClient>, orgId:
   queryClient.invalidateQueries({ queryKey: adminKeys.client(orgId) });
   queryClient.invalidateQueries({ queryKey: adminKeys.clients });
   queryClient.invalidateQueries({ queryKey: ["admin", "projection"] });
+}
+
+/** Tipo de cliente e o que fica oculto ao virar marca (`admin_tipo_de_cliente`, 0043). */
+export function useAdminClientType(orgId: string | null) {
+  return useQuery({
+    queryKey: adminKeys.clientType(orgId),
+    enabled: !!orgId,
+    queryFn: async (): Promise<AdminClientType | null> => {
+      const { data, error } = await supabase.rpc("admin_tipo_de_cliente", { _org_id: orgId! });
+      if (error) throw error;
+      // jsonb: o formato está fixado na 0043.
+      return (data ?? null) as unknown as AdminClientType | null;
+    },
+  });
+}
+
+/** Troca o tipo de cliente, com motivo e auditoria (`admin_alterar_tipo_de_cliente`). */
+export function useChangeClientType(orgId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ clientType, comment }: { clientType: "agencia" | "marca"; comment: string }) => {
+      const { error } = await supabase.rpc("admin_alterar_tipo_de_cliente", {
+        _org_id: orgId,
+        _tipo: clientType,
+        _comentario: comment,
+      });
+      if (error) throw new AdminActionError(error.message, error.code);
+    },
+    onSettled: () => invalidarCliente(queryClient, orgId),
+  });
 }
 
 /** Liberação provisória pelo superadmin (`admin_liberar_acesso`). */

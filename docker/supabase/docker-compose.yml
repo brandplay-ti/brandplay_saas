@@ -482,6 +482,9 @@ services:
       # configurada" e `billing-webhook` recusa todo evento.
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      # Metricas dos videos do YouTube no relatorio (ADR-0011). Vazio = so
+      # metrica manual.
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
       # Scrape de GET /functions/v1/metricas. Vazio = a rota responde 404.
       EDGE_METRICS_TOKEN: ${EDGE_METRICS_TOKEN:-}
       # Base dos links que saem por e-mail. Vem do ambiente, e nao do corpo da

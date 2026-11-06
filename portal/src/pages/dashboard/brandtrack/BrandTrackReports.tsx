@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/hooks/useOrganization";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,13 +9,19 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
 
 const BrandTrackReports = () => {
+  const { orgId } = useOrganization();
   const [events, setEvents] = useState<{ id: string; name: string }[]>([]);
   const [eventId, setEventId] = useState("all");
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
-    void supabase.from("brandtrack_events").select("id,name").then(({ data }) => setEvents(data ?? []));
-  }, []);
+    if (!orgId) return;
+    void supabase
+      .from("brandtrack_events")
+      .select("id,name")
+      .eq("organization_id", orgId)
+      .then(({ data }) => setEvents(data ?? []));
+  }, [orgId]);
 
   const generate = async () => {
     setGenerating(true);
@@ -27,7 +34,7 @@ const BrandTrackReports = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.session?.access_token}`,
         },
-        body: JSON.stringify({ event_id: eventId === "all" ? null : eventId }),
+        body: JSON.stringify({ event_id: eventId === "all" ? null : eventId, organization_id: orgId }),
       });
       if (!resp.ok) throw new Error("Falha ao gerar relatório");
       const html = await resp.text();

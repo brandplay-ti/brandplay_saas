@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
     const corpo = await req.json().catch(() => ({}));
     const org = organizacaoDoCorpo(corpo);
     const propertyId = corpo?.property_id ? uuidDoCorpo(corpo, "property_id") : null;
-    await exigirModulo(cliente, usuario.id, org, "crm", true);
+    await exigirModulo(cliente, usuario.id, org, "vendas", true);
 
     let propriedade: Linha | null = null;
     if (propertyId) {

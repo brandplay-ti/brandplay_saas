@@ -32,8 +32,8 @@ insert into public.sponsors (id, organization_id, owner_id, name) values
 do $$
 begin
   if (select count(*) from public.organization_role_grants
-       where organization_id = 'a6000000-0000-4000-8000-000000000001') <> 20 then
-    raise exception 'FALHA (a): a organização não ganhou as 20 permissões';
+       where organization_id = 'a6000000-0000-4000-8000-000000000001') <> 25 then
+    raise exception 'FALHA (a): a organização não ganhou as 25 permissões (5 papéis x 5 módulos, 0043)';
   end if;
   if (select access from public.organization_role_grants
        where organization_id = 'a6000000-0000-4000-8000-000000000001'
@@ -47,8 +47,8 @@ begin
   end if;
   if (select count(*) from public.organization_role_grants
        where organization_id = 'a6000000-0000-4000-8000-000000000001'
-         and role = 'owner' and access = 'write') <> 4 then
-    raise exception 'FALHA (a): proprietário não ficou com edição nos quatro módulos';
+         and role = 'owner' and access = 'write') <> 5 then
+    raise exception 'FALHA (a): proprietário não ficou com edição nos cinco módulos';
   end if;
   if not public.can_access_module(
        '6e000000-0000-4000-8000-00000000000e',

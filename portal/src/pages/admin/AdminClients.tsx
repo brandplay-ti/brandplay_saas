@@ -11,6 +11,7 @@ import { AccessSourceBadge } from "@/components/admin/AccessSourceBadge";
 import { useAdminClients, useAdminPlans } from "@/hooks/usePlatformAdmin";
 import { formatCents, formatDate, SUBSCRIPTION_STATUS_LABEL } from "@/lib/billing";
 import { ACCESS_SOURCE_LABEL, filterClients, type AccessSource, type ClientFilters } from "@/lib/platformAdmin";
+import { TIPOS_DE_CLIENTE, type TipoDeCliente } from "@/lib/permissoes";
 import { PageHeader } from "@/components/common/PageHeader";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
@@ -19,7 +20,12 @@ const SITUACOES: AccessSource[] = ["subscription", "exemption", "trial", "provis
 const AdminClients = () => {
   const clientes = useAdminClients();
   const planos = useAdminPlans();
-  const [filtros, setFiltros] = useState<ClientFilters>({ search: "", source: "todas", planId: "todos" });
+  const [filtros, setFiltros] = useState<ClientFilters>({
+    search: "",
+    source: "todas",
+    planId: "todos",
+    clientType: "todos",
+  });
 
   const visiveis = useMemo(() => filterClients(clientes.data ?? [], filtros), [clientes.data, filtros]);
 
@@ -64,6 +70,25 @@ const AdminClients = () => {
           </Select>
         </div>
         <div className="space-y-1.5 md:w-56">
+          <Label htmlFor="filtro-tipo">Tipo</Label>
+          <Select
+            value={filtros.clientType ?? "todos"}
+            onValueChange={(v) => setFiltros((f) => ({ ...f, clientType: v as TipoDeCliente | "todos" }))}
+          >
+            <SelectTrigger id="filtro-tipo">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              {TIPOS_DE_CLIENTE.map((t) => (
+                <SelectItem key={t.key} value={t.key}>
+                  {t.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5 md:w-48">
           <Label htmlFor="filtro-plano">Plano vigente</Label>
           <Select value={filtros.planId} onValueChange={(v) => setFiltros((f) => ({ ...f, planId: v }))}>
             <SelectTrigger id="filtro-plano">
@@ -123,7 +148,10 @@ const AdminClients = () => {
                         >
                           {c.name}
                         </Link>
-                        <p className="text-xs text-muted-foreground">{c.owner_email ?? "—"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {c.owner_email ?? "—"}
+                          {c.client_type === "marca" && " · Marca"}
+                        </p>
                       </TableCell>
                       <TableCell>
                         <AccessSourceBadge source={c.access_source} />

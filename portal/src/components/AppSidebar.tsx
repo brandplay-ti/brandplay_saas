@@ -22,11 +22,11 @@ export const AppSidebar = () => {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { can, isAdmin, loading } = useOrganization();
+  const { can, clientType, isAdmin, loading } = useOrganization();
   // Só o atalho: a área /admin se protege sozinha (layout + banco).
   const { isPlatformAdmin } = useIsPlatformAdmin();
 
-  const visibleGroups = gruposVisiveis({ can, isAdmin, loading, isPlatformAdmin });
+  const visibleGroups = gruposVisiveis({ can, clientType, isAdmin, loading, isPlatformAdmin });
   const activeUrl = urlAtiva(visibleGroups, location.pathname);
 
   return (

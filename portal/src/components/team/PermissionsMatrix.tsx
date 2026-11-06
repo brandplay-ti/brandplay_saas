@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import {
   ACESSO_DE_MODULO,
-  MODULOS_DE_PERMISSAO,
+  modulosDoTipo,
   PAPEIS_DE_PERMISSAO,
   type AcessoDeModulo,
   type ModuloDePermissao,
@@ -25,7 +25,7 @@ export const PermissionsMatrix = forwardRef<ControleDeEdicao, { editando: boolea
   { editando },
   ref,
 ) {
-  const { orgId, role, isAdmin, refresh } = useOrganization();
+  const { orgId, role, clientType, isAdmin, refresh } = useOrganization();
   const queryClient = useQueryClient();
   const [rascunho, setRascunho] = useState<Partial<Record<string, AcessoDeModulo>>>({});
   const [salvando, setSalvando] = useState(false);
@@ -108,7 +108,7 @@ export const PermissionsMatrix = forwardRef<ControleDeEdicao, { editando: boolea
       <CardHeader>
         <CardTitle>Matriz de permissões</CardTitle>
         <CardDescription>
-          O que cada papel faz em CRM, entregas, financeiro e equipe. O proprietário permanece com edição. A equipe
+          O que cada papel faz em CRM{clientType === "agencia" ? ", funil" : ""}, entregas, financeiro e equipe. O proprietário permanece com edição. A equipe
           dos administradores só o proprietário altera.
         </CardDescription>
       </CardHeader>
@@ -126,7 +126,7 @@ export const PermissionsMatrix = forwardRef<ControleDeEdicao, { editando: boolea
               </TableRow>
             </TableHeader>
             <TableBody>
-              {MODULOS_DE_PERMISSAO.map((modulo) => (
+              {modulosDoTipo(clientType).map((modulo) => (
                 <TableRow key={modulo.key}>
                   <TableCell>
                     <div className="font-medium">{modulo.label}</div>

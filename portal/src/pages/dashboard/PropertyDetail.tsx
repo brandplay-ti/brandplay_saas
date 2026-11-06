@@ -81,6 +81,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { dataLocal } from "@/lib/datas";
 import { useAuth } from "@/hooks/useAuth";
+import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
 import { SponsorSocialDashboard } from "@/components/sponsors/SponsorProfileFields";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -261,6 +262,8 @@ const ASSET_STATUS_COLOR: Record<string, string> = {
 };
 
 export default function PropertyDetail() {
+  // Propostas, media kit público e leads são do funil: a marca não tem (0043).
+  const temVendas = useOrganization().can("vendas");
   const confirm = useConfirm();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -1426,9 +1429,11 @@ export default function PropertyDetail() {
                 <div className="text-2xl font-bold mt-1">
                   {property.audience_estimate?.toLocaleString("pt-BR") ?? "—"}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {proposalsCount} proposta(s)
-                </p>
+                {temVendas && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {proposalsCount} proposta(s)
+                  </p>
+                )}
               </CardContent>
             </Card>
             <Card>
@@ -1450,17 +1455,22 @@ export default function PropertyDetail() {
         )}
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs
+        value={!temVendas && ["proposals", "public", "leads"].includes(activeTab) ? "dashboard" : activeTab}
+        onValueChange={setActiveTab}
+      >
         <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="dashboard">Visão geral</TabsTrigger>
           <TabsTrigger value="tiers">Cotas</TabsTrigger>
           <TabsTrigger value="assets">Mapa de ativos</TabsTrigger>
           <TabsTrigger value="agenda">Agenda</TabsTrigger>
           <TabsTrigger value="seasons">Temporadas</TabsTrigger>
-          <TabsTrigger value="proposals">
-            <FileText className="h-3.5 w-3.5 mr-1" />
-            Propostas {proposals.length > 0 && <Badge variant="secondary" className="ml-1.5">{proposals.length}</Badge>}
-          </TabsTrigger>
+          {temVendas && (
+            <TabsTrigger value="proposals">
+              <FileText className="h-3.5 w-3.5 mr-1" />
+              Propostas {proposals.length > 0 && <Badge variant="secondary" className="ml-1.5">{proposals.length}</Badge>}
+            </TabsTrigger>
+          )}
           <TabsTrigger value="contracts">
             <FileSignature className="h-3.5 w-3.5 mr-1" />
             Contratos {contracts.length > 0 && <Badge variant="secondary" className="ml-1.5">{contracts.length}</Badge>}
@@ -1477,14 +1487,18 @@ export default function PropertyDetail() {
             <ListChecks className="h-3.5 w-3.5 mr-1" />
             Checklist
           </TabsTrigger>
-          <TabsTrigger value="public">
-            <Globe className="h-3.5 w-3.5 mr-1" />
-            Página pública
-          </TabsTrigger>
-          <TabsTrigger value="leads">
-            <Inbox className="h-3.5 w-3.5 mr-1" />
-            Leads {leads.length > 0 && <Badge variant="secondary" className="ml-1.5">{leads.length}</Badge>}
-          </TabsTrigger>
+          {temVendas && (
+            <>
+              <TabsTrigger value="public">
+                <Globe className="h-3.5 w-3.5 mr-1" />
+                Página pública
+              </TabsTrigger>
+              <TabsTrigger value="leads">
+                <Inbox className="h-3.5 w-3.5 mr-1" />
+                Leads {leads.length > 0 && <Badge variant="secondary" className="ml-1.5">{leads.length}</Badge>}
+              </TabsTrigger>
+            </>
+          )}
           <TabsTrigger value="about">Sobre &amp; Dados</TabsTrigger>
         </TabsList>
 

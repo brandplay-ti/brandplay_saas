@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { appUrl, escapeHtml, sendEmail } from "../_shared/email.ts";
 
 const corsHeaders = {
@@ -12,8 +12,8 @@ const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 type Action =
-  | { action: "invite"; email: string; role: string; organization_id: string }
-  | { action: "create_user"; email: string; password: string; role: string; full_name?: string; organization_id: string }
+  | { action: "invite"; email: string; role: string; organization_id: string; team_ids?: unknown }
+  | { action: "create_user"; email: string; password: string; role: string; full_name?: string; organization_id: string; team_ids?: unknown }
   | { action: "update_role"; member_id: string; role: string; organization_id: string }
   | { action: "revoke"; member_id: string; organization_id: string }
   | { action: "reactivate"; member_id: string; organization_id: string }
@@ -34,10 +34,36 @@ const ROLE_LABEL: Record<string, string> = {
 const inviteEmail = (orgName: string, role: string, link: string) => `
   <div style="font-family:system-ui,sans-serif;max-width:520px;margin:auto">
     <h2>Você foi convidado para <strong>${escapeHtml(orgName)}</strong></h2>
-    <p>Você foi convidado como <strong>${escapeHtml(ROLE_LABEL[role] ?? role)}</strong>. Clique abaixo para criar sua conta e aceitar o convite.</p>
+    <p>Você foi convidado como <strong>${escapeHtml(ROLE_LABEL[role] ?? role)}</strong>. Clique abaixo para entrar com sua conta, ou criar uma, e aceitar o convite.</p>
     <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#6206C8;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none">Aceitar convite</a></p>
     <p style="color:#64748b;font-size:13px">Este convite expira em 14 dias.</p>
   </div>`;
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Equipes de trabalho que o convite leva (0042). Só equipes ativas desta
+// organização; o gatilho `tg_equipes_do_convite` confere de novo no banco.
+// `null` quando a lista é inválida.
+async function equipesDoConvite(
+  admin: SupabaseClient,
+  orgId: string,
+  ids: unknown,
+): Promise<string[] | null> {
+  if (ids === undefined || ids === null) return [];
+  if (!Array.isArray(ids) || ids.length > 50 || !ids.every((id) => typeof id === "string" && UUID.test(id))) {
+    return null;
+  }
+  const unicas = [...new Set(ids as string[])];
+  if (unicas.length === 0) return [];
+  const { data, error } = await admin
+    .from("work_teams")
+    .select("id")
+    .eq("organization_id", orgId)
+    .eq("status", "ativo")
+    .in("id", unicas);
+  if (error) throw error;
+  return (data ?? []).length === unicas.length ? unicas : null;
+}
 
 const welcomeEmail = (orgName: string, role: string, email: string, password: string, link: string) => `
   <div style="font-family:system-ui,sans-serif;max-width:520px;margin:auto">
@@ -115,25 +141,46 @@ Deno.serve(async (req) => {
       });
     };
 
+    const equipesInvalidas = () =>
+      new Response(JSON.stringify({ error: "Equipe inválida para esta organização." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
     if (body.action === "invite") {
       if (!ROLES.includes(body.role)) throw new Error("Papel inválido");
       const email = body.email.trim().toLowerCase();
       if (!email) throw new Error("E-mail obrigatório");
+      const teamIds = await equipesDoConvite(admin, body.organization_id, body.team_ids);
+      if (!teamIds) return equipesInvalidas();
 
-      const { data: existingUsers } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-      const existing = existingUsers?.users?.find((u) => u.email?.toLowerCase() === email);
+      // Quem já tem conta também recebe convite e aceita ao entrar
+      // (`aceitar_convite_de_organizacao`, 0041). A resposta é a mesma com ou
+      // sem conta: o convite não revela quem está cadastrado na plataforma.
+      // Membro ativo não é convidado de novo; o papel muda em "Editar".
+      const { data: membro, error: membroErr } = await admin
+        .rpc("membro_da_organizacao_por_email", { _org_id: body.organization_id, _email: email })
+        .maybeSingle<{ status: string }>();
+      if (membroErr) throw membroErr;
+      if (membro?.status === "ativo") {
+        return new Response(JSON.stringify({ error: "Este e-mail já é membro da organização." }), {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
-      if (existing) {
-        const { error } = await admin
-          .from("organization_members")
-          .upsert(
-            { organization_id: body.organization_id, user_id: existing.id, role: body.role as any, status: "ativo" },
-            { onConflict: "organization_id,user_id" }
-          );
-        if (error) throw error;
-        await sendEmail({ to: email, subject: `Você foi adicionado a ${orgName}`, html: inviteEmail(orgName, body.role, `${origin}/dashboard`) });
-        await audit({ action: "member_created", target_email: email, target_user_id: existing.id, new_role: body.role });
-        return new Response(JSON.stringify({ ok: true, mode: "added_existing" }), {
+      const { data: pendente } = await admin
+        .from("organization_invites")
+        .select("id")
+        .eq("organization_id", body.organization_id)
+        .eq("email", email)
+        .eq("status", "pendente")
+        .gt("expires_at", new Date().toISOString())
+        .limit(1)
+        .maybeSingle();
+      if (pendente) {
+        return new Response(JSON.stringify({ error: "Já existe um convite pendente para este e-mail. Use Reenviar." }), {
+          status: 409,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -145,6 +192,7 @@ Deno.serve(async (req) => {
           email,
           role: body.role as any,
           invited_by: userId,
+          team_ids: teamIds,
         })
         .select()
         .single();
@@ -203,6 +251,8 @@ Deno.serve(async (req) => {
     if (body.action === "create_user") {
       if (!ROLES.includes(body.role)) throw new Error("Papel inválido");
       const email = body.email.trim().toLowerCase();
+      const teamIds = await equipesDoConvite(admin, body.organization_id, body.team_ids);
+      if (!teamIds) return equipesInvalidas();
 
       // Convite pendente ANTES de criar o usuário. O gatilho handle_new_user
       // aceita convite pendente do e-mail e vincula o membro à organização;
@@ -213,7 +263,7 @@ Deno.serve(async (req) => {
       // e o app_metadata num passo seguinte, e o gatilho roda no INSERT.
       const { data: convite, error: conviteErr } = await admin
         .from("organization_invites")
-        .insert({ organization_id: body.organization_id, email, role: body.role as any, invited_by: userId })
+        .insert({ organization_id: body.organization_id, email, role: body.role as any, invited_by: userId, team_ids: teamIds })
         .select("id")
         .single();
       if (conviteErr) throw conviteErr;

@@ -4,6 +4,7 @@ import { AlertTriangle, CreditCard, Loader2, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ClientTypeCard } from "@/components/billing/ClientTypeCard";
 import { CurrentPlanCard } from "@/components/billing/CurrentPlanCard";
 import { InvoicesTable } from "@/components/billing/InvoicesTable";
 import { PlanCatalog } from "@/components/billing/PlanCatalog";
@@ -170,6 +171,8 @@ const Plan = () => {
               pendingAction={acaoEmAndamento}
               onAction={(acao) => executar({ action: acao })}
             />
+
+            <ClientTypeCard hasSubscription={!!status.data.subscription} />
 
             <section className="space-y-4">
               <div>
