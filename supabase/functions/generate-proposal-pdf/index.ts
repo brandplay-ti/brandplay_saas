@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { drawContainedLogo, fetchLogoBytes, publicLogoUrl } from "../_shared/logo.ts";
 import { carregarMarca, caminhoDoLogo, componentesRgb } from "../_shared/marca.ts";
+import { quebrarTexto } from "../_shared/pdf_texto.ts";
 
 
 const corsHeaders = {
@@ -106,25 +107,40 @@ Deno.serve(async (req) => {
 
 
 
+    const ensure = (min: number) => {
+      if (y < min) { page = pdf.addPage([595, 842]); y = height - 60; }
+    };
+    const contentWidth = width - 80;
+
     y = height - 110;
-    page.drawText(proposal.title, { x: 40, y, size: 16, font: fontBold, color: text });
-    y -= 28;
+    for (const line of quebrarTexto(proposal.title, fontBold, 16, contentWidth)) {
+      ensure(120);
+      page.drawText(line, { x: 40, y, size: 16, font: fontBold, color: text });
+      y -= 20;
+    }
+    y -= 8;
 
     const meta = (label: string, value: string) => {
+      ensure(140);
       page.drawText(label, { x: 40, y, size: 9, font, color: muted });
-      page.drawText(value, { x: 40, y: y - 12, size: 11, font: fontBold, color: text });
-      y -= 32;
+      y -= 12;
+      for (const line of quebrarTexto(value, fontBold, 11, contentWidth)) {
+        ensure(120);
+        page.drawText(line, { x: 40, y, size: 11, font: fontBold, color: text });
+        y -= 14;
+      }
+      y -= 6;
     };
     meta("PATROCINADOR", proposal.sponsor?.name ?? proposal.brand ?? "—");
     if (proposal.property?.name) meta("PROPRIEDADE", proposal.property.name);
     meta("VÁLIDO ATÉ", proposal.valid_until ?? "—");
 
     if (proposal.message) {
+      ensure(200);
       page.drawText("MENSAGEM", { x: 40, y, size: 9, font, color: muted });
       y -= 14;
-      const lines = wrap(proposal.message, 90);
-      for (const line of lines) {
-        if (y < 200) { page = pdf.addPage([595, 842]); y = height - 60; }
+      for (const line of quebrarTexto(proposal.message, font, 10, contentWidth)) {
+        ensure(200);
         page.drawText(line, { x: 40, y, size: 10, font, color: text });
         y -= 14;
       }
@@ -155,41 +171,53 @@ Deno.serve(async (req) => {
       a[0].localeCompare(b[0], "pt-BR")
     );
 
+    // Coluna "Item" vai de x=48 até antes da "Qtd" (x=340); detalhes, até a margem.
+    const itemColWidth = 340 - 48 - 12;
+    const detailWidth = width - 40 - 56;
+
     let total = 0;
     for (const [category, groupItems] of orderedGroups) {
-      if (y < 140) { page = pdf.addPage([595, 842]); y = height - 60; }
       let groupTotal = 0;
-      page.drawRectangle({ x: 40, y: y - 5, width: width - 80, height: 18, color: rgb(0.957, 0.933, 0.992) });
-      page.drawText(truncate(category.toUpperCase(), 60), { x: 48, y, size: 9, font: fontBold, color: primary });
-      y -= 22;
+      const categoryLines = quebrarTexto(category.toUpperCase(), fontBold, 9, width - 96);
+      const extra = 12 * (categoryLines.length - 1);
+      ensure(140 + extra);
+      page.drawRectangle({ x: 40, y: y - 5 - extra, width: width - 80, height: 18 + extra, color: rgb(0.957, 0.933, 0.992) });
+      for (const line of categoryLines) {
+        page.drawText(line, { x: 48, y, size: 9, font: fontBold, color: primary });
+        y -= 12;
+      }
+      y -= 10;
 
       for (const it of groupItems) {
-        if (y < 120) { page = pdf.addPage([595, 842]); y = height - 60; }
+        ensure(120);
         const lineTotal = Number(it.unit_value) * it.quantity;
         total += lineTotal;
         groupTotal += lineTotal;
-        page.drawText(truncate(it.name, 45), { x: 48, y, size: 10, font, color: text });
         page.drawText(String(it.quantity), { x: 340, y, size: 10, font, color: text });
         if (!flat) {
           page.drawText(fmtBRL(Number(it.unit_value)), { x: 390, y, size: 10, font, color: text });
           page.drawText(fmtBRL(lineTotal), { x: 490, y, size: 10, font, color: text });
         }
-        y -= 14;
-        if (it.description) {
-          if (y < 110) { page = pdf.addPage([595, 842]); y = height - 60; }
-          page.drawText(truncate(String(it.description), 80), { x: 56, y, size: 8, font, color: muted });
-          y -= 11;
-        }
-        if (it.notes) {
-          if (y < 110) { page = pdf.addPage([595, 842]); y = height - 60; }
-          page.drawText(truncate(`Obs.: ${it.notes}`, 80), { x: 56, y, size: 8, font, color: muted });
+        const nameLines = quebrarTexto(it.name, font, 10, itemColWidth);
+        (nameLines.length ? nameLines : ["—"]).forEach((line, i) => {
+          if (i > 0) ensure(110);
+          page.drawText(line, { x: 48, y, size: 10, font, color: text });
+          y -= 14;
+        });
+        const details = [
+          ...quebrarTexto(it.description, font, 8, detailWidth),
+          ...(it.notes ? quebrarTexto(`Obs.: ${it.notes}`, font, 8, detailWidth) : []),
+        ];
+        for (const line of details) {
+          ensure(110);
+          page.drawText(line, { x: 56, y, size: 8, font, color: muted });
           y -= 11;
         }
         y -= 5;
       }
 
       if (!flat) {
-        if (y < 110) { page = pdf.addPage([595, 842]); y = height - 60; }
+        ensure(110);
         page.drawText("Subtotal", { x: 390, y, size: 9, font, color: muted });
         page.drawText(fmtBRL(groupTotal), { x: 490, y, size: 9, font: fontBold, color: text });
       }
@@ -198,6 +226,7 @@ Deno.serve(async (req) => {
 
 
     y -= 10;
+    ensure(100);
     page.drawLine({ start: { x: 40, y }, end: { x: width - 40, y }, thickness: 0.5, color: muted });
     y -= 24;
     const grandTotal = flat ? Number((proposal as any).flat_value ?? proposal.total_value ?? 0) : total;
@@ -229,21 +258,3 @@ Deno.serve(async (req) => {
     });
   }
 });
-
-function wrap(s: string, n: number) {
-  const out: string[] = [];
-  for (const para of s.split("\n")) {
-    let line = "";
-    for (const w of para.split(" ")) {
-      if ((line + " " + w).trim().length > n) {
-        out.push(line.trim());
-        line = w;
-      } else line += " " + w;
-    }
-    if (line.trim()) out.push(line.trim());
-  }
-  return out;
-}
-function truncate(s: string, n: number) {
-  return s.length > n ? s.slice(0, n - 1) + "…" : s;
-}

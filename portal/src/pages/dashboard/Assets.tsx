@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -87,6 +88,9 @@ const loadCustomCategories = (): string[] => {
   }
 };
 
+const ASSET_SORTS = ["name_asc", "name_desc", "category", "quantity_desc", "quantity_asc", "value_desc", "value_asc", "exclusive"] as const;
+type AssetSort = (typeof ASSET_SORTS)[number];
+
 export default function Assets() {
   const confirm = useConfirm();
   const { user } = useAuth();
@@ -99,15 +103,17 @@ export default function Assets() {
   const [sponsors, setSponsors] = useState<SponsorOption[]>([]);
   const [allAllocations, setAllAllocations] = useState<Allocation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useFiltroSalvo("ativos", "search", "");
   const [viewMode, setViewMode] = useState<"grid" | "list" | "compact">(() => {
     const saved = typeof window !== "undefined" ? localStorage.getItem("assets:viewMode") : null;
     return saved === "list" || saved === "compact" || saved === "grid" ? saved : "grid";
   });
   useEffect(() => { localStorage.setItem("assets:viewMode", viewMode); }, [viewMode]);
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [sortBy, setSortBy] = useState<"name_asc" | "name_desc" | "category" | "quantity_desc" | "quantity_asc" | "value_desc" | "value_asc" | "exclusive">("name_asc");
-  const [exclusiveFilter, setExclusiveFilter] = useState<"all" | "only" | "none">("all");
+  const [categoryFilter, setCategoryFilter] = useFiltroSalvo("ativos", "categoryFilter", "all");
+  const [sortBy, setSortBy] = useFiltroSalvo<AssetSort>("ativos", "sortBy", "name_asc", { permitidos: ASSET_SORTS });
+  const [exclusiveFilter, setExclusiveFilter] = useFiltroSalvo<"all" | "only" | "none">("ativos", "exclusiveFilter", "all", {
+    permitidos: ["all", "only", "none"],
+  });
 
 
   const [dialogOpen, setDialogOpen] = useState(false);

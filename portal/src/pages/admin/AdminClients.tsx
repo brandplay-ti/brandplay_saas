@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, Building2, ChevronRight, Search } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AccessSourceBadge } from "@/components/admin/AccessSourceBadge";
 import { useAdminClients, useAdminPlans } from "@/hooks/usePlatformAdmin";
+import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { formatCents, formatDate, SUBSCRIPTION_STATUS_LABEL } from "@/lib/billing";
 import { ACCESS_SOURCE_LABEL, filterClients, type AccessSource, type ClientFilters } from "@/lib/platformAdmin";
 import { TIPOS_DE_CLIENTE, type TipoDeCliente } from "@/lib/permissoes";
@@ -17,15 +18,26 @@ import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 const SITUACOES: AccessSource[] = ["subscription", "exemption", "trial", "provisional", "none"];
 
+// Área da plataforma: os filtros não dependem da organização ativa.
+const ESCOPO = { escopo: "plataforma" } as const;
+
 const AdminClients = () => {
   const clientes = useAdminClients();
   const planos = useAdminPlans();
-  const [filtros, setFiltros] = useState<ClientFilters>({
-    search: "",
-    source: "todas",
-    planId: "todos",
-    clientType: "todos",
+  const [search, setSearch] = useFiltroSalvo("admin-clientes", "search", "", ESCOPO);
+  const [source, setSource] = useFiltroSalvo<ClientFilters["source"]>("admin-clientes", "source", "todas", {
+    ...ESCOPO,
+    permitidos: ["todas", ...SITUACOES],
   });
+  const [planId, setPlanId] = useFiltroSalvo("admin-clientes", "planId", "todos", ESCOPO);
+  const [clientType, setClientType] = useFiltroSalvo<TipoDeCliente | "todos">("admin-clientes", "clientType", "todos", {
+    ...ESCOPO,
+    permitidos: ["todos", ...TIPOS_DE_CLIENTE.map((t) => t.key)],
+  });
+  const filtros = useMemo<ClientFilters>(
+    () => ({ search, source, planId, clientType }),
+    [search, source, planId, clientType],
+  );
 
   const visiveis = useMemo(() => filterClients(clientes.data ?? [], filtros), [clientes.data, filtros]);
 
@@ -46,7 +58,7 @@ const AdminClients = () => {
               placeholder="Organização, responsável ou e-mail"
               className="pl-9"
               value={filtros.search}
-              onChange={(e) => setFiltros((f) => ({ ...f, search: e.target.value }))}
+              onChange={(e) => setSearch(e.target.value)}
             />
           </div>
         </div>
@@ -54,7 +66,7 @@ const AdminClients = () => {
           <Label htmlFor="filtro-situacao">Situação</Label>
           <Select
             value={filtros.source}
-            onValueChange={(v) => setFiltros((f) => ({ ...f, source: v as ClientFilters["source"] }))}
+            onValueChange={(v) => setSource(v as ClientFilters["source"])}
           >
             <SelectTrigger id="filtro-situacao">
               <SelectValue />
@@ -73,7 +85,7 @@ const AdminClients = () => {
           <Label htmlFor="filtro-tipo">Tipo</Label>
           <Select
             value={filtros.clientType ?? "todos"}
-            onValueChange={(v) => setFiltros((f) => ({ ...f, clientType: v as TipoDeCliente | "todos" }))}
+            onValueChange={(v) => setClientType(v as TipoDeCliente | "todos")}
           >
             <SelectTrigger id="filtro-tipo">
               <SelectValue />
@@ -90,7 +102,7 @@ const AdminClients = () => {
         </div>
         <div className="space-y-1.5 md:w-48">
           <Label htmlFor="filtro-plano">Plano vigente</Label>
-          <Select value={filtros.planId} onValueChange={(v) => setFiltros((f) => ({ ...f, planId: v }))}>
+          <Select value={filtros.planId} onValueChange={setPlanId}>
             <SelectTrigger id="filtro-plano">
               <SelectValue />
             </SelectTrigger>

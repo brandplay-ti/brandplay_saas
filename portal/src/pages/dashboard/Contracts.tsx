@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -171,8 +172,10 @@ export default function Contracts() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<Status | "all">("all");
+  const [search, setSearch] = useFiltroSalvo("contratos", "search", "");
+  const [statusFilter, setStatusFilter] = useFiltroSalvo<Status | "all">("contratos", "statusFilter", "all", {
+    permitidos: ["all", ...(Object.keys(STATUS_META) as Status[])],
+  });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);

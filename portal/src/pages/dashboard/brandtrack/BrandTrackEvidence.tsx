@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,7 +46,9 @@ const BrandTrackEvidence = () => {
   const { orgId } = useOrganization();
   const { user } = useAuth();
   const [items, setItems] = useState<EvidenceItem[]>([]);
-  const [statusFilter, setStatusFilter] = useState<"all" | ReviewStatus>("pendente");
+  const [statusFilter, setStatusFilter] = useFiltroSalvo<"all" | ReviewStatus>("brandtrack-evidencias", "statusFilter", "pendente", {
+    permitidos: ["all", "pendente", "aprovada", "corrigida", "rejeitada"],
+  });
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [corrections, setCorrections] = useState<Record<string, { brand: string; type: string }>>({});
 

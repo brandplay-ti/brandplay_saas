@@ -50,7 +50,7 @@ type OrganizationMemberRow = {
 const OrganizationContext = createContext<OrganizationContextValue | null>(null);
 
 export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [orgId, setOrgIdState] = useState<string | null>(null);
   const [orgName, setOrgName] = useState<string>("");
   const [orgLogoPath, setOrgLogoPath] = useState<string | null>(null);
@@ -165,6 +165,9 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
+    // Enquanto a sessão não foi lida, `user` é null mas ainda não é "sem login":
+    // encerrar o loading aqui fazia o ModuleRoute redirecionar no F5 (issue #51).
+    if (authLoading) return;
     if (!user) {
       setLoading(false);
       return;
@@ -174,7 +177,7 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
       applyActive(list);
       setLoading(false);
     })();
-  }, [user, loadOrganizations, applyActive]);
+  }, [user, authLoading, loadOrganizations, applyActive]);
 
   const switchOrganization = useCallback(
     (newOrgId: string) => {

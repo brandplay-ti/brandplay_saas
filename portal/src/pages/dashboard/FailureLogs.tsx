@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, RefreshCw, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -69,9 +70,9 @@ export default function FailureLogs() {
   const { user } = useAuth();
   const [logs, setLogs] = useState<BackendErrorLog[]>([]);
   const [loading, setLoading] = useState(false);
-  const [userFilter, setUserFilter] = useState("");
-  const [tableFilter, setTableFilter] = useState("all");
-  const [actionFilter, setActionFilter] = useState("all");
+  const [userFilter, setUserFilter] = useFiltroSalvo("logs-falhas", "userFilter", "");
+  const [tableFilter, setTableFilter] = useFiltroSalvo("logs-falhas", "tableFilter", "all", { permitidos: ["all", ...TABLES] });
+  const [actionFilter, setActionFilter] = useFiltroSalvo("logs-falhas", "actionFilter", "all", { permitidos: ["all", ...ACTIONS] });
 
   const loadLogs = useCallback(async () => {
     if (!user) return;
