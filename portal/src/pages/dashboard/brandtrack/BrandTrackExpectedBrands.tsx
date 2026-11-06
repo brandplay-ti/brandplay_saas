@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,8 +86,10 @@ const BrandTrackExpectedBrands = () => {
   const [sponsors, setSponsors] = useState<SponsorRow[]>([]);
   const [expectedBrands, setExpectedBrands] = useState<ExpectedBrand[]>([]);
   const [eventId, setEventId] = useState("");
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useFiltroSalvo("brandtrack-marcas-esperadas", "search", "");
+  const [statusFilter, setStatusFilter] = useFiltroSalvo("brandtrack-marcas-esperadas", "statusFilter", "all", {
+    permitidos: ["all", ...Object.keys(statusLabels)],
+  });
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ExpectedBrand | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);

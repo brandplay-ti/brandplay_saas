@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { drawContainedLogo, fetchLogoBytes, publicLogoUrl } from "../_shared/logo.ts";
 import { carregarMarca, caminhoDoLogo, componentesRgb } from "../_shared/marca.ts";
+import { quebrarTexto } from "../_shared/pdf_texto.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -112,12 +113,18 @@ Deno.serve(async (req) => {
       draw(title.toUpperCase(), { x: 48, size: 9, bold: true, color: primary });
       y -= 26;
     };
-    const paragraph = (s: string, indent = 40, size = 10, color = text) => {
-      for (const line of wrap(s, size === 10 ? 92 : 105)) {
-        ensure(90);
-        draw(line, { x: indent, size, color });
-        y -= size + 3;
+    // Texto em várias linhas, sem cortar: quebra pela largura de `x` até `x + maxWidth`.
+    const lines = (s: string, opts: { x: number; size: number; maxWidth: number; bold?: boolean; color?: any; step?: number; min?: number }) => {
+      const found = quebrarTexto(s, opts.bold ? fontBold : font, opts.size, opts.maxWidth);
+      for (const line of found) {
+        ensure(opts.min ?? 90);
+        draw(line, { x: opts.x, size: opts.size, bold: opts.bold, color: opts.color });
+        y -= opts.step ?? opts.size + 3;
       }
+      return found.length;
+    };
+    const paragraph = (s: string, indent = 40, size = 10, color = text) => {
+      lines(s, { x: indent, size, color, maxWidth: width - 40 - indent });
     };
 
     // Header
@@ -157,8 +164,8 @@ Deno.serve(async (req) => {
     }
 
     y = height - 110;
-    draw(truncate(contract.title, 60), { x: 40, size: 16, bold: true });
-    y -= 30;
+    lines(contract.title, { x: 40, size: 16, bold: true, maxWidth: width - 80, step: 20, min: 120 });
+    y -= 10;
 
     // Resumo em duas colunas
     const cols = [40, 320];
@@ -173,14 +180,24 @@ Deno.serve(async (req) => {
       ["VIGÊNCIA", `${fmtDate(contract.start_date)} a ${fmtDate(contract.end_date)}`],
       ["VENCIMENTO", contract.due_day ? `Todo dia ${contract.due_day}` : "—"],
     ];
-    pairs.forEach(([label, value], i) => {
-      const x = cols[i % 2];
-      if (i % 2 === 0) ensure(140);
-      page.drawText(label, { x, y, size: 8, font, color: muted });
-      page.drawText(truncate(value, 40), { x, y: y - 13, size: 11, font: fontBold, color: text });
-      if (i % 2 === 1) y -= 36;
-    });
-    if (pairs.length % 2 === 1) y -= 36;
+    // Cada linha do resumo tem a altura do valor mais longo entre as duas colunas.
+    const colWidths = [cols[1] - cols[0] - 16, width - 40 - cols[1]];
+    for (let i = 0; i < pairs.length; i += 2) {
+      const row = pairs.slice(i, i + 2).map(([label, value], c) => ({
+        label,
+        x: cols[c],
+        values: quebrarTexto(value, fontBold, 11, colWidths[c]),
+      }));
+      const rowLines = Math.max(1, ...row.map((r) => r.values.length));
+      ensure(110 + 14 * rowLines);
+      for (const r of row) {
+        page.drawText(r.label, { x: r.x, y, size: 8, font, color: muted });
+        r.values.forEach((v, n) => {
+          page.drawText(v, { x: r.x, y: y - 13 - 14 * n, size: 11, font: fontBold, color: text });
+        });
+      }
+      y -= 22 + 14 * rowLines;
+    }
 
     // Dados do patrocinador
     const sp = contract.sponsor;
@@ -199,8 +216,8 @@ Deno.serve(async (req) => {
         if (!value) continue;
         ensure(90);
         draw(`${label}:`, { x: 48, size: 9, color: muted });
-        draw(truncate(String(value), 60), { x: 190, size: 10 });
-        y -= 15;
+        lines(String(value), { x: 190, size: 10, maxWidth: width - 40 - 190, step: 13 });
+        y -= 2;
       }
       if (sp.about) {
         y -= 6;
@@ -232,25 +249,23 @@ Deno.serve(async (req) => {
       let assetsTotal = 0;
       for (const [category, list] of ordered) {
         ensure(130);
-        draw(truncate(category.toUpperCase(), 60), { x: 48, size: 8, bold: true, color: primary });
-        y -= 16;
+        lines(category.toUpperCase(), { x: 48, size: 8, bold: true, color: primary, maxWidth: width - 96, step: 11, min: 120 });
+        y -= 5;
         let groupTotal = 0;
         for (const a of list) {
           ensure(110);
           const lineTotal = Number(a.unit_value || 0) * Number(a.quantity || 0);
           groupTotal += lineTotal;
           assetsTotal += lineTotal;
-          draw(truncate(a.name, 45), { x: 48, size: 10 });
           draw(String(a.quantity), { x: 340, size: 10 });
           if (!flat) {
             draw(fmtBRL(Number(a.unit_value)), { x: 390, size: 10 });
             draw(fmtBRL(lineTotal), { x: 490, size: 10 });
           }
-          y -= 14;
+          // Coluna "Ativo" vai de x=48 até antes da "Qtd" (x=340).
+          if (!lines(a.name, { x: 48, size: 10, maxWidth: 340 - 48 - 12, step: 14, min: 100 })) y -= 14;
           if (a.notes) {
-            ensure(100);
-            draw(truncate(`Obs.: ${a.notes}`, 95), { x: 56, size: 8, color: muted });
-            y -= 12;
+            lines(`Obs.: ${a.notes}`, { x: 56, size: 8, color: muted, maxWidth: width - 40 - 56, step: 12, min: 100 });
           }
           y -= 3;
         }
@@ -294,8 +309,8 @@ Deno.serve(async (req) => {
       section("Cláusulas");
       clauses.forEach((cl, i) => {
         ensure(120);
-        draw(`${i + 1}. ${truncate(cl.title, 70)}`, { x: 48, size: 10, bold: true });
-        y -= 16;
+        lines(`${i + 1}. ${cl.title ?? ""}`, { x: 48, size: 10, bold: true, maxWidth: width - 40 - 48, step: 14, min: 110 });
+        y -= 2;
         if (cl.content) paragraph(String(cl.content), 56, 9, muted);
         y -= 8;
       });
@@ -325,7 +340,7 @@ Deno.serve(async (req) => {
     page.drawLine({ start: { x: 330, y }, end: { x: 530, y }, thickness: 0.7, color: muted });
     y -= 14;
     draw("Propriedade", { x: 60, size: 9, color: muted });
-    draw(truncate(contract.sponsor?.name ?? contract.brand ?? "Patrocinador", 34), { x: 330, size: 9, color: muted });
+    lines(contract.sponsor?.name ?? contract.brand ?? "Patrocinador", { x: 330, size: 9, color: muted, maxWidth: 200, step: 12, min: 40 });
 
     for (const p of pdf.getPages()) {
       p.drawText(`Gerado por Brandplay · ${new Date().toLocaleDateString("pt-BR")}`, {
@@ -354,22 +369,3 @@ Deno.serve(async (req) => {
     });
   }
 });
-
-function wrap(s: string, n: number) {
-  const out: string[] = [];
-  for (const para of String(s).split("\n")) {
-    let line = "";
-    for (const w of para.split(" ")) {
-      if ((line + " " + w).trim().length > n) {
-        out.push(line.trim());
-        line = w;
-      } else line += " " + w;
-    }
-    if (line.trim()) out.push(line.trim());
-  }
-  return out;
-}
-function truncate(s: string, n: number) {
-  const v = String(s ?? "");
-  return v.length > n ? v.slice(0, n - 1) + "…" : v;
-}

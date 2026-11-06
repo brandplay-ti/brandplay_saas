@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -88,8 +89,10 @@ export default function Finance() {
   const { orgId } = useOrganization();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [search, setSearch] = useFiltroSalvo("financeiro", "search", "");
+  const [statusFilter, setStatusFilter] = useFiltroSalvo("financeiro", "statusFilter", "all", {
+    permitidos: ["all", "pendente", "pago", "atrasado", "cancelado"],
+  });
   const [selected, setSelected] = useState<Row | null>(null);
   const [paidAt, setPaidAt] = useState("");
   const [paidAmount, setPaidAmount] = useState("");

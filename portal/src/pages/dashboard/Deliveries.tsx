@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -153,45 +154,16 @@ export default function Deliveries() {
     localStorage.setItem("deliveries_view_mode", viewMode);
   }, [viewMode]);
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const [filterProperty, setFilterProperty] = useState("all");
-  const [filterOpportunity, setFilterOpportunity] = useState("all");
-  const [filterBrand, setFilterBrand] = useState("all");
-  const [filterAssetType, setFilterAssetType] = useState("all");
-  const [filterApproval, setFilterApproval] = useState("all");
-  const [dueFrom, setDueFrom] = useState("");
-  const [dueTo, setDueTo] = useState("");
-  const [showOverdueOnly, setShowOverdueOnly] = useState(false);
-  const [showNoDateOnly, setShowNoDateOnly] = useState(false);
-  const [filtersLoaded, setFiltersLoaded] = useState(false);
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("deliveries_advanced_filters");
-      if (stored) {
-        const s = JSON.parse(stored);
-        setSearch(s.search ?? "");
-        setFilterProperty(s.filterProperty ?? "all");
-        setFilterOpportunity(s.filterOpportunity ?? "all");
-        setFilterBrand(s.filterBrand ?? "all");
-        setFilterAssetType(s.filterAssetType ?? "all");
-        setFilterApproval(s.filterApproval ?? "all");
-        setDueFrom(s.dueFrom ?? "");
-        setDueTo(s.dueTo ?? "");
-        setShowOverdueOnly(!!s.showOverdueOnly);
-        setShowNoDateOnly(!!s.showNoDateOnly);
-      }
-    } catch { /* ignore */ }
-    setFiltersLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (!filtersLoaded) return;
-    localStorage.setItem("deliveries_advanced_filters", JSON.stringify({
-      search, filterProperty, filterOpportunity, filterBrand, filterAssetType,
-      filterApproval, dueFrom, dueTo, showOverdueOnly, showNoDateOnly,
-    }));
-  }, [filtersLoaded, search, filterProperty, filterOpportunity, filterBrand, filterAssetType, filterApproval, dueFrom, dueTo, showOverdueOnly, showNoDateOnly]);
+  const [search, setSearch] = useFiltroSalvo("entregas", "search", "");
+  const [filterProperty, setFilterProperty] = useFiltroSalvo("entregas", "filterProperty", "all");
+  const [filterOpportunity, setFilterOpportunity] = useFiltroSalvo("entregas", "filterOpportunity", "all");
+  const [filterBrand, setFilterBrand] = useFiltroSalvo("entregas", "filterBrand", "all");
+  const [filterAssetType, setFilterAssetType] = useFiltroSalvo("entregas", "filterAssetType", "all");
+  const [filterApproval, setFilterApproval] = useFiltroSalvo("entregas", "filterApproval", "all");
+  const [dueFrom, setDueFrom] = useFiltroSalvo("entregas", "dueFrom", "");
+  const [dueTo, setDueTo] = useFiltroSalvo("entregas", "dueTo", "");
+  const [showOverdueOnly, setShowOverdueOnly] = useFiltroSalvo("entregas", "showOverdueOnly", false);
+  const [showNoDateOnly, setShowNoDateOnly] = useFiltroSalvo("entregas", "showNoDateOnly", false);
 
   const [form, setForm] = useState({
     title: "",

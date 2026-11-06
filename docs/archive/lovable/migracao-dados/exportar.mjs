@@ -357,6 +357,7 @@ async function entrar(sb, opt) {
     if (!sessao.access_token || !sessao.refresh_token) throw new Error("a sessão precisa ter access_token e refresh_token");
     const { data, error } = await sb.auth.setSession({ access_token: sessao.access_token, refresh_token: sessao.refresh_token });
     if (error || !data?.user) throw new Error(`sessão inválida ou expirada: ${error?.message ?? "sem usuário"} (entre de novo no app e copie outra vez)`);
+    console.log(`Sessão de ${data.user.email ?? data.user.id}`);
     return data;
   }
   const email = process.env.EXPORT_EMAIL || (await perguntar("E-mail do owner: "));
