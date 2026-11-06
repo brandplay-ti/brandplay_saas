@@ -30,7 +30,9 @@ function consulta(resultado: { data: unknown; error: null }) {
   return cadeia;
 }
 
-vi.mock("@/hooks/useAuth", () => ({ useAuth: () => ({ user: { id: "u1" } }) }));
+// Sessão controlável: no F5 o useAuth começa sem usuário e com loading até ler a sessão.
+const auth = vi.hoisted(() => ({ atual: { user: { id: "u1" } as { id: string } | null, loading: false } }));
+vi.mock("@/hooks/useAuth", () => ({ useAuth: () => auth.atual }));
 vi.mock("@/lib/backendErrorLogger", () => ({ logBackendDbError: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -61,7 +63,10 @@ async function ativa(orgId: string | null) {
 }
 
 describe("OrganizationProvider com papéis diferentes por organização", () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => {
+    localStorage.clear();
+    auth.atual = { user: { id: "u1" }, loading: false };
+  });
 
   it("na organização em que é admin, o menu é o de admin", async () => {
     const org = await ativa(SCOUT);
@@ -86,5 +91,27 @@ describe("OrganizationProvider com papéis diferentes por organização", () => 
     expect(org.orgId).toBe(KIDS);
     expect(org.role).toBe("operacional");
     expect(localStorage.getItem("active_organization_id")).toBe(KIDS);
+  });
+
+  it("no F5, segue carregando enquanto a sessão não foi lida (o ModuleRoute não redireciona)", async () => {
+    localStorage.setItem("active_organization_id", SCOUT);
+    auth.atual = { user: null, loading: true };
+    const { result, rerender } = renderHook(() => useOrganization(), { wrapper });
+    await new Promise((r) => setTimeout(r, 20));
+    expect(result.current.loading).toBe(true);
+    expect(result.current.can("vendas")).toBe(false);
+
+    auth.atual = { user: { id: "u1" }, loading: false };
+    rerender();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.orgId).toBe(SCOUT);
+    expect(result.current.can("vendas")).toBe(true);
+  });
+
+  it("sem login, o loading termina sem organização", async () => {
+    auth.atual = { user: null, loading: false };
+    const { result } = renderHook(() => useOrganization(), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.orgId).toBeNull();
   });
 });

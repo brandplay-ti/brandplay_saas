@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { withProfileNames } from "@/lib/profileNames";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,7 +55,8 @@ interface SponsorRow {
   lateDeliveries: number;
 }
 
-type SortKey = "name" | "lifecycle" | "priority" | "openValue" | "contractedValue" | "last_contact_at";
+const SORT_KEYS = ["name", "lifecycle", "priority", "openValue", "contractedValue", "last_contact_at"] as const;
+type SortKey = (typeof SORT_KEYS)[number];
 
 const logoUrl = (p: string | null) =>
   p ? supabase.storage.from("sponsor-logos").getPublicUrl(p).data.publicUrl : null;
@@ -72,15 +74,15 @@ export default function Sponsors() {
     try { return JSON.parse(localStorage.getItem(VIEW_KEY) || "{}"); } catch { return {}; }
   })();
 
-  const [layout, setLayout] = useState<"table" | "cards">(stored.layout ?? "table");
-  const [search, setSearch] = useState("");
-  const [lifecycleFilter, setLifecycleFilter] = useState<string>(stored.lifecycleFilter ?? "all");
-  const [priorityFilter, setPriorityFilter] = useState<string>(stored.priorityFilter ?? "all");
-  const [healthFilter, setHealthFilter] = useState<string>(stored.healthFilter ?? "all");
-  const [ownerFilter, setOwnerFilter] = useState<string>(stored.ownerFilter ?? "all");
-  const [showArchived, setShowArchived] = useState<boolean>(stored.showArchived ?? false);
-  const [sortKey, setSortKey] = useState<SortKey>(stored.sortKey ?? "name");
-  const [sortAsc, setSortAsc] = useState<boolean>(stored.sortAsc ?? true);
+  const [layout, setLayout] = useState<"table" | "cards">(stored.layout === "cards" ? "cards" : "table");
+  const [search, setSearch] = useFiltroSalvo("patrocinadores", "search", "");
+  const [lifecycleFilter, setLifecycleFilter] = useFiltroSalvo("patrocinadores", "lifecycleFilter", "all");
+  const [priorityFilter, setPriorityFilter] = useFiltroSalvo("patrocinadores", "priorityFilter", "all");
+  const [healthFilter, setHealthFilter] = useFiltroSalvo("patrocinadores", "healthFilter", "all");
+  const [ownerFilter, setOwnerFilter] = useFiltroSalvo("patrocinadores", "ownerFilter", "all");
+  const [showArchived, setShowArchived] = useFiltroSalvo("patrocinadores", "showArchived", false);
+  const [sortKey, setSortKey] = useFiltroSalvo<SortKey>("patrocinadores", "sortKey", "name", { permitidos: SORT_KEYS });
+  const [sortAsc, setSortAsc] = useFiltroSalvo("patrocinadores", "sortAsc", true);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
@@ -90,8 +92,8 @@ export default function Sponsors() {
   const [profile, setProfile] = useState<SponsorProfileValue>(emptySponsorProfile());
 
   useEffect(() => {
-    localStorage.setItem(VIEW_KEY, JSON.stringify({ layout, lifecycleFilter, priorityFilter, healthFilter, ownerFilter, showArchived, sortKey, sortAsc }));
-  }, [layout, lifecycleFilter, priorityFilter, healthFilter, ownerFilter, showArchived, sortKey, sortAsc]);
+    localStorage.setItem(VIEW_KEY, JSON.stringify({ layout }));
+  }, [layout]);
 
   const load = useCallback(async () => {
     if (!orgId) return;

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,7 +48,6 @@ type MediaDetection = {
 };
 
 type EventRow = { id: string; name: string; property_id?: string | null; organization_id?: string | null };
-const FILTERS_KEY = "brandtrack-uploads-filters";
 
 type ExpectedBrand = { id: string; display_name: string; aliases: string[]; sponsor_status: string; priority: number; is_active: boolean };
 const db = supabase as any;
@@ -94,33 +94,10 @@ const BrandTrackUploads = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   // ---- Filtros da lista ----
-  const [search, setSearch] = useState("");
-  const [filterProperty, setFilterProperty] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [filterPeriod, setFilterPeriod] = useState("all");
-  const [filtersLoaded, setFiltersLoaded] = useState(false);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(FILTERS_KEY);
-      if (raw) {
-        const f = JSON.parse(raw);
-        setSearch(f.search ?? "");
-        setFilterProperty(f.filterProperty ?? "all");
-        setFilterStatus(f.filterStatus ?? "all");
-        setFilterPeriod(f.filterPeriod ?? "all");
-      }
-    } catch { /* ignore */ }
-    setFiltersLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (!filtersLoaded) return;
-    localStorage.setItem(
-      FILTERS_KEY,
-      JSON.stringify({ search, filterProperty, filterStatus, filterPeriod })
-    );
-  }, [filtersLoaded, search, filterProperty, filterStatus, filterPeriod]);
+  const [search, setSearch] = useFiltroSalvo("brandtrack-uploads", "search", "");
+  const [filterProperty, setFilterProperty] = useFiltroSalvo("brandtrack-uploads", "filterProperty", "all");
+  const [filterStatus, setFilterStatus] = useFiltroSalvo("brandtrack-uploads", "filterStatus", "all");
+  const [filterPeriod, setFilterPeriod] = useFiltroSalvo("brandtrack-uploads", "filterPeriod", "all");
 
   useEffect(() => {
     localStorage.setItem("brandtrack-imported-field-ids", JSON.stringify(importedFieldIds));

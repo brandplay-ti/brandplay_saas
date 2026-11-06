@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -46,8 +47,8 @@ const BrandTrackBrands = () => {
   const { orgId } = useOrganization();
   const [rows, setRows] = useState<Row[]>([]);
   const [expected, setExpected] = useState<ExpectedBrand[]>([]);
-  const [search, setSearch] = useState("");
-  const [view, setView] = useState("all");
+  const [search, setSearch] = useFiltroSalvo("brandtrack-marcas", "search", "");
+  const [view, setView] = useFiltroSalvo("brandtrack-marcas", "view", "all", { permitidos: ["all", "expected", "unexpected"] });
 
   useEffect(() => {
     void load();

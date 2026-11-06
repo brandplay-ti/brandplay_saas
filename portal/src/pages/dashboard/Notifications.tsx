@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, Check, CheckCheck, Clock, ExternalLink, Filter, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/common/PageHeader";
 
@@ -34,8 +35,10 @@ const formatDateTime = (value: string) =>
 export default function Notifications() {
   const navigate = useNavigate();
   const { notifications, unread, loading, markAsRead, markAllRead, remove, checkNow } = useNotifications();
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useFiltroSalvo("notificacoes", "typeFilter", "all");
+  const [statusFilter, setStatusFilter] = useFiltroSalvo("notificacoes", "statusFilter", "all", {
+    permitidos: ["all", "unread", "read"],
+  });
 
   const categories = useMemo(
     () => Array.from(new Set(notifications.map((notification) => notification.category))).sort(),
