@@ -1,11 +1,9 @@
 import { MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PaginaRelatorio } from "@/lib/relatorioLanding";
-import { classeDisplay } from "../estilo";
+import { classeDisplay, diaEMes } from "../estilo";
 import { Realce, Secao } from "../primitivos";
 
-const dia = (iso: string) =>
-  new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }).replace(".", "");
 
 export function Jornada({ pagina }: { pagina: PaginaRelatorio }) {
   const fotoDo = (momentoId: string) =>
@@ -63,7 +61,7 @@ export function Jornada({ pagina }: { pagina: PaginaRelatorio }) {
               {String(i + 1).padStart(2, "0")}.
             </p>
             <p className="mt-2 text-base font-semibold text-[var(--rl-fg)]">{m.titulo}</p>
-            <p className="mt-1 text-sm capitalize text-[var(--rl-muted)]">{dia(m.inicio)}</p>
+            <p className="mt-1 text-sm text-[var(--rl-muted)]">{diaEMes(m.inicio)}</p>
             {m.local && (
               <p className="mt-1 inline-flex items-center gap-1 text-sm text-[var(--rl-muted)]">
                 <MapPin className="h-3.5 w-3.5" aria-hidden /> {m.local}

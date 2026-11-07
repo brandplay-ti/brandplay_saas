@@ -6,8 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Copy, Loader2, Save, Wand2, Plus } from "lucide-react";
+import { Copy, Loader2, Save, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { ProposalWizardDialog, type PropostaExistente } from "./ProposalWizardDialog";
 
 type Channel = "concept" | "deck" | "whatsapp" | "email";
 
@@ -39,7 +40,15 @@ const sanitizeEmailHtml = (html: string) => DOMPurify.sanitize(html, {
   FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form", "input", "button"],
 });
 
-export function ProposalVersionsEditor({ proposalId, organizationId }: { proposalId: string; organizationId: string }) {
+type Props = {
+  proposta: PropostaExistente;
+  /** Chamado depois que o assistente grava versões (a mensagem da proposta pode ter mudado). */
+  onPropostaAlterada?: () => void;
+};
+
+export function ProposalVersionsEditor({ proposta, onPropostaAlterada }: Props) {
+  const proposalId = proposta.id;
+  const organizationId = proposta.organization_id;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<Channel | null>(null);
   const [versions, setVersions] = useState<Record<Channel, Version>>(EMPTY);
@@ -104,10 +113,6 @@ export function ProposalVersionsEditor({ proposalId, organizationId }: { proposa
     toast.success(`${label} copiado!`);
   };
 
-  const regenerate = async () => {
-    toast.info("Use o botão 'Proposta Inteligente' na lista para gerar novamente.");
-  };
-
   if (loading) {
     return <div className="py-8 text-center text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin inline mr-2" />Carregando versões…</div>;
   }
@@ -116,6 +121,13 @@ export function ProposalVersionsEditor({ proposalId, organizationId }: { proposa
   const activations: { title: string; description: string }[] = concept.metadata?.activations ?? [];
 
   return (
+    <>
+    <div className="flex justify-end">
+      <ProposalWizardDialog
+        proposta={proposta}
+        onSaved={() => { load(); onPropostaAlterada?.(); }}
+      />
+    </div>
     <Tabs defaultValue="concept" className="mt-2">
       <TabsList className="grid grid-cols-4 w-full">
         <TabsTrigger value="concept">Conceito</TabsTrigger>
@@ -216,5 +228,6 @@ export function ProposalVersionsEditor({ proposalId, organizationId }: { proposa
         )}
       </TabsContent>
     </Tabs>
+    </>
   );
 }

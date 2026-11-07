@@ -129,17 +129,21 @@ export function EmbedComFachada({
   post,
   titulo,
   className,
+  proporcaoDaFachada,
 }: {
   post: PostParaEmbed;
   titulo: string;
   className?: string;
+  /** Proporção da fachada antes do clique, para cartões vizinhos ficarem da mesma altura. */
+  proporcaoDaFachada?: string;
 }) {
   const [ativo, setAtivo] = useState(false);
+  const [semMiniatura, setSemMiniatura] = useState(false);
   const embed = urlDeEmbed(post);
-  const miniatura = miniaturaDoPost(post);
-  const proporcao = proporcaoDoEmbed(post);
+  const miniatura = semMiniatura ? null : miniaturaDoPost(post);
+  const proporcao = proporcaoDaFachada ?? proporcaoDoEmbed(post);
   // O Instagram desenha cabeçalho e legenda dentro do iframe: precisa de altura.
-  const aspecto = post.rede === "instagram" && ativo ? "4/6" : proporcao;
+  const aspecto = post.rede === "instagram" ? "4/6" : proporcaoDoEmbed(post);
 
   if (ativo && embed) {
     return (
@@ -159,12 +163,18 @@ export function EmbedComFachada({
 
   const fundo = (
     <>
-      {miniatura ? (
-        <img src={miniatura} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
-      ) : (
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-[radial-gradient(120%_80%_at_20%_10%,var(--rl-primaria),transparent_60%),radial-gradient(120%_90%_at_90%_100%,var(--rl-secundaria),transparent_55%)] opacity-80"
+      {/* O gradiente fica por baixo: se a miniatura não carregar, o cartão não fica vazio. */}
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-[radial-gradient(120%_80%_at_20%_10%,var(--rl-primaria),transparent_60%),radial-gradient(120%_90%_at_90%_100%,var(--rl-secundaria),transparent_55%)] opacity-80"
+      />
+      {miniatura && (
+        <img
+          src={miniatura}
+          alt=""
+          loading="lazy"
+          onError={() => setSemMiniatura(true)}
+          className="absolute inset-0 h-full w-full object-cover"
         />
       )}
       <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10" />
