@@ -387,9 +387,35 @@ fix(portal): corrige acesso do patrocinador a documentos revogados
 chore(migrations): adiciona indice em contracts.organization_id
 ```
 
-Não criar commits automaticamente sem solicitação explícita. Não executar sem
-confirmação explícita: `git push --force`, `git reset --hard`, `git clean
--fd`. Nunca reescrever histórico compartilhado.
+### Fluxo de entrega (obrigatório)
+
+Todo desenvolvimento (código, migration, documentação) é levado até o fim por
+este fluxo, sem esperar um pedido para cada passo:
+
+1. **Branch** nova a partir de `origin/dev` atualizado (`feature/*`, `fix/*`,
+   `docs/*`, ...). Nunca trabalhe direto em `dev`, `hml` ou `main`. Se o
+   checkout principal estiver em outra branch, use um worktree em
+   `.claude/worktrees/` em vez de trocar a branch dele.
+2. **Commit**, no padrão acima, depois das validações da seção 5.
+3. **Push** da branch para `origin`.
+4. **PR** para `dev`, dizendo o que mudou, o que foi validado e o que não foi.
+5. **Merge** do PR em `dev`, com merge commit (como o histórico), só com o CI
+   verde e sem conflito. CI vermelho se corrige na própria branch; nunca torne
+   um passo do CI não bloqueante nem pule hook para passar.
+6. **Limpeza, nesta ordem**: apague a branch **remota**
+   (`git push origin --delete <branch>`; o repositório não apaga sozinho no
+   merge) e só depois a **local**: `git fetch origin --prune`, remova o
+   worktree se houver (`git worktree remove`), confirme que o commit está em
+   `origin/dev` (`git merge-base --is-ancestor <branch> origin/dev`) e apague a
+   branch local.
+
+O desenvolvimento só está concluído depois do passo 6. Se um passo não puder
+ser feito (CI quebrado por algo fora do escopo, conflito que pede decisão,
+permissão negada), pare e informe em que passo parou e por quê.
+
+Continuam exigindo pedido explícito: promover `dev` → `hml` → `main`,
+`git push --force`, `git reset --hard` e `git clean -fd`. Nunca reescreva
+histórico compartilhado.
 
 ---
 
@@ -444,7 +470,13 @@ Uma tarefa somente está concluída quando:
 - [ ] segurança avaliada (checklist de `.claude/rules/security.md`);
 - [ ] diff revisado;
 - [ ] documentação (ADR, `SCHEMA_NOTES.md`, `SECURITY.md`) atualizada quando
-      necessário.
+      necessário;
+- [ ] branch criada a partir de `origin/dev`, commit e push feitos;
+- [ ] PR aberto para `dev`, com CI verde, e mergeado;
+- [ ] branch remota apagada e, depois dela, a branch local (e o worktree, se
+      houver).
+
+Os três últimos itens seguem o fluxo de entrega da seção 9.
 
 Ao finalizar uma tarefa, informe:
 
