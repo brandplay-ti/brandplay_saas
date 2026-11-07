@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertCircle, CheckCircle2, Loader2, LogOut, Mail, RefreshCw, ShieldCheck } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, LogOut, Mail, Palette, RefreshCw, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
+import { BrandKitCard } from "@/components/organization/BrandKitCard";
 import { ConvitesPendentes } from "@/components/organization/ConvitesPendentes";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,9 +11,11 @@ import { ClientTypeField } from "@/components/organization/ClientTypeField";
 import type { TipoDeCliente } from "@/lib/permissoes";
 import { useConvitesDeOrganizacao, type ConviteDeOrganizacao } from "@/hooks/useConvitesDeOrganizacao";
 import { mensagemDeErroDoConvite } from "@/lib/convites";
+import type { BillingStatus } from "@/lib/billing";
+import { lembrarEtapaDeMarcaPulada, precisaDaEtapaDeMarca, pulouEtapaDeMarca } from "@/lib/onboardingMarca";
 import { toast } from "sonner";
 
-type SetupState = "checking" | "ready" | "failed" | "creating";
+type SetupState = "checking" | "ready" | "failed" | "creating" | "marca";
 
 type OrganizationMember = {
   organization_id: string;
@@ -38,6 +41,15 @@ const OrganizationSetup = () => {
   const [state, setState] = useState<SetupState>("checking");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [diagnostic, setDiagnostic] = useState<CreateOrganizationResponse["diagnostic"]>(null);
+  const [orgDaMarca, setOrgDaMarca] = useState<string | null>(null);
+  // Com a etapa de marca aberta, uma nova verificação (o `user` muda de
+  // identidade quando o token renova) tiraria a tela e o que foi digitado.
+  const etapaDeMarcaAberta = useRef(false);
+  const abrirEtapaDeMarca = useCallback((orgId: string) => {
+    etapaDeMarcaAberta.current = true;
+    setOrgDaMarca(orgId);
+    setState("marca");
+  }, []);
   const { convites, aceitar, recusar } = useConvitesDeOrganizacao();
   const [conviteOcupado, setConviteOcupado] = useState<string | null>(null);
   const [pularConvites, setPularConvites] = useState(false);
@@ -60,8 +72,26 @@ const OrganizationSetup = () => {
     return value.length >= 2 ? value : "Minha organização";
   }, [user]);
 
+  // Etapa de marca (lib/onboardingMarca.ts). Erro em qualquer consulta não
+  // segura o login: segue para o painel sem a etapa.
+  const deveMostrarMarca = useCallback(async (orgId: string, papel: string) => {
+    // Papel e "pulada" se conferem antes de ir ao banco.
+    if (!precisaDaEtapaDeMarca({ papel, temKit: false, temAcesso: true, pulou: pulouEtapaDeMarca(orgId) })) {
+      return false;
+    }
+    const [kit, status] = await Promise.all([
+      supabase.from("organization_brand_kits").select("organization_id").eq("organization_id", orgId).maybeSingle(),
+      supabase.rpc("billing_status", { _org_id: orgId }),
+    ]);
+    if (kit.error || status.error) return false;
+    // O tipo gerado de uma função que devolve jsonb é `Json`; o formato está
+    // fixado na 0024 e espelhado em `BillingStatus`.
+    const acesso = (status.data as unknown as BillingStatus | null)?.access === true;
+    return precisaDaEtapaDeMarca({ papel, temKit: !!kit.data, temAcesso: acesso, pulou: false });
+  }, []);
+
   const verifyOrganization = useCallback(async () => {
-    if (!user) return;
+    if (!user || etapaDeMarcaAberta.current) return;
     setState("checking");
     setErrorMessage(null);
     setDiagnostic(null);
@@ -97,6 +127,10 @@ const OrganizationSetup = () => {
     }
 
     if (member?.organization_id) {
+      if (await deveMostrarMarca(member.organization_id, member.role)) {
+        abrirEtapaDeMarca(member.organization_id);
+        return;
+      }
       setState("ready");
       toast.success(`Organização pronta${member.organization?.name ? `: ${member.organization.name}` : ""}`);
       navigate("/dashboard", { replace: true });
@@ -105,7 +139,7 @@ const OrganizationSetup = () => {
 
     setState("failed");
     setErrorMessage("Nenhuma organização ativa foi encontrada para sua conta.");
-  }, [navigate, user]);
+  }, [abrirEtapaDeMarca, deveMostrarMarca, navigate, user]);
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth", { replace: true });
@@ -156,6 +190,11 @@ const OrganizationSetup = () => {
     if (data?.organizationId) {
       localStorage.setItem(ACTIVE_ORG_KEY, data.organizationId);
       toast.success("Organização criada com sucesso");
+      // Quem cria é o owner, e a organização nasce sem kit de marca.
+      if (await deveMostrarMarca(data.organizationId, "owner")) {
+        abrirEtapaDeMarca(data.organizationId);
+        return;
+      }
       navigate("/dashboard", { replace: true });
       return;
     }
@@ -170,6 +209,55 @@ const OrganizationSetup = () => {
   };
 
   const isBusy = loading || state === "checking" || state === "creating";
+
+  const irParaOPainel = () => navigate("/dashboard", { replace: true });
+
+  if (state === "marca" && orgDaMarca) {
+    return (
+      <main className="min-h-screen bg-surface-soft px-4 py-8 md:py-12">
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
+          <div className="flex items-center justify-between gap-4">
+            <Logo sizeClassName="h-8" />
+            <Button variant="ghost" onClick={signOut} className="gap-2">
+              <LogOut className="h-4 w-4" /> Sair
+            </Button>
+          </div>
+
+          <section className="flex flex-col gap-4 md:flex-row md:items-start">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <Palette className="h-6 w-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl font-bold tracking-tight">Cores e logo da sua organização</h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Os relatórios, as propostas e os contratos da sua organização vão sair com estas cores e este
+                logo. Você pode mudar depois em Configurações.
+              </p>
+            </div>
+          </section>
+
+          <BrandKitCard
+            organizationId={orgDaMarca}
+            podeEditar
+            aoSalvarCores={irParaOPainel}
+            rotuloSalvar="Salvar e continuar"
+          />
+
+          <div>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                lembrarEtapaDeMarcaPulada(orgDaMarca);
+                irParaOPainel();
+              }}
+            >
+              Pular por agora
+            </Button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-surface-soft px-4 py-8 md:py-12">
