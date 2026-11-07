@@ -28,6 +28,8 @@ import { AssetCatalogToolbar, type AssetSortBy } from "@/components/assets/Asset
 import { useConfirm } from "@/hooks/useConfirm";
 import { PageHeader } from "@/components/common/PageHeader";
 import { ativarComTeclado } from "@/lib/clicavel";
+import { EmptyState } from "@/components/common/EmptyState";
+import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 
 
 type Status = "rascunho" | "enviada" | "aceita" | "recusada" | "expirada";
@@ -900,8 +902,22 @@ export default function Proposals() {
         </CardHeader>
 
         <CardContent>
-          {loading ? <p className="text-sm text-muted-foreground py-8 text-center">Carregando…</p>
-          : filtered.length === 0 ? <p className="py-12 text-center text-sm text-muted-foreground">Nenhuma proposta.</p>
+          {loading ? <LoadingSkeleton />
+          : filtered.length === 0 ? (
+            <EmptyState
+              bordered={false}
+              icon={FileText}
+              title={proposals.length === 0 ? "Nenhuma proposta ainda" : "Nenhuma proposta com esses filtros"}
+              description={
+                proposals.length === 0
+                  ? <>Monte uma proposta a partir dos seus ativos, ou gere uma com a <strong>Proposta Inteligente</strong>.</>
+                  : "Ajuste a busca ou os filtros."
+              }
+              action={proposals.length === 0 && (
+                <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-2" />Nova proposta</Button>
+              )}
+            />
+          )
           : (
             <div className="space-y-2">
               {filtered.map((p) => {

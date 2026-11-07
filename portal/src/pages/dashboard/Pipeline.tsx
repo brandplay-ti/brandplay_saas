@@ -38,7 +38,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Plus, CalendarIcon, Building2, Trash2, GripVertical, Search, Settings2, AlertTriangle, User, Columns3, Table2, Rows3, Filter, X, Activity, Clock, ArrowUpDown, Sparkles, Loader2, CheckCircle2, XCircle, FileDown, PanelRightOpen, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, CalendarIcon, Building2, Trash2, GripVertical, Search, Settings2, AlertTriangle, User, Columns3, Table2, Rows3, Filter, X, Activity, Clock, ArrowUpDown, Sparkles, Loader2, CheckCircle2, XCircle, FileDown, PanelRightOpen, ArrowUp, ArrowDown, Briefcase } from "lucide-react";
 import {
   DndContext,
   DragEndEvent,
@@ -66,6 +66,7 @@ import { dataLocal } from "@/lib/datas";
 import { PageHeader } from "@/components/common/PageHeader";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
+import { EmptyState } from "@/components/common/EmptyState";
 
 type Stage = Database["public"]["Enums"]["opportunity_stage"];
 
@@ -1414,6 +1415,19 @@ export default function Pipeline() {
             ) : null}
           </DragOverlay>
         </DndContext>
+      ) : sortedFiltered.length === 0 ? (
+        <EmptyState
+          icon={Briefcase}
+          title={opportunities.length === 0 ? "Nenhuma oportunidade ainda" : "Nenhuma oportunidade com esses filtros"}
+          description={
+            opportunities.length === 0
+              ? "Crie a primeira oportunidade para acompanhar a negociação até o contrato."
+              : "Ajuste a busca, o funil ou os filtros."
+          }
+          action={opportunities.length === 0 && (
+            <Button onClick={() => setDialogOpen(true)}><Plus className="h-4 w-4 mr-2" />Nova oportunidade</Button>
+          )}
+        />
       ) : viewMode === "list" ? (
         <PipelineTableView
           items={sortedFiltered}
@@ -1896,8 +1910,6 @@ function PipelineTableView({
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
-  if (items.length === 0) return <PipelineEmptyState />;
-
   const toggleSort = (asc: SortMode, desc: SortMode) => onSortChange(sortMode === asc ? desc : asc);
 
   return (
@@ -1999,8 +2011,6 @@ function PipelineCompactView({
   onDelete: (id: string) => void;
   onStageChange: (opp: Opportunity, stage: Stage) => void;
 }) {
-  if (items.length === 0) return <PipelineEmptyState />;
-
   return (
     <div className="grid gap-2">
       {items.map((opp) => {
@@ -2080,14 +2090,6 @@ function PipelineCompactView({
         );
       })}
     </div>
-  );
-}
-
-function PipelineEmptyState() {
-  return (
-    <Card className="p-8 text-center text-sm text-muted-foreground">
-      Nenhuma oportunidade encontrada com os filtros atuais.
-    </Card>
   );
 }
 

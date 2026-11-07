@@ -9,6 +9,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/common/PageHeader";
+import { EmptyState } from "@/components/common/EmptyState";
 
 const CATEGORY_LABELS: Record<string, string> = {
   installment_due: "Parcela a vencer",
@@ -104,10 +105,15 @@ export default function Notifications() {
 
       <div className="space-y-3">
         {filtered.length === 0 ? (
-          <Card className="p-10 text-center text-sm text-muted-foreground">
-            <Bell className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            Nenhuma notificação encontrada.
-          </Card>
+          <EmptyState
+            icon={Bell}
+            title={notifications.length === 0 ? "Nenhuma notificação" : "Nenhuma notificação com esses filtros"}
+            description={
+              notifications.length === 0
+                ? "Alertas de prazos, entregas atrasadas e cobranças aparecem aqui."
+                : "Ajuste o tipo ou o status."
+            }
+          />
         ) : filtered.map((notification) => (
           <Card key={notification.id} className={cn("p-4 transition-colors", !notification.read_at && "border-primary/40 bg-primary/5")}>
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
