@@ -1,7 +1,7 @@
 import { Download, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { numerosPrincipais, indicadoresDa, formatarIndicador, type PaginaRelatorio } from "@/lib/relatorioLanding";
-import { classeDisplay, periodoDaPropriedade } from "../estilo";
+import { classeDisplay, comInicialMaiuscula, periodoDaPropriedade } from "../estilo";
 import { NumeroGrande, Realce, Secao } from "../primitivos";
 
 export function Numeros({ pagina }: { pagina: PaginaRelatorio }) {
@@ -61,7 +61,7 @@ export function Resumo({ pagina }: { pagina: PaginaRelatorio }) {
     periodo && { rotulo: "Período", valor: periodo },
     propriedade?.locais?.length && { rotulo: "Onde", valor: propriedade.locais.join(", ") },
     propriedade?.local_final && { rotulo: "Grande final", valor: propriedade.local_final },
-    propriedade?.categoria && { rotulo: "Categoria", valor: propriedade.categoria },
+    propriedade?.categoria && { rotulo: "Categoria", valor: comInicialMaiuscula(propriedade.categoria) },
   ].filter(Boolean) as { rotulo: string; valor: string }[];
 
   return (
@@ -90,7 +90,7 @@ export function Resumo({ pagina }: { pagina: PaginaRelatorio }) {
             {fatos.map((f) => (
               <div key={f.rotulo} className="flex flex-col gap-1 p-5">
                 <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--rl-muted)]">{f.rotulo}</dt>
-                <dd className="font-semibold capitalize text-[var(--rl-fg)]">{f.valor}</dd>
+                <dd className="font-semibold text-[var(--rl-fg)]">{f.valor}</dd>
               </div>
             ))}
           </dl>

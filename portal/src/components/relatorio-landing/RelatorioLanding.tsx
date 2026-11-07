@@ -110,7 +110,8 @@ export function RelatorioLanding({ pagina }: { pagina: PaginaRelatorio }) {
               </span>
             )}
           </a>
-          <ul className="ml-auto flex min-w-0 items-center gap-1 overflow-x-auto text-sm [scrollbar-width:none]">
+          {/* Em tela estreita o menu rola: o fim esmaece em vez de cortar a palavra seca. */}
+          <ul className="ml-auto flex min-w-0 items-center gap-1 overflow-x-auto pr-8 text-sm [mask-image:linear-gradient(to_right,black_calc(100%-2.5rem),transparent)] [scrollbar-width:none]">
             {blocos
               .filter((b) => b !== "contato")
               .map((b) => (
