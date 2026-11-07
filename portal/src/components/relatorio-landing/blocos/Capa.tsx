@@ -130,7 +130,7 @@ export function Capa({ pagina, primeiroBloco }: { pagina: PaginaRelatorio; prime
               {periodo && (
                 <div>
                   <dt className="text-xs uppercase tracking-[0.14em] text-[var(--rl-muted)]">Período</dt>
-                  <dd className="mt-1 font-semibold capitalize text-[var(--rl-fg)]">{periodo}</dd>
+                  <dd className="mt-1 font-semibold text-[var(--rl-fg)]">{periodo}</dd>
                 </div>
               )}
               {propriedade?.local_final && (
