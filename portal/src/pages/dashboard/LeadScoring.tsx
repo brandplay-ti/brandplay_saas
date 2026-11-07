@@ -13,6 +13,7 @@ import { useOrganization } from "@/hooks/useOrganization";
 import { avisarErroDeIA } from "@/lib/erroDeIA";
 import { PageHeader } from "@/components/common/PageHeader";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
+import { EmptyState } from "@/components/common/EmptyState";
 
 interface Property { id: string; name: string; }
 interface Score {
@@ -153,11 +154,11 @@ export default function LeadScoring() {
       {loading ? (
         <LoadingSkeleton variant="cards" count={3} />
       ) : scores.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            Nenhum score ainda. Clique em "Gerar com IA" para avaliar seus patrocinadores e oportunidades.
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Sparkles}
+          title="Nenhum score ainda"
+          description={<>Clique em <strong>Gerar / Atualizar com IA</strong> para avaliar seus patrocinadores e oportunidades.</>}
+        />
       ) : (
         <div className="grid gap-4 md:grid-cols-3">
           {(["quente", "morno", "frio"] as const).map((cls) => {

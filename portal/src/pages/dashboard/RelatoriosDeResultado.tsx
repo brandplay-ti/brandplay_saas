@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/common/PageHeader";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
+import { EmptyState } from "@/components/common/EmptyState";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useApoioDoRelatorio, useCriarRelatorio, useRelatorios } from "@/hooks/useRelatorios";
@@ -83,20 +84,16 @@ export default function RelatoriosDeResultado() {
       {isLoading ? (
         <LoadingSkeleton variant="cards" count={3} />
       ) : !relatorios?.length ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-            <Presentation className="h-10 w-10 text-muted-foreground" aria-hidden />
-            <p className="max-w-md text-sm text-muted-foreground">
-              Nenhum relatório ainda. Crie um para a temporada de uma propriedade ou para a prestação de contas de um
-              patrocinador.
-            </p>
-            {podeEditar && (
-              <Button onClick={() => setAberto(true)}>
-                <Plus className="mr-2 h-4 w-4" /> Criar o primeiro
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Presentation}
+          title="Nenhum relatório ainda"
+          description="Crie um para a temporada de uma propriedade ou para a prestação de contas de um patrocinador."
+          action={podeEditar && (
+            <Button onClick={() => setAberto(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Criar o primeiro
+            </Button>
+          )}
+        />
       ) : (
         <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {relatorios.map((r) => (
