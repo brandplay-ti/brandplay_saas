@@ -1,4 +1,5 @@
-// Testes das regras de `busca.ts`. Nao acessam rede: o fetch e falso.
+// Testes das regras de `busca.ts`. Nao acessam rede: o fetch e falso. Rodam no
+// job `funcoes` do CI; localmente:
 //
 //   docker run --rm -v "<repo>/supabase/functions:/fn:ro" -w /fn denoland/deno:2.1.4 \
 //     deno test fetch-social-stats/busca_test.ts
