@@ -20,7 +20,8 @@ modo live. Nunca reaproveite chaves entre ambientes.
    `sk_live_...` (produção). No Dockploy, no serviço **Compose do Supabase**
    do ambiente, variável `STRIPE_SECRET_KEY`.
 3. **Webhook**: Developers → Webhooks → Add endpoint:
-   - URL: `https://api.<dominio do ambiente>/functions/v1/billing-webhook`
+   - URL: `https://db.brandplay.com.br/functions/v1/billing-webhook`
+     (homologação: `https://teste.db.brandplay.com.br/...`)
    - Eventos (mínimo):
 
      | Evento                                                   | Para quê                                        |

@@ -6,10 +6,15 @@
    **homologação primeiro** (`docs/runbooks/primeira-carga.md`, Caminho B).
 4. Faça o merge. O Dockploy publica o ambiente da branch (watch + autodeploy);
    ou dispare **Deploy (VPS)** no GitHub Actions.
-5. Health check: `curl -fsS https://<portal>` e
-   `curl -fsS https://api.<dominio>/functions/v1/saude`.
+5. Health check (homologação: `teste.brandplay.com.br` e
+   `teste.db.brandplay.com.br`): `curl -fsS https://brandplay.com.br` e
+   `curl -fsS https://db.brandplay.com.br/functions/v1/saude`.
+   SEO (`docs/architecture/deployment.md`, "SEO"): em produção,
+   `curl -fsS https://brandplay.com.br/robots.txt` termina em
+   `Sitemap: https://brandplay.com.br/sitemap.xml`; em homologação, o de
+   `teste.brandplay.com.br` bloqueia tudo (`Disallow: /`) e não há sitemap.
 6. Valide autenticação e isolamento entre organizações
-   (`npm run supabase:checar -- https://api.<dominio> <ANON_KEY> --portal https://<portal>`).
+   (`npm run supabase:checar -- https://db.brandplay.com.br <ANON_KEY> --portal https://brandplay.com.br`).
 7. Valide os fluxos críticos: cadastro/onboarding, pipeline, contratos, IA,
    e-mails.
 8. Monitore erros e recursos nas horas seguintes.

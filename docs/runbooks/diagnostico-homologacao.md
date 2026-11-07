@@ -47,11 +47,12 @@ Preencha o que for usar. Dá para rodar só a API, só o SSH ou só o Dockploy.
 
 ### API
 
-`SUPABASE_URL` é o `https://api.hml.<dominio>` (ou o host de teste, com o
-rótulo `teste` no nome). `SUPABASE_ANON_KEY` é a chave pública daquele
-ambiente. Os nomes do Vite também valem: `VITE_SUPABASE_URL` e
-`VITE_SUPABASE_PUBLISHABLE_KEY`. Sem a linha `AMBIENTE=homologacao`, o
-comando segue se o host for de homologação. `PORTAL_URL` é opcional.
+`SUPABASE_URL` é o `https://teste.db.brandplay.com.br` (o rótulo `teste` no
+nome é o que o comando reconhece como homologação). `SUPABASE_ANON_KEY` é a
+chave pública daquele ambiente. Os nomes do Vite também valem:
+`VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`. Sem a linha
+`AMBIENTE=homologacao`, o comando segue se o host for de homologação.
+`PORTAL_URL` é opcional.
 
 ### SSH
 

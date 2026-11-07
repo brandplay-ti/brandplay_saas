@@ -14,7 +14,7 @@ entrega no Mailpit (`http://localhost:8026`) e as funções só enviam se houver
 ## Domínio no Resend
 
 Uma vez por domínio (produção e homologação podem usar subdomínios
-diferentes, ex.: `mail.brandplay.com.br` e `hml-mail.brandplay.com.br`):
+diferentes, ex.: `mail.brandplay.com.br` e `teste-mail.brandplay.com.br`):
 
 1. Resend → Domains → Add domain.
 2. Crie no DNS os registros que ele mostra (SPF, DKIM e, recomendado, DMARC).
@@ -30,7 +30,7 @@ No Dockploy, serviço **Compose do Supabase** do ambiente:
 ```
 RESEND_API_KEY=re_...
 EMAIL_FROM=Brandplay <nao-responda@mail.brandplay.com.br>
-APP_URL=https://app.brandplay.com.br        # base dos links de convite e notificação
+APP_URL=https://brandplay.com.br            # base dos links (homologação: https://teste.brandplay.com.br)
 PORTAL_URL=                                  # vazio = SITE_URL
 ```
 
