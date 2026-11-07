@@ -15,10 +15,12 @@ O desenho e o porquê de cada regra estão em
 - Branches `hml` e `main` existindo no repositório.
 - DNS: registros `A` (ou `CNAME`) apontando para a VPS:
 
-  | Ambiente    | Portal          | API (Kong)          |
-  | ----------- | --------------- | ------------------- |
-  | Homologação | `hml.<dominio>` | `api.hml.<dominio>` |
-  | Produção    | `<dominio>`     | `api.<dominio>`     |
+  | Ambiente    | Portal                   | Supabase (Kong)             |
+  | ----------- | ------------------------ | --------------------------- |
+  | Homologação | `teste.brandplay.com.br` | `teste.db.brandplay.com.br` |
+  | Produção    | `brandplay.com.br`       | `db.brandplay.com.br`       |
+
+  Os exemplos abaixo usam os valores de homologação.
 
 - Segredos **novos** para o ambiente, gerados na sua máquina:
 
@@ -65,16 +67,17 @@ Crie (uma vez) o projeto `brandplay`. Os quatro serviços abaixo vivem nele.
      homologação, live em produção). O endpoint do webhook no Stripe e o
      portal do cliente são configurados no Dashboard do Stripe — passo a passo
      em `docs/runbooks/cobranca.md`, "Configurar o Stripe num ambiente".
-6. **Domains**: `api.hml.<dominio>` → serviço `kong`, porta `8000`, HTTPS
-   ligado (Let's Encrypt). Nenhum outro serviço do stack recebe domínio.
+6. **Domains**: `teste.db.brandplay.com.br` → serviço `kong`, porta `8000`,
+   HTTPS ligado (Let's Encrypt). Nenhum outro serviço do stack recebe domínio
+   — o `db.` é o nome do Supabase, não uma porta do Postgres.
 7. **Deploy**. Espere **todos** os serviços ficarem saudáveis — `functions`
    leva até ~1 min no primeiro boot (build da imagem + download de módulos).
 
 Conferir de fora:
 
 ```bash
-curl -sI https://api.hml.<dominio>/auth/v1/health      # Server: kong/…
-curl -fsS https://api.hml.<dominio>/functions/v1/saude # {"status":"ok"}
+curl -sI https://teste.db.brandplay.com.br/auth/v1/health      # Server: kong/…
+curl -fsS https://teste.db.brandplay.com.br/functions/v1/saude # {"status":"ok"}
 ```
 
 ## 3. Banco: migrations
@@ -95,7 +98,7 @@ comando na VPS) e confira com a seção "Conferir" de lá.
 5. **Build arguments** (não variáveis de runtime — o Vite as embute no build):
 
    ```
-   VITE_PUBLIC_SUPABASE_URL=https://api.hml.<dominio>
+   VITE_PUBLIC_SUPABASE_URL=https://teste.db.brandplay.com.br
    VITE_PUBLIC_SUPABASE_ANON_KEY=<ANON_KEY deste ambiente>
    ```
 
@@ -103,13 +106,25 @@ comando na VPS) e confira com a seção "Conferir" de lá.
    nome que o Studio sugere (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`),
    sem `https://` ou apontando para `localhost`.
 
-6. **Domains**: `hml.<dominio>` → porta `3000`, HTTPS ligado.
+   **Só em produção**, acrescente a URL pública do portal:
+
+   ```
+   VITE_PUBLIC_SITE_URL=https://brandplay.com.br
+   ```
+
+   Ela gera o `sitemap.xml` e libera a indexação no `robots.txt`. Em
+   homologação, **não declare**: sem ela, o `robots.txt` bloqueia os
+   buscadores. O build confere pelo Supabase embutido e **para** se ela faltar
+   em produção ou aparecer em homologação. Detalhes em
+   `docs/architecture/deployment.md`, "SEO".
+
+6. **Domains**: `teste.brandplay.com.br` → porta `3000`, HTTPS ligado.
 7. **Deploy**.
 
 ## 5. Conferir o ambiente inteiro
 
 ```bash
-npm run supabase:checar -- https://api.hml.<dominio> <ANON_KEY> --portal https://hml.<dominio>
+npm run supabase:checar -- https://teste.db.brandplay.com.br <ANON_KEY> --portal https://teste.brandplay.com.br
 ```
 
 Ele sobe pela pilha (bundle publicado → domínio → chave → CORS → schema →

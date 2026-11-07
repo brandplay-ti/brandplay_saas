@@ -47,7 +47,8 @@ select to_regclass('storage.buckets') is not null as storage_pronto; -- esperado
 
 ## Caminho A — SQL Editor do Studio (sem SSH)
 
-O Studio de cada ambiente responde em `https://api.<dominio>` atrás do basic
+O Studio de cada ambiente responde no domínio do Supabase
+(`https://db.brandplay.com.br`, `https://teste.db.brandplay.com.br`) atrás do basic
 auth do dashboard. O editor não executa shell, então gere a versão achatada:
 
 ```bash
@@ -174,8 +175,10 @@ investigue.
 E, de fora:
 
 ```bash
-npm run supabase:checar -- https://api.<dominio> <ANON_KEY> --portal https://<dominio>
+npm run supabase:checar -- https://db.brandplay.com.br <ANON_KEY> --portal https://brandplay.com.br
 ```
+
+(Em homologação, `teste.db.brandplay.com.br` e `teste.brandplay.com.br`.)
 
 ## Depois da carga
 
@@ -201,7 +204,7 @@ serviço `functions` por `docker/supabase/functions.Dockerfile`
 - o deploy do serviço do Supabase rodou depois do último commit em
   `supabase/functions/` (watch em `supabase/**` e autodeploy ligado);
 - o healthcheck do `functions` está verde — ele chama `/saude`;
-- `curl -fsS https://api.<dominio>/functions/v1/saude` responde
+- `curl -fsS https://db.brandplay.com.br/functions/v1/saude` responde
   `{"status":"ok"}`.
 
 Primeira chamada de cada função lenta ou com timeout costuma ser download dos

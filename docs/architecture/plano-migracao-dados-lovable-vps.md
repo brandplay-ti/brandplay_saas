@@ -351,7 +351,7 @@ corte se perderia num rollback, por isso a janela deve ser curta e o
 | M1 | Dá para obter connection string, dump ou service role do Lovable Cloud? | Define o cenário A/B/C e se as senhas são preservadas. **Situação em 2026-10-01**: só há as variáveis `VITE_*` (URL + chave `anon`), que são públicas e equivalem ao cenário C. Próximo passo: pedir ao Lovable a connection string ou a service role |
 | M2 | Os dados atuais são reais ou de teste? | **Respondido em 2026-10-01: há dados reais.** Migração completa, com ensaio e validação |
 | M3 | Todas as organizações migram? | Escopo e validação |
-| M4 | VPS, domínio e ferramenta de deploy estão definidos? | Data mínima de corte. **Ferramenta decidida em 2026-10-05: Dockploy** (ADR-0006); domínios ainda a definir |
+| M4 | VPS, domínio e ferramenta de deploy estão definidos? | Data mínima de corte. **Ferramenta decidida em 2026-10-05: Dockploy** (ADR-0006). **Domínios definidos em 2026-10-17**: portal `brandplay.com.br` / `teste.brandplay.com.br`, Supabase `db.brandplay.com.br` / `teste.db.brandplay.com.br` |
 | M5 | Qual janela de indisponibilidade é aceitável? | Estratégia de corte (única ou com delta) |
 | M6 | Adotar o schema real do Lovable como nova base ou corrigir o reconstruído com migrations? | **Decidido em 2026-10-02: manter a reconstrução e corrigir** (ADR-0005, migrations `0012`–`0019`, já aplicadas localmente) |
 | M7 | Existe homologação na VPS com as migrations `0001`–`0011` aplicadas e dados que precisam ser preservados? | **Respondido em 2026-10-02: não existe ambiente na VPS**; será criado após a migração |
