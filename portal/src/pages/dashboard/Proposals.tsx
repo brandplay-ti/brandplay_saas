@@ -95,6 +95,8 @@ export default function Proposals() {
   const [funnelTarget, setFunnelTarget] = useState<Proposal | null>(null);
   const [funnelMandatory, setFunnelMandatory] = useState(false);
   const [funnelChoice, setFunnelChoice] = useState<string>("");
+  // Funil em que a oportunidade da proposta está hoje (null = ainda não foi ao pipeline).
+  const [funnelCurrentId, setFunnelCurrentId] = useState<string | null>(null);
   const [sendingFunnel, setSendingFunnel] = useState(false);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [tiers, setTiers] = useState<Tier[]>([]);
@@ -145,7 +147,8 @@ export default function Proposals() {
       supabase.from("sports_properties").select("id,name").eq("organization_id", orgId).order("name"),
       supabase.from("assets").select("id,name,unit_value,category,is_exclusive").eq("organization_id", orgId).order("name"),
       supabase.from("sponsorship_tiers").select("id,name,value,property_id").eq("organization_id", orgId).order("value", { ascending: false }),
-      supabase.from("pipeline_funnels" as any).select("id,name,is_default").eq("organization_id", orgId).order("name"),
+      // Só os funis ativos, na ordem do Pipeline: funil inativo não aparece lá.
+      supabase.from("pipeline_funnels").select("id,name,is_default").eq("organization_id", orgId).eq("is_active", true).order("position").order("name"),
     ]);
     setProposals((pr ?? []) as Proposal[]);
     setSponsors((sp ?? []) as Sponsor[]);
@@ -302,6 +305,16 @@ export default function Proposals() {
     setSelected(p);
     const { data } = await supabase.from("proposal_items").select("*").eq("proposal_id", p.id).order("position");
     setItems((data ?? []) as Item[]);
+  };
+
+  // O assistente da aba Versões IA pode preencher a mensagem da proposta aberta.
+  const recarregarSelecionada = async () => {
+    if (!selected) return;
+    const { data } = await supabase.from("proposals").select("*").eq("id", selected.id).maybeSingle();
+    if (!data) return;
+    const atual = data as Proposal;
+    setSelected(atual);
+    setProposals((lista) => lista.map((p) => (p.id === atual.id ? atual : p)));
   };
 
   const itemsTotal = useMemo(() => items.reduce((s, i) => s + i.quantity * Number(i.unit_value), 0), [items]);
@@ -533,10 +546,25 @@ export default function Proposals() {
   };
 
 
-  const openFunnelDialog = (p: Proposal, mandatory = false) => {
+  const openFunnelDialog = async (p: Proposal, mandatory = false) => {
+    const fallback = funnels.find((f) => f.is_default)?.id ?? funnels[0]?.id ?? "";
     setFunnelMandatory(mandatory);
     setFunnelTarget(p);
-    setFunnelChoice(mandatory ? "" : (funnels.find((f) => f.is_default)?.id ?? funnels[0]?.id ?? ""));
+    setFunnelCurrentId(null);
+    setFunnelChoice(mandatory ? "" : fallback);
+    if (!p.converted_opportunity_id || !orgId) return;
+    // A proposta já está no pipeline: o diálogo parte do funil atual, não do padrão.
+    const { data } = await supabase
+      .from("opportunities")
+      .select("pipeline_funnel_id")
+      .eq("id", p.converted_opportunity_id)
+      .eq("organization_id", orgId)
+      .maybeSingle();
+    const current = data?.pipeline_funnel_id ?? null;
+    setFunnelCurrentId(current);
+    if (!mandatory && current && funnels.some((f) => f.id === current)) {
+      setFunnelChoice((choice) => (choice === fallback ? current : choice));
+    }
   };
 
   const sendToFunnel = async () => {
@@ -544,11 +572,16 @@ export default function Proposals() {
     setSendingFunnel(true);
     try {
       if (funnelTarget.converted_opportunity_id) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("opportunities")
-          .update({ pipeline_funnel_id: funnelChoice } as any)
-          .eq("id", funnelTarget.converted_opportunity_id);
+          .update({ pipeline_funnel_id: funnelChoice })
+          .eq("id", funnelTarget.converted_opportunity_id)
+          .eq("organization_id", orgId)
+          .select("id")
+          .maybeSingle();
         if (error) throw error;
+        // Update bloqueado pela RLS não dá erro, só não altera nada.
+        if (!data) throw new Error("A oportunidade desta proposta não foi encontrada ou você não tem permissão para alterá-la.");
       } else {
         const sponsor = sponsors.find((s) => s.id === funnelTarget.sponsor_id);
         const { data, error } = await supabase.from("opportunities").insert({
@@ -941,6 +974,11 @@ export default function Proposals() {
                   {funnels.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {funnelCurrentId && (
+                <p className="text-xs text-muted-foreground">
+                  Funil atual: {funnels.find((f) => f.id === funnelCurrentId)?.name ?? "funil inativo"}
+                </p>
+              )}
             </div>
           )}
           <DialogFooter>
@@ -1227,7 +1265,7 @@ export default function Proposals() {
                 </TabsContent>
 
                 <TabsContent value="versions" className="pt-4">
-                  <ProposalVersionsEditor proposalId={selected.id} organizationId={selected.organization_id} />
+                  <ProposalVersionsEditor proposta={selected} onPropostaAlterada={recarregarSelecionada} />
                 </TabsContent>
 
                 <TabsContent value="actions" className="space-y-3 pt-4">

@@ -27,9 +27,26 @@ type WizardOutput = {
   email: { subject: string; body_html: string };
 };
 
+/**
+ * Proposta que já existe (ex.: criada a partir do pipeline). Com ela, o
+ * assistente não cria outra proposta: gera só as versões (conceito, deck,
+ * WhatsApp, e-mail) para ela. Marca, patrocinador, propriedade e valor vêm da
+ * proposta; os itens dela (ex.: copiados da cota) não são tocados.
+ */
+export type PropostaExistente = {
+  id: string;
+  organization_id: string;
+  brand: string | null;
+  sponsor_id: string | null;
+  property_id: string | null;
+  total_value: number | null;
+  message: string | null;
+};
+
 type Props = {
-  sponsors: Sponsor[];
-  properties: Property[];
+  sponsors?: Sponsor[];
+  properties?: Property[];
+  proposta?: PropostaExistente;
   onSaved: () => void;
 };
 
@@ -39,8 +56,9 @@ const sanitizeEmailHtml = (html: string) => DOMPurify.sanitize(html, {
   FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form", "input", "button"],
 });
 
-export function ProposalWizardDialog({ sponsors, properties, onSaved }: Props) {
-  const { orgId } = useOrganization();
+export function ProposalWizardDialog({ sponsors = [], properties = [], proposta, onSaved }: Props) {
+  const { orgId: orgAtiva } = useOrganization();
+  const orgId = proposta?.organization_id ?? orgAtiva;
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -57,9 +75,33 @@ export function ProposalWizardDialog({ sponsors, properties, onSaved }: Props) {
   const [out, setOut] = useState<WizardOutput | null>(null);
 
   const reset = () => {
-    setStep(1); setBrand(""); setObjective("branding"); setBudget(""); setSponsorId("none");
-    setPropertyId("none"); setExtra(""); setOut(null);
+    setStep(1); setObjective("branding"); setExtra(""); setOut(null);
+    setBrand(proposta?.brand ?? "");
+    setBudget(proposta && Number(proposta.total_value) > 0 ? String(proposta.total_value) : "");
+    setSponsorId(proposta?.sponsor_id ?? "none");
+    setPropertyId(proposta?.property_id ?? "none");
   };
+
+  // Ao abrir sobre uma proposta existente, parte dos dados dela e lista as
+  // entregas que ela já tem (ex.: as da cota) como contexto para a IA.
+  useEffect(() => {
+    if (!open || !proposta) return;
+    reset();
+    let cancelado = false;
+    supabase
+      .from("proposal_items")
+      .select("name,quantity")
+      .eq("proposal_id", proposta.id)
+      .order("position")
+      .then(({ data }) => {
+        if (cancelado || !data?.length) return;
+        setExtra(`Entregas já incluídas na proposta: ${data.map((i) => `${i.quantity}x ${i.name}`).join("; ")}.`);
+      });
+    return () => { cancelado = true; };
+    // Só ao abrir (ou trocar de proposta): o objeto `proposta` é recriado a cada
+    // edição na tela e não pode apagar o briefing que está sendo preenchido.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, proposta?.id]);
 
   const generate = async () => {
     if (!orgId) return;
@@ -88,12 +130,48 @@ export function ProposalWizardDialog({ sponsors, properties, onSaved }: Props) {
     }
   };
 
+  // O editor de versões mostra a mais recente de cada canal: as novas passam a
+  // ser as exibidas, e as anteriores continuam gravadas.
+  const salvarVersoes = async (proposalId: string, userId: string) => {
+    if (!out || !orgId) return;
+    const versions = [
+      { channel: "concept", title: "Conceito Scout", content: out.concept, metadata: { activations: out.activations } },
+      { channel: "deck", title: "Estrutura do Deck", content: out.deck, metadata: {} },
+      { channel: "whatsapp", title: "WhatsApp", content: out.whatsapp, metadata: {} },
+      { channel: "email", title: out.email.subject, content: sanitizeEmailHtml(out.email.body_html), metadata: { subject: out.email.subject } },
+    ];
+    const { error } = await supabase.from("proposal_versions").insert(versions.map((v) => ({
+      proposal_id: proposalId,
+      owner_id: userId,
+      organization_id: orgId,
+      ...v,
+      model: "google/gemini-2.5-pro",
+    })));
+    if (error) throw error;
+  };
+
   const save = async () => {
     if (!out || !orgId) return;
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
+
+      if (proposta) {
+        await salvarVersoes(proposta.id, user.id);
+        // A mensagem comercial só é preenchida se a proposta ainda não tiver uma.
+        if (!proposta.message?.trim() && out.summary_message.trim()) {
+          const { error } = await supabase.from("proposals")
+            .update({ message: out.summary_message })
+            .eq("id", proposta.id)
+            .eq("organization_id", proposta.organization_id);
+          if (error) throw error;
+        }
+        toast.success("Versões multi-canal geradas!");
+        setOpen(false);
+        onSaved();
+        return;
+      }
 
       const total = out.items.reduce((s, i) => s + i.quantity * i.unit_value, 0);
       const { data: prop, error: pErr } = await supabase.from("proposals").insert({
@@ -122,22 +200,10 @@ export function ProposalWizardDialog({ sponsors, properties, onSaved }: Props) {
         })));
       }
 
-      // Versions
-      const versions = [
-        { channel: "concept", title: "Conceito Scout", content: out.concept, metadata: { activations: out.activations } },
-        { channel: "deck", title: "Estrutura do Deck", content: out.deck, metadata: {} },
-        { channel: "whatsapp", title: "WhatsApp", content: out.whatsapp, metadata: {} },
-        { channel: "email", title: out.email.subject, content: sanitizeEmailHtml(out.email.body_html), metadata: { subject: out.email.subject } },
-      ];
-      await supabase.from("proposal_versions").insert(versions.map((v) => ({
-        proposal_id: proposalId,
-        owner_id: user.id,
-        organization_id: orgId,
-        ...v,
-        model: "google/gemini-2.5-pro",
-      })));
-
-      toast.success("Proposta criada com versões multi-canal!");
+      // A proposta já existe: uma falha aqui não pode levar a salvar de novo e duplicá-la.
+      const versoesSalvas = await salvarVersoes(proposalId, user.id).then(() => true, () => false);
+      if (versoesSalvas) toast.success("Proposta criada com versões multi-canal!");
+      else toast.error("Proposta criada, mas as versões multi-canal não foram salvas");
       setOpen(false);
       reset();
       onSaved();
@@ -164,7 +230,11 @@ export function ProposalWizardDialog({ sponsors, properties, onSaved }: Props) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Wand2 className="h-5 w-5 text-primary" /> Proposta Inteligente</DialogTitle>
           <DialogDescription>
-            {step === 1 ? "Briefing → IA gera conceito Scout, ativações, deck, WhatsApp e e-mail." : "Revise e salve a proposta com versões multi-canal."}
+            {proposta
+              ? (step === 1
+                ? "A IA gera conceito Scout, ativações, deck, WhatsApp e e-mail para esta proposta, a partir dos dados dela."
+                : "Revise e salve. As versões geradas substituem as exibidas na aba Versões IA; os itens da proposta não mudam.")
+              : (step === 1 ? "Briefing → IA gera conceito Scout, ativações, deck, WhatsApp e e-mail." : "Revise e salve a proposta com versões multi-canal.")}
           </DialogDescription>
         </DialogHeader>
 
@@ -191,6 +261,7 @@ export function ProposalWizardDialog({ sponsors, properties, onSaved }: Props) {
                 <Label>Budget alvo (R$)</Label>
                 <Input type="number" placeholder="Ex: 80000" value={budget} onChange={(e) => setBudget(e.target.value)} />
               </div>
+              {!proposta && <>
               <div className="space-y-2">
                 <Label>Patrocinador</Label>
                 <Select value={sponsorId} onValueChange={setSponsorId}>
@@ -211,7 +282,11 @@ export function ProposalWizardDialog({ sponsors, properties, onSaved }: Props) {
                   </SelectContent>
                 </Select>
               </div>
+              </>}
             </div>
+            {proposta && (
+              <p className="text-xs text-muted-foreground">Patrocinador e propriedade vêm da proposta.</p>
+            )}
             <div className="space-y-2">
               <Label>Contexto adicional (opcional)</Label>
               <Textarea rows={3} placeholder="Ângulos, restrições, momentos da marca..." value={extra} onChange={(e) => setExtra(e.target.value)} />
@@ -221,9 +296,9 @@ export function ProposalWizardDialog({ sponsors, properties, onSaved }: Props) {
 
         {step === 2 && out && (
           <Tabs defaultValue="concept">
-            <TabsList className="grid grid-cols-5">
+            <TabsList className={proposta ? "grid grid-cols-4" : "grid grid-cols-5"}>
               <TabsTrigger value="concept">Conceito</TabsTrigger>
-              <TabsTrigger value="items">Entregas</TabsTrigger>
+              {!proposta && <TabsTrigger value="items">Entregas</TabsTrigger>}
               <TabsTrigger value="deck">Deck</TabsTrigger>
               <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
               <TabsTrigger value="email">E-mail</TabsTrigger>
@@ -308,7 +383,7 @@ export function ProposalWizardDialog({ sponsors, properties, onSaved }: Props) {
           ) : (
             <Button onClick={save} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
-              Salvar proposta + versões
+              {proposta ? "Salvar versões" : "Salvar proposta + versões"}
             </Button>
           )}
         </DialogFooter>
