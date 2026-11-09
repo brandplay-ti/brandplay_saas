@@ -20,7 +20,8 @@ Todo PR e todo push em `dev`, `hml` e `main` executam:
 **`portal`**: `npm ci` → lint (**não bloqueante** — dívida herdada, ver
 `docs/infrastructure/cicd.md`) → `type-check` → `test` → `build`.
 
-**`funcoes`**: `deno test --allow-read supabase/functions/_shared/
+**`funcoes`**: `deno test --no-run` (download e tipos, com até 5 tentativas por
+causa do `esm.sh`) → `deno test --allow-read supabase/functions/_shared/
 supabase/functions/admin-ai/ supabase/functions/fetch-social-stats/` com o
 Deno fixado (`v2.1.4`). Teste
 novo de Edge Function compartilhada vai para `_shared/` como `*_test.ts`, sem
