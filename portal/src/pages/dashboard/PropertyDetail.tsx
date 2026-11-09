@@ -43,6 +43,8 @@ import PropertyChecklist from "@/components/property/PropertyChecklist";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/CurrencyInput";
+import { DateInput } from "@/components/DateInput";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/common/StatusBadge";
@@ -2760,12 +2762,9 @@ export default function PropertyDetail() {
                   </div>
                   <div className="space-y-1.5">
                     <Label>Valor unitário</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
+                    <CurrencyInput
                       value={mapEditForm.unit_value}
-                      onChange={(e) => setMapEditForm((f) => ({ ...f, unit_value: e.target.value }))}
+                      onValueChange={(v) => setMapEditForm((f) => ({ ...f, unit_value: v }))}
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -2910,12 +2909,10 @@ export default function PropertyDetail() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Valor (R$) *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
+                <CurrencyInput
                   required
                   value={tierForm.value}
-                  onChange={(e) => setTierForm({ ...tierForm, value: e.target.value })}
+                  onValueChange={(v) => setTierForm({ ...tierForm, value: v })}
                 />
               </div>
               <div className="space-y-1.5">
@@ -3125,19 +3122,17 @@ export default function PropertyDetail() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Início *</Label>
-                <Input
-                  type="datetime-local"
+                <DateInput withTime
                   required
                   value={eventForm.starts_at}
-                  onChange={(e) => setEventForm({ ...eventForm, starts_at: e.target.value })}
+                  onValueChange={(v) => setEventForm({ ...eventForm, starts_at: v })}
                 />
               </div>
               <div className="space-y-1.5">
                 <Label>Fim</Label>
-                <Input
-                  type="datetime-local"
+                <DateInput withTime
                   value={eventForm.ends_at}
-                  onChange={(e) => setEventForm({ ...eventForm, ends_at: e.target.value })}
+                  onValueChange={(v) => setEventForm({ ...eventForm, ends_at: v })}
                 />
               </div>
             </div>
@@ -3193,18 +3188,16 @@ export default function PropertyDetail() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Início</Label>
-                <Input
-                  type="date"
+                <DateInput
                   value={seasonForm.start_date}
-                  onChange={(e) => setSeasonForm({ ...seasonForm, start_date: e.target.value })}
+                  onValueChange={(v) => setSeasonForm({ ...seasonForm, start_date: v })}
                 />
               </div>
               <div className="space-y-1.5">
                 <Label>Fim</Label>
-                <Input
-                  type="date"
+                <DateInput
                   value={seasonForm.end_date}
-                  onChange={(e) => setSeasonForm({ ...seasonForm, end_date: e.target.value })}
+                  onValueChange={(v) => setSeasonForm({ ...seasonForm, end_date: v })}
                 />
               </div>
             </div>

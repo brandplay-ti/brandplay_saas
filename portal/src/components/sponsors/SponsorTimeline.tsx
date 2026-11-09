@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/common/StatusBadge";
 import { STATUS_TONE_CLASS, type StatusTone } from "@/lib/statusTone";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/DateInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -203,8 +204,8 @@ export function SponsorTimeline({ sponsorId }: Props) {
                 </div>
                 <div>
                   <Label>Quando</Label>
-                  <Input type="datetime-local" value={form.occurred_at}
-                    onChange={(e) => setForm({ ...form, occurred_at: e.target.value })} />
+                  <DateInput withTime value={form.occurred_at}
+                    onValueChange={(v) => setForm({ ...form, occurred_at: v })} />
                 </div>
               </div>
               <div>
@@ -228,8 +229,8 @@ export function SponsorTimeline({ sponsorId }: Props) {
                 </Label>
                 <Input value={form.next_action} placeholder="Ex.: Enviar proposta revisada"
                   onChange={(e) => setForm({ ...form, next_action: e.target.value })} />
-                <Input type="datetime-local" value={form.next_action_at}
-                  onChange={(e) => setForm({ ...form, next_action_at: e.target.value })} />
+                <DateInput withTime value={form.next_action_at}
+                  onValueChange={(v) => setForm({ ...form, next_action_at: v })} />
               </div>
             </div>
             <DialogFooter>

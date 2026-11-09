@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Plus, Trophy, Calendar, Users, Loader2, Search, Boxes, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/DateInput";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -289,11 +290,11 @@ const Properties = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
                       <Label htmlFor="start_date">Início</Label>
-                      <Input id="start_date" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+                      <DateInput id="start_date" value={form.start_date} onValueChange={(v) => setForm({ ...form, start_date: v })} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="end_date">Fim</Label>
-                      <Input id="end_date" type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+                      <DateInput id="end_date" value={form.end_date} onValueChange={(v) => setForm({ ...form, end_date: v })} />
                     </div>
                   </div>
                   <div className="space-y-2">

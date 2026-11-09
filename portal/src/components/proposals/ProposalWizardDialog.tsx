@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/CurrencyInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Wand2, Loader2, Copy, ChevronRight, ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
@@ -259,7 +260,7 @@ export function ProposalWizardDialog({ sponsors = [], properties = [], proposta,
               </div>
               <div className="space-y-2">
                 <Label>Budget alvo (R$)</Label>
-                <Input type="number" placeholder="Ex: 80000" value={budget} onChange={(e) => setBudget(e.target.value)} />
+                <CurrencyInput placeholder="Ex: R$ 80.000,00" value={budget} onValueChange={setBudget} />
               </div>
               {!proposta && <>
               <div className="space-y-2">

@@ -57,7 +57,7 @@ test.describe("Administração — IA (IA-29)", () => {
 
   test("orçamento salvo no detalhe aparece na lista", async ({ page }) => {
     const org = "Brandplay Demo";
-    const valor = "1500";
+    const valor = "150000"; // dígitos do campo com máscara: R$ 1.500,00
 
     await entrar(page, superadmin.email, superadmin.password);
     await irParaIaAdmin(page);

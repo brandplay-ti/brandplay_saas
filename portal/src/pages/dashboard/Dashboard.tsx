@@ -51,6 +51,7 @@ import {
   Legend,
 } from "recharts";
 import { dataLocal } from "@/lib/datas";
+import { isoParaData } from "@/lib/mascaras";
 
 const fmtMoney = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
@@ -377,7 +378,7 @@ const Dashboard = () => {
                     <div className="font-medium truncate">{c.title}</div>
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>{c.brand}</span>
-                      <span>{c.end_date}</span>
+                      <span>{isoParaData(c.end_date)}</span>
                     </div>
                   </Link>
                 ))
@@ -405,7 +406,7 @@ const Dashboard = () => {
                     <div className="font-medium truncate">{d.title}</div>
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>{d.brand}</span>
-                      <span className="text-destructive">{d.due_date}</span>
+                      <span className="text-destructive">{isoParaData(d.due_date)}</span>
                     </div>
                   </Link>
                 ))

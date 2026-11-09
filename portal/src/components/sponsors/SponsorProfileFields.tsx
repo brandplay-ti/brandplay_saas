@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -365,11 +366,10 @@ export function SponsorProfileFields({ value, onChange, showRegistration = true 
         </div>
         <div>
           <Label>Premiação (R$)</Label>
-          <Input
-            inputMode="decimal"
+          <CurrencyInput
             value={value.prize_pool}
-            onChange={(e) => set({ prize_pool: e.target.value.replace(/[^\d.,]/g, "").replace(",", ".") })}
-            placeholder="Ex: 500000"
+            onValueChange={(v) => set({ prize_pool: v })}
+            placeholder="Ex: R$ 500.000,00"
           />
         </div>
         <div>
