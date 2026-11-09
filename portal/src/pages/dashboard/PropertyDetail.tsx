@@ -43,6 +43,7 @@ import PropertyChecklist from "@/components/property/PropertyChecklist";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { DateInput } from "@/components/DateInput";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -90,6 +91,7 @@ import { useConfirm } from "@/hooks/useConfirm";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 import { Breadcrumbs } from "@/components/common/Breadcrumbs";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
+import { formatarNumero } from "@/lib/mascaras";
 
 const fmtBRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -1397,7 +1399,7 @@ export default function PropertyDetail() {
                   <TrendingUp className="h-3.5 w-3.5" /> Receita contratada
                 </div>
                 <div className="text-2xl font-bold mt-1">{fmtBRL(kpis.contractedRevenue)}</div>
-                <p className="text-xs text-muted-foreground mt-1">{contractsAgg.count} contrato(s)</p>
+                <p className="text-xs text-muted-foreground mt-1">{formatarNumero(contractsAgg.count)} contrato(s)</p>
               </CardContent>
             </Card>
             <Card>
@@ -1419,7 +1421,7 @@ export default function PropertyDetail() {
                 <div className="text-2xl font-bold mt-1">{kpis.occupancy}%</div>
                 <Progress value={kpis.occupancy} className="h-1.5 mt-2" />
                 <p className="text-xs text-muted-foreground mt-1">
-                  {kpis.soldSlots}/{kpis.totalSlots} vagas
+                  {formatarNumero(kpis.soldSlots)}/{formatarNumero(kpis.totalSlots)} vagas
                 </p>
               </CardContent>
             </Card>
@@ -1614,7 +1616,7 @@ export default function PropertyDetail() {
                               <span className="font-medium">{t.name}</span>
                             </div>
                             <span className="text-muted-foreground">
-                              {sold}/{t.total_slots}
+                              {formatarNumero(sold)}/{formatarNumero(t.total_slots)}
                             </span>
                           </div>
                           <Progress value={pct} className="h-1.5" />
@@ -1776,12 +1778,12 @@ export default function PropertyDetail() {
                         <div className="flex justify-between text-xs mb-1">
                           <span>Disponibilidade</span>
                           <span className={available === 0 ? "text-destructive font-medium" : "text-success-strong font-medium"}>
-                            {available === 0 ? "Esgotada" : `${available} vaga(s) livre(s)`}
+                            {available === 0 ? "Esgotada" : `${formatarNumero(available)} vaga(s) livre(s)`}
                           </span>
                         </div>
                         <Progress value={pct} className="h-1.5" />
                         <p className="text-xs text-muted-foreground mt-1">
-                          {sold}/{t.total_slots} vendidas · {t.assets_count} ativo(s) inclusos
+                          {formatarNumero(sold)}/{formatarNumero(t.total_slots)} vendidas · {t.assets_count} ativo(s) inclusos
                         </p>
                       </div>
 
@@ -1940,7 +1942,7 @@ export default function PropertyDetail() {
                                                 className="inline-flex min-w-6 items-center justify-center rounded px-1.5 py-0.5 text-xs font-semibold text-primary-foreground tabular-nums"
                                                 style={{ background: t.color }}
                                               >
-                                                {qty}
+                                                {formatarNumero(qty)}
                                               </span>
                                             ) : qty === 1 ? (
                                               <Check className="h-4 w-4 mx-auto" style={{ color: t.color }} />
@@ -2225,7 +2227,7 @@ export default function PropertyDetail() {
                               <span className="truncate">{a.name}</span>
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {a.category} · Qtd {a.quantity}
+                              {a.category} · Qtd {formatarNumero(a.quantity)}
                             </p>
                           </div>
                           {mapShowValues && (
@@ -2268,7 +2270,7 @@ export default function PropertyDetail() {
                             <Crown className="h-3 w-3 text-warning-strong shrink-0" aria-label="Ativo exclusivo" />
                           )}
                           <span className="flex-1 min-w-0 truncate">{a.name}</span>
-                          <span className="text-muted-foreground">×{a.quantity}</span>
+                          <span className="text-muted-foreground">×{formatarNumero(a.quantity)}</span>
                           <AssetDeliveryCell asset={a} compact />
                           {mapShowValues && (
                             <span className="tabular-nums">{fmtBRL(a.unit_value)}</span>
@@ -2669,7 +2671,7 @@ export default function PropertyDetail() {
                     <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
                       <div>
                         <p className="text-muted-foreground">Contratos</p>
-                        <p className="font-semibold">{sp.contracts_count}</p>
+                        <p className="font-semibold">{formatarNumero(sp.contracts_count)}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Total</p>
@@ -2769,11 +2771,10 @@ export default function PropertyDetail() {
                   </div>
                   <div className="space-y-1.5">
                     <Label>Estoque</Label>
-                    <Input
-                      type="number"
+                    <NumberInput
                       min="1"
                       value={mapEditForm.quantity}
-                      onChange={(e) => setMapEditForm((f) => ({ ...f, quantity: e.target.value }))}
+                      onValueChange={(v) => setMapEditForm((f) => ({ ...f, quantity: v }))}
                     />
                   </div>
                 </div>
@@ -2786,15 +2787,14 @@ export default function PropertyDetail() {
                           <span className="h-2 w-2 rounded-full" style={{ background: t.color }} />
                           {t.name}
                         </span>
-                        <Input
-                          type="number"
+                        <NumberInput
                           min="0"
                           className="w-20 h-8 text-center"
                           value={mapEditForm.tierQty[t.id] ?? 0}
-                          onChange={(e) =>
+                          onValueChange={(v) =>
                             setMapEditForm((f) => ({
                               ...f,
-                              tierQty: { ...f.tierQty, [t.id]: Math.max(0, parseInt(e.target.value) || 0) },
+                              tierQty: { ...f.tierQty, [t.id]: Math.max(0, parseInt(v) || 0) },
                             }))
                           }
                         />
@@ -2917,12 +2917,11 @@ export default function PropertyDetail() {
               </div>
               <div className="space-y-1.5">
                 <Label>Vagas disponíveis *</Label>
-                <Input
-                  type="number"
+                <NumberInput
                   min="1"
                   required
                   value={tierForm.total_slots}
-                  onChange={(e) => setTierForm({ ...tierForm, total_slots: e.target.value })}
+                  onValueChange={(v) => setTierForm({ ...tierForm, total_slots: v })}
                 />
               </div>
             </div>
@@ -3046,18 +3045,17 @@ export default function PropertyDetail() {
                         <Badge variant="outline" className="text-[10px]">{a.category}</Badge>
                         <div className="flex items-center gap-1">
                           <span className="text-[10px] text-muted-foreground">Qtd</span>
-                          <Input
-                            type="number"
+                          <NumberInput
                             min={1}
                             value={checked ? qty : ""}
                             placeholder="0"
                             disabled={!checked}
-                            onChange={(e) =>
+                            onValueChange={(v) =>
                               setTierForm((f) => ({
                                 ...f,
                                 assetQty: {
                                   ...f.assetQty,
-                                  [a.id]: Math.max(1, parseInt(e.target.value) || 1),
+                                  [a.id]: Math.max(1, parseInt(v) || 1),
                                 },
                               }))
                             }

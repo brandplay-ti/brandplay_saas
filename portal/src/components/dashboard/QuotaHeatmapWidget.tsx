@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { LayoutGrid, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useOrganization } from "@/hooks/useOrganization";
+import { formatarNumero } from "@/lib/mascaras";
 
 interface Tier {
   id: string;
@@ -96,10 +97,10 @@ export function QuotaHeatmapWidget() {
                         "px-2.5 py-1.5 rounded border text-[11px] min-w-[90px]",
                         colorFor(ratio)
                       )}
-                      title={`${tier.name}: ${sold}/${tier.total_slots} vendidos`}
+                      title={`${tier.name}: ${formatarNumero(sold)}/${formatarNumero(tier.total_slots)} vendidos`}
                     >
                       <div className="font-semibold truncate">{tier.name}</div>
-                      <div className="opacity-90">{sold}/{tier.total_slots} · {Math.round(ratio * 100)}%</div>
+                      <div className="opacity-90">{formatarNumero(sold)}/{formatarNumero(tier.total_slots)} · {Math.round(ratio * 100)}%</div>
                     </div>
                   ))}
                 </div>

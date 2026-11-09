@@ -24,6 +24,7 @@ import { captureGeo, compressImage, detectKind } from "@/lib/fieldUtils";
 import { dataLocal } from "@/lib/datas";
 import { useConfirm } from "@/hooks/useConfirm";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
+import { formatarNumero } from "@/lib/mascaras";
 
 const MAX_ATTACHMENTS = 10;
 
@@ -247,7 +248,7 @@ const FieldDeliveryDetail = () => {
           {delivery.description && <p className="text-sm text-muted-foreground">{delivery.description}</p>}
           {delivery.due_date && (
             <p className="text-xs text-muted-foreground mt-2">
-              Prazo: {dataLocal(delivery.due_date).toLocaleDateString("pt-BR")} · Quantidade: {delivery.quantity}
+              Prazo: {dataLocal(delivery.due_date).toLocaleDateString("pt-BR")} · Quantidade: {formatarNumero(delivery.quantity)}
             </p>
           )}
         </Card>

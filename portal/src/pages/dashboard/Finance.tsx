@@ -51,6 +51,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 import { EmptyState } from "@/components/common/EmptyState";
+import { formatarNumero } from "@/lib/mascaras";
 
 type InstallmentStatus = "pendente" | "pago" | "atrasado" | "cancelado";
 
@@ -265,7 +266,7 @@ export default function Finance() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{fmtBRL(kpis.total)}</div>
-            <p className="text-xs text-muted-foreground">{kpis.count} parcelas</p>
+            <p className="text-xs text-muted-foreground">{formatarNumero(kpis.count)} parcelas</p>
           </CardContent>
         </Card>
         <Card>

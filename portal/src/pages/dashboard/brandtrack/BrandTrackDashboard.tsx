@@ -23,6 +23,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 import { EmptyState } from "@/components/common/EmptyState";
+import { formatarNumero } from "@/lib/mascaras";
 
 type BrandAgg = {
   name: string;
@@ -179,14 +180,14 @@ const BrandTrackDashboard = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <MetricCard icon={<Trophy className="h-4 w-4" />} label="Marcas detectadas" value={brands.length.toString()} />
-        <MetricCard icon={<Clock className="h-4 w-4" />} label="Tempo total de exposição" value={`${totalDuration.toFixed(1)}s`} />
-        <MetricCard icon={<Eye className="h-4 w-4" />} label="Aparições" value={totalDetections.toString()} />
-        <MetricCard icon={<TrendingUp className="h-4 w-4" />} label="Brand Exposure Score" value={Math.round(totalBes).toString()} accent />
+        <MetricCard icon={<Trophy className="h-4 w-4" />} label="Marcas detectadas" value={formatarNumero(brands.length)} />
+        <MetricCard icon={<Clock className="h-4 w-4" />} label="Tempo total de exposição" value={`${formatarNumero(totalDuration, 1)}s`} />
+        <MetricCard icon={<Eye className="h-4 w-4" />} label="Aparições" value={formatarNumero(totalDetections)} />
+        <MetricCard icon={<TrendingUp className="h-4 w-4" />} label="Brand Exposure Score" value={formatarNumero(totalBes)} accent />
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <MetricCard icon={<ImageIcon className="h-4 w-4" />} label="Mídias analisadas" value={mediaCount.toString()} />
+        <MetricCard icon={<ImageIcon className="h-4 w-4" />} label="Mídias analisadas" value={formatarNumero(mediaCount)} />
         <MetricCard icon={<Percent className="h-4 w-4" />} label="% médio de tela" value={`${avgScreen.toFixed(1)}%`} />
         <MetricCard icon={<Gauge className="h-4 w-4" />} label="Confiança média" value={`${(avgConfidence * 100).toFixed(0)}%`} />
         <MetricCard icon={<Layers className="h-4 w-4" />} label="Concentração top 3" value={`${concentration.toFixed(0)}%`} />
@@ -265,7 +266,7 @@ const BrandTrackDashboard = () => {
                       {types.map((t, i) => <Cell key={t.type} fill={PALETTE[i % PALETTE.length]} />)}
                     </Pie>
                     <Legend />
-                    <RTooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+                    <RTooltip formatter={(v) => formatarNumero(Number(v), 1)} contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -289,8 +290,8 @@ const BrandTrackDashboard = () => {
                   <LineChart data={timeline}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                    <RTooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => formatarNumero(v)} />
+                    <RTooltip formatter={(v) => formatarNumero(Number(v), 1)} contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
                     <Line type="monotone" dataKey="bes" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
@@ -312,7 +313,7 @@ const BrandTrackDashboard = () => {
                 <div key={m.title} className="flex items-center justify-between gap-3 border rounded-lg p-2.5">
                   <div className="min-w-0">
                     <div className="text-sm font-medium truncate">{m.title}</div>
-                    <div className="text-xs text-muted-foreground">{m.count} detecções</div>
+                    <div className="text-xs text-muted-foreground">{formatarNumero(m.count)} detecções</div>
                   </div>
                   <Badge variant="secondary">BES {Math.round(m.bes)}</Badge>
                 </div>
@@ -381,9 +382,9 @@ const BrandChart = ({ data, dataKey }: { data: BrandAgg[]; dataKey: "bes" | "dur
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data.slice(0, 10)} layout="vertical" margin={{ left: 16 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-        <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+        <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v) => formatarNumero(v)} />
         <YAxis dataKey="name" type="category" width={120} stroke="hsl(var(--muted-foreground))" fontSize={12} />
-        <RTooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+        <RTooltip formatter={(v) => formatarNumero(Number(v), 1)} contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
         <Bar dataKey={dataKey} radius={[0, 6, 6, 0]}>
           {data.slice(0, 10).map((entry, i) => (
             <Cell key={i} fill={entry.color || "hsl(var(--primary))"} />

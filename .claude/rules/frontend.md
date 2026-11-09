@@ -107,11 +107,16 @@ hora usa o `DateInput` (`portal/src/components/DateInput.tsx`), nunca
   `2026-03-12T14:30`) ou `""` enquanto a data estiver incompleta ou inválida;
 - gravar ao sair do campo de data é `onCommit`, não `onBlur`: o `onCommit`
   também dispara ao escolher no calendário e não dispara com data inválida;
-- quantidade, porcentagem, dia do mês e métricas (seguidores, público) não são
-  dinheiro e continuam com `type="number"`.
+- número sem teto que não é dinheiro (quantidade, vagas, público, seguidores,
+  visualizações) usa o `NumberInput` (`portal/src/components/NumberInput.tsx`):
+  mostra `1.234` e entrega em `onValueChange` só os dígitos, com ponto se `casas`
+  liberar decimais;
+- `type="number"` fica para ano e para faixa fixa abaixo de mil (porcentagem, dia
+  do mês, prioridade), onde o marcador de milhar atrapalha ou nunca aparece.
 
 Em tela, data pura vinda do banco é exibida com `isoParaData`
-(`portal/src/lib/mascaras.ts`), nunca crua nem com `new Date("aaaa-mm-dd")`.
+(`portal/src/lib/mascaras.ts`), nunca crua nem com `new Date("aaaa-mm-dd")`, e
+número que pode passar de mil, com `formatarNumero`.
 
 Em E2E, `fill` no `CurrencyInput` recebe os dígitos: `"150000"` é `R$ 1.500,00`.
 

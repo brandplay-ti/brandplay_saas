@@ -5,6 +5,7 @@ import { useOrganization } from "@/hooks/useOrganization";
 import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { DateInput } from "@/components/DateInput";
 import { Label } from "@/components/ui/label";
@@ -69,6 +70,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 import { EmptyState } from "@/components/common/EmptyState";
+import { formatarNumero } from "@/lib/mascaras";
 
 type Stage = Database["public"]["Enums"]["opportunity_stage"];
 
@@ -1354,13 +1356,12 @@ export default function Pipeline() {
               </Button>
               <div className="flex items-center gap-2">
                 <Label htmlFor="created-last-days" className="text-xs text-muted-foreground whitespace-nowrap">Criadas nos últimos</Label>
-                <Input
+                <NumberInput
                   id="created-last-days"
-                  type="number"
                   min="1"
                   placeholder="X"
                   value={createdLastDays}
-                  onChange={(e) => setCreatedLastDays(e.target.value)}
+                  onValueChange={setCreatedLastDays}
                   className="h-9 w-20"
                 />
                 <span className="text-xs text-muted-foreground">dias</span>
@@ -1524,13 +1525,12 @@ export default function Pipeline() {
                   <span className={`h-2 w-2 rounded-full ${stage.color}`} />
                   {stage.label}
                 </Label>
-                <Input
+                <NumberInput
                   id={`sla-${stage.id}`}
-                  type="number"
                   min="0"
                   placeholder="Sem SLA"
                   value={slaForm[stage.id] ?? ""}
-                  onChange={(e) => setSlaForm({ ...slaForm, [stage.id]: e.target.value })}
+                  onValueChange={(v) => setSlaForm({ ...slaForm, [stage.id]: v })}
                 />
               </div>
             ))}
@@ -1641,7 +1641,7 @@ function AttentionToday({ alerts }: { alerts: AttentionAlert[] }) {
           <div key={alert.key} className="rounded-md border border-border bg-background p-3 min-h-[92px]">
             <div className="flex items-start justify-between gap-2">
               <span className="text-xs text-muted-foreground leading-snug">{alert.label}</span>
-              <Badge variant={alert.count > 0 ? "default" : "outline"}>{alert.count}</Badge>
+              <Badge variant={alert.count > 0 ? "default" : "outline"}>{formatarNumero(alert.count)}</Badge>
             </div>
             <p className="mt-2 text-xs font-medium leading-snug line-clamp-2">
               {alert.detail || "Nenhum item crítico"}
@@ -1708,7 +1708,7 @@ function LossesByReason({ items }: { items: { key: string; label: string; count:
             <div key={item.key} className={cn("rounded-md border border-border bg-background p-3", topReason?.key === item.key && item.count > 0 && "border-destructive/50 bg-destructive/5")}>
               <div className="flex items-start justify-between gap-2">
                 <span className="text-xs text-muted-foreground leading-snug">{item.label}</span>
-                <Badge variant={item.count > 0 ? "outline" : "secondary"}>{item.count}</Badge>
+                <Badge variant={item.count > 0 ? "outline" : "secondary"}>{formatarNumero(item.count)}</Badge>
               </div>
               <div className="mt-3 space-y-2">
                 <div className="text-sm font-semibold">{formatBRL(item.value)}</div>

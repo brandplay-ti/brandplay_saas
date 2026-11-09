@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Download, Upload, AlertTriangle, FileSpreadsheet } from "lucide-react";
 import { parseCSV, normalizeHeader, parseNumberBR } from "@/lib/csvParse";
+import { formatarNumero } from "@/lib/mascaras";
 
 interface Property { id: string; name: string; }
 
@@ -319,7 +320,7 @@ export default function AssetBulkImportDialog({
                         <td className="p-2">{r.name || <span className="text-muted-foreground">—</span>}</td>
                         <td className="p-2">{r.category}</td>
                         <td className="p-2">{r.unit_value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
-                        <td className="p-2">{r.quantity}</td>
+                        <td className="p-2">{formatarNumero(r.quantity)}</td>
                         <td className="p-2">{r.propertyName || "—"}</td>
                         <td className="p-2">
                           {r.errors.length > 0 ? (

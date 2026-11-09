@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -223,7 +224,7 @@ export const PlanFormDialog = ({ trigger, plan }: Props) => {
                   <FormItem>
                     <FormLabel>Propriedades</FormLabel>
                     <FormControl>
-                      <Input {...field} inputMode="numeric" placeholder="Sem limite" autoComplete="off" />
+                      <NumberInput ref={field.ref} name={field.name} onBlur={field.onBlur} value={field.value} onValueChange={field.onChange} placeholder="Sem limite" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -236,7 +237,7 @@ export const PlanFormDialog = ({ trigger, plan }: Props) => {
                   <FormItem>
                     <FormLabel>Usuários</FormLabel>
                     <FormControl>
-                      <Input {...field} inputMode="numeric" placeholder="Sem limite" autoComplete="off" />
+                      <NumberInput ref={field.ref} name={field.name} onBlur={field.onBlur} value={field.value} onValueChange={field.onChange} placeholder="Sem limite" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -304,7 +305,7 @@ export const PlanFormDialog = ({ trigger, plan }: Props) => {
                   <FormItem>
                     <FormLabel>Ordem no catálogo</FormLabel>
                     <FormControl>
-                      <Input type="number" inputMode="numeric" min={0} {...field} />
+                      <NumberInput ref={field.ref} name={field.name} onBlur={field.onBlur} value={field.value} onValueChange={field.onChange} min={0} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
