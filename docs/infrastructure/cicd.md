@@ -42,10 +42,13 @@ Roda em todo PR e em push para `dev`, `hml` e `main`.
 `build`. `test` é o Vitest do portal. `test:tools` é o diagnóstico de
 homologação (`supabase/tools/diagnostico/`), sem rede.
 
-**Job `funcoes`**: `deno test --allow-read supabase/functions/_shared/
-supabase/functions/admin-ai/ supabase/functions/fetch-social-stats/`, com o
-Deno fixado na `v2.1.4` (a mesma da imagem `denoland/deno` usada
-localmente). Cobre a camada de IA (`_shared/ai/`), a cifra das chaves
+**Job `funcoes`**: `deno test --no-run` baixa as dependências e checa os tipos,
+com até 5 tentativas, porque o `esm.sh` recusa parte dos downloads em rajada
+(`refused stream`) e cada tentativa continua de onde a anterior parou. Depois,
+`deno test --allow-read supabase/functions/_shared/
+supabase/functions/admin-ai/ supabase/functions/fetch-social-stats/` roda os
+testes uma única vez, com o Deno fixado na `v2.1.4` (a mesma da imagem
+`denoland/deno` usada localmente). Cobre a camada de IA (`_shared/ai/`), a cifra das chaves
 (`_shared/ai-crypto.ts`), a função `admin-ai` e as regras de busca de URL
 externa do `fetch-social-stats` (`busca.ts`), sem rede de
 fornecedor nem banco. Bloqueante. As pastas são listadas uma a uma: o
