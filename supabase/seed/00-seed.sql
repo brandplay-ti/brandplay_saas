@@ -114,6 +114,13 @@ begin
     select public.create_organization_with_owner(v_user_id, v_empresa, null) into v_org_id;
   end if;
 
+  -- Kit de marca já salvo, com as cores padrão: a organização de exemplo
+  -- conta como configurada e o login do owner segue direto ao painel, sem a
+  -- etapa de marca do onboarding (os E2E dependem disso).
+  insert into public.organization_brand_kits (organization_id, primary_hex, secondary_hex)
+  values (v_org_id, '#6206C8', '#2962FF')
+  on conflict (organization_id) do nothing;
+
   raise notice 'organizacao de teste criada: % (id: %)', v_empresa, v_org_id;
 end $$;
 

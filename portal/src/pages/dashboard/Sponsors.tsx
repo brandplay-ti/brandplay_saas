@@ -27,6 +27,7 @@ import {
 import { PageHeader } from "@/components/common/PageHeader";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
+import { EmptyState } from "@/components/common/EmptyState";
 
 const db = supabase as any;
 const VIEW_KEY = "crm_sponsors_view_v1";
@@ -393,7 +394,25 @@ export default function Sponsors() {
           {loading ? (
             <LoadingSkeleton />
           ) : filtered.length === 0 ? (
-            <p className="py-12 text-center text-sm text-muted-foreground">Nenhuma conta encontrada com os filtros atuais.</p>
+            <EmptyState
+              bordered={false}
+              icon={Users}
+              title={
+                rows.length > 0
+                  ? "Nenhuma conta com esses filtros"
+                  : clientType === "marca" ? "Nenhuma marca ainda" : "Nenhum patrocinador ainda"
+              }
+              description={
+                rows.length > 0
+                  ? "Ajuste a busca ou os filtros."
+                  : clientType === "marca"
+                    ? "Cadastre a primeira marca do grupo para acompanhar contratos, entregas e resultados."
+                    : "Cadastre o primeiro patrocinador para acompanhar relacionamento, negociações e contratos."
+              }
+              action={rows.length === 0 && can("crm") && (
+                <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-2" />Nova conta</Button>
+              )}
+            />
           ) : layout === "cards" ? (
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((s) => (

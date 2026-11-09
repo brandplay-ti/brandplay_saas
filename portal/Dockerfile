@@ -49,6 +49,21 @@ ARG VITE_PUBLIC_SUPABASE_ANON_KEY
 ENV VITE_PUBLIC_SUPABASE_URL=$VITE_PUBLIC_SUPABASE_URL
 ENV VITE_PUBLIC_SUPABASE_ANON_KEY=$VITE_PUBLIC_SUPABASE_ANON_KEY
 
+# ─── URL publica do portal: SO em producao ───────────────────────────
+#
+# Gera o `sitemap.xml` e o `robots.txt` que libera a indexacao, e torna
+# absolutos o canonical e o og:image (src/lib/seo.ts). Sem ela — como deve ser
+# em homologacao — o robots.txt bloqueia tudo.
+#
+#   producao    VITE_PUBLIC_SITE_URL=https://brandplay.com.br
+#   homologacao nao declarar
+#
+# O build confere pelo Supabase embutido: contra db.brandplay.com.br sem ela,
+# ou contra teste.db.brandplay.com.br com ela, o build para.
+ARG VITE_PUBLIC_SITE_URL
+
+ENV VITE_PUBLIC_SITE_URL=$VITE_PUBLIC_SITE_URL
+
 # Falhar aqui, com o motivo escrito, vale mais que descobrir pela tela branca.
 RUN node scripts/checar-build.mjs
 

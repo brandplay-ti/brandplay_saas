@@ -13,12 +13,19 @@ branch padrão do repositório e o alvo dos PRs de feature; nada publica a parti
 dela. Promover é abrir PR `dev` → `hml` e, validado em homologação, `hml` →
 `main`.
 
-| Serviço             | Tipo no Dockploy | Fonte                                | Branch | Watch paths                | Domínio (exemplo)                 |
-| ------------------- | ---------------- | ------------------------------------ | ------ | -------------------------- | --------------------------------- |
-| `supabase-hml`      | Compose          | `docker/supabase/docker-compose.yml` | `hml`  | `docker/**`, `supabase/**` | `api.hml.<dominio>` → `kong:8000` |
-| `portal-hml`        | Application      | pasta base `/portal`, `Dockerfile`   | `hml`  | `portal/**`                | `hml.<dominio>` → porta `3000`    |
-| `supabase-producao` | Compose          | `docker/supabase/docker-compose.yml` | `main` | `docker/**`, `supabase/**` | `api.<dominio>` → `kong:8000`     |
-| `portal-producao`   | Application      | pasta base `/portal`, `Dockerfile`   | `main` | `portal/**`                | `<dominio>` → porta `3000`        |
+| Serviço             | Tipo no Dockploy | Fonte                                | Branch | Watch paths                | Domínio                                   |
+| ------------------- | ---------------- | ------------------------------------ | ------ | -------------------------- | ----------------------------------------- |
+| `supabase-hml`      | Compose          | `docker/supabase/docker-compose.yml` | `hml`  | `docker/**`, `supabase/**` | `teste.db.brandplay.com.br` → `kong:8000` |
+| `portal-hml`        | Application      | pasta base `/portal`, `Dockerfile`   | `hml`  | `portal/**`                | `teste.brandplay.com.br` → porta `3000`   |
+| `supabase-producao` | Compose          | `docker/supabase/docker-compose.yml` | `main` | `docker/**`, `supabase/**` | `db.brandplay.com.br` → `kong:8000`       |
+| `portal-producao`   | Application      | pasta base `/portal`, `Dockerfile`   | `main` | `portal/**`                | `brandplay.com.br` → porta `3000`         |
+
+Domínios definidos em 2026-10-17. O `db.` é o domínio do **Supabase** — API,
+Auth, Storage, Edge Functions e o Studio, todos pelo Kong —, e não do
+Postgres: o banco continua sem domínio e sem porta publicada
+(`docs/infrastructure/networking.md`). Se `www.brandplay.com.br` existir no
+DNS, ele deve redirecionar (301) para `brandplay.com.br` no Traefik: com as
+duas versões no ar, a indexação se divide entre elas.
 
 Regras que não podem variar entre os dois ambientes:
 
@@ -51,19 +58,19 @@ daquele ambiente.
 
 As que mudam por ambiente e mais costumam ficar esquecidas:
 
-| Variável                   | Homologação                 | Produção                |
-| -------------------------- | --------------------------- | ----------------------- |
-| `COMPOSE_PROJECT_NAME`     | `brandplay-hml`             | `brandplay-producao`    |
-| `SUPABASE_HOST`            | `api.hml.<dominio>`         | `api.<dominio>`         |
-| `API_EXTERNAL_URL`         | `https://api.hml.<dominio>` | `https://api.<dominio>` |
-| `SUPABASE_PUBLIC_URL`      | `https://api.hml.<dominio>` | `https://api.<dominio>` |
-| `SITE_URL`                 | `https://hml.<dominio>`     | `https://<dominio>`     |
-| `ADDITIONAL_REDIRECT_URLS` | `https://hml.<dominio>/**`  | `https://<dominio>/**`  |
-| `APP_URL`                  | `https://hml.<dominio>`     | `https://<dominio>`     |
-| `SMTP_*`                   | provedor real, com TLS      | provedor real, com TLS  |
-| `AI_KEYS_MASTER_KEY` (+ `AI_KEYS_*`) | gerada por ambiente (cofre) | idem |
-| `AI_DEFAULT_*` (semente)   | opcional se usar `/admin/ia` depois | idem |
-| `RESEND_API_KEY`           | chave de homologação        | chave de produção       |
+| Variável                   | Homologação                         | Produção                      |
+| -------------------------- | ----------------------------------- | ----------------------------- |
+| `COMPOSE_PROJECT_NAME`     | `brandplay-hml`                     | `brandplay-producao`          |
+| `SUPABASE_HOST`            | `teste.db.brandplay.com.br`         | `db.brandplay.com.br`         |
+| `API_EXTERNAL_URL`         | `https://teste.db.brandplay.com.br` | `https://db.brandplay.com.br` |
+| `SUPABASE_PUBLIC_URL`      | `https://teste.db.brandplay.com.br` | `https://db.brandplay.com.br` |
+| `SITE_URL`                 | `https://teste.brandplay.com.br`    | `https://brandplay.com.br`    |
+| `ADDITIONAL_REDIRECT_URLS` | `https://teste.brandplay.com.br/**` | `https://brandplay.com.br/**` |
+| `APP_URL`                  | `https://teste.brandplay.com.br`    | `https://brandplay.com.br`    |
+| `SMTP_*`                   | provedor real, com TLS              | provedor real, com TLS        |
+| `AI_KEYS_MASTER_KEY` (+ `AI_KEYS_*`) | gerada por ambiente (cofre) | idem                     |
+| `AI_DEFAULT_*` (semente)   | opcional se usar `/admin/ia` depois | idem                          |
+| `RESEND_API_KEY`           | chave de homologação                | chave de produção             |
 
 Detalhe de IA: `docs/runbooks/ia.md`.
 
@@ -176,12 +183,65 @@ bundle durante o `vite build`. **No Dockploy, declare as duas como build
 arguments** do serviço do portal — como variável só de runtime, o build sai com
 código 0 e o bundle leva string vazia (tela branca no navegador).
 
-`VITE_PUBLIC_SUPABASE_URL` precisa do esquema (`https://api.<dominio>`), e o
-valor é o domínio do **Kong** daquele ambiente.
+`VITE_PUBLIC_SUPABASE_URL` precisa do esquema, e o valor é o domínio do
+**Kong** daquele ambiente: `https://db.brandplay.com.br` em produção,
+`https://teste.db.brandplay.com.br` em homologação.
 
 Trocar qualquer um dos dois valores exige **rebuild**, não restart. Enquanto
 ninguém reconstrói, o Dockploy mostra o valor novo e o portal no ar carrega o
 antigo.
+
+### SEO: `VITE_PUBLIC_SITE_URL`, só em produção
+
+`robots.txt` e `sitemap.xml` não são arquivos fixos em `portal/public/`: o
+build os gera a partir de `VITE_PUBLIC_SITE_URL` (plugin `brandplay:seo`,
+regras em `portal/src/lib/seo.ts`), porque o sitemap exige URL absoluta e o
+domínio só existe por ambiente. Como as do Supabase, ela é lida no **build**:
+declare como build argument do portal, e trocar o valor exige rebuild.
+
+| Ambiente    | `VITE_PUBLIC_SITE_URL`     | `robots.txt`                                                                                | `sitemap.xml` |
+| ----------- | -------------------------- | ------------------------------------------------------------------------------------------- | ------------- |
+| Produção    | `https://brandplay.com.br` | bloqueia `/dashboard`, `/admin`, `/portal`, `/campo`, `/onboarding` e aponta para o sitemap | só a landing  |
+| Homologação | **não declarar**           | `Disallow: /` — homologação indexada compete com produção como conteúdo duplicado            | não é gerado  |
+
+A mesma variável torna absolutos o `canonical` e o `og:image`/`twitter:image`
+do `index.html` — redes sociais não montam a prévia de link com imagem em URL
+relativa. O `index.html` **não** tem `og:url`, de propósito: o SPA serve o
+mesmo HTML em toda rota, e o Facebook trata o `og:url` como o endereço do link
+compartilhado. Fixo na landing, todo link de relatório ou de media kit
+compartilhado viraria a landing.
+
+Os dois erros possíveis passam sem sintoma (esquecida em produção, o site some
+dos buscadores; copiada para homologação, ela passa a competir com produção),
+então o build confere a variável pelo Supabase que embute
+(`conferirAmbiente`, em `seo.ts`): contra `db.brandplay.com.br` ele exige
+`https://brandplay.com.br`, e contra `teste.db.brandplay.com.br` exige que ela
+esteja vazia. Mudar um desses domínios é mudar também aquela tabela. Fora deles
+(local, CI), o build só avisa quando ela falta.
+
+Depois do deploy de produção, `curl https://brandplay.com.br/robots.txt` deve
+terminar em `Sitemap: https://brandplay.com.br/sitemap.xml`; envie esse
+sitemap no Google Search Console.
+
+As páginas públicas por link ficam fora do sitemap:
+
+- **Relatórios** (`/r/:slug`): não entram em buscador por regra de negócio
+  (`docs/business/relatorios.md`); a página declara `noindex`. Por isso `/r/`
+  **não** está no `Disallow`: o buscador só lê o `noindex` de uma página que
+  pode rastrear, e um endereço bloqueado no `robots.txt` ainda pode aparecer
+  nos resultados, sem conteúdo, se alguém o divulgar.
+- **Media kits** (`/p/:slug`) — **suposição, não regra de negócio escrita**: a
+  tela de publicação promete acesso a "qualquer pessoa com o link", não
+  divulgação em buscador. Eles não são anunciados no sitemap, mas continuam
+  rastreáveis e sem `noindex`. Como o `canonical` do `index.html` é o mesmo em
+  toda rota e aponta para a landing, na prática o buscador tende a tratá-los
+  como cópia dela. Anunciá-los (sitemap e `canonical` por página) ou
+  escondê-los de vez (`noindex`, como o relatório) é decisão de produto, e
+  muda essa promessa para todos os clientes.
+
+O `robots.txt` de homologação pede aos buscadores que não rastreiem, mas não
+impede o acesso. Quem precisa de homologação fechada põe autenticação no
+Traefik/Dockploy.
 
 ## Deploy
 
@@ -197,4 +257,5 @@ CI verde → backup → migrations (homologação primeiro) → redeploy do port
 ```
 
 Diagnóstico de um ambiente que "não conecta": `npm run supabase:checar --
-https://api.<dominio> <ANON_KEY> --portal https://<dominio>`.
+https://db.brandplay.com.br <ANON_KEY> --portal https://brandplay.com.br` (em
+homologação, `teste.db.brandplay.com.br` e `teste.brandplay.com.br`).

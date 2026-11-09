@@ -42,9 +42,21 @@ Nunca executar automaticamente: `git push --force`, `git reset --hard`,
 `git clean -fd`. Operações potencialmente destrutivas exigem confirmação
 explícita do usuário.
 
-## Branches
+## Entrega: só termina com a branch apagada
 
-Não trabalhar diretamente em `main` para alterações de funcionalidade quando
-o fluxo do projeto passar a usar Pull Requests (ver `.claude/rules/cicd.md`).
-Enquanto o repositório não tiver esse fluxo formalizado, siga a orientação
-explícita do usuário na tarefa.
+Todo desenvolvimento termina neste fluxo (detalhe em `CLAUDE.md`, seção 9),
+sem esperar pedido para cada passo:
+
+branch a partir de `origin/dev` → commit → push → PR para `dev` → merge com
+CI verde → branch remota apagada → branch local apagada.
+
+- Nunca trabalhar direto em `dev`, `hml` ou `main`. Com o checkout principal
+  em outra branch, use um worktree em `.claude/worktrees/`.
+- Merge com merge commit, só com o CI verde e sem conflito.
+- O repositório não apaga a branch no merge: apague a remota com
+  `git push origin --delete <branch>`. Só depois apague a local:
+  `git fetch origin --prune`, `git worktree remove` se houver worktree,
+  confirme com `git merge-base --is-ancestor <branch> origin/dev` e apague.
+- Se algum passo não puder ser feito, pare e informe em que passo parou.
+
+Promover `dev` → `hml` → `main` continua exigindo pedido explícito.

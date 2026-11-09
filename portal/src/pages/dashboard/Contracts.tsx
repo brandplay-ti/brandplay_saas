@@ -85,6 +85,7 @@ import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/common/PageHeader";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
+import { EmptyState } from "@/components/common/EmptyState";
 
 type Status = Database["public"]["Enums"]["contract_status"];
 type PayMethod = Database["public"]["Enums"]["payment_method"];
@@ -535,10 +536,20 @@ export default function Contracts() {
       {loading ? (
         <LoadingSkeleton />
       ) : filtered.length === 0 ? (
-        <Card className="p-12 text-center">
-          <FileSignature className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">Nenhum contrato encontrado.</p>
-        </Card>
+        <EmptyState
+          icon={FileSignature}
+          title={contracts.length === 0 ? "Nenhum contrato ainda" : "Nenhum contrato com esses filtros"}
+          description={
+            contracts.length === 0
+              ? temVendas
+                ? "Cadastre um contrato ou feche uma oportunidade no Pipeline para gerá-lo."
+                : "Cadastre o primeiro contrato de patrocínio."
+              : "Ajuste a busca ou o filtro de status."
+          }
+          action={contracts.length === 0 && (
+            <Button onClick={() => setDialogOpen(true)}><Plus className="h-4 w-4 mr-2" />Novo contrato</Button>
+          )}
+        />
       ) : (
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">

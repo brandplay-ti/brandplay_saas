@@ -6,11 +6,12 @@ taxa de erro do portal e das Edge Functions, falhas de autenticação relevantes
 e os logs de erro da aplicação (`backend_error_logs`, funções `log-db-error` e
 `report-error`).
 
-Checagem rápida de um ambiente, só leitura:
+Checagem rápida de um ambiente, só leitura (produção; em homologação,
+`teste.db.brandplay.com.br` e `teste.brandplay.com.br`):
 
 ```bash
-npm run supabase:checar -- https://api.<dominio> <ANON_KEY> --portal https://<dominio>
-curl -fsS https://api.<dominio>/functions/v1/saude
+npm run supabase:checar -- https://db.brandplay.com.br <ANON_KEY> --portal https://brandplay.com.br
+curl -fsS https://db.brandplay.com.br/functions/v1/saude
 ```
 
 Homologação a partir da máquina local — migrations pendentes, erros recentes
@@ -78,7 +79,7 @@ scrape_configs:
     authorization:
       credentials: <EDGE_METRICS_TOKEN>
     static_configs:
-      - targets: ["api.<dominio>"]
+      - targets: ["db.brandplay.com.br"] # homologação: teste.db.brandplay.com.br
 ```
 
 Taxa de erro no Grafana, janela de 5 minutos:

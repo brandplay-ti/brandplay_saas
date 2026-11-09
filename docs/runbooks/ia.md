@@ -139,7 +139,8 @@ Use quando for configurar a VPS (IA-34); ordem sugerida:
 3. Semente `AI_DEFAULT_*` **ou** chave padrão cadastrada via `/admin/ia` após
    o portal publicado.
 4. Preços dos modelos em uso cadastrados em `/admin/ia/precos`.
-5. `npm run supabase:checar -- https://api.<dominio> <ANON_KEY> --portal ...`
+5. `npm run supabase:checar -- https://db.brandplay.com.br <ANON_KEY> --portal https://brandplay.com.br`
+   (homologação: `teste.db.brandplay.com.br` e `teste.brandplay.com.br`)
 6. Superadmin de operação concedido; testar `/admin/ia` e uma função de IA
    (ex. assistente ou score de leads).
 7. Registrar data e responsável em **Notas de deploy** em

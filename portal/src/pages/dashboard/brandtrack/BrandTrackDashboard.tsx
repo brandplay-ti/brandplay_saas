@@ -22,6 +22,7 @@ import {
 } from "recharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
+import { EmptyState } from "@/components/common/EmptyState";
 
 type BrandAgg = {
   name: string;
@@ -202,7 +203,12 @@ const BrandTrackDashboard = () => {
           {loading ? (
             <LoadingSkeleton variant="cards" count={3} />
           ) : brands.length === 0 ? (
-            <EmptyState />
+            <EmptyState
+              bordered={false}
+              icon={Sparkles}
+              title="Nenhuma análise ainda"
+              description={<>Faça upload de imagens em <strong>Uploads</strong> para começar.</>}
+            />
           ) : (
             <Tabs defaultValue="bes">
               <TabsList>
@@ -385,14 +391,6 @@ const BrandChart = ({ data, dataKey }: { data: BrandAgg[]; dataKey: "bes" | "dur
         </Bar>
       </BarChart>
     </ResponsiveContainer>
-  </div>
-);
-
-const EmptyState = () => (
-  <div className="text-center py-12 text-muted-foreground">
-    <Sparkles className="h-10 w-10 mx-auto mb-3 opacity-40" />
-    <p>Nenhuma análise ainda.</p>
-    <p className="text-sm mt-1">Faça upload de imagens em <strong>Uploads</strong> para começar.</p>
   </div>
 );
 

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Eye, Heart, MessageSquare, Newspaper } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { dataLocal } from "@/lib/datas";
-import { rotuloDaRede } from "@/lib/redesSociais";
+import { proporcaoDoEmbed, rotuloDaRede } from "@/lib/redesSociais";
 import { ehMateria, numeroCompacto, videoEmDestaque, type PaginaRelatorio, type PostDaPagina } from "@/lib/relatorioLanding";
 import { classeDisplay, verNa } from "../estilo";
 import { EmbedComFachada, IconeDaRede, LinkExterno, Realce, Secao } from "../primitivos";
@@ -56,7 +56,63 @@ function Metricas({ post }: { post: PostDaPagina }) {
   );
 }
 
-const POR_PAGINA = 9;
+function GradeDeConteudos({
+  titulo,
+  posts,
+  colunas,
+  proporcao,
+  porPagina,
+}: {
+  titulo: string;
+  posts: PostDaPagina[];
+  colunas: string;
+  /** Mesma proporção para todos os cartões da grade, para as linhas terem a mesma altura. */
+  proporcao: string;
+  porPagina: number;
+}) {
+  const [quantos, setQuantos] = useState(porPagina);
+  if (posts.length === 0) return null;
+  return (
+    <div className="mt-14 first:mt-0">
+      <h3 className={cn(classeDisplay, "text-2xl font-extrabold text-[var(--rl-fg)] [text-transform:var(--rl-display-case)]")}>
+        {titulo}
+      </h3>
+      <ul className={cn("mt-6 grid gap-6", colunas)}>
+        {posts.slice(0, quantos).map((p) => (
+          <li key={p.id} className="flex flex-col gap-3">
+            <EmbedComFachada post={p} titulo={tituloDo(p)} proporcaoDaFachada={proporcao} />
+            <div className="flex flex-col gap-2">
+              <p className="line-clamp-2 text-sm font-semibold text-[var(--rl-fg)]">{tituloDo(p)}</p>
+              <Metricas post={p} />
+              <div className="flex items-center justify-between gap-3 text-xs text-[var(--rl-muted)]">
+                <span>{data(p.publicado_em)}</span>
+                <a
+                  href={p.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-[var(--rl-destaque)] hover:underline"
+                >
+                  {verNa(p.rede)}
+                </a>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+      {posts.length > quantos && (
+        <div className="mt-10 text-center">
+          <button
+            type="button"
+            onClick={() => setQuantos((q) => q + porPagina)}
+            className="rounded-full border border-[var(--rl-border)] px-6 py-3 text-sm font-semibold text-[var(--rl-fg)] transition-colors hover:bg-[var(--rl-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rl-destaque)]"
+          >
+            Ver mais ({posts.length - quantos})
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function Conteudos({ pagina }: { pagina: PaginaRelatorio }) {
   const posts = pagina.posts.filter((p) => !ehMateria(p));
@@ -66,11 +122,14 @@ export function Conteudos({ pagina }: { pagina: PaginaRelatorio }) {
       Number(b.destaque) - Number(a.destaque) ||
       (b.views ?? 0) - (a.views ?? 0),
   );
+  // Vídeo horizontal e reel vertical em grades separadas, como nas referências
+  // (earned media e reels): misturados, as linhas ficavam com alturas desencontradas.
+  const videos = ordenados.filter((p) => proporcaoDoEmbed(p) === "16/9");
+  const curtos = ordenados.filter((p) => proporcaoDoEmbed(p) !== "16/9");
   const ranking = [...posts]
     .filter((p) => (p.views ?? 0) > 0)
     .sort((a, b) => (b.views ?? 0) - (a.views ?? 0))
     .slice(0, 10);
-  const [quantos, setQuantos] = useState(POR_PAGINA);
 
   return (
     <Secao
@@ -113,39 +172,14 @@ export function Conteudos({ pagina }: { pagina: PaginaRelatorio }) {
         </div>
       )}
 
-      <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {ordenados.slice(0, quantos).map((p) => (
-          <li key={p.id} className="flex flex-col gap-3">
-            <EmbedComFachada post={p} titulo={tituloDo(p)} />
-            <div className="flex flex-col gap-2">
-              <p className="line-clamp-2 text-sm font-semibold text-[var(--rl-fg)]">{tituloDo(p)}</p>
-              <Metricas post={p} />
-              <div className="flex items-center justify-between gap-3 text-xs text-[var(--rl-muted)]">
-                <span>{data(p.publicado_em)}</span>
-                <a
-                  href={p.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold text-[var(--rl-destaque)] hover:underline"
-                >
-                  {verNa(p.rede)}
-                </a>
-              </div>
-            </div>
-          </li>
-        ))}
-      </ul>
-      {ordenados.length > quantos && (
-        <div className="mt-10 text-center">
-          <button
-            type="button"
-            onClick={() => setQuantos((q) => q + POR_PAGINA)}
-            className="rounded-full border border-[var(--rl-border)] px-6 py-3 text-sm font-semibold text-[var(--rl-fg)] transition-colors hover:bg-[var(--rl-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rl-destaque)]"
-          >
-            Ver mais conteúdos ({ordenados.length - quantos})
-          </button>
-        </div>
-      )}
+      <GradeDeConteudos titulo="Vídeos" posts={videos} colunas="sm:grid-cols-2 lg:grid-cols-3" proporcao="16/9" porPagina={6} />
+      <GradeDeConteudos
+        titulo="Reels e posts"
+        posts={curtos}
+        colunas="grid-cols-2 lg:grid-cols-4"
+        proporcao="9/16"
+        porPagina={8}
+      />
       {posts.some((p) => p.metricas_origem === "api") && (
         <p className="mt-8 text-xs text-[var(--rl-muted)]">
           Métricas do YouTube atualizadas automaticamente. As das demais redes são informadas pela organização.
