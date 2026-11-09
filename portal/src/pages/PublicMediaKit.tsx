@@ -33,6 +33,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AssetCatalogToolbar, filterAndSortAssets, type AssetSortBy, type AssetViewMode } from "@/components/assets/AssetCatalogToolbar";
 import { dataLocal } from "@/lib/datas";
+import { formatarNumero } from "@/lib/mascaras";
 
 const fmtBRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -453,7 +454,7 @@ export default function PublicMediaKit() {
                         {sold_out ? (
                           <Badge variant="destructive">Esgotada</Badge>
                         ) : (
-                          <Badge variant="secondary">{available} vaga(s)</Badge>
+                          <Badge variant="secondary">{formatarNumero(available)} vaga(s)</Badge>
                         )}
                       </div>
                       <Progress value={pct} className="h-1.5" />

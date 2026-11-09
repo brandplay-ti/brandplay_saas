@@ -5,6 +5,7 @@ import { ExternalLink, Link2, Loader2, Pencil, Plus, RefreshCw, Star, Trash2 } f
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { DateInput } from "@/components/DateInput";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -420,11 +421,10 @@ export function PostsDaPropriedade({ propertyId, patrocinadores, momentos, podeE
                 ).map(([k, rotulo]) => (
                   <div key={k} className="space-y-1">
                     <Label htmlFor={`post-${k}`} className="text-xs">{rotulo}</Label>
-                    <Input
+                    <NumberInput
                       id={`post-${k}`}
-                      inputMode="numeric"
                       value={form[k]}
-                      onChange={(e) => campo(k, e.target.value)}
+                      onValueChange={(v) => campo(k, v)}
                     />
                   </div>
                 ))}

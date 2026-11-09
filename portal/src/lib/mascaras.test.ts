@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   campoParaDecimal,
+  campoParaNumero,
   dataParaIso,
   dateParaData,
+  formatarNumero,
   isoParaData,
   mascararData,
+  mascararNumero,
+  mesmoNumero,
   moedaCabeNoLimite,
   moedaParaCampo,
   posicaoAposDigitos,
@@ -67,6 +71,86 @@ describe("moedaCabeNoLimite", () => {
   it("aceita até 12 dígitos inteiros", () => {
     expect(moedaCabeNoLimite("999999999999.99")).toBe(true);
     expect(moedaCabeNoLimite("1000000000000.00")).toBe(false);
+  });
+});
+
+describe("formatarNumero", () => {
+  it("coloca o marcador de milhar", () => {
+    expect(formatarNumero(1000)).toBe("1.000");
+    expect(formatarNumero(999)).toBe("999");
+    expect(formatarNumero("189210000")).toBe("189.210.000");
+    expect(formatarNumero(0)).toBe("0");
+    expect(formatarNumero(-1500)).toBe("-1.500");
+  });
+
+  it("usa no máximo as casas pedidas", () => {
+    expect(formatarNumero(1234.5678, 1)).toBe("1.234,6");
+    expect(formatarNumero("12,5", 4)).toBe("12,5");
+    expect(formatarNumero(12.5)).toBe("13");
+  });
+
+  it("deixa vazio para vazio, nulo ou lixo", () => {
+    expect(formatarNumero("")).toBe("");
+    expect(formatarNumero(null)).toBe("");
+    expect(formatarNumero(undefined)).toBe("");
+    expect(formatarNumero("abc")).toBe("");
+  });
+});
+
+describe("mascararNumero", () => {
+  it("agrupa e tira zero à esquerda", () => {
+    expect(mascararNumero("1234")).toBe("1.234");
+    expect(mascararNumero("1.2345")).toBe("12.345");
+    expect(mascararNumero("05")).toBe("5");
+    expect(mascararNumero("0")).toBe("0");
+    expect(mascararNumero("")).toBe("");
+  });
+
+  it("no campo inteiro, ignora decimais e letras", () => {
+    expect(mascararNumero("12a3")).toBe("123");
+    expect(mascararNumero("1234,56")).toBe("1.234");
+  });
+
+  it("não passa de 15 dígitos", () => {
+    expect(mascararNumero("1234567890123456")).toBe("123.456.789.012.345");
+  });
+
+  it("abre e limita os decimais", () => {
+    expect(mascararNumero("12,", 2)).toBe("12,");
+    expect(mascararNumero("12.", 2)).toBe("12,");
+    expect(mascararNumero(",5", 2)).toBe("0,5");
+    expect(mascararNumero("12,345", 2)).toBe("12,34");
+  });
+
+  it("mantém o sinal só quando permitido", () => {
+    expect(mascararNumero("-1500", 0, true)).toBe("-1.500");
+    expect(mascararNumero("-1500")).toBe("1.500");
+  });
+});
+
+describe("campoParaNumero", () => {
+  it("devolve o formato de máquina", () => {
+    expect(campoParaNumero("1.234")).toBe("1234");
+    expect(campoParaNumero("1.234,5")).toBe("1234.5");
+    expect(campoParaNumero("1.234,")).toBe("1234");
+    expect(campoParaNumero("-1.500")).toBe("-1500");
+  });
+
+  it("sem dígitos, vazio", () => {
+    expect(campoParaNumero("")).toBe("");
+    expect(campoParaNumero("-")).toBe("");
+  });
+});
+
+describe("mesmoNumero", () => {
+  it("compara pelo valor, não pelo texto", () => {
+    expect(mesmoNumero(1234, "1234")).toBe(true);
+    expect(mesmoNumero("12,0", "12.0")).toBe(true);
+    expect(mesmoNumero("12", "12.0")).toBe(true);
+    expect(mesmoNumero(0, "")).toBe(false);
+    expect(mesmoNumero("", "")).toBe(true);
+    expect(mesmoNumero(null, "")).toBe(true);
+    expect(mesmoNumero(5, "6")).toBe(false);
   });
 });
 

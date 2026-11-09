@@ -6,6 +6,7 @@ import { useOrganization } from "@/hooks/useOrganization";
 import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { parseNumberBR } from "@/lib/csvParse";
 import { DateInput } from "@/components/DateInput";
@@ -89,6 +90,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 import { EmptyState } from "@/components/common/EmptyState";
+import { formatarNumero } from "@/lib/mascaras";
 
 type Status = Database["public"]["Enums"]["contract_status"];
 type PayMethod = Database["public"]["Enums"]["payment_method"];
@@ -459,7 +461,7 @@ export default function Contracts() {
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="inst">Parcelas</Label>
-                      <Input id="inst" type="number" min="1" value={form.installments} onChange={(e) => setForm({ ...form, installments: e.target.value })} />
+                      <NumberInput id="inst" min="1" value={form.installments} onValueChange={(v) => setForm({ ...form, installments: v })} />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="due">Dia venc.</Label>
@@ -1481,8 +1483,8 @@ function ContractDetail({
                         <p className="font-medium text-sm">{a.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {useFlatContract
-                            ? `${a.quantity} un.`
-                            : `${a.quantity}x · ${formatBRL(Number(a.unit_value))} = ${formatBRL(a.quantity * Number(a.unit_value))}`}
+                            ? `${formatarNumero(a.quantity)} un.`
+                            : `${formatarNumero(a.quantity)}x · ${formatBRL(Number(a.unit_value))} = ${formatBRL(a.quantity * Number(a.unit_value))}`}
                         </p>
                         {a.notes && (
                           <p className="text-xs text-muted-foreground italic whitespace-pre-wrap mt-1">Obs.: {a.notes}</p>
@@ -1509,11 +1511,10 @@ function ContractDetail({
                   onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })}
                 />
                 <div className={useFlatContract ? "grid grid-cols-1 gap-2" : "grid grid-cols-2 gap-2"}>
-                  <Input
-                    type="number" min="1"
+                  <NumberInput min="1"
                     placeholder="Qtd"
                     value={newAsset.quantity}
-                    onChange={(e) => setNewAsset({ ...newAsset, quantity: e.target.value })}
+                    onValueChange={(v) => setNewAsset({ ...newAsset, quantity: v })}
                   />
                   {!useFlatContract && (
                     <CurrencyInput
@@ -1762,7 +1763,7 @@ function EditContractDialog({
             </div>
             <div className="grid gap-2">
               <Label>Parcelas</Label>
-              <Input type="number" min="1" value={form.installments} onChange={(e) => setForm({ ...form, installments: e.target.value })} />
+              <NumberInput min="1" value={form.installments} onValueChange={(v) => setForm({ ...form, installments: v })} />
             </div>
             <div className="grid gap-2">
               <Label>Dia venc.</Label>

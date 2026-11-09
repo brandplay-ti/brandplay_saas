@@ -1,16 +1,20 @@
-// Máscaras dos campos de valor e de data (`.claude/rules/frontend.md`, "Campos
-// de valor e de data"). Funções puras: quem guarda o estado de digitação são
-// `CurrencyInput` e `DateInput`. O que sai daqui para o formulário é sempre o
-// formato de máquina — decimal com ponto ("1234.56") e ISO ("2026-03-12") —,
-// então o que já era gravado no banco não muda.
+// Máscaras dos campos de valor, de número e de data (`.claude/rules/frontend.md`,
+// "Campos de valor e de data"). Funções puras: quem guarda o estado de digitação
+// são `CurrencyInput`, `NumberInput` e `DateInput`. O que sai daqui para o
+// formulário é sempre o formato de máquina — decimal com ponto ("1234.56") e ISO
+// ("2026-03-12") —, então o que já era gravado no banco não muda.
 
 import { parseNumberBR } from "@/lib/csvParse";
 
 /** Parte inteira das colunas de dinheiro (`numeric(14,2)`). */
 const MAX_DIGITOS_INTEIRO = 12;
 
+/** Dígitos que um `number` guarda sem perder precisão. */
+const MAX_DIGITOS_NUMERO = 15;
+
 const soDigitos = (texto: string) => texto.replace(/\D/g, "");
 const doisDigitos = (n: number) => String(n).padStart(2, "0");
+const agruparMilhar = (inteiro: string) => inteiro.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
 /**
  * Valor do formulário para o texto do campo: 1234.5 vira "R$ 1.234,50".
@@ -22,7 +26,7 @@ export function moedaParaCampo(valor: string | number | null | undefined, casas 
   const numero = typeof valor === "number" ? valor : parseNumberBR(valor);
   if (numero === null || !Number.isFinite(numero) || numero < 0) return "";
   const [inteiro, fracao] = numero.toFixed(casas).split(".");
-  return `R$ ${inteiro.replace(/\B(?=(\d{3})+(?!\d))/g, ".")},${fracao}`;
+  return `R$ ${agruparMilhar(inteiro)},${fracao}`;
 }
 
 /**
@@ -40,6 +44,46 @@ export function campoParaDecimal(texto: string, casas = 2): string {
 /** O decimal cabe nas colunas de dinheiro? */
 export function moedaCabeNoLimite(decimal: string): boolean {
   return decimal.split(".")[0].length <= MAX_DIGITOS_INTEIRO;
+}
+
+/**
+ * Número com marcador de milhar: 1234.5 vira "1.234,5" (com `casas` decimais no
+ * máximo). Serve para campo e para tela. Aceita número, decimal com ponto e
+ * decimal brasileiro ("12,5"). Vazio, nulo ou inválido vira "".
+ */
+export function formatarNumero(valor: string | number | null | undefined, casas = 0): string {
+  if (valor === null || valor === undefined || String(valor).trim() === "") return "";
+  const numero = typeof valor === "number" ? valor : parseNumberBR(valor);
+  if (numero === null || !Number.isFinite(numero)) return "";
+  return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: casas }).format(numero);
+}
+
+/**
+ * Aplica o marcador de milhar enquanto se digita: "1234" vira "1.234". Com
+ * `casas`, a vírgula (ou um ponto digitado por último, do teclado numérico)
+ * abre os decimais: "1234," fica "1.234," para o próximo dígito entrar depois.
+ */
+export function mascararNumero(texto: string, casas = 0, negativo = false): string {
+  const sinal = negativo && texto.trimStart().startsWith("-") ? "-" : "";
+  const [bruto, ...decimais] = (casas > 0 ? texto.replace(/\.$/, ",") : texto).split(",");
+  const inteiro = soDigitos(bruto).replace(/^0+(?=\d)/, "").slice(0, MAX_DIGITOS_NUMERO);
+  if (casas === 0 || decimais.length === 0) return sinal + agruparMilhar(inteiro);
+  return `${sinal}${agruparMilhar(inteiro || "0")},${soDigitos(decimais.join("")).slice(0, casas)}`;
+}
+
+/** Texto do campo para o formulário: "1.234,5" vira "1234.5". Sem dígitos, "". */
+export function campoParaNumero(texto: string): string {
+  const [bruto, decimais = ""] = texto.split(",");
+  const inteiro = soDigitos(bruto);
+  if (!inteiro && !decimais) return "";
+  return `${texto.startsWith("-") ? "-" : ""}${inteiro || "0"}${decimais ? `.${decimais}` : ""}`;
+}
+
+/** O valor do formulário é o número que o campo já mostra? `b` vem de `campoParaNumero`. */
+export function mesmoNumero(a: string | number | null | undefined, b: string): boolean {
+  const vazio = a === null || a === undefined || String(a).trim() === "";
+  if (vazio || b === "") return vazio && b === "";
+  return (typeof a === "number" ? a : parseNumberBR(a)) === Number(b);
 }
 
 /** Quantos dígitos o campo de data aceita: ddmmaaaa, mais hhmm com hora. */

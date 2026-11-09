@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Camera, Calendar, MapPin, CheckCircle2, AlertCircle, Clock, Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { dataLocal } from "@/lib/datas";
+import { formatarNumero } from "@/lib/mascaras";
 
 type Delivery = {
   id: string;
@@ -160,7 +161,7 @@ const FieldDeliveries = () => {
                       <div className="flex items-start justify-between gap-3 mb-2">
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-sm leading-tight line-clamp-2">{d.title}</h3>
-                          <p className="text-xs text-muted-foreground mt-0.5">{d.brand} · qtd {d.quantity}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{d.brand} · qtd {formatarNumero(d.quantity)}</p>
                         </div>
                         {d.evidence_url ? (
                           <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0">

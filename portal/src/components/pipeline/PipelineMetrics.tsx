@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
+import { formatarNumero } from "@/lib/mascaras";
 
 type Stage = Database["public"]["Enums"]["opportunity_stage"];
 
@@ -108,10 +109,10 @@ export function PipelineMetrics({
       {visible && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-            <MetricCard label="No pipeline" value={formatBRL(stats.total)} sub={`${stats.openCount} oportunidades`} />
+            <MetricCard label="No pipeline" value={formatBRL(stats.total)} sub={`${formatarNumero(stats.openCount)} oportunidades`} />
             <MetricCard label="Forecast ponderado" value={formatBRL(stats.forecast)} sub="por probabilidade" />
             <MetricCard label="Ticket médio" value={formatBRL(stats.ticket)} sub="oportunidades abertas" />
-            <MetricCard label="Conversão" value={`${stats.conversion.toFixed(0)}%`} sub={`${stats.wonCount} fechadas`} />
+            <MetricCard label="Conversão" value={`${stats.conversion.toFixed(0)}%`} sub={`${formatarNumero(stats.wonCount)} fechadas`} />
             <MetricCard label="Ciclo médio" value={`${stats.avgCycle.toFixed(0)} dias`} sub="prospect → fechado" />
           </div>
 
@@ -137,7 +138,7 @@ export function PipelineMetrics({
                         style={{ width: `${Math.max(widthPct, 2)}%` }}
                       />
                       <div className="absolute inset-0 flex items-center justify-between px-2">
-                        <span className="font-medium">{f.count}</span>
+                        <span className="font-medium">{formatarNumero(f.count)}</span>
                         <span className="text-muted-foreground">{formatBRL(f.value)}</span>
                       </div>
                     </div>

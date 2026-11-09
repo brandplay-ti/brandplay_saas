@@ -1,3 +1,5 @@
+import { formatarNumero } from "@/lib/mascaras";
+
 /**
  * Estrutura padrão de cláusulas de um contrato de patrocínio.
  * Cada parte já vem com texto pré-programado; apenas os dados principais
@@ -180,7 +182,7 @@ export function buildContractClauses(ctx: ClauseTemplateContext): BuiltClause[] 
   );
 
   const assetLine = (a: NonNullable<ClauseTemplateContext["assets"]>[number]) => {
-    const base = `• ${a.name}${a.quantity > 1 ? ` (qtd: ${a.quantity})` : ""}${
+    const base = `• ${a.name}${a.quantity > 1 ? ` (qtd: ${formatarNumero(a.quantity)})` : ""}${
       !flat && a.unit_value ? ` — ${brl(a.unit_value)}` : ""
     }`;
     return a.notes ? `${base}\n   Obs.: ${a.notes}` : base;

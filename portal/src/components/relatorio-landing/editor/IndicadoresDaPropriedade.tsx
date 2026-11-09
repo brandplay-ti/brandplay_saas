@@ -5,6 +5,7 @@ import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { DateInput } from "@/components/DateInput";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -234,7 +235,7 @@ export function IndicadoresDaPropriedade({ propertyId, patrocinadores, podeEdita
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ind-valor">Valor</Label>
-                <Input id="ind-valor" inputMode="decimal" value={form.value} onChange={(e) => campo("value", e.target.value)} placeholder="189210000" />
+                <NumberInput id="ind-valor" casas={4} permitirNegativo value={form.value} onValueChange={(v) => campo("value", v.replace(".", ","))} placeholder="189.210.000" />
               </div>
               <div className="space-y-2">
                 <Label>Formato</Label>

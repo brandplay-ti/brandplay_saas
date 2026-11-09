@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,6 +42,7 @@ import { useConfirm } from "@/hooks/useConfirm";
 import { PageHeader } from "@/components/common/PageHeader";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 import { EmptyState } from "@/components/common/EmptyState";
+import { formatarNumero } from "@/lib/mascaras";
 
 
 interface Asset {
@@ -588,7 +590,7 @@ export default function Assets() {
                       <Badge variant="outline" className="shrink-0">{a.category}</Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {fmtBRL(Number(a.unit_value))} · qtd {a.quantity}
+                      {fmtBRL(Number(a.unit_value))} · qtd {formatarNumero(a.quantity)}
                     </p>
                     {(() => {
                       const props = assetProperties(a.id);
@@ -666,7 +668,7 @@ export default function Assets() {
                   })()}
                   <div className="text-right shrink-0 w-32">
                     <p className="text-sm font-medium">{fmtBRL(Number(a.unit_value))}</p>
-                    <p className="text-xs text-muted-foreground">qtd {a.quantity}</p>
+                    <p className="text-xs text-muted-foreground">qtd {formatarNumero(a.quantity)}</p>
                   </div>
                 </button>
               ))}
@@ -697,7 +699,7 @@ export default function Assets() {
                       <span className="text-xs text-muted-foreground shrink-0 hidden md:inline w-40">—</span>
                     );
                   })()}
-                  <span className="text-xs text-muted-foreground shrink-0 w-8 text-right">×{a.quantity}</span>
+                  <span className="text-xs text-muted-foreground shrink-0 w-8 text-right">×{formatarNumero(a.quantity)}</span>
                   <span className="font-medium shrink-0 w-28 text-right">{fmtBRL(Number(a.unit_value))}</span>
                 </button>
               ))}
@@ -780,7 +782,7 @@ export default function Assets() {
               </div>
               <div>
                 <Label>Quantidade</Label>
-                <Input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
+                <NumberInput value={form.quantity} onValueChange={(v) => setForm({ ...form, quantity: v })} />
               </div>
             </div>
             <div>
@@ -910,7 +912,7 @@ export default function Assets() {
               <SheetHeader>
                 <SheetTitle>{selected.name}</SheetTitle>
                 <SheetDescription>
-                  {selected.category} · {fmtBRL(Number(selected.unit_value))} · qtd {selected.quantity}
+                  {selected.category} · {fmtBRL(Number(selected.unit_value))} · qtd {formatarNumero(selected.quantity)}
                 </SheetDescription>
               </SheetHeader>
 
@@ -961,7 +963,7 @@ export default function Assets() {
                     </div>
                     <div>
                       <Label className="text-xs">Quantidade</Label>
-                      <Input type="number" value={editForm.quantity} onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })} />
+                      <NumberInput value={editForm.quantity} onValueChange={(v) => setEditForm({ ...editForm, quantity: v })} />
                     </div>
                   </div>
                   <div>

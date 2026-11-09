@@ -37,6 +37,7 @@ import {
 } from "@/lib/crmAccount";
 import { Breadcrumbs } from "@/components/common/Breadcrumbs";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
+import { formatarNumero } from "@/lib/mascaras";
 
 const db = supabase as any;
 
@@ -230,7 +231,7 @@ export default function SponsorDetail() {
           { label: "Contratado ativo", value: formatBRL(metrics.contractedValue), hint: `${metrics.activeContracts.length} contrato(s)` },
           { label: marca ? "Pago" : "Recebido", value: formatBRL(metrics.paidValue), hint: `${installments.filter((i) => i.status === "pago").length} parcela(s)` },
           { label: "Em atraso", value: formatBRL(metrics.overdueValue), hint: `${metrics.overdue.length} parcela(s)` },
-          { label: "Entregas aprovadas", value: String(metrics.approvedDeliveries), hint: `${metrics.lateDeliveries.length} atrasada(s)` },
+          { label: "Entregas aprovadas", value: formatarNumero(metrics.approvedDeliveries), hint: `${metrics.lateDeliveries.length} atrasada(s)` },
         ].map((k) => (
           <Card key={k.label}>
             <CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">{k.label}</CardTitle></CardHeader>
@@ -273,7 +274,7 @@ export default function SponsorDetail() {
                   { label: "Torcedores", value: sponsor.fans_count != null ? new Intl.NumberFormat("pt-BR").format(sponsor.fans_count) : "—" },
                   { label: "Premiação", value: sponsor.prize_pool != null ? formatBRL(Number(sponsor.prize_pool)) : "—" },
                   { label: "Participantes", value: sponsor.participants_count != null ? new Intl.NumberFormat("pt-BR").format(sponsor.participants_count) : "—" },
-                  { label: "Times", value: sponsor.teams_count != null ? String(sponsor.teams_count) : "—" },
+                  { label: "Times", value: sponsor.teams_count != null ? formatarNumero(sponsor.teams_count) : "—" },
                 ].map((k) => (
                   <div key={k.label} className="rounded-md border p-3">
                     <p className="text-xs text-muted-foreground">{k.label}</p>

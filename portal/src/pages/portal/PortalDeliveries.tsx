@@ -23,6 +23,7 @@ import { ptBR } from "date-fns/locale";
 import { dataLocal } from "@/lib/datas";
 import { PageHeader } from "@/components/common/PageHeader";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
+import { formatarNumero } from "@/lib/mascaras";
 
 interface Delivery {
   id: string;
@@ -222,7 +223,7 @@ export default function PortalDeliveries() {
                         )}
                         <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mt-2">
                           {d.asset_type && <span>Tipo: {d.asset_type}</span>}
-                          <span>Qtd: {d.quantity}</span>
+                          <span>Qtd: {formatarNumero(d.quantity)}</span>
                           {d.due_date && (
                             <span>
                               Prazo:{" "}

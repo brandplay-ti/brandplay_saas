@@ -8,9 +8,10 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { DateInput } from "@/components/DateInput";
-import { isoParaData } from "@/lib/mascaras";
+import { formatarNumero, isoParaData } from "@/lib/mascaras";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -1219,7 +1220,7 @@ export default function Proposals() {
                                         <Button aria-label="Remover item da proposta" size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={(e) => { e.stopPropagation(); removeItem(it); }}><Trash2 className="h-4 w-4" /></Button>
                                       </div>
                                       <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                                        <span>{it.quantity}x{useFlat ? "" : ` ${fmtBRL(Number(it.unit_value))}`}</span>
+                                        <span>{formatarNumero(it.quantity)}x{useFlat ? "" : ` ${fmtBRL(Number(it.unit_value))}`}</span>
                                         <Badge variant="outline" className="text-[10px]">{it.asset_id ? "Catálogo" : "Livre"}</Badge>
                                       </div>
                                       {it.description && <p className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap">{it.description}</p>}
@@ -1234,7 +1235,7 @@ export default function Proposals() {
                                     <div key={it.id} role="button" tabIndex={0} onClick={() => setEditingItem({ ...it })} onKeyDown={ativarComTeclado(() => setEditingItem({ ...it }))}
                                       className="px-3 py-1.5 text-sm cursor-pointer hover:bg-muted/40">
                                       <div className="flex items-center justify-between gap-2">
-                                        <span className="truncate">{it.quantity}x {it.name}</span>
+                                        <span className="truncate">{formatarNumero(it.quantity)}x {it.name}</span>
                                         <div className="flex items-center gap-1 shrink-0">
                                           {!useFlat && <span className="text-xs font-medium">{fmtBRL(it.quantity * Number(it.unit_value))}</span>}
                                           <Button aria-label="Remover item da proposta" size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); removeItem(it); }}><Trash2 className="h-4 w-4" /></Button>
@@ -1255,7 +1256,7 @@ export default function Proposals() {
                                           <span className="text-sm font-medium truncate">{it.name}</span>
                                           <Badge variant="outline" className="text-[10px]">{it.asset_id ? "Catálogo" : "Livre"}</Badge>
                                         </div>
-                                        <p className="text-xs text-muted-foreground">{it.quantity}{useFlat ? " un." : ` × ${fmtBRL(Number(it.unit_value))}`}</p>
+                                        <p className="text-xs text-muted-foreground">{formatarNumero(it.quantity)}{useFlat ? " un." : ` × ${fmtBRL(Number(it.unit_value))}`}</p>
                                         {it.description && <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">{it.description}</p>}
                                         {it.notes && <p className="text-xs text-muted-foreground italic whitespace-pre-wrap mt-1">Obs.: {it.notes}</p>}
                                       </div>
@@ -1436,7 +1437,7 @@ export default function Proposals() {
                 <p className="text-xs text-muted-foreground mt-1">Aparece logo abaixo da descrição do item em todas as etapas.</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Quantidade</Label><Input type="number" min={1} value={editingItem.quantity} onChange={(e) => setEditingItem({ ...editingItem, quantity: Number(e.target.value) })} /></div>
+                <div><Label>Quantidade</Label><NumberInput min={1} value={editingItem.quantity} onValueChange={(v) => setEditingItem({ ...editingItem, quantity: Number(v) })} /></div>
                 <div><Label>Valor unitário</Label><CurrencyInput value={editingItem.unit_value} onValueChange={(v) => setEditingItem({ ...editingItem, unit_value: Number(v) })} /></div>
               </div>
               <div className="text-sm text-muted-foreground">Subtotal: <span className="font-medium text-foreground">{fmtBRL(editingItem.quantity * Number(editingItem.unit_value))}</span></div>
