@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/DateInput";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -263,15 +264,14 @@ export function WorkTeamDetail({ equipeId, onClose }: { equipeId: string | null;
                         </TableCell>
                         <TableCell>
                           {pode ? (
-                            <Input
+                            <DateInput
                               key={m.expires_at ?? "sem-data"}
-                              type="date"
                               className="h-8 w-40"
                               aria-label={`Data de fim de ${nome} na equipe`}
                               min={dataDoInput(new Date().toISOString())}
                               defaultValue={dataDoInput(m.expires_at)}
-                              onBlur={(e) => {
-                                const valor = e.target.value ? fimDoDia(e.target.value) : null;
+                              onCommit={(iso) => {
+                                const valor = iso ? fimDoDia(iso) : null;
                                 if (dataDoInput(valor) !== dataDoInput(m.expires_at)) {
                                   alterarMembro({ expires_at: valor });
                                 }

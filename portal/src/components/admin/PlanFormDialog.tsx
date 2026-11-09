@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/CurrencyInput";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useSavePlan, type BillingPlan, type PlanFields, type SavePlanResult } from "@/hooks/usePlatformAdmin";
@@ -202,7 +203,14 @@ export const PlanFormDialog = ({ trigger, plan }: Props) => {
                   <FormItem>
                     <FormLabel>Preço mensal (R$)</FormLabel>
                     <FormControl>
-                      <Input {...field} inputMode="decimal" placeholder="Sob consulta" autoComplete="off" />
+                      <CurrencyInput
+                        ref={field.ref}
+                        name={field.name}
+                        onBlur={field.onBlur}
+                        value={field.value}
+                        onValueChange={(v) => field.onChange(v.replace(".", ","))}
+                        placeholder="Sob consulta"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

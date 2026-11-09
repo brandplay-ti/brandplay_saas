@@ -8,6 +8,9 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/CurrencyInput";
+import { DateInput } from "@/components/DateInput";
+import { isoParaData } from "@/lib/mascaras";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -935,7 +938,7 @@ export default function Proposals() {
                       <div className="flex items-center gap-3 shrink-0">
                         <div className="text-right">
                           <div className="font-medium text-sm">{fmtBRL(Number(p.total_value))}</div>
-                          {p.valid_until && <div className="text-[10px] text-muted-foreground">até {p.valid_until}</div>}
+                          {p.valid_until && <div className="text-[10px] text-muted-foreground">até {isoParaData(p.valid_until)}</div>}
                         </div>
                         <StatusBadge tone={statusUI[p.status].tone}>{statusUI[p.status].label}</StatusBadge>
                         <span
@@ -1037,7 +1040,7 @@ export default function Proposals() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Marca livre (se sem cadastro)</Label><Input value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} /></div>
-              <div><Label>Válido até</Label><Input type="date" value={form.valid_until} onChange={(e) => setForm({ ...form, valid_until: e.target.value })} /></div>
+              <div><Label>Válido até</Label><DateInput value={form.valid_until} onValueChange={(v) => setForm({ ...form, valid_until: v })} /></div>
             </div>
             <div><Label>Mensagem</Label><Textarea rows={6} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} /></div>
           </div>
@@ -1104,12 +1107,10 @@ export default function Proposals() {
                     </div>
                     {useFlat && (
                       <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          step="0.01"
+                        <CurrencyInput
                           value={flatValue}
-                          onChange={(e) => setSelected({ ...selected, flat_value: Number(e.target.value) })}
-                          onBlur={(e) => saveFlatValue(Number(e.target.value))}
+                          onValueChange={(v) => setSelected({ ...selected, flat_value: Number(v) })}
+                          onBlur={() => saveFlatValue(flatValue)}
                           className="w-48"
                         />
                         <span className="text-xs text-muted-foreground">Os valores unitários dos itens são ignorados e ficam ocultos.</span>
@@ -1351,7 +1352,7 @@ export default function Proposals() {
                     </div>
                     <div className="space-y-1 p-1" data-field="data prevista">
                       <Label className="text-xs text-muted-foreground">Válido até</Label>
-                      <Input type="date" value={selected.valid_until ?? ""} onChange={(e) => updateProposalField("valid_until", e.target.value || null)} />
+                      <DateInput value={selected.valid_until ?? ""} onValueChange={(v) => updateProposalField("valid_until", v || null)} />
                     </div>
                     <div className="space-y-1 p-1" data-field="valor">
                       <Label className="text-xs text-muted-foreground">Total</Label>
@@ -1436,7 +1437,7 @@ export default function Proposals() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Quantidade</Label><Input type="number" min={1} value={editingItem.quantity} onChange={(e) => setEditingItem({ ...editingItem, quantity: Number(e.target.value) })} /></div>
-                <div><Label>Valor unitário</Label><Input type="number" step="0.01" value={editingItem.unit_value} onChange={(e) => setEditingItem({ ...editingItem, unit_value: Number(e.target.value) })} /></div>
+                <div><Label>Valor unitário</Label><CurrencyInput value={editingItem.unit_value} onValueChange={(v) => setEditingItem({ ...editingItem, unit_value: Number(v) })} /></div>
               </div>
               <div className="text-sm text-muted-foreground">Subtotal: <span className="font-medium text-foreground">{fmtBRL(editingItem.quantity * Number(editingItem.unit_value))}</span></div>
             </div>

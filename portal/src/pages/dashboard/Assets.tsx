@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -775,7 +776,7 @@ export default function Assets() {
               </div>
               <div>
                 <Label>Valor unitário (R$)</Label>
-                <Input type="number" step="0.01" value={form.unit_value} onChange={(e) => setForm({ ...form, unit_value: e.target.value })} />
+                <CurrencyInput value={form.unit_value} onValueChange={(v) => setForm({ ...form, unit_value: v })} />
               </div>
               <div>
                 <Label>Quantidade</Label>
@@ -956,7 +957,7 @@ export default function Assets() {
                     </div>
                     <div>
                       <Label className="text-xs">Valor unitário (R$)</Label>
-                      <Input type="number" step="0.01" value={editForm.unit_value} onChange={(e) => setEditForm({ ...editForm, unit_value: e.target.value })} />
+                      <CurrencyInput value={editForm.unit_value} onValueChange={(v) => setEditForm({ ...editForm, unit_value: v })} />
                     </div>
                     <div>
                       <Label className="text-xs">Quantidade</Label>

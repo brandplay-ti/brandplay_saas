@@ -6,6 +6,9 @@ import { useOrganization } from "@/hooks/useOrganization";
 import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/CurrencyInput";
+import { parseNumberBR } from "@/lib/csvParse";
+import { DateInput } from "@/components/DateInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
@@ -406,15 +409,15 @@ export default function Contracts() {
                   <div className="grid grid-cols-3 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="value">Valor total (R$)</Label>
-                      <Input id="value" type="number" min="0" value={form.total_value} onChange={(e) => setForm({ ...form, total_value: e.target.value })} />
+                      <CurrencyInput id="value" value={form.total_value} onValueChange={(v) => setForm({ ...form, total_value: v })} />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="start">Início</Label>
-                      <Input id="start" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+                      <DateInput id="start" value={form.start_date} onValueChange={(v) => setForm({ ...form, start_date: v })} />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="end">Fim</Label>
-                      <Input id="end" type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+                      <DateInput id="end" value={form.end_date} onValueChange={(v) => setForm({ ...form, end_date: v })} />
                     </div>
                   </div>
 
@@ -1449,11 +1452,10 @@ function ContractDetail({
                   <Switch checked={useFlatContract} onCheckedChange={toggleFlatValue} />
                 </div>
                 {useFlatContract && (
-                  <Input
-                    inputMode="decimal"
+                  <CurrencyInput
                     placeholder="Valor geral do contrato"
-                    defaultValue={String(Number(contract.flat_value ?? contract.total_value ?? 0))}
-                    onBlur={(e) => saveFlatValue(Number(e.target.value.replace(",", ".")) || 0)}
+                    defaultValue={Number(contract.flat_value ?? contract.total_value ?? 0)}
+                    onBlur={(e) => saveFlatValue(parseNumberBR(e.target.value) ?? 0)}
                   />
                 )}
               </Card>
@@ -1514,11 +1516,10 @@ function ContractDetail({
                     onChange={(e) => setNewAsset({ ...newAsset, quantity: e.target.value })}
                   />
                   {!useFlatContract && (
-                    <Input
-                      type="number" min="0"
+                    <CurrencyInput
                       placeholder="Valor unit."
                       value={newAsset.unit_value}
-                      onChange={(e) => setNewAsset({ ...newAsset, unit_value: e.target.value })}
+                      onValueChange={(v) => setNewAsset({ ...newAsset, unit_value: v })}
                     />
                   )}
                 </div>
@@ -1711,15 +1712,15 @@ function EditContractDialog({
           <div className="grid grid-cols-3 gap-4">
             <div className="grid gap-2">
               <Label>Valor (R$)</Label>
-              <Input type="number" min="0" value={form.total_value} onChange={(e) => setForm({ ...form, total_value: e.target.value })} />
+              <CurrencyInput value={form.total_value} onValueChange={(v) => setForm({ ...form, total_value: v })} />
             </div>
             <div className="grid gap-2">
               <Label>Início</Label>
-              <Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+              <DateInput value={form.start_date} onValueChange={(v) => setForm({ ...form, start_date: v })} />
             </div>
             <div className="grid gap-2">
               <Label>Fim</Label>
-              <Input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+              <DateInput value={form.end_date} onValueChange={(v) => setForm({ ...form, end_date: v })} />
             </div>
           </div>
 

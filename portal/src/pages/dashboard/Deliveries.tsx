@@ -6,6 +6,7 @@ import { useOrganization } from "@/hooks/useOrganization";
 import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/DateInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
@@ -735,7 +736,7 @@ export default function Deliveries() {
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="due">Data prevista</Label>
-                      <Input id="due" type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
+                      <DateInput id="due" value={form.due_date} onValueChange={(v) => setForm({ ...form, due_date: v })} />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="status">Status</Label>
@@ -911,8 +912,8 @@ export default function Deliveries() {
               <div className="space-y-1.5">
                 <Label className="text-xs">Data prevista</Label>
                 <div className="grid grid-cols-2 gap-2">
-                  <Input type="date" value={dueFrom} onChange={(e) => setDueFrom(e.target.value)} className="h-9" />
-                  <Input type="date" value={dueTo} onChange={(e) => setDueTo(e.target.value)} className="h-9" />
+                  <DateInput value={dueFrom} onValueChange={setDueFrom} className="h-9" />
+                  <DateInput value={dueTo} onValueChange={setDueTo} className="h-9" />
                 </div>
               </div>
             </div>

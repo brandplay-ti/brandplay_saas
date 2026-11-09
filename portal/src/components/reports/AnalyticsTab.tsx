@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { isoParaData } from "@/lib/mascaras";
 import { Progress } from "@/components/ui/progress";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -349,7 +350,7 @@ export const AnalyticsTab = ({ semFunil = false, ...props }: AnalyticsInput & { 
                 <TableRow key={i}>
                   <TableCell>{r.title}</TableCell>
                   <TableCell>{r.sponsor || r.brand}</TableCell>
-                  <TableCell>{r.end_date}</TableCell>
+                  <TableCell>{isoParaData(r.end_date)}</TableCell>
                   <TableCell className="text-right">{r.dias}</TableCell>
                   <TableCell className="text-right">{fmtMoney(r.value)}</TableCell>
                 </TableRow>

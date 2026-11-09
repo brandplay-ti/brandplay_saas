@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/CurrencyInput";
+import { DateInput } from "@/components/DateInput";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { type StatusTone } from "@/lib/statusTone";
@@ -489,21 +491,18 @@ export default function Finance() {
                   <div className="space-y-3 border-t pt-4">
                     <div>
                       <Label htmlFor="paid_at">Data do pagamento</Label>
-                      <Input
+                      <DateInput
                         id="paid_at"
-                        type="date"
                         value={paidAt}
-                        onChange={(e) => setPaidAt(e.target.value)}
+                        onValueChange={setPaidAt}
                       />
                     </div>
                     <div>
                       <Label htmlFor="paid_amount">Valor recebido</Label>
-                      <Input
+                      <CurrencyInput
                         id="paid_amount"
-                        type="number"
-                        step="0.01"
                         value={paidAmount}
-                        onChange={(e) => setPaidAmount(e.target.value)}
+                        onValueChange={setPaidAmount}
                       />
                     </div>
                     <Button className="w-full" onClick={markPaid}>

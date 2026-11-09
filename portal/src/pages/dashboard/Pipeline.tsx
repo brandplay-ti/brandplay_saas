@@ -5,6 +5,8 @@ import { useOrganization } from "@/hooks/useOrganization";
 import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/CurrencyInput";
+import { DateInput } from "@/components/DateInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
@@ -1078,7 +1080,7 @@ export default function Pipeline() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label htmlFor="value">Valor (R$)</Label>
-                        <Input id="value" type="number" min="0" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="50000" />
+                        <CurrencyInput id="value" value={form.value} onValueChange={(v) => setForm({ ...form, value: v })} />
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="stage">Estágio</Label>
@@ -1103,7 +1105,7 @@ export default function Pipeline() {
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="close">Data prevista</Label>
-                        <Input id="close" type="date" value={form.expected_close_date} onChange={(e) => setForm({ ...form, expected_close_date: e.target.value })} />
+                        <DateInput id="close" value={form.expected_close_date} onValueChange={(v) => setForm({ ...form, expected_close_date: v })} />
                       </div>
                     </div>
                     <div className="grid gap-2">
@@ -1284,20 +1286,16 @@ export default function Pipeline() {
               <div className="space-y-1.5">
                 <Label className="text-xs">Faixa de valor</Label>
                 <div className="grid grid-cols-2 gap-2">
-                  <Input
-                    type="number"
-                    min="0"
+                  <CurrencyInput
                     placeholder="Mín."
                     value={minValue}
-                    onChange={(e) => setMinValue(e.target.value)}
+                    onValueChange={setMinValue}
                     className="h-9"
                   />
-                  <Input
-                    type="number"
-                    min="0"
+                  <CurrencyInput
                     placeholder="Máx."
                     value={maxValue}
-                    onChange={(e) => setMaxValue(e.target.value)}
+                    onValueChange={setMaxValue}
                     className="h-9"
                   />
                 </div>
@@ -1490,7 +1488,7 @@ export default function Pipeline() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="loss-value">Valor perdido (R$)</Label>
-                <Input id="loss-value" type="number" min="0" value={lossForm.value} onChange={(e) => setLossForm({ ...lossForm, value: e.target.value })} placeholder="0" />
+                <CurrencyInput id="loss-value" value={lossForm.value} onValueChange={(v) => setLossForm({ ...lossForm, value: v })} />
               </div>
             </div>
           </div>

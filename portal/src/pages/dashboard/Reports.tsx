@@ -7,7 +7,8 @@ import { useMarca } from "@/hooks/useMarca";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/DateInput";
+import { isoParaData } from "@/lib/mascaras";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -474,11 +475,11 @@ export default function Reports() {
         <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-4 gap-3">
           <div className="space-y-1">
             <Label>De</Label>
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <DateInput value={from} onValueChange={setFrom} />
           </div>
           <div className="space-y-1">
             <Label>Até</Label>
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+            <DateInput value={to} onValueChange={setTo} />
           </div>
           <div className="space-y-1">
             <Label>Propriedade</Label>
@@ -606,7 +607,7 @@ export default function Reports() {
                       <TableRow key={c.id}>
                         <TableCell>{c.title}</TableCell>
                         <TableCell>{c.brand}</TableCell>
-                        <TableCell>{c.end_date}</TableCell>
+                        <TableCell>{isoParaData(c.end_date)}</TableCell>
                         <TableCell className="text-right">{fmtMoney(Number(c.total_value))}</TableCell>
                       </TableRow>
                     ))}
@@ -657,7 +658,7 @@ export default function Reports() {
                     const c = filteredContracts.find((x) => x.id === i.contract_id);
                     return (
                       <TableRow key={i.id}>
-                        <TableCell>{i.due_date}</TableCell>
+                        <TableCell>{isoParaData(i.due_date)}</TableCell>
                         <TableCell>{c?.title ?? "—"}</TableCell>
                         <TableCell>
                           <Badge variant={i.status === "pago" ? "default" : i.status === "atrasado" ? "destructive" : "secondary"}>
@@ -744,7 +745,7 @@ export default function Reports() {
                         <TableRow key={d.id}>
                           <TableCell>{d.title}</TableCell>
                           <TableCell>{d.brand}</TableCell>
-                          <TableCell>{d.due_date}</TableCell>
+                          <TableCell>{isoParaData(d.due_date)}</TableCell>
                         </TableRow>
                       ))}
                   </TableBody>

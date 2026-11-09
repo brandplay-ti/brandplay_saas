@@ -6,6 +6,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/CurrencyInput";
+import { DateInput } from "@/components/DateInput";
+import { isoParaData, moedaParaCampo } from "@/lib/mascaras";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -113,16 +116,16 @@ const AdminAiPrecos = () => {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label>Entrada (R$/1M tokens)</Label>
-              <Input value={inputBrl} onChange={(e) => setInputBrl(e.target.value)} />
+              <CurrencyInput casas={4} value={inputBrl} onValueChange={setInputBrl} />
             </div>
             <div>
               <Label>Saída (R$/1M tokens)</Label>
-              <Input value={outputBrl} onChange={(e) => setOutputBrl(e.target.value)} />
+              <CurrencyInput casas={4} value={outputBrl} onValueChange={setOutputBrl} />
             </div>
           </div>
           <div>
-            <Label>Vigência (AAAA-MM-DD)</Label>
-            <Input type="date" value={validFrom} onChange={(e) => setValidFrom(e.target.value)} />
+            <Label>Vigência</Label>
+            <DateInput value={validFrom} onValueChange={setValidFrom} />
           </div>
           <div>
             <Label>Comentário</Label>
@@ -161,9 +164,9 @@ const AdminAiPrecos = () => {
                   <TableRow key={p.id}>
                     <TableCell>{IA_FORNECEDOR_LABEL[p.provider]}</TableCell>
                     <TableCell className="font-mono text-xs">{p.model}</TableCell>
-                    <TableCell>{p.input_brl_per_mtok}</TableCell>
-                    <TableCell>{p.output_brl_per_mtok}</TableCell>
-                    <TableCell>{p.valid_from}</TableCell>
+                    <TableCell>{moedaParaCampo(p.input_brl_per_mtok, 4)}</TableCell>
+                    <TableCell>{moedaParaCampo(p.output_brl_per_mtok, 4)}</TableCell>
+                    <TableCell>{isoParaData(p.valid_from)}</TableCell>
                   </TableRow>
                 ))
               )}
