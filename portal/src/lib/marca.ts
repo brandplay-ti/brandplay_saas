@@ -51,26 +51,6 @@ export function componentesRgb(hex: string): { r: number; g: number; b: number }
   };
 }
 
-/** Canais HSL no formato que o Tailwind lê em `hsl(var(--primary))`. */
-export function canaisHsl(hex: string): string {
-  const { r, g, b } = componentesRgb(hex);
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  const l = (max + min) / 2;
-  const d = max - min;
-  let h = 0;
-  let s = 0;
-  if (d !== 0) {
-    s = d / (1 - Math.abs(2 * l - 1));
-    if (max === r) h = ((g - b) / d) % 6;
-    else if (max === g) h = (b - r) / d + 2;
-    else h = (r - g) / d + 4;
-    h *= 60;
-    if (h < 0) h += 360;
-  }
-  return `${h.toFixed(1)} ${(s * 100).toFixed(1)}% ${(l * 100).toFixed(1)}%`;
-}
-
 function luminancia(hex: string): number {
   const linear = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
   const { r, g, b } = componentesRgb(hex);

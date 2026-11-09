@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   caminhoDoLogo,
-  canaisHsl,
   corSegura,
   MARCA_PADRAO,
   montarMarca,
@@ -54,6 +53,5 @@ describe("marca da organização", () => {
   it("mantém texto branco sobre o roxo da BrandPlay e grafite sobre amarelo", () => {
     expect(textoSobrePrimaria("#6206C8")).toBe("0 0% 100%");
     expect(textoSobrePrimaria("#FFE566")).toBe("230 38% 9%");
-    expect(canaisHsl("#6206C8")).toMatch(/^\d+(\.\d+)? \d+(\.\d+)?% \d+(\.\d+)?%$/);
   });
 });

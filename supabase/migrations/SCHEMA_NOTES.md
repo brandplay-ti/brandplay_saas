@@ -714,8 +714,10 @@ secundária, `#RRGGBB`) e até seis arquivos em `organization_brand_assets`
 (`horizontal`, `vertical`, `icone`, `sem_fundo`, `clara`, `escura`). Sem o kit,
 relatório, proposta, contrato, entrega e BrandTrack usam `#6206C8` e `#2962FF`.
 Sem a peça pedida, o gerador usa a próxima da ordem e, por último,
-`organizations.logo_path`. Owner e admin gravam; qualquer membro lê. A cor
-primária também substitui `--primary` no painel, e o texto sobre ela fica
+`organizations.logo_path`. Owner e admin gravam; qualquer membro lê. As cores
+valem só para esses documentos e para o relatório em landing page: a interface
+do portal mantém a identidade da BrandPlay e não lê o kit para se colorir
+(regra em `docs/business/relatorios.md`). Sobre a primária, o texto fica
 branco ou grafite conforme o contraste com branco passe de 4,5. E-mails da
 plataforma continuam na cor da BrandPlay. As duas tabelas entram no bloqueio
 de cobrança (`billing_access_restrictive`, 0038), como as demais tabelas da

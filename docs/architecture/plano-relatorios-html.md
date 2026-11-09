@@ -193,8 +193,9 @@ Visitante ──► /r/<org>/<slug>  ou  <org>.brandplay.com.br/<slug>
   (`Auth.tsx`), a etapa aparece para owner/admin de organização sem nenhuma
   cor e, se pulada, não volta naquele navegador para aquela organização. Extrair as cores do logo automaticamente
   (canvas, sem dependência) fica como melhoria posterior.
-- Depois dos relatórios, o mesmo tema pode valer para o media kit público e
-  para o portal do patrocinador.
+- Depois dos relatórios, o mesmo tema pode valer para o media kit público. A
+  interface do portal (painel e portal do patrocinador) não usa estas cores:
+  mantém a identidade da BrandPlay (`docs/business/relatorios.md`).
 
 ### 5.3 Catálogo de blocos (versão inicial)
 

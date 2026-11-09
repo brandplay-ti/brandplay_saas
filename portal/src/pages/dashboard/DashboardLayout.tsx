@@ -1,5 +1,5 @@
 import { Outlet, useNavigate } from "react-router-dom";
-import { Suspense, useEffect } from "react";
+import { Suspense } from "react";
 import { PageLoader } from "@/components/PageLoader";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -22,27 +22,13 @@ import { AIAssistantTrigger } from "@/components/ai/AIAssistantTrigger";
 import { NotificationsBell } from "@/components/notifications/NotificationsBell";
 import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
 import { CommandMenu } from "@/components/CommandMenu";
-import { OrganizationProvider, useOrganization } from "@/hooks/useOrganization";
-import { useMarca } from "@/hooks/useMarca";
-import { canaisHsl, textoSobrePrimaria } from "@/lib/marca";
+import { OrganizationProvider } from "@/hooks/useOrganization";
 import { BillingGate } from "@/components/billing/BillingGate";
 import { SupportSessionBanner } from "@/components/admin/SupportSessionBanner";
 
 const DashboardLayoutInner = () => {
   const { user } = useAuth();
-  const { orgId } = useOrganization();
-  const marca = useMarca(orgId);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const root = document.documentElement;
-    root.style.setProperty("--primary", canaisHsl(marca.primaria));
-    root.style.setProperty("--primary-foreground", textoSobrePrimaria(marca.primaria));
-    return () => {
-      root.style.removeProperty("--primary");
-      root.style.removeProperty("--primary-foreground");
-    };
-  }, [marca.primaria]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
