@@ -103,6 +103,11 @@ jobs:
           [ "$falhou" -eq 0 ] && echo "OK: nenhuma migration destrutiva sem aprovacao."
           exit $falhou
 
+      # Da 0045 em diante, a migration termina com o proprio registro em
+      # migrations.schema_migrations: colada no Studio, ela tambem fica registrada.
+      - name: Guarda de autorregistro das migrations
+        run: node supabase/tools/checar-autorregistro.mjs
+
       # O MESMO stack de local, homologacao e producao (docker/supabase), com
       # segredos descartaveis gerados na hora.
       - name: Gerar chaves locais do stack

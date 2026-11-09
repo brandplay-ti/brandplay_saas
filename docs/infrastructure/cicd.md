@@ -58,13 +58,16 @@ credenciais. Sem Deno instalado, rode localmente pela imagem:
 1. **Guarda contra destruição** — migration com `drop table/schema/column` ou
    `truncate` só passa se a primeira linha declarar
    `-- destrutivo: aprovado por <nome> em <data>`.
-2. **Banco limpo** — sobe o mesmo `docker/supabase/docker-compose.yml` dos
+2. **Autorregistro** — da `0045` em diante, a última instrução da migration
+   tem de ser o registro da própria versão em
+   `migrations.schema_migrations` (`checar-autorregistro.mjs`).
+3. **Banco limpo** — sobe o mesmo `docker/supabase/docker-compose.yml` dos
    ambientes hospedados, com segredos descartáveis
    (`gerar-chaves-locais.mjs --env`), espera `db`, `auth` e `storage`
    saudáveis e aplica todas as migrations com `migrate.sh`.
-3. **Idempotência** — roda o runner de novo e exige "nenhuma migration
+4. **Idempotência** — roda o runner de novo e exige "nenhuma migration
    pendente".
-4. **Seed + testes de segurança** — `supabase:seed` exercita os gatilhos de
+5. **Seed + testes de segurança** — `supabase:seed` exercita os gatilhos de
    cadastro (`handle_new_user`) e `supabase:test` roda as suítes de
    `supabase/tests/`: `seguranca.sql` (RLS e isolamento), `cobranca.sql`,
    `superadmin.sql` e `ia.sql` (chaves, uso e guardas da IA).
@@ -151,7 +154,9 @@ Garantias:
 
 Sem SSH, `npm run supabase:bundle` gera as migrations achatadas para colar no
 SQL Editor do Studio, com os mesmos checksums — depois disso o runner
-reconhece tudo como aplicado.
+reconhece tudo como aplicado. Da `0045` em diante, o arquivo colado direto
+também fica registrado, só que sem checksum. Até a `0044`, arquivo colado
+direto não se registra.
 
 **Homologação primeiro, sempre.**
 

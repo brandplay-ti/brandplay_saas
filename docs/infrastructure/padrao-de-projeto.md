@@ -142,7 +142,9 @@ cópia deste arquivo nos outros projetos).
     bundle no Studio), homologação primeiro, backup antes. CI prova que
     aplicam em banco limpo e são idempotentes. Migration aplicada nunca é
     editada. Destrutiva exige `-- destrutivo: aprovado por <nome> em <data>`
-    na primeira linha.
+    na primeira linha. A última instrução da migration registra a própria
+    versão em `migrations.schema_migrations`, para valer também quando o
+    arquivo é colado no Studio; o CI recusa o que não tiver.
 11. **Seed só local.** Ambiente hospedado nunca recebe arquivo com senha
     escrita no repositório.
 12. **LF em tudo** (`.gitattributes`): CRLF quebra o `migrate.sh` dentro do
