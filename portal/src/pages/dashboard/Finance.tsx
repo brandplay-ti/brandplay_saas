@@ -48,6 +48,7 @@ import { dataLocal } from "@/lib/datas";
 import { PageHeader } from "@/components/common/PageHeader";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
+import { EmptyState } from "@/components/common/EmptyState";
 
 type InstallmentStatus = "pendente" | "pago" | "atrasado" | "cancelado";
 
@@ -380,9 +381,16 @@ export default function Finance() {
           {loading ? (
             <LoadingSkeleton />
           ) : filtered.length === 0 ? (
-            <div className="py-12 text-center text-sm text-muted-foreground">
-              Nenhuma parcela encontrada. Ative um contrato para gerar parcelas automaticamente.
-            </div>
+            <EmptyState
+              bordered={false}
+              icon={Wallet}
+              title={rows.length === 0 ? "Nenhuma parcela ainda" : "Nenhuma parcela com esses filtros"}
+              description={
+                rows.length === 0
+                  ? "As parcelas são geradas automaticamente quando um contrato é ativado."
+                  : "Ajuste a busca ou o filtro de status."
+              }
+            />
           ) : (
             <div className="overflow-x-auto">
               <Table>

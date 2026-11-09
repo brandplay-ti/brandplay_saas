@@ -21,8 +21,23 @@ import {
 const urlPublica = (path: string | null | undefined) =>
   path ? supabase.storage.from("org-logos").getPublicUrl(path).data.publicUrl : null;
 
-export const BrandKitCard = () => {
-  const { orgId, isAdmin } = useOrganization();
+type Props = {
+  /**
+   * Fora do painel (onboarding) não há OrganizationProvider: a página passa a
+   * organização e se pode editar. Sem as props, vale a organização ativa. A
+   * RLS confere de novo: isto é só a tela.
+   */
+  organizationId?: string;
+  podeEditar?: boolean;
+  /** Chamado depois de salvar as cores. */
+  aoSalvarCores?: () => void;
+  rotuloSalvar?: string;
+};
+
+export const BrandKitCard = ({ organizationId, podeEditar, aoSalvarCores, rotuloSalvar = "Salvar cores" }: Props = {}) => {
+  const organizacao = useOrganization();
+  const orgId = organizationId ?? organizacao.orgId;
+  const isAdmin = podeEditar ?? organizacao.isAdmin;
   const marca = useMarca(orgId);
   const [primaria, setPrimaria] = useState(PRIMARIA_PADRAO);
   const [secundaria, setSecundaria] = useState(SECUNDARIA_PADRAO);
@@ -55,6 +70,7 @@ export const BrandKitCard = () => {
       return;
     }
     toast.success("Cores atualizadas. Os próximos relatórios já saem com elas.");
+    aoSalvarCores?.();
   };
 
   const enviar = async (file: File, kind: PecaDeLogo) => {
@@ -143,7 +159,7 @@ export const BrandKitCard = () => {
         {isAdmin && (
           <Button type="button" onClick={salvarCores} disabled={salvando}>
             {salvando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Salvar cores
+            {rotuloSalvar}
           </Button>
         )}
 

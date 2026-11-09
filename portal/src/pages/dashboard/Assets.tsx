@@ -39,6 +39,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useConfirm } from "@/hooks/useConfirm";
 import { PageHeader } from "@/components/common/PageHeader";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
+import { EmptyState } from "@/components/common/EmptyState";
 
 
 interface Asset {
@@ -552,9 +553,19 @@ export default function Assets() {
           {loading ? (
             <LoadingSkeleton variant="cards" />
           ) : filtered.length === 0 ? (
-            <div className="py-12 text-center text-sm text-muted-foreground">
-              Nenhum ativo cadastrado. Clique em "Novo ativo" para começar.
-            </div>
+            <EmptyState
+              bordered={false}
+              icon={Boxes}
+              title={assets.length === 0 ? "Nenhum ativo cadastrado" : "Nenhum ativo com esses filtros"}
+              description={
+                assets.length === 0
+                  ? "Ativos são o que você vende: placas, camisas, naming rights, posts. Cadastre um ou importe uma planilha."
+                  : "Ajuste a busca ou os filtros de categoria e exclusividade."
+              }
+              action={assets.length === 0 && (
+                <Button onClick={() => setDialogOpen(true)}><Plus className="h-4 w-4 mr-2" />Novo ativo</Button>
+              )}
+            />
           ) : viewMode === "grid" ? (
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filtered.map((a) => (

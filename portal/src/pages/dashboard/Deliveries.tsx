@@ -61,6 +61,7 @@ import {
   Columns3,
   Table2,
   Rows3,
+  Truck,
 
 } from "lucide-react";
 import { NextStepsAI } from "@/components/pipeline/NextStepsAI";
@@ -79,6 +80,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { PageHeader } from "@/components/common/PageHeader";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
+import { EmptyState } from "@/components/common/EmptyState";
 
 type Status = Database["public"]["Enums"]["delivery_status"];
 type Approval = Database["public"]["Enums"]["delivery_approval"];
@@ -939,6 +941,17 @@ export default function Deliveries() {
 
       {loading ? (
         <LoadingSkeleton />
+      ) : filtered.length === 0 && viewMode !== "kanban" ? (
+        // No kanban as colunas vazias continuam visíveis: é para onde a entrega é arrastada.
+        <EmptyState
+          icon={Truck}
+          title={deliveries.length === 0 ? "Nenhuma entrega ainda" : "Nenhuma entrega com esses filtros"}
+          description={
+            deliveries.length === 0
+              ? "As entregas nascem dos ativos de um contrato ativo. Você também pode cadastrar uma em Nova entrega."
+              : "Ajuste a busca ou os filtros."
+          }
+        />
       ) : viewMode === "list" ? (
         <DeliveriesTableView
           items={filtered}
@@ -1055,9 +1068,6 @@ function DeliveriesTableView({
 }) {
   const { can } = useOrganization();
   const temVendas = can("vendas");
-  if (items.length === 0) {
-    return <div className="text-sm text-muted-foreground py-8 text-center border border-dashed rounded-md">Nenhuma entrega encontrada.</div>;
-  }
   return (
     <Card className="overflow-x-auto">
       <Table>
@@ -1121,9 +1131,6 @@ function DeliveriesCompactView({
   onOpen: (d: Delivery) => void;
   onEdit: (d: Delivery) => void;
 }) {
-  if (items.length === 0) {
-    return <div className="text-sm text-muted-foreground py-8 text-center border border-dashed rounded-md">Nenhuma entrega encontrada.</div>;
-  }
   return (
     <Card className="divide-y divide-border">
       {items.map((d) => (
