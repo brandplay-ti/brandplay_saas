@@ -34,6 +34,23 @@ Migrations devem ser:
   índice, constraint ou policy, verifique referências no código
   (`portal/src/integrations/supabase/types.ts`, Edge Functions, componentes).
 
+Toda migration aplicada à mão precisa ficar registrada em
+`migrations.schema_migrations`. Da `0045` em diante, a **última instrução** de
+cada arquivo é o próprio registro, com o nome do arquivo sem `.sql`:
+
+```sql
+insert into migrations.schema_migrations (version)
+values ('0045_descricao');
+```
+
+Assim o registro entra mesmo com o arquivo colado no SQL Editor do Studio. Não
+use `on conflict`: colar de novo tem de falhar na chave primária e desfazer
+tudo. O `migrate.sh` e o bundle completam o checksum, e o CI recusa o arquivo
+sem essa linha (`supabase/tools/checar-autorregistro.mjs`). Ao orientar uma
+aplicação manual, indique o `migrate.sh` ou o bundle
+(`gerar-bundle.mjs --desde <versao>`): as migrations até a `0044` não têm a
+linha e, coladas cruas, não se registram.
+
 ## RLS — obrigatória em toda tabela de organização
 
 Toda tabela exposta à aplicação via `anon`/`authenticated` precisa de RLS

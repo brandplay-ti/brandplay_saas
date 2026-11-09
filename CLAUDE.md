@@ -350,6 +350,9 @@ superfícies sensíveis do produto (media kit público, portal do patrocinador).
   evitar operações destrutivas sem confirmação explícita.
 - Nunca considere uma alteração manual no banco (inclusive via Studio) como
   alteração definitiva da aplicação.
+- Toda migration aplicada à mão fica registrada em
+  `migrations.schema_migrations`: da `0045` em diante, o próprio arquivo termina
+  com esse registro (`.claude/rules/supabase.md`), e o CI recusa o que não tiver.
 
 ### RLS
 
@@ -427,7 +430,7 @@ feature/* → PR → dev → PR → hml (homologação) → PR → main (produç
 
 - **CI** (`.github/workflows/ci.yml`): portal (lint não bloqueante por dívida
   herdada, type-check, test, build), funcoes (`deno test` de
-  `supabase/functions/_shared/`, `admin-ai/` e `fetch-social-stats/`) e migrations (guarda destrutiva, banco
+  `supabase/functions/_shared/`, `admin-ai/` e `fetch-social-stats/`) e migrations (guarda destrutiva, autorregistro, banco
   limpo, idempotência, seed, testes de RLS).
 - **CD**: o Dockploy publica cada ambiente a partir da branch dele. O
   workflow `Deploy (VPS)` é manual e **não escreve no banco** — só lista

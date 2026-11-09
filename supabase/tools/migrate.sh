@@ -13,7 +13,9 @@
 #   ou a migration inteira entra e fica registrada, ou nada acontece;
 # - advisory lock impede dois deploys simultaneos aplicando a mesma migration;
 # - ON_ERROR_STOP=1: qualquer erro aborta antes de tocar a proxima migration;
-# - migration ja aplicada nunca roda de novo.
+# - migration ja aplicada nunca roda de novo;
+# - da 0045 em diante a migration grava a propria linha (ultima instrucao do
+#   arquivo), o que cobre quem cola o arquivo no Studio; aqui so entra o checksum.
 
 set -eu
 
@@ -88,12 +90,25 @@ for versao in $PENDENTES; do
   # lock_timeout evita que a migration fique presa atras de uma transacao longa
   # segurando lock e leve a aplicacao junto; statement_timeout limita o dano de
   # uma migration acidentalmente pesada.
+  #
+  # Migration com autorregistro ja gravou a linha, sem checksum: aqui ela e
+  # completada. A que nao tem autorregistro entra agora. Nao use `on conflict`:
+  # versao ja registrada com checksum tem de falhar na chave primaria e desfazer
+  # a transacao, o que protege de dois deploys simultaneos.
   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 --single-transaction \
     -c "set lock_timeout = '$LOCK_TIMEOUT';" \
     -c "set statement_timeout = '$STATEMENT_TIMEOUT';" \
     -c "select pg_advisory_xact_lock(hashtext('brandplay-migrations'));" \
     -f "$arquivo" \
-    -c "insert into migrations.schema_migrations (version, checksum) values ('$versao', '$checksum');"
+    -c "with completada as (
+          update migrations.schema_migrations
+             set checksum = '$checksum'
+           where version = '$versao' and checksum is null
+          returning 1
+        )
+        insert into migrations.schema_migrations (version, checksum)
+        select '$versao', '$checksum'
+         where not exists (select 1 from completada);"
 
   echo "ok        $versao"
 done

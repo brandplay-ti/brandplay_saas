@@ -28,7 +28,8 @@ rede nem banco. Teste de uma função específica fica na pasta dela, e a pasta
 entra na lista do job.
 
 **`migrations`**: guarda contra migration destrutiva sem marcador
-(`-- destrutivo: aprovado por <nome> em <data>` na primeira linha) → sobe o
+(`-- destrutivo: aprovado por <nome> em <data>` na primeira linha) → guarda de
+autorregistro (`checar-autorregistro.mjs`, da `0045` em diante) → sobe o
 mesmo stack de `docker/supabase/` → aplica as migrations → exige idempotência →
 seed local → `supabase/tests/seguranca.sql`.
 
