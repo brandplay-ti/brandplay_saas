@@ -123,6 +123,15 @@ notas internas, descrição de entrega ou comentário de aprovação. A premiaç
 da propriedade e indicadores digitados pela organização com prefixo "R$" são
 dados que a própria organização escolheu publicar.
 
+## Cores da organização
+
+As cores do kit de marca colorem só o que a organização entrega para fora: o
+relatório em landing page e os PDFs (relatório, proposta, contrato, entrega e
+BrandTrack). A interface do portal mantém a identidade da BrandPlay em qualquer
+organização: o kit não altera `--primary` nem outro token do tema. Os gráficos
+de `/dashboard/relatorios` são interface; só o PDF exportado de lá leva as
+cores da organização.
+
 ## Busca automática: o que cada rede exige
 
 | Rede | O que dá para buscar | O que precisa |

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/DateInput";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -89,12 +89,7 @@ export const DueDateEditor = ({
       </PopoverTrigger>
       <PopoverContent className="w-auto p-3 space-y-2 pointer-events-auto" align="start">
         <Label className="text-xs text-muted-foreground">{label}</Label>
-        <Input
-          type={withTime ? "datetime-local" : "date"}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          className="h-9"
-        />
+        <DateInput withTime={withTime} value={draft} onValueChange={setDraft} className="h-9 w-52" />
         <div className="flex gap-2">
           <Button size="sm" disabled={saving} onClick={() => commit(draft || null)}>
             Salvar

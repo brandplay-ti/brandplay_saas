@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/DateInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
@@ -406,10 +407,9 @@ export default function PropertyChecklist({ propertyId, ownerId }: Props) {
               </div>
               <div className="space-y-1.5">
                 <Label>Prazo</Label>
-                <Input
-                  type="date"
+                <DateInput
                   value={form.due_date}
-                  onChange={(e) => setForm({ ...form, due_date: e.target.value })}
+                  onValueChange={(v) => setForm({ ...form, due_date: v })}
                 />
               </div>
             </div>

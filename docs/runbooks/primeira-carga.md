@@ -70,6 +70,12 @@ Banco já migrado, só com pendentes:
 `node supabase/tools/gerar-bundle.mjs --desde <versao>` gera
 `bundle/pendentes.sql`.
 
+**Não cole no editor o arquivo de uma migration até a `0044`.** Esses arquivos
+não têm o registro da versão: a migration roda, não entra em
+`migrations.schema_migrations`, e o `migrate.sh` tenta reaplicá-la. Da `0045`
+em diante o próprio arquivo se registra, mas sem checksum. O bundle continua
+sendo o caminho preferido, porque grava os dois.
+
 O editor conecta como `postgres`, que no Supabase não é superusuário. Se ele
 recusar alguma migration por privilégio, use o Caminho B, que conecta como
 `supabase_admin`.

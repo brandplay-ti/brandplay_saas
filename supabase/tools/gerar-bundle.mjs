@@ -89,8 +89,17 @@ const partes = arquivos.map((nome) => {
     '',
     bruto.toString('utf8').trimEnd(),
     '',
+    // Mesmo registro do `migrate.sh`: completa a linha de quem tem autorregistro
+    // e, sem `on conflict`, reaplicar versao ja registrada falha na chave.
+    `with completada as (`,
+    `  update migrations.schema_migrations`,
+    `     set checksum = '${checksum}'`,
+    `   where version = '${versao}' and checksum is null`,
+    `  returning 1`,
+    `)`,
     `insert into migrations.schema_migrations (version, checksum)`,
-    `values ('${versao}', '${checksum}');`,
+    `select '${versao}', '${checksum}'`,
+    ` where not exists (select 1 from completada);`,
     'commit;',
     '',
   ].join('\n');

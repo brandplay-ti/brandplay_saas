@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/CurrencyInput";
+import { DateInput } from "@/components/DateInput";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { type StatusTone } from "@/lib/statusTone";
@@ -49,6 +51,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 import { EmptyState } from "@/components/common/EmptyState";
+import { formatarNumero } from "@/lib/mascaras";
 
 type InstallmentStatus = "pendente" | "pago" | "atrasado" | "cancelado";
 
@@ -263,7 +266,7 @@ export default function Finance() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{fmtBRL(kpis.total)}</div>
-            <p className="text-xs text-muted-foreground">{kpis.count} parcelas</p>
+            <p className="text-xs text-muted-foreground">{formatarNumero(kpis.count)} parcelas</p>
           </CardContent>
         </Card>
         <Card>
@@ -489,21 +492,18 @@ export default function Finance() {
                   <div className="space-y-3 border-t pt-4">
                     <div>
                       <Label htmlFor="paid_at">Data do pagamento</Label>
-                      <Input
+                      <DateInput
                         id="paid_at"
-                        type="date"
                         value={paidAt}
-                        onChange={(e) => setPaidAt(e.target.value)}
+                        onValueChange={setPaidAt}
                       />
                     </div>
                     <div>
                       <Label htmlFor="paid_amount">Valor recebido</Label>
-                      <Input
+                      <CurrencyInput
                         id="paid_amount"
-                        type="number"
-                        step="0.01"
                         value={paidAmount}
-                        onChange={(e) => setPaidAmount(e.target.value)}
+                        onValueChange={setPaidAmount}
                       />
                     </div>
                     <Button className="w-full" onClick={markPaid}>

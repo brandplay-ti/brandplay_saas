@@ -7,7 +7,8 @@ import { useMarca } from "@/hooks/useMarca";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/DateInput";
+import { formatarNumero, isoParaData } from "@/lib/mascaras";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -474,11 +475,11 @@ export default function Reports() {
         <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-4 gap-3">
           <div className="space-y-1">
             <Label>De</Label>
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <DateInput value={from} onValueChange={setFrom} />
           </div>
           <div className="space-y-1">
             <Label>Até</Label>
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+            <DateInput value={to} onValueChange={setTo} />
           </div>
           <div className="space-y-1">
             <Label>Propriedade</Label>
@@ -508,15 +509,15 @@ export default function Reports() {
         <KpiCard icon={<DollarSign className="h-4 w-4" />} label={clienteMarca ? "Pago" : "Recebido"} value={fmtMoney(kpis.received)} accent="text-primary" />
         <KpiCard icon={<TrendingUp className="h-4 w-4" />} label={clienteMarca ? "A pagar" : "Previsto"} value={fmtMoney(kpis.expected)} />
         <KpiCard icon={<AlertTriangle className="h-4 w-4" />} label="Em atraso" value={fmtMoney(kpis.overdue)} accent="text-destructive" />
-        <KpiCard icon={<FileSignature className="h-4 w-4" />} label="Contratos ativos" value={String(kpis.activeContracts)} />
+        <KpiCard icon={<FileSignature className="h-4 w-4" />} label="Contratos ativos" value={formatarNumero(kpis.activeContracts)} />
         {temVendas && (
           <>
             <KpiCard icon={<Briefcase className="h-4 w-4" />} label="Pipeline aberto" value={fmtMoney(kpis.pipelineValue)} />
             <KpiCard icon={<TrendingUp className="h-4 w-4" />} label="Win rate" value={`${kpis.winRate.toFixed(1)}%`} />
           </>
         )}
-        <KpiCard icon={<Truck className="h-4 w-4" />} label="Entregas atrasadas" value={String(kpis.overdueDeliveries)} accent="text-destructive" />
-        <KpiCard icon={<Users className="h-4 w-4" />} label={clienteMarca ? "Marcas" : "Patrocinadores"} value={String(sponsors.length)} />
+        <KpiCard icon={<Truck className="h-4 w-4" />} label="Entregas atrasadas" value={formatarNumero(kpis.overdueDeliveries)} accent="text-destructive" />
+        <KpiCard icon={<Users className="h-4 w-4" />} label={clienteMarca ? "Marcas" : "Patrocinadores"} value={formatarNumero(sponsors.length)} />
       </div>
 
       <Tabs defaultValue="executivo">
@@ -558,7 +559,7 @@ export default function Reports() {
                 <ResponsiveContainer>
                   <BarChart data={funnel} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
+                    <XAxis type="number" tickFormatter={(v) => formatarNumero(v)} />
                     <YAxis dataKey="stage" type="category" width={120} />
                     <Tooltip formatter={(v: number, n) => (n === "value" ? fmtMoney(v) : v)} />
                     <Bar dataKey="count" fill="hsl(var(--primary))" name="Oportunidades" />
@@ -575,7 +576,7 @@ export default function Reports() {
                     <Pie data={sponsorScores} dataKey="value" nameKey="name" outerRadius={80} label>
                       {sponsorScores.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip formatter={(v) => formatarNumero(Number(v))} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
@@ -606,7 +607,7 @@ export default function Reports() {
                       <TableRow key={c.id}>
                         <TableCell>{c.title}</TableCell>
                         <TableCell>{c.brand}</TableCell>
-                        <TableCell>{c.end_date}</TableCell>
+                        <TableCell>{isoParaData(c.end_date)}</TableCell>
                         <TableCell className="text-right">{fmtMoney(Number(c.total_value))}</TableCell>
                       </TableRow>
                     ))}
@@ -657,7 +658,7 @@ export default function Reports() {
                     const c = filteredContracts.find((x) => x.id === i.contract_id);
                     return (
                       <TableRow key={i.id}>
-                        <TableCell>{i.due_date}</TableCell>
+                        <TableCell>{isoParaData(i.due_date)}</TableCell>
                         <TableCell>{c?.title ?? "—"}</TableCell>
                         <TableCell>
                           <Badge variant={i.status === "pago" ? "default" : i.status === "atrasado" ? "destructive" : "secondary"}>
@@ -691,7 +692,7 @@ export default function Reports() {
                 <BarChart data={funnel}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="stage" />
-                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="left" tickFormatter={(v) => formatarNumero(v)} />
                   <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                   <Tooltip formatter={(v: number, n) => (n === "Valor" ? fmtMoney(v) : v)} />
                   <Legend />
@@ -719,7 +720,7 @@ export default function Reports() {
                     <Pie data={deliveriesByStatus} dataKey="value" nameKey="name" outerRadius={80} label>
                       {deliveriesByStatus.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip formatter={(v) => formatarNumero(Number(v))} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
@@ -744,7 +745,7 @@ export default function Reports() {
                         <TableRow key={d.id}>
                           <TableCell>{d.title}</TableCell>
                           <TableCell>{d.brand}</TableCell>
-                          <TableCell>{d.due_date}</TableCell>
+                          <TableCell>{isoParaData(d.due_date)}</TableCell>
                         </TableRow>
                       ))}
                   </TableBody>

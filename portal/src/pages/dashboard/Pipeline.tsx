@@ -5,6 +5,9 @@ import { useOrganization } from "@/hooks/useOrganization";
 import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
+import { CurrencyInput } from "@/components/CurrencyInput";
+import { DateInput } from "@/components/DateInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
@@ -67,6 +70,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 import { EmptyState } from "@/components/common/EmptyState";
+import { formatarNumero } from "@/lib/mascaras";
 
 type Stage = Database["public"]["Enums"]["opportunity_stage"];
 
@@ -1078,7 +1082,7 @@ export default function Pipeline() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label htmlFor="value">Valor (R$)</Label>
-                        <Input id="value" type="number" min="0" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="50000" />
+                        <CurrencyInput id="value" value={form.value} onValueChange={(v) => setForm({ ...form, value: v })} />
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="stage">Estágio</Label>
@@ -1103,7 +1107,7 @@ export default function Pipeline() {
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="close">Data prevista</Label>
-                        <Input id="close" type="date" value={form.expected_close_date} onChange={(e) => setForm({ ...form, expected_close_date: e.target.value })} />
+                        <DateInput id="close" value={form.expected_close_date} onValueChange={(v) => setForm({ ...form, expected_close_date: v })} />
                       </div>
                     </div>
                     <div className="grid gap-2">
@@ -1284,20 +1288,16 @@ export default function Pipeline() {
               <div className="space-y-1.5">
                 <Label className="text-xs">Faixa de valor</Label>
                 <div className="grid grid-cols-2 gap-2">
-                  <Input
-                    type="number"
-                    min="0"
+                  <CurrencyInput
                     placeholder="Mín."
                     value={minValue}
-                    onChange={(e) => setMinValue(e.target.value)}
+                    onValueChange={setMinValue}
                     className="h-9"
                   />
-                  <Input
-                    type="number"
-                    min="0"
+                  <CurrencyInput
                     placeholder="Máx."
                     value={maxValue}
-                    onChange={(e) => setMaxValue(e.target.value)}
+                    onValueChange={setMaxValue}
                     className="h-9"
                   />
                 </div>
@@ -1356,13 +1356,12 @@ export default function Pipeline() {
               </Button>
               <div className="flex items-center gap-2">
                 <Label htmlFor="created-last-days" className="text-xs text-muted-foreground whitespace-nowrap">Criadas nos últimos</Label>
-                <Input
+                <NumberInput
                   id="created-last-days"
-                  type="number"
                   min="1"
                   placeholder="X"
                   value={createdLastDays}
-                  onChange={(e) => setCreatedLastDays(e.target.value)}
+                  onValueChange={setCreatedLastDays}
                   className="h-9 w-20"
                 />
                 <span className="text-xs text-muted-foreground">dias</span>
@@ -1490,7 +1489,7 @@ export default function Pipeline() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="loss-value">Valor perdido (R$)</Label>
-                <Input id="loss-value" type="number" min="0" value={lossForm.value} onChange={(e) => setLossForm({ ...lossForm, value: e.target.value })} placeholder="0" />
+                <CurrencyInput id="loss-value" value={lossForm.value} onValueChange={(v) => setLossForm({ ...lossForm, value: v })} />
               </div>
             </div>
           </div>
@@ -1526,13 +1525,12 @@ export default function Pipeline() {
                   <span className={`h-2 w-2 rounded-full ${stage.color}`} />
                   {stage.label}
                 </Label>
-                <Input
+                <NumberInput
                   id={`sla-${stage.id}`}
-                  type="number"
                   min="0"
                   placeholder="Sem SLA"
                   value={slaForm[stage.id] ?? ""}
-                  onChange={(e) => setSlaForm({ ...slaForm, [stage.id]: e.target.value })}
+                  onValueChange={(v) => setSlaForm({ ...slaForm, [stage.id]: v })}
                 />
               </div>
             ))}
@@ -1643,7 +1641,7 @@ function AttentionToday({ alerts }: { alerts: AttentionAlert[] }) {
           <div key={alert.key} className="rounded-md border border-border bg-background p-3 min-h-[92px]">
             <div className="flex items-start justify-between gap-2">
               <span className="text-xs text-muted-foreground leading-snug">{alert.label}</span>
-              <Badge variant={alert.count > 0 ? "default" : "outline"}>{alert.count}</Badge>
+              <Badge variant={alert.count > 0 ? "default" : "outline"}>{formatarNumero(alert.count)}</Badge>
             </div>
             <p className="mt-2 text-xs font-medium leading-snug line-clamp-2">
               {alert.detail || "Nenhum item crítico"}
@@ -1710,7 +1708,7 @@ function LossesByReason({ items }: { items: { key: string; label: string; count:
             <div key={item.key} className={cn("rounded-md border border-border bg-background p-3", topReason?.key === item.key && item.count > 0 && "border-destructive/50 bg-destructive/5")}>
               <div className="flex items-start justify-between gap-2">
                 <span className="text-xs text-muted-foreground leading-snug">{item.label}</span>
-                <Badge variant={item.count > 0 ? "outline" : "secondary"}>{item.count}</Badge>
+                <Badge variant={item.count > 0 ? "outline" : "secondary"}>{formatarNumero(item.count)}</Badge>
               </div>
               <div className="mt-3 space-y-2">
                 <div className="text-sm font-semibold">{formatBRL(item.value)}</div>

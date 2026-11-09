@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { formatarNumero, isoParaData } from "@/lib/mascaras";
 import { Progress } from "@/components/ui/progress";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -201,8 +202,8 @@ export const AnalyticsTab = ({ semFunil = false, ...props }: AnalyticsInput & { 
               <LineChart data={a.monthlyRows}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="label" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
+                <YAxis allowDecimals={false} tickFormatter={(v) => formatarNumero(v)} />
+                <Tooltip formatter={(v) => formatarNumero(Number(v))} />
                 <Legend />
                 <Line type="monotone" dataKey="novas" stroke="hsl(var(--primary))" name="Novas" />
                 <Line type="monotone" dataKey="ganhas" stroke="hsl(var(--chart-3))" name="Ganhas" />
@@ -220,7 +221,7 @@ export const AnalyticsTab = ({ semFunil = false, ...props }: AnalyticsInput & { 
               <div className="flex justify-between text-sm">
                 <span>{c.stage}</span>
                 <span className="text-muted-foreground">
-                  {c.reached} oportunidades · {c.rate.toFixed(0)}%
+                  {formatarNumero(c.reached)} oportunidades · {c.rate.toFixed(0)}%
                 </span>
               </div>
               <Progress value={Math.min(100, c.rate)} />
@@ -274,7 +275,7 @@ export const AnalyticsTab = ({ semFunil = false, ...props }: AnalyticsInput & { 
                 {a.lossRows.map((l) => (
                   <TableRow key={l.reason}>
                     <TableCell className="capitalize">{String(l.reason).replace(/_/g, " ")}</TableCell>
-                    <TableCell className="text-right">{l.count}</TableCell>
+                    <TableCell className="text-right">{formatarNumero(l.count)}</TableCell>
                     <TableCell className="text-right">{fmtMoney(l.value)}</TableCell>
                   </TableRow>
                 ))}
@@ -286,7 +287,7 @@ export const AnalyticsTab = ({ semFunil = false, ...props }: AnalyticsInput & { 
             {a.competitors.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-3">
                 {a.competitors.map((c) => (
-                  <Badge key={c.name} variant="outline">{c.name} · {c.count}</Badge>
+                  <Badge key={c.name} variant="outline">{c.name} · {formatarNumero(c.count)}</Badge>
                 ))}
               </div>
             )}
@@ -297,8 +298,8 @@ export const AnalyticsTab = ({ semFunil = false, ...props }: AnalyticsInput & { 
           <CardHeader><CardTitle>Entregas por categoria</CardTitle></CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-2 mb-3 text-center">
-              <MiniKpi label="Aprovadas" value={String(a.approved)} />
-              <MiniKpi label="Reprovadas" value={String(a.rejected)} />
+              <MiniKpi label="Aprovadas" value={formatarNumero(a.approved)} />
+              <MiniKpi label="Reprovadas" value={formatarNumero(a.rejected)} />
               <MiniKpi label="Com evidência" value={`${a.evidenceRate.toFixed(0)}%`} />
             </div>
             <Table>
@@ -349,7 +350,7 @@ export const AnalyticsTab = ({ semFunil = false, ...props }: AnalyticsInput & { 
                 <TableRow key={i}>
                   <TableCell>{r.title}</TableCell>
                   <TableCell>{r.sponsor || r.brand}</TableCell>
-                  <TableCell>{r.end_date}</TableCell>
+                  <TableCell>{isoParaData(r.end_date)}</TableCell>
                   <TableCell className="text-right">{r.dias}</TableCell>
                   <TableCell className="text-right">{fmtMoney(r.value)}</TableCell>
                 </TableRow>

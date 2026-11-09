@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
+import { DateInput } from "@/components/DateInput";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { CalendarPlus, X } from "lucide-react";
@@ -11,8 +12,6 @@ interface Props {
   onDatesChange: (dates: string[]) => void;
   startDate?: string;
 }
-
-const fmt = (d: string) => (d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR") : "—");
 
 export function PaymentScheduleFields({
   dueDays,
@@ -38,12 +37,11 @@ export function PaymentScheduleFields({
     <div className="grid gap-3 rounded-lg border p-3">
       <div className="grid gap-2 sm:max-w-[220px]">
         <Label htmlFor="due-days">Vencer em (dias)</Label>
-        <Input
+        <NumberInput
           id="due-days"
-          inputMode="numeric"
           value={dueDays}
           placeholder="Ex.: 30"
-          onChange={(e) => onDueDaysChange(e.target.value.replace(/\D/g, ""))}
+          onValueChange={onDueDaysChange}
         />
         <p className="text-xs text-muted-foreground">
           Prazo somado à data de início para o primeiro vencimento.
@@ -71,8 +69,7 @@ export function PaymentScheduleFields({
               <Badge variant="outline" className="shrink-0">
                 {i + 1}/{dates.length}
               </Badge>
-              <Input type="date" value={d} onChange={(e) => update(i, e.target.value)} />
-              <span className="text-xs text-muted-foreground hidden sm:block w-24">{fmt(d)}</span>
+              <DateInput value={d} onValueChange={(v) => update(i, v)} />
               <Button
                 aria-label="Remover data"
                 type="button"

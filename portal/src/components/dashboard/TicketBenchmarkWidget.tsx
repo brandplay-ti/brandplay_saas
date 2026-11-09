@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Scale, RefreshCw, Sparkles, ArrowUp, ArrowDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatarNumero } from "@/lib/mascaras";
 
 const fmt = (n: number | null | undefined) =>
   n == null ? "—" : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n);
@@ -94,7 +95,7 @@ export function TicketBenchmarkWidget() {
                   <TableRow key={i.segment}>
                     <TableCell className="font-medium">
                       {i.segment}
-                      <span className="text-muted-foreground text-xs ml-1">({i.contract_count})</span>
+                      <span className="text-muted-foreground text-xs ml-1">({formatarNumero(i.contract_count)})</span>
                     </TableCell>
                     <TableCell className="text-right">{fmt(i.internal_avg)}</TableCell>
                     <TableCell className="text-right text-muted-foreground" title={i.market_notes || undefined}>

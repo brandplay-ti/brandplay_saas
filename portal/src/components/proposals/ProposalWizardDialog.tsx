@@ -8,10 +8,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/CurrencyInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Wand2, Loader2, Copy, ChevronRight, ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
 import { avisarErroDeIA } from "@/lib/erroDeIA";
+import { formatarNumero } from "@/lib/mascaras";
 
 type Sponsor = { id: string; name: string };
 type Property = { id: string; name: string };
@@ -259,7 +261,7 @@ export function ProposalWizardDialog({ sponsors = [], properties = [], proposta,
               </div>
               <div className="space-y-2">
                 <Label>Budget alvo (R$)</Label>
-                <Input type="number" placeholder="Ex: 80000" value={budget} onChange={(e) => setBudget(e.target.value)} />
+                <CurrencyInput placeholder="Ex: R$ 80.000,00" value={budget} onValueChange={setBudget} />
               </div>
               {!proposta && <>
               <div className="space-y-2">
@@ -330,7 +332,7 @@ export function ProposalWizardDialog({ sponsors = [], properties = [], proposta,
               {out.items.map((it, i) => (
                 <div key={i} className="border border-border rounded-md p-2 grid grid-cols-12 gap-2 items-center text-sm">
                   <div className="col-span-6 font-medium">{it.name}</div>
-                  <div className="col-span-2 text-center">{it.quantity}x</div>
+                  <div className="col-span-2 text-center">{formatarNumero(it.quantity)}x</div>
                   <div className="col-span-4 text-right">R$ {Number(it.unit_value).toLocaleString("pt-BR")}</div>
                   {it.description && <div className="col-span-12 text-xs text-muted-foreground">{it.description}</div>}
                 </div>

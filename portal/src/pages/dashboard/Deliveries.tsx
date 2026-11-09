@@ -6,6 +6,8 @@ import { useOrganization } from "@/hooks/useOrganization";
 import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
+import { DateInput } from "@/components/DateInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
@@ -81,6 +83,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 import { EmptyState } from "@/components/common/EmptyState";
+import { formatarNumero } from "@/lib/mascaras";
 
 type Status = Database["public"]["Enums"]["delivery_status"];
 type Approval = Database["public"]["Enums"]["delivery_approval"];
@@ -731,11 +734,11 @@ export default function Deliveries() {
                   <div className="grid grid-cols-3 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="qty">Quantidade</Label>
-                      <Input id="qty" type="number" min="1" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
+                      <NumberInput id="qty" min="1" value={form.quantity} onValueChange={(v) => setForm({ ...form, quantity: v })} />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="due">Data prevista</Label>
-                      <Input id="due" type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
+                      <DateInput id="due" value={form.due_date} onValueChange={(v) => setForm({ ...form, due_date: v })} />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="status">Status</Label>
@@ -911,8 +914,8 @@ export default function Deliveries() {
               <div className="space-y-1.5">
                 <Label className="text-xs">Data prevista</Label>
                 <div className="grid grid-cols-2 gap-2">
-                  <Input type="date" value={dueFrom} onChange={(e) => setDueFrom(e.target.value)} className="h-9" />
-                  <Input type="date" value={dueTo} onChange={(e) => setDueTo(e.target.value)} className="h-9" />
+                  <DateInput value={dueFrom} onValueChange={setDueFrom} className="h-9" />
+                  <DateInput value={dueTo} onValueChange={setDueTo} className="h-9" />
                 </div>
               </div>
             </div>
@@ -1089,7 +1092,7 @@ function DeliveriesTableView({
             <TableRow key={d.id} className={`cursor-pointer ${FOCO_CLICAVEL}`} {...clicavel(() => onOpen(d), { linha: true })}>
               <TableCell className="font-medium">
                 {d.title}
-                {d.quantity > 1 && <span className="text-muted-foreground text-xs"> ×{d.quantity}</span>}
+                {d.quantity > 1 && <span className="text-muted-foreground text-xs"> ×{formatarNumero(d.quantity)}</span>}
               </TableCell>
               <TableCell className="text-sm">{d.brand}</TableCell>
               <TableCell className="text-sm text-muted-foreground">{d.asset_type ?? "—"}</TableCell>
@@ -1293,7 +1296,7 @@ function DeliveryCard({
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Calendar className="h-3 w-3" />
                 <span>{formatDate(item.due_date)}</span>
-                {item.quantity > 1 && <span className="ml-auto">x{item.quantity}</span>}
+                {item.quantity > 1 && <span className="ml-auto">x{formatarNumero(item.quantity)}</span>}
               </div>
             )}
           </div>
@@ -1376,7 +1379,7 @@ function DetailSheet({
           <DialogDescription>
             {delivery.brand}
             {delivery.asset_type && ` · ${delivery.asset_type}`}
-            {delivery.quantity > 1 && ` · ${delivery.quantity} un.`}
+            {delivery.quantity > 1 && ` · ${formatarNumero(delivery.quantity)} un.`}
           </DialogDescription>
         </DialogHeader>
 
