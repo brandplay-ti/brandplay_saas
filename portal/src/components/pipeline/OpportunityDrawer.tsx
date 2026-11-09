@@ -4,6 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/CurrencyInput";
+import { DateInput } from "@/components/DateInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -1235,10 +1237,9 @@ export function OpportunityDrawer({
                 <div className="grid grid-cols-2 gap-3">
                   <div className="grid gap-2 p-1" data-field="valor">
                     <Label>Valor (R$)</Label>
-                    <Input
-                      type="number"
+                    <CurrencyInput
                       value={opp.value}
-                      onChange={(e) => setOpp({ ...opp, value: Number(e.target.value) })}
+                      onValueChange={(v) => setOpp({ ...opp, value: Number(v) })}
                       onBlur={() => updateField({ value: opp.value })}
                     />
                   </div>
@@ -1338,11 +1339,10 @@ export function OpportunityDrawer({
                 </div>
                 <div className="grid gap-2 p-1" data-field="data prevista">
                   <Label>Data prevista</Label>
-                  <Input
-                    type="date"
+                  <DateInput
                     value={opp.expected_close_date ?? ""}
-                    onChange={(e) => setOpp({ ...opp, expected_close_date: e.target.value })}
-                    onBlur={() => updateField({ expected_close_date: opp.expected_close_date || null })}
+                    onValueChange={(v) => setOpp({ ...opp, expected_close_date: v })}
+                    onCommit={(v) => updateField({ expected_close_date: v || null })}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -1457,10 +1457,9 @@ export function OpportunityDrawer({
                         {ACTIVITY_TYPES.map((t) => (<SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>))}
                       </SelectContent>
                     </Select>
-                    <Input
-                      type="datetime-local"
+                    <DateInput withTime
                       value={newAct.due_date}
-                      onChange={(e) => setNewAct({ ...newAct, due_date: e.target.value })}
+                      onValueChange={(v) => setNewAct({ ...newAct, due_date: v })}
                     />
                   </div>
                   <Input

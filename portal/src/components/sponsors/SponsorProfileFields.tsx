@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
+import { CurrencyInput } from "@/components/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -304,20 +306,17 @@ export function SponsorProfileFields({ value, onChange, showRegistration = true 
                   </Button>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  <Input
-                    type="number" inputMode="numeric" placeholder="Seguidores"
+                  <NumberInput placeholder="Seguidores"
                     value={stat.followers ?? ""}
-                    onChange={(e) => set({ social_stats: { ...value.social_stats, [n.key]: { ...stat, followers: e.target.value === "" ? null : Number(e.target.value) } } })}
+                    onValueChange={(v) => set({ social_stats: { ...value.social_stats, [n.key]: { ...stat, followers: v === "" ? null : Number(v) } } })}
                   />
-                  <Input
-                    type="number" step="0.01" placeholder="Engaj. %"
+                  <NumberInput casas={2} placeholder="Engaj. %"
                     value={stat.engagement ?? ""}
-                    onChange={(e) => set({ social_stats: { ...value.social_stats, [n.key]: { ...stat, engagement: e.target.value === "" ? null : Number(e.target.value) } } })}
+                    onValueChange={(v) => set({ social_stats: { ...value.social_stats, [n.key]: { ...stat, engagement: v === "" ? null : Number(v) } } })}
                   />
-                  <Input
-                    type="number" inputMode="numeric" placeholder="Posts/mês"
+                  <NumberInput placeholder="Posts/mês"
                     value={stat.posts ?? ""}
-                    onChange={(e) => set({ social_stats: { ...value.social_stats, [n.key]: { ...stat, posts: e.target.value === "" ? null : Number(e.target.value) } } })}
+                    onValueChange={(v) => set({ social_stats: { ...value.social_stats, [n.key]: { ...stat, posts: v === "" ? null : Number(v) } } })}
                   />
                 </div>
               </div>
@@ -356,37 +355,33 @@ export function SponsorProfileFields({ value, onChange, showRegistration = true 
         <div><Label>Local da final</Label><Input value={value.final_location} onChange={(e) => set({ final_location: e.target.value })} placeholder="Ex: Maracanã - RJ" /></div>
         <div>
           <Label>Torcedores</Label>
-          <Input
-            inputMode="numeric"
+          <NumberInput
             value={value.fans_count}
-            onChange={(e) => set({ fans_count: e.target.value.replace(/\D/g, "") })}
-            placeholder="Ex: 120000"
+            onValueChange={(v) => set({ fans_count: v })}
+            placeholder="Ex: 120.000"
           />
         </div>
         <div>
           <Label>Premiação (R$)</Label>
-          <Input
-            inputMode="decimal"
+          <CurrencyInput
             value={value.prize_pool}
-            onChange={(e) => set({ prize_pool: e.target.value.replace(/[^\d.,]/g, "").replace(",", ".") })}
-            placeholder="Ex: 500000"
+            onValueChange={(v) => set({ prize_pool: v })}
+            placeholder="Ex: R$ 500.000,00"
           />
         </div>
         <div>
           <Label>Participantes</Label>
-          <Input
-            inputMode="numeric"
+          <NumberInput
             value={value.participants_count}
-            onChange={(e) => set({ participants_count: e.target.value.replace(/\D/g, "") })}
-            placeholder="Ex: 2500"
+            onValueChange={(v) => set({ participants_count: v })}
+            placeholder="Ex: 2.500"
           />
         </div>
         <div>
           <Label>Times</Label>
-          <Input
-            inputMode="numeric"
+          <NumberInput
             value={value.teams_count}
-            onChange={(e) => set({ teams_count: e.target.value.replace(/\D/g, "") })}
+            onValueChange={(v) => set({ teams_count: v })}
             placeholder="Ex: 32"
           />
         </div>

@@ -6,6 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -212,10 +213,10 @@ const AdminAiClientDetail = () => {
           </div>
           <div>
             <Label htmlFor="admin-ia-budget-reais">Orçamento mensal (R$)</Label>
-            <Input
+            <CurrencyInput
               id="admin-ia-budget-reais"
               value={budgetReais}
-              onChange={(e) => setBudgetReais(e.target.value)}
+              onValueChange={setBudgetReais}
               placeholder="Vazio = sem teto / herda do plano"
             />
           </div>

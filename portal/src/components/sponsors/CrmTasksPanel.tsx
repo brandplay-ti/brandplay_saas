@@ -5,6 +5,7 @@ import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/DateInput";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -181,11 +182,10 @@ export const CrmTasksPanel = ({ sponsorId, opportunityId }: { sponsorId: string;
             </Label>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Input
-              type="date"
+            <DateInput
               className="h-8 w-[160px]"
               value={bulkDate}
-              onChange={(e) => setBulkDate(e.target.value)}
+              onValueChange={setBulkDate}
             />
             <Button
               size="sm"
@@ -300,7 +300,7 @@ export const CrmTasksPanel = ({ sponsorId, opportunityId }: { sponsorId: string;
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Data</Label>
-              <Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
+              <DateInput value={form.due_date} onValueChange={(v) => setForm({ ...form, due_date: v })} />
             </div>
           </div>
           <Textarea placeholder="Detalhes (opcional)" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />

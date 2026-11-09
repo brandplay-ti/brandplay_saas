@@ -110,7 +110,7 @@ export const BrandKitCard = ({ organizationId, podeEditar, aoSalvarCores, rotulo
       <CardHeader>
         <CardTitle>Marca nos relatórios</CardTitle>
         <CardDescription>
-          Primária e secundária colorem relatórios, propostas, contratos e o acento do painel.
+          Primária e secundária colorem relatórios, propostas e contratos. As telas do BrandPlay não mudam.
           O exemplo da plataforma é o roxo #6206C8 com o apoio #2962FF. Logos: {preenchidas} de 6.
           Dá para salvar com um só; o que faltar usa a horizontal ou o logo único da organização.
         </CardDescription>

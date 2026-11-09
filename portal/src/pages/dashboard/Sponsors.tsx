@@ -28,6 +28,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 import { EmptyState } from "@/components/common/EmptyState";
+import { formatarNumero } from "@/lib/mascaras";
 
 const db = supabase as any;
 const VIEW_KEY = "crm_sponsors_view_v1";
@@ -297,12 +298,12 @@ export default function Sponsors() {
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-6">
         {[
-          { label: "Contas ativas", value: String(kpis.total) },
-          { label: "Clientes ativos", value: String(kpis.clients) },
+          { label: "Contas ativas", value: formatarNumero(kpis.total) },
+          { label: "Clientes ativos", value: formatarNumero(kpis.clients) },
           { label: "Em negociação", value: formatBRL(kpis.openValue) },
           { label: "Contratado", value: formatBRL(kpis.contractedValue) },
-          { label: "Em risco", value: String(kpis.atRisk) },
-          { label: "Sem próxima ação", value: String(kpis.noNextAction) },
+          { label: "Em risco", value: formatarNumero(kpis.atRisk) },
+          { label: "Sem próxima ação", value: formatarNumero(kpis.noNextAction) },
         ].map((k) => (
           <Card key={k.label}>
             <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">{k.label}</CardTitle></CardHeader>

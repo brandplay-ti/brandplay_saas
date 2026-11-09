@@ -10,6 +10,7 @@ import { formatBrl } from "@/lib/adminAi";
 import { formatCents, formatDate, SUBSCRIPTION_STATUS_LABEL } from "@/lib/billing";
 import { summarizeClients, type AdminClient } from "@/lib/platformAdmin";
 import { PageHeader } from "@/components/common/PageHeader";
+import { formatarNumero } from "@/lib/mascaras";
 
 const ListaDeClientes = ({ clientes, vazio, detalhe }: {
   clientes: AdminClient[];
@@ -107,25 +108,25 @@ const AdminOverview = () => {
         />
         <StatTile
           label="Organizações"
-          value={String(resumo.total)}
+          value={formatarNumero(resumo.total)}
           hint={`${resumo.bySource.subscription} assinantes · ${resumo.bySource.trial} em teste`}
           icon={Building2}
         />
         <StatTile
           label="Em teste grátis"
-          value={String(p.in_trial)}
+          value={formatarNumero(p.in_trial)}
           hint={`${resumo.trialsEndingSoon.length} terminam em até 3 dias`}
           icon={Hourglass}
         />
         <StatTile
           label="Aguardando pagamento"
-          value={String(p.awaiting_payment)}
+          value={formatarNumero(p.awaiting_payment)}
           hint="Contratações com boleto em aberto"
           icon={Clock}
         />
         <StatTile
           label="Sem acesso"
-          value={String(resumo.bySource.none)}
+          value={formatarNumero(resumo.bySource.none)}
           hint={`${resumo.delinquent} ${resumo.delinquent === 1 ? "assinatura" : "assinaturas"} com pagamento em atraso`}
           icon={Wallet}
         />

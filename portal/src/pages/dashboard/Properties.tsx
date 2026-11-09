@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Plus, Trophy, Calendar, Users, Loader2, Search, Boxes, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
+import { DateInput } from "@/components/DateInput";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -47,6 +49,7 @@ import {
 import { PageHeader } from "@/components/common/PageHeader";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
+import { formatarNumero } from "@/lib/mascaras";
 
 interface AllocatedAsset {
   id: string;
@@ -289,22 +292,21 @@ const Properties = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
                       <Label htmlFor="start_date">Início</Label>
-                      <Input id="start_date" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+                      <DateInput id="start_date" value={form.start_date} onValueChange={(v) => setForm({ ...form, start_date: v })} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="end_date">Fim</Label>
-                      <Input id="end_date" type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+                      <DateInput id="end_date" value={form.end_date} onValueChange={(v) => setForm({ ...form, end_date: v })} />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="audience">Público estimado</Label>
-                    <Input
+                    <NumberInput
                       id="audience"
-                      type="number"
                       min="0"
                       value={form.audience_estimate}
-                      onChange={(e) => setForm({ ...form, audience_estimate: e.target.value })}
-                      placeholder="Ex: 25000"
+                      onValueChange={(v) => setForm({ ...form, audience_estimate: v })}
+                      placeholder="Ex: 25.000"
                     />
                   </div>
                   <div className="space-y-2">
@@ -510,7 +512,7 @@ const Properties = () => {
                               <Badge variant="outline" className="shrink-0">{a.category}</Badge>
                             </div>
                             <p className="text-xs text-muted-foreground">
-                              {fmtBRL(a.unit_value)} · qtd {a.quantity}
+                              {fmtBRL(a.unit_value)} · qtd {formatarNumero(a.quantity)}
                             </p>
                           </div>
                         </div>

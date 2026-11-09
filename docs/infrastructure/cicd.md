@@ -42,10 +42,13 @@ Roda em todo PR e em push para `dev`, `hml` e `main`.
 `build`. `test` é o Vitest do portal. `test:tools` é o diagnóstico de
 homologação (`supabase/tools/diagnostico/`), sem rede.
 
-**Job `funcoes`**: `deno test --allow-read supabase/functions/_shared/
-supabase/functions/admin-ai/ supabase/functions/fetch-social-stats/`, com o
-Deno fixado na `v2.1.4` (a mesma da imagem `denoland/deno` usada
-localmente). Cobre a camada de IA (`_shared/ai/`), a cifra das chaves
+**Job `funcoes`**: `deno test --no-run` baixa as dependências e checa os tipos,
+com até 5 tentativas, porque o `esm.sh` recusa parte dos downloads em rajada
+(`refused stream`) e cada tentativa continua de onde a anterior parou. Depois,
+`deno test --allow-read supabase/functions/_shared/
+supabase/functions/admin-ai/ supabase/functions/fetch-social-stats/` roda os
+testes uma única vez, com o Deno fixado na `v2.1.4` (a mesma da imagem
+`denoland/deno` usada localmente). Cobre a camada de IA (`_shared/ai/`), a cifra das chaves
 (`_shared/ai-crypto.ts`), a função `admin-ai` e as regras de busca de URL
 externa do `fetch-social-stats` (`busca.ts`), sem rede de
 fornecedor nem banco. Bloqueante. As pastas são listadas uma a uma: o
@@ -58,13 +61,16 @@ credenciais. Sem Deno instalado, rode localmente pela imagem:
 1. **Guarda contra destruição** — migration com `drop table/schema/column` ou
    `truncate` só passa se a primeira linha declarar
    `-- destrutivo: aprovado por <nome> em <data>`.
-2. **Banco limpo** — sobe o mesmo `docker/supabase/docker-compose.yml` dos
+2. **Autorregistro** — da `0045` em diante, a última instrução da migration
+   tem de ser o registro da própria versão em
+   `migrations.schema_migrations` (`checar-autorregistro.mjs`).
+3. **Banco limpo** — sobe o mesmo `docker/supabase/docker-compose.yml` dos
    ambientes hospedados, com segredos descartáveis
    (`gerar-chaves-locais.mjs --env`), espera `db`, `auth` e `storage`
    saudáveis e aplica todas as migrations com `migrate.sh`.
-3. **Idempotência** — roda o runner de novo e exige "nenhuma migration
+4. **Idempotência** — roda o runner de novo e exige "nenhuma migration
    pendente".
-4. **Seed + testes de segurança** — `supabase:seed` exercita os gatilhos de
+5. **Seed + testes de segurança** — `supabase:seed` exercita os gatilhos de
    cadastro (`handle_new_user`) e `supabase:test` roda as suítes de
    `supabase/tests/`: `seguranca.sql` (RLS e isolamento), `cobranca.sql`,
    `superadmin.sql` e `ia.sql` (chaves, uso e guardas da IA).
@@ -151,7 +157,9 @@ Garantias:
 
 Sem SSH, `npm run supabase:bundle` gera as migrations achatadas para colar no
 SQL Editor do Studio, com os mesmos checksums — depois disso o runner
-reconhece tudo como aplicado.
+reconhece tudo como aplicado. Da `0045` em diante, o arquivo colado direto
+também fica registrado, só que sem checksum. Até a `0044`, arquivo colado
+direto não se registra.
 
 **Homologação primeiro, sempre.**
 

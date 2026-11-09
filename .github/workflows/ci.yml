@@ -47,6 +47,18 @@ jobs:
   funcoes:
     name: Edge Functions (deno test)
     runs-on: ubuntu-latest
+    env:
+      # Sem DENO_NO_PACKAGE_JSON, o Deno 2 acha o package.json da raiz e
+      # procura os pacotes npm: em node_modules (que este job nao instala) —
+      # os tipos do supabase-js pedem npm:@types/node e o check falha.
+      DENO_NO_PACKAGE_JSON: "1"
+      # Pastas listadas uma a uma, e nao `supabase/functions/` inteiro: o
+      # `create-organization/organization_rls_test.ts` precisa de stack e
+      # credenciais. Teste de funcao especifica entra aqui com a pasta dela.
+      PASTAS_DE_TESTE: >-
+        supabase/functions/_shared/
+        supabase/functions/admin-ai/
+        supabase/functions/fetch-social-stats/
     steps:
       - uses: actions/checkout@v4
 
@@ -57,21 +69,22 @@ jobs:
         with:
           deno-version: v2.1.4
 
-      # Sem DENO_NO_PACKAGE_JSON, o Deno 2 acha o package.json da raiz e
-      # procura os pacotes npm: em node_modules (que este job nao instala) —
-      # os tipos do supabase-js pedem npm:@types/node e o check falha.
-      #
-      # Pastas listadas uma a uma, e nao `supabase/functions/` inteiro: o
-      # `create-organization/organization_rls_test.ts` precisa de stack e
-      # credenciais. Teste de funcao especifica entra aqui com a pasta dela.
+      # O esm.sh recusa parte dos downloads em rajada ("refused stream"), sem
+      # relacao com o codigo. O que ja baixou fica no cache do Deno, entao cada
+      # tentativa continua de onde a anterior parou. Esgotadas as tentativas, o
+      # job falha; erro de tipo tambem cai aqui e continua bloqueando.
+      - name: Baixar dependencias e checar tipos
+        run: |
+          for tentativa in 1 2 3 4 5; do
+            deno test --no-run $PASTAS_DE_TESTE && exit 0
+            echo "::warning::Tentativa $tentativa de 5 falhou."
+            sleep $((tentativa * 5))
+          done
+          echo "::error::Nao foi possivel baixar as dependencias ou checar os tipos."
+          exit 1
+
       - name: Testes Deno de supabase/functions
-        env:
-          DENO_NO_PACKAGE_JSON: "1"
-        run: >-
-          deno test --allow-read
-          supabase/functions/_shared/
-          supabase/functions/admin-ai/
-          supabase/functions/fetch-social-stats/
+        run: deno test --allow-read $PASTAS_DE_TESTE
 
   migrations:
     name: Migrations (guarda, banco limpo, idempotencia, RLS)
@@ -102,6 +115,11 @@ jobs:
           done
           [ "$falhou" -eq 0 ] && echo "OK: nenhuma migration destrutiva sem aprovacao."
           exit $falhou
+
+      # Da 0045 em diante, a migration termina com o proprio registro em
+      # migrations.schema_migrations: colada no Studio, ela tambem fica registrada.
+      - name: Guarda de autorregistro das migrations
+        run: node supabase/tools/checar-autorregistro.mjs
 
       # O MESMO stack de local, homologacao e producao (docker/supabase), com
       # segredos descartaveis gerados na hora.

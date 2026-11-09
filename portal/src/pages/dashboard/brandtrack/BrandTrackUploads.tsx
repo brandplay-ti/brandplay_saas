@@ -18,6 +18,7 @@ import FieldEvidenceImportDialog from "@/components/brandtrack/FieldEvidenceImpo
 import { useConfirm } from "@/hooks/useConfirm";
 import { PageHeader } from "@/components/common/PageHeader";
 import { clicavel, FOCO_CLICAVEL } from "@/lib/clicavel";
+import { formatarNumero } from "@/lib/mascaras";
 
 type Media = {
   id: string;
@@ -755,9 +756,9 @@ const BrandTrackUploads = () => {
                           </Button>
                         </div>
                         <div className="grid gap-2 sm:grid-cols-4">
-                          <Metric label="BES total" value={analysis.totalBes} />
-                          <Metric label="Marcas" value={analysis.brandCount} />
-                          <Metric label="Detecções" value={analysis.detectionCount} />
+                          <Metric label="BES total" value={formatarNumero(analysis.totalBes)} />
+                          <Metric label="Marcas" value={formatarNumero(analysis.brandCount)} />
+                          <Metric label="Detecções" value={formatarNumero(analysis.detectionCount)} />
                           <Metric label="Confiança média" value={`${analysis.avgConfidence}%`} />
                         </div>
                         {(analysis.topBrands ?? []).length > 0 && (
@@ -795,7 +796,7 @@ const BrandTrackUploads = () => {
                               <div key={brand.name} className="rounded-md border p-3">
                                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                                   <div className="font-medium">{brand.name}</div>
-                                  <Badge variant="outline">BES {brand.bes} · {brand.count} aparições</Badge>
+                                  <Badge variant="outline">BES {formatarNumero(brand.bes)} · {formatarNumero(brand.count)} aparições</Badge>
                                 </div>
                                 <div className="grid gap-2 md:grid-cols-2">
                                   {brand.detections.slice(0, 4).map((d) => (

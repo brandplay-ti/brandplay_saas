@@ -51,6 +51,7 @@ import {
   Legend,
 } from "recharts";
 import { dataLocal } from "@/lib/datas";
+import { formatarNumero, isoParaData } from "@/lib/mascaras";
 
 const fmtMoney = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
@@ -280,9 +281,9 @@ const Dashboard = () => {
             {temVendas ? (
               <KpiCard icon={<Briefcase className="h-4 w-4" />} label="Pipeline aberto" value={fmtMoney(kpis.pipelineOpen)} />
             ) : (
-              <KpiCard icon={<FileSignature className="h-4 w-4" />} label="Contratos ativos" value={String(contracts.length)} />
+              <KpiCard icon={<FileSignature className="h-4 w-4" />} label="Contratos ativos" value={formatarNumero(contracts.length)} />
             )}
-            <KpiCard icon={<AlertTriangle className="h-4 w-4" />} label="Entregas atrasadas" value={String(kpis.overdueDeliveries)} accent={kpis.overdueDeliveries > 0 ? "text-destructive" : ""} />
+            <KpiCard icon={<AlertTriangle className="h-4 w-4" />} label="Entregas atrasadas" value={formatarNumero(kpis.overdueDeliveries)} accent={kpis.overdueDeliveries > 0 ? "text-destructive" : ""} />
           </div>
         );
       case "modules":
@@ -350,9 +351,9 @@ const Dashboard = () => {
               <ResponsiveContainer>
                 <BarChart data={funnel} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" allowDecimals={false} />
+                  <XAxis type="number" allowDecimals={false} tickFormatter={(v) => formatarNumero(v)} />
                   <YAxis dataKey="stage" type="category" width={80} />
-                  <Tooltip />
+                  <Tooltip formatter={(v) => formatarNumero(Number(v))} />
                   <Bar dataKey="count" fill="hsl(var(--primary))" />
                 </BarChart>
               </ResponsiveContainer>
@@ -377,7 +378,7 @@ const Dashboard = () => {
                     <div className="font-medium truncate">{c.title}</div>
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>{c.brand}</span>
-                      <span>{c.end_date}</span>
+                      <span>{isoParaData(c.end_date)}</span>
                     </div>
                   </Link>
                 ))
@@ -405,7 +406,7 @@ const Dashboard = () => {
                     <div className="font-medium truncate">{d.title}</div>
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>{d.brand}</span>
-                      <span className="text-destructive">{d.due_date}</span>
+                      <span className="text-destructive">{isoParaData(d.due_date)}</span>
                     </div>
                   </Link>
                 ))
@@ -588,7 +589,7 @@ const ModuleCard = ({ to, icon, label, value }: { to: string; icon: React.ReactN
           <div className="h-8 w-8 rounded-lg bg-primary-soft text-primary flex items-center justify-center">{icon}</div>
           <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
         </div>
-        <div className="text-xl font-bold mt-2">{value}</div>
+        <div className="text-xl font-bold mt-2">{formatarNumero(value)}</div>
         <div className="text-xs text-muted-foreground">{label}</div>
       </CardContent>
     </Card>

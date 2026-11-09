@@ -5,6 +5,8 @@ import { ExternalLink, Link2, Loader2, Pencil, Plus, RefreshCw, Star, Trash2 } f
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
+import { DateInput } from "@/components/DateInput";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -377,7 +379,7 @@ export function PostsDaPropriedade({ propertyId, patrocinadores, momentos, podeE
               </div>
               <div className="space-y-2">
                 <Label htmlFor="post-data">Publicado em</Label>
-                <Input id="post-data" type="date" value={form.published_at} onChange={(e) => campo("published_at", e.target.value)} />
+                <DateInput id="post-data" value={form.published_at} onValueChange={(v) => campo("published_at", v)} />
               </div>
               <div className="space-y-2">
                 <Label>Patrocinador</Label>
@@ -419,11 +421,10 @@ export function PostsDaPropriedade({ propertyId, patrocinadores, momentos, podeE
                 ).map(([k, rotulo]) => (
                   <div key={k} className="space-y-1">
                     <Label htmlFor={`post-${k}`} className="text-xs">{rotulo}</Label>
-                    <Input
+                    <NumberInput
                       id={`post-${k}`}
-                      inputMode="numeric"
                       value={form[k]}
-                      onChange={(e) => campo(k, e.target.value)}
+                      onValueChange={(v) => campo(k, v)}
                     />
                   </div>
                 ))}

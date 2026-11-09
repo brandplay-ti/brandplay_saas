@@ -32,7 +32,7 @@ test.describe("Pipeline / Nova negociação", () => {
     const brand = uniqueBrand();
     await page.getByRole("button", { name: /Nova oportunidade|Nova negociação/ }).click();
     await page.getByLabel("Marca *").fill(brand);
-    await page.getByLabel("Valor (R$)").fill("1234");
+    await page.getByLabel("Valor (R$)").fill("123400");
     await page.getByRole("button", { name: "Criar" }).click();
 
     await expect(page.getByText("Oportunidade criada")).toBeVisible();

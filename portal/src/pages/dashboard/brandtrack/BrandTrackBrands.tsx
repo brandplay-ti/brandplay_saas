@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, ChevronRight, Tag, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "@/components/common/PageHeader";
+import { formatarNumero } from "@/lib/mascaras";
 
 type Row = {
   brand_name: string;
@@ -152,7 +153,7 @@ const BrandTrackBrands = () => {
                       {[...r.types].slice(0, 3).map((t) => <Badge key={t} variant="outline" className="text-xs">{t}</Badge>)}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {r.count} aparições · {r.duration.toFixed(1)}s · {r.avgPct.toFixed(1)}% tela média
+                      {formatarNumero(r.count)} aparições · {formatarNumero(r.duration, 1)}s · {r.avgPct.toFixed(1)}% tela média
                       {r.expected?.aliases?.length ? ` · aliases: ${r.expected.aliases.slice(0, 3).join(", ")}` : ""}
                     </div>
                   </div>

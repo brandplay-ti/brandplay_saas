@@ -92,6 +92,34 @@ o navegador pode preencher nele a senha salva de quem está logado.
 Em E2E, localize o campo com `getByLabel("Senha", { exact: true })`: sem o
 `exact`, o Playwright também encontra o botão "Mostrar senha".
 
+## Campos de valor e de data
+
+Todo campo de dinheiro em reais usa o `CurrencyInput`
+(`portal/src/components/CurrencyInput.tsx`) e todo campo de data ou de data e
+hora usa o `DateInput` (`portal/src/components/DateInput.tsx`), nunca
+`<Input type="number">` para dinheiro nem `<Input type="date">` ou
+`type="datetime-local"`, que mostram o formato do idioma do navegador:
+
+- `CurrencyInput` mostra `R$ 1.234,56`, preenche da direita para a esquerda e
+  entrega em `onValueChange` o decimal com ponto (`"1234.56"`) ou `""`;
+- `DateInput` mostra `dd/mm/aaaa` (`withTime`: `dd/mm/aaaa hh:mm`), tem
+  calendário em português e entrega em `onValueChange` o ISO (`2026-03-12`,
+  `2026-03-12T14:30`) ou `""` enquanto a data estiver incompleta ou inválida;
+- gravar ao sair do campo de data é `onCommit`, não `onBlur`: o `onCommit`
+  também dispara ao escolher no calendário e não dispara com data inválida;
+- número sem teto que não é dinheiro (quantidade, vagas, público, seguidores,
+  visualizações) usa o `NumberInput` (`portal/src/components/NumberInput.tsx`):
+  mostra `1.234` e entrega em `onValueChange` só os dígitos, com ponto se `casas`
+  liberar decimais;
+- `type="number"` fica para ano e para faixa fixa abaixo de mil (porcentagem, dia
+  do mês, prioridade), onde o marcador de milhar atrapalha ou nunca aparece.
+
+Em tela, data pura vinda do banco é exibida com `isoParaData`
+(`portal/src/lib/mascaras.ts`), nunca crua nem com `new Date("aaaa-mm-dd")`, e
+número que pode passar de mil, com `formatarNumero`.
+
+Em E2E, `fill` no `CurrencyInput` recebe os dígitos: `"150000"` é `R$ 1.500,00`.
+
 ## Autorização
 
 Verificações no frontend (esconder botão, desabilitar ação, redirecionar em
