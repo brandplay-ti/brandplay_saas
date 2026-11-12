@@ -16,6 +16,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/Logo";
+import { ClientSelector } from "@/components/admin/ClientSelector";
 import { cn } from "@/lib/utils";
 
 export const AppSidebar = () => {
@@ -40,6 +41,15 @@ export const AppSidebar = () => {
         )}
       </SidebarHeader>
       <SidebarContent>
+        {/* Equipe da plataforma: troca de cliente ou volta à visão de admin (BP-4). */}
+        {isPlatformStaff && !collapsed && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Cliente</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <ClientSelector className="w-full" />
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
         {visibleGroups.map((group) => (
           <SidebarGroup key={group.label}>
             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>

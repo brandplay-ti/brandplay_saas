@@ -64,9 +64,10 @@ export function usePlatformRole() {
 }
 
 /** Organizações com estado de cobrança e uso (`admin_clientes`). */
-export function useAdminClients() {
+export function useAdminClients(enabled = true) {
   return useQuery({
     queryKey: adminKeys.clients,
+    enabled,
     staleTime: 30_000,
     queryFn: async (): Promise<AdminClient[]> => {
       const [{ data, error }, tipos] = await Promise.all([
@@ -428,5 +429,65 @@ export function useRevokeSupport() {
       if (error) throw new AdminActionError(error.message, error.code);
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: adminKeys.team }),
+  });
+}
+
+// ─── Seletor de cliente (BP-4) ───────────────────────────────────────
+// Escolher um cliente no menu abre na hora uma sessão de suporte (0035) com
+// prazo e motivo fixos, como no central-check; voltar à visão de admin a
+// encerra. A sessão continua auditada e expira sozinha.
+
+export const HORAS_DO_SELETOR = 8;
+export const MOTIVO_DO_SELETOR = "Seleção de cliente no menu";
+export const MOTIVO_DA_VOLTA = "Voltou à visão de admin pelo menu";
+
+export interface ActiveSupportSession {
+  id: string;
+  organization_id: string;
+  organization_name: string;
+  expires_at: string;
+}
+
+/** Sessão de suporte aberta de quem está logado (`admin_sessao_suporte_ativa`), ou nula. */
+export function useActiveSupportSession(enabled: boolean) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["admin", "support-session", user?.id ?? null],
+    enabled: enabled && !!user,
+    staleTime: 30_000,
+    queryFn: async (): Promise<ActiveSupportSession | null> => {
+      const { data, error } = await supabase.rpc("admin_sessao_suporte_ativa");
+      if (error) throw error;
+      // jsonb: o formato está fixado na 0035.
+      return (data ?? null) as unknown as ActiveSupportSession | null;
+    },
+  });
+}
+
+/** Entra no painel do cliente: sessão de suporte de 8 h com o motivo do seletor. */
+export function useEnterClient() {
+  return useMutation({
+    mutationFn: async (orgId: string) => {
+      const { data, error } = await supabase.rpc("admin_abrir_sessao_suporte", {
+        _org_id: orgId,
+        _horas: HORAS_DO_SELETOR,
+        _comentario: MOTIVO_DO_SELETOR,
+      });
+      if (error) throw new AdminActionError(error.message, error.code);
+      return data as unknown as { id: string; organization_id: string; expires_at: string };
+    },
+  });
+}
+
+/** Volta à visão de admin: encerra a sessão de suporte aberta. */
+export function useLeaveClient() {
+  return useMutation({
+    mutationFn: async (sessionId: string) => {
+      const { error } = await supabase.rpc("admin_encerrar_sessao_suporte", {
+        _sessao_id: sessionId,
+        _comentario: MOTIVO_DA_VOLTA,
+      });
+      if (error) throw new AdminActionError(error.message, error.code);
+    },
   });
 }

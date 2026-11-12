@@ -124,10 +124,18 @@ mais tarde. Desconto de 1 a 100% por 1 a 12 meses. 100% isenta a cobrança e
 mantém o acesso no prazo (o aviso de teste some). Abaixo de 100%, o cupom só
 entra na cobrança. Sessão de suporte de 1 a 8 horas.
 
-## Ver como admin
+## Seletor de cliente e "Ver como admin"
+
+O jeito do dia a dia é o **seletor de cliente** (BP-4, como no central-check),
+no cabeçalho do `/admin` e no topo do menu lateral do painel, para superadmin e
+suporte. Sem cliente selecionado, a pessoa está na visão de admin. Escolher um
+cliente abre na hora uma sessão de suporte de 8 horas, com o motivo fixo
+"Seleção de cliente no menu", e carrega o painel dele com papel de admin.
+**Voltar à visão de admin** no mesmo seletor encerra a sessão ("Voltou à
+visão de admin pelo menu"). As duas coisas ficam na auditoria.
 
 Na ficha do cliente, **Ver como admin** abre o painel daquela organização com
-papel de admin, pelo prazo informado. Uma faixa no painel mostra até quando e
+papel de admin, pelo prazo e com o motivo que a pessoa informar. Uma faixa no painel mostra até quando e
 encerra a sessão. Abrir outra sessão encerra a anterior.
 
 A sessão não cria membership. Cobrança no Stripe e convites de equipe

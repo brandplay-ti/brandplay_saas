@@ -19,8 +19,12 @@ vi.mock("@/hooks/useAuth", () => ({
 
 import {
   AdminActionError,
+  HORAS_DO_SELETOR,
+  MOTIVO_DO_SELETOR,
   useAddSupport,
+  useEnterClient,
   useGrantAccess,
+  useLeaveClient,
   usePlatformRole,
   useSavePlan,
   useSettleInvoice,
@@ -141,5 +145,32 @@ describe("useGrantAccess", () => {
     await expect(
       act(() => result.current.mutateAsync({ hours: 48, comment: "x" })),
     ).rejects.toThrow("Acesso restrito ao superadmin da plataforma.");
+  });
+});
+
+describe("seletor de cliente", () => {
+  it("entrar abre a sessão de suporte de 8 h com o motivo do seletor", async () => {
+    rpc.mockResolvedValue({ data: { id: "s1", organization_id: "org-1", expires_at: "x" }, error: null });
+    const { result } = renderHook(() => useEnterClient(), { wrapper: wrapper() });
+    await act(() => result.current.mutateAsync("org-1"));
+    expect(HORAS_DO_SELETOR).toBe(8);
+    expect(rpc).toHaveBeenCalledWith("admin_abrir_sessao_suporte", {
+      _org_id: "org-1",
+      _horas: 8,
+      _comentario: MOTIVO_DO_SELETOR,
+    });
+  });
+
+  it("voltar encerra a sessão aberta", async () => {
+    rpc.mockResolvedValue({ data: null, error: null });
+    const { result } = renderHook(() => useLeaveClient(), { wrapper: wrapper() });
+    await act(() => result.current.mutateAsync("s1"));
+    expect(rpc).toHaveBeenCalledWith("admin_encerrar_sessao_suporte", expect.objectContaining({ _sessao_id: "s1" }));
+  });
+
+  it("erro do banco ao entrar vira AdminActionError", async () => {
+    rpc.mockResolvedValue({ data: null, error: { message: "Acesso restrito à equipe da plataforma.", code: "42501" } });
+    const { result } = renderHook(() => useEnterClient(), { wrapper: wrapper() });
+    await expect(result.current.mutateAsync("org-1")).rejects.toBeInstanceOf(AdminActionError);
   });
 });
