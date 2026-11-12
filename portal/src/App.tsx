@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -43,7 +43,6 @@ const CalendarPage = lazyPage(() => import("./pages/dashboard/Calendar"));
 const PortalAccess = lazyPage(() => import("./pages/dashboard/PortalAccess"));
 const Settings = lazyPage(() => import("./pages/dashboard/Settings"));
 const Team = lazyPage(() => import("./pages/dashboard/Team"));
-const FailureLogs = lazyPage(() => import("./pages/dashboard/FailureLogs"));
 const Plan = lazyPage(() => import("./pages/dashboard/Plan"));
 const BrandTrackLayout = lazyPage(() => import("./pages/dashboard/brandtrack/BrandTrackLayout"));
 const BrandTrackDashboard = lazyPage(() => import("./pages/dashboard/brandtrack/BrandTrackDashboard"));
@@ -73,6 +72,7 @@ const AdminAi = lazyPage(() => import("./pages/admin/AdminAi"));
 const AdminAiClientDetail = lazyPage(() => import("./pages/admin/AdminAiClientDetail"));
 const AdminAiPrecos = lazyPage(() => import("./pages/admin/AdminAiPrecos"));
 const AdminTeam = lazyPage(() => import("./pages/admin/AdminTeam"));
+const AdminFailureLogs = lazyPage(() => import("./pages/admin/AdminFailureLogs"));
 const NotFound = lazyPage(() => import("./pages/NotFound.tsx"));
 
 const queryClient = new QueryClient();
@@ -130,7 +130,8 @@ const App = () => (
             <Route path="notificacoes" element={<Notifications />} />
             <Route path="portal-access" element={<PortalAccess />} />
             <Route path="equipe" element={<Team />} />
-            <Route path="logs-falhas" element={<FailureLogs />} />
+            {/* Logs de falha são da plataforma (BP-3): moraram aqui até a 0045. */}
+            <Route path="logs-falhas" element={<Navigate to="/admin/logs-falhas" replace />} />
             <Route path="configuracoes" element={<Settings />} />
             <Route path="plano" element={<Plan />} />
             <Route path="brandtrack" element={<BrandTrackLayout />}>
@@ -163,6 +164,7 @@ const App = () => (
             <Route path="ia/clientes/:id" element={<SomenteSuperadmin><AdminAiClientDetail /></SomenteSuperadmin>} />
             <Route path="ia/precos" element={<SomenteSuperadmin><AdminAiPrecos /></SomenteSuperadmin>} />
             <Route path="equipe" element={<SomenteSuperadmin><AdminTeam /></SomenteSuperadmin>} />
+            <Route path="logs-falhas" element={<SomenteSuperadmin><AdminFailureLogs /></SomenteSuperadmin>} />
           </Route>
           <Route path="/campo" element={<FieldLayout />}>
             <Route index element={<FieldDeliveries />} />

@@ -88,7 +88,10 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   usa, para o `auth.uid()` da sessão, a linha `admin` de
   `organization_role_grants`: se o administrador daquela organização não lê um
   módulo, a sessão também não lê. O operador age com o próprio `auth.uid()`.
-  A sessão não vira `organization_members` e não concede `owner`. Toda ação administrativa vai para
+  A sessão não vira `organization_members` e não concede `owner`. Os logs de
+  falha (`backend_error_logs`, `error_reports`) também são só do superadmin
+  (0045, tela `/admin/logs-falhas`): trazem mensagens internas do banco e o SQL
+  das policies, e não aparecem para cliente nenhum. Toda ação administrativa vai para
   `platform_admin_audit_log`, imutável pela API. Ao estender essa área, mantenha
   as duas coisas: leitura mínima e registro de quem fez.
 - **IA por organização** (ADR-0010, `/admin/ia`, `admin-ai`). Tabelas

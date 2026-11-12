@@ -109,7 +109,7 @@ continua, mas uma parte depende do funil ou muda de rótulo.
 | Relatório de entregas (PDF) | `components/pipeline/OpportunityDrawer.tsx` l. 768 | **Ajusta: precisa sair do funil** | hoje só nasce da oportunidade (seção 5.7) |
 | Relatórios de resultado (landing page) | `pages/dashboard/RelatoriosDeResultado.tsx`, `RelatorioEditor.tsx`, `/r/:slug` | **Fica** | parte da propriedade, não do funil |
 | Notificações | `pages/dashboard/Notifications.tsx`, `components/notifications/NotificationsBell.tsx` | **Ajusta** | `opportunity_stale`, `opportunity_lost`, `opportunity_mention` e `proposal_expiring` deixam de existir |
-| Logs de falhas | `pages/dashboard/FailureLogs.tsx` l. 50-54 | Fica | só rótulo "Negociações" |
+| Logs de falhas | `pages/admin/AdminFailureLogs.tsx` (era `pages/dashboard/FailureLogs.tsx`) | Fica | área do superadmin desde a 0045 (BP-3); não aparece para a marca |
 | Media kit público e formulário de lead | `pages/PublicMediaKit.tsx` l. 275-287 | **Some** | barrado no banco (seção 5.5) |
 | Equipe → Permissões | `pages/dashboard/Team.tsx`, `components/team/*`, `lib/permissoes.ts` | **Ajusta** | coluna "Funil e captação" nova; para a marca, escondida |
 | Cadastro | `pages/Auth.tsx` l. 36-41, 119 | **Ajusta** | escolha do tipo |

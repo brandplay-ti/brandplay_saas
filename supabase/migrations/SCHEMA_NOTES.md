@@ -507,6 +507,22 @@ Suposições registradas:
 - MRR usa o preço **atual** do catálogo, não o preço real de cada assinatura
   no Stripe (que fica no preço antigo depois de um reajuste).
 
+### Logs de falha só para o superadmin (0045, BP-3)
+
+`backend_error_logs` e `error_reports` passaram do padrão 3 com leitura de
+owner/admin (0017: `*_own_read` e `*_admin_read`) para o padrão 9:
+`*_platform_admin_read` com `is_platform_admin()`, sem escrita para `anon` e
+`authenticated` (insert/update/delete revogados). São telemetria da plataforma
+e continuam fora da policy restritiva de cobrança e do teste `(m)`.
+
+Suposição: os registros podem trazer, em `error_details`, valores da linha que
+falhou (ex.: chave duplicada). O superadmin passa a vê-los; é o custo de
+diagnosticar a falha, e não é leitura das tabelas de domínio. As funções que
+gravam (`log-db-error`, `report-error`) cortam o texto livre e só guardam a
+`organization_id` enviada quando o usuário é membro ativo dela
+(`_shared/logs_de_falha.ts`); senão gravam nula e marcam
+`metadata.organizacao_descartada`.
+
 ## Relatório de entrega: quais evidências entram (0030, 2026-10-17)
 
 `get_delivery_report_data` alimenta o PDF de `generate-delivery-report`. A

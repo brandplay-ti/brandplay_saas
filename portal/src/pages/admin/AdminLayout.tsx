@@ -2,7 +2,7 @@ import { Link, Outlet, useNavigate } from "react-router-dom";
 import { Suspense } from "react";
 import { PageLoader } from "@/components/PageLoader";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3, Building2, LayoutDashboard, Loader2, LogOut, Package, ShieldAlert, Sparkles, Users } from "lucide-react";
+import { AlertTriangle, BarChart3, Building2, LayoutDashboard, Loader2, LogOut, Package, ShieldAlert, Sparkles, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 import { NavLink } from "@/components/NavLink";
@@ -21,6 +21,7 @@ const NAV = [
   { title: "Planos", to: "/admin/planos", icon: Package, end: false, somenteSuperadmin: true },
   { title: "Faturamento", to: "/admin/faturamento", icon: BarChart3, end: false, somenteSuperadmin: true },
   { title: "IA", to: "/admin/ia", icon: Sparkles, end: false, somenteSuperadmin: true },
+  { title: "Logs de falhas", to: "/admin/logs-falhas", icon: AlertTriangle, end: false, somenteSuperadmin: true },
   { title: "Equipe", to: "/admin/equipe", icon: Users, end: false, somenteSuperadmin: true },
 ];
 

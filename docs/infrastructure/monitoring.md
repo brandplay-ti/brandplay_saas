@@ -3,8 +3,9 @@
 Monitore: saúde dos containers (todos os serviços do compose têm
 healthcheck), CPU, RAM e disco da VPS, saúde do banco, execução dos backups,
 taxa de erro do portal e das Edge Functions, falhas de autenticação relevantes
-e os logs de erro da aplicação (`backend_error_logs`, funções `log-db-error` e
-`report-error`).
+e os logs de erro da aplicação (`backend_error_logs` e `error_reports`, funções
+`log-db-error` e `report-error`). No portal, só o superadmin os vê, em
+`/admin/logs-falhas`, com filtro por cliente.
 
 Checagem rápida de um ambiente, só leitura (produção; em homologação,
 `teste.db.brandplay.com.br` e `teste.brandplay.com.br`):
