@@ -294,6 +294,12 @@ migration; toda ação administrativa vai para `platform_admin_audit_log`. Não
 estenda esse acesso a tabelas de domínio (`or is_platform_admin()` em policy
 de organização), e não o confunda com o `owner`/`admin` de uma organização.
 
+A equipe da plataforma tem um segundo papel, o **Suporte** (0046,
+`platform_admins.role`): lista clientes, dá baixa em fatura, lança desconto e
+abre sessão de suporte, sem faturamento, planos, IA nem equipe. O superadmin o
+concede pela tela `/admin/equipe`; `is_platform_admin()` é só o superadmin e
+`is_platform_staff()` cobre os dois.
+
 ### Portal do patrocinador (acesso cross-tenant limitado, por design)
 
 O portal do patrocinador é uma exceção deliberada ao modelo acima: um usuário

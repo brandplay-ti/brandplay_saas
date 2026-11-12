@@ -123,8 +123,35 @@ usuário, tabela, ação e severidade. Ninguém escreve pela API: as duas funç�
 gravam com a service role. A organização que o navegador manda só fica no
 registro se o usuário do JWT for membro ativo dela.
 
-"Equipe de suporte" é o próprio superadmin: não existe papel só de suporte.
-Um papel assim, com leitura dos logs e sem cobrança, seria uma decisão nova.
+"Equipe de suporte" era o próprio superadmin. O perfil Suporte veio depois
+(0046, abaixo) e não lê os logs: as policies usam `is_platform_admin()`, que
+passou a ser só o superadmin.
+
+## Atualização (0046, BP-4): perfil Suporte e equipe pela tela
+
+A equipe da plataforma ganhou um segundo papel, o **Suporte**, em
+`platform_admins.role` (`superadmin` | `suporte`).
+
+- `is_platform_admin()` passou a ser só o superadmin. Tudo que já a usava
+  (cobrança direta, auditoria, faturamento, planos, IA, logs) continua fechado
+  para o Suporte sem mudar. O que o Suporte também faz usa
+  `is_platform_staff()` / `platform_staff_require()`.
+- O Suporte lista os clientes (`admin_clientes`, com `mrr_cents` nulo), abre a
+  ficha (`admin_cliente_detalhe`), lança e revoga desconto (`admin-discounts`),
+  dá **baixa manual** em fatura em aberto (`admin-invoices`) e abre sessão de
+  suporte. Não vê visão geral, faturamento, planos, IA nem a equipe; não libera
+  acesso, não estende teste e não troca o tipo de cliente.
+- **Baixa manual**: o Stripe continua a fonte. A fatura é quitada lá com
+  `paid_out_of_band` e marcada com `paid_with = manual`; a projeção é regravada
+  a partir do Stripe e a ação vai para a auditoria (`fatura_baixada`).
+- **Equipe pela tela** (`/admin/equipe`): o superadmin cadastra, revoga e
+  reativa Suporte (`admin_equipe_*` e Edge Function `admin-team`). O item 2 da
+  decisão continua valendo para o superadmin: nenhuma função executável por
+  `authenticated` grava `role = 'superadmin'`, rebaixa ou revoga um
+  superadmin. `platform_admin_grant` (manual) promove quem já é Suporte.
+- Conta nova de Suporte não ganha organização pessoal: a `admin-team` grava
+  um pré-cadastro (`platform_staff_signups`, 15 minutos) que o
+  `handle_new_user` reconhece, como o convite de patrocinador (0022).
 
 ## Relacionados
 

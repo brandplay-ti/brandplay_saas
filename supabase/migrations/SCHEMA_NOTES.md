@@ -1027,3 +1027,34 @@ de negócio em `docs/business/tipo-de-cliente.md`; análise e decisões em
   recortado pelo contrato, com `subject` (marca e valor do contrato) no lugar
   de `opportunity`. Só `service_role`; `generate-delivery-report` confere
   antes, com o client do usuário, que ele lê o contrato.
+
+## Perfil Suporte e equipe da plataforma (0046, BP-4)
+
+`platform_admins` passou a ser a equipe da plataforma, com `role`
+(`superadmin` | `suporte`, padrão `superadmin` para as linhas existentes).
+
+| Tabela / função | O que é | Quem |
+| --- | --- | --- |
+| `platform_admins.role` | papel na equipe | escrita só por `platform_admin_grant` (superadmin, manual) e `admin_equipe_*` (suporte, pelo superadmin) |
+| `platform_staff_signups` | pré-cadastro de conta da equipe (15 min) | sem policy; só service role e `admin_equipe_pre_cadastro` |
+| `is_platform_admin()` | **só superadmin** (mudou de sentido) | todas as policies e funções que já a usavam |
+| `is_platform_staff()`, `platform_staff_require()`, `platform_role()` | superadmin ou suporte | `admin_clientes`, `admin_cliente_detalhe`, `admin_tipo(s)_de_cliente`, sessão de suporte, `billing_discounts_platform_staff_read` |
+| `admin_equipe()`, `admin_equipe_conceder_suporte(email, motivo)`, `admin_equipe_revogar_suporte(user, motivo)`, `admin_equipe_pre_cadastro(email)` | equipe pela tela | só superadmin |
+
+Suposições:
+
+- MRR por cliente é faturamento: `admin_clientes()` devolve `mrr_cents` nulo
+  para o Suporte. As faturas da ficha são o que o Suporte precisa para dar
+  baixa; a leitura direta de `billing_*` continua só do superadmin.
+- Liberação provisória, extensão de teste e troca do tipo de cliente seguem
+  só do superadmin: a demanda (BP-4) pediu ao Suporte listar clientes, dar
+  baixa e lançar desconto.
+- `admin_equipe_conceder_suporte` não rebaixa superadmin ativo (erro
+  `check_violation`) e é idempotente para suporte ativo. `platform_admin_grant`
+  promove suporte a superadmin (`role = 'superadmin'`).
+- Revogar suporte encerra a sessão de suporte aberta dele.
+- `handle_new_user` (corpo da 0043) não cria organização pessoal quando há
+  pré-cadastro pendente e no prazo para o e-mail. Conceder suporte consome o
+  pré-cadastro.
+- Baixa manual: a projeção marca `payment_method` nulo para fatura com
+  `paid_with = manual` (o meio real não passa pelo Stripe).

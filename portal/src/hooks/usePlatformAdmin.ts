@@ -8,20 +8,25 @@ import type {
   AdminClient,
   AdminClientDetail,
   AdminClientType,
+  AdminTeamMember,
+  NovoSuporte,
+  PlatformRole,
   RevenueMonth,
   RevenueProjection,
   StripeSyncStatus,
 } from "@/lib/platformAdmin";
 
 // Área administrativa da plataforma (ADR-0008). Os dados vêm das funções
-// `admin_*` (0028/0029), que recusam no banco quem não é superadmin, e da
-// Edge Function `admin-plans`. Este hook não é fronteira de segurança.
+// `admin_*` (0028/0029/0046), que recusam no banco quem não tem o papel, e das
+// Edge Functions `admin-plans`, `admin-discounts`, `admin-invoices` e
+// `admin-team`. Este hook não é fronteira de segurança.
 
 export type BillingPlan = Tables<"billing_plans">;
 
 export const adminKeys = {
   all: ["admin"] as const,
-  isAdmin: (userId: string | null) => ["admin", "is-admin", userId] as const,
+  role: (userId: string | null) => ["admin", "role", userId] as const,
+  team: ["admin", "team"] as const,
   clients: ["admin", "clients"] as const,
   client: (orgId: string | null) => ["admin", "client", orgId] as const,
   clientType: (orgId: string | null) => ["admin", "client", orgId, "client-type"] as const,
@@ -30,22 +35,29 @@ export const adminKeys = {
   plans: ["admin", "plans"] as const,
 };
 
-/** Se o usuário logado é superadmin ativo (RPC `is_platform_admin`). */
-export function useIsPlatformAdmin() {
+/**
+ * Papel do usuário logado na equipe da plataforma (RPC `platform_role`, 0046):
+ * `superadmin`, `suporte` ou nenhum. `isPlatformAdmin` é só o superadmin;
+ * `isPlatformStaff`, qualquer um dos dois.
+ */
+export function usePlatformRole() {
   const { user, loading } = useAuth();
   const userId = user?.id ?? null;
   const query = useQuery({
-    queryKey: adminKeys.isAdmin(userId),
+    queryKey: adminKeys.role(userId),
     enabled: !!userId,
     staleTime: 5 * 60_000,
-    queryFn: async (): Promise<boolean> => {
-      const { data, error } = await supabase.rpc("is_platform_admin");
+    queryFn: async (): Promise<PlatformRole | null> => {
+      const { data, error } = await supabase.rpc("platform_role");
       if (error) throw error;
-      return data === true;
+      return data === "superadmin" || data === "suporte" ? data : null;
     },
   });
+  const role = query.data ?? null;
   return {
-    isPlatformAdmin: query.data === true,
+    role,
+    isPlatformAdmin: role === "superadmin",
+    isPlatformStaff: role !== null,
     loading: loading || (!!userId && query.isLoading),
     error: query.error,
   };
@@ -343,5 +355,78 @@ export function useOpenSupportSession(orgId: string) {
       if (error) throw new AdminActionError(error.message, error.code);
       return data as unknown as { id: string; organization_id: string; expires_at: string };
     },
+  });
+}
+
+/** Baixa manual de fatura em aberto: quitada no Stripe fora dele (`admin-invoices`). */
+export function useSettleInvoice(orgId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ invoiceId, comment }: { invoiceId: string; comment: string }) => {
+      const { data, error } = await supabase.functions.invoke("admin-invoices", {
+        body: { action: "settle", invoice_id: invoiceId, comment },
+      });
+      if (error || (data && typeof data === "object" && "error" in data)) await erroDaFuncao(error, data);
+      return data as { id: string; resultado: "baixada" | "ja_paga" };
+    },
+    onSettled: () => invalidarCliente(queryClient, orgId),
+  });
+}
+
+/** Equipe da plataforma: superadmin e suporte, ativos e revogados (`admin_equipe`). */
+export function useAdminTeam() {
+  return useQuery({
+    queryKey: adminKeys.team,
+    queryFn: async (): Promise<AdminTeamMember[]> => {
+      const { data, error } = await supabase.rpc("admin_equipe");
+      if (error) throw error;
+      // `role` chega como texto no tipo gerado; os valores estão fixados na 0046.
+      return (data ?? []) as AdminTeamMember[];
+    },
+  });
+}
+
+/** Cadastra Suporte: cria a conta, se não existe, e concede o perfil (`admin-team`). */
+export function useAddSupport() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: NovoSuporte) => {
+      const { data, error } = await supabase.functions.invoke("admin-team", {
+        body: {
+          action: "add",
+          email: input.email,
+          full_name: input.fullName,
+          password: input.password,
+          comment: input.comment,
+        },
+      });
+      if (error || (data && typeof data === "object" && "error" in data)) await erroDaFuncao(error, data);
+      return data as { user_id: string; conta: "nova" | "existente" };
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: adminKeys.team }),
+  });
+}
+
+/** Reativa o Suporte de uma conta que já foi da equipe (`admin_equipe_conceder_suporte`). */
+export function useReactivateSupport() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ email, comment }: { email: string; comment: string }) => {
+      const { error } = await supabase.rpc("admin_equipe_conceder_suporte", { _email: email, _comentario: comment });
+      if (error) throw new AdminActionError(error.message, error.code);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: adminKeys.team }),
+  });
+}
+
+/** Revoga o Suporte; superadmin só sai pelo banco (`admin_equipe_revogar_suporte`). */
+export function useRevokeSupport() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId, comment }: { userId: string; comment: string }) => {
+      const { error } = await supabase.rpc("admin_equipe_revogar_suporte", { _user_id: userId, _comentario: comment });
+      if (error) throw new AdminActionError(error.message, error.code);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: adminKeys.team }),
   });
 }

@@ -337,6 +337,9 @@ export function methodOfInvoice(inv: Stripe.Invoice): string | null {
   // Pix avulso dá baixa "fora do Stripe" (paid_out_of_band): a fatura não tem
   // cobrança própria, e a marca fica na metadata (ver settlePixPayment).
   if (inv.metadata?.paid_with === "pix") return "pix";
+  // Baixa manual pela equipe (0046): o dinheiro entrou fora do Stripe, por um
+  // meio que a fatura não registra. Não é o boleto que ela tinha gerado.
+  if (inv.metadata?.paid_with === "manual") return null;
 
   const pi = inv.payment_intent;
   if (pi && typeof pi === "object") {
@@ -445,6 +448,43 @@ export async function settlePixPayment(
   const subId = idOf(fatura.subscription);
   if (subId) await mirrorSubscription(db, stripe, subId);
   await mirrorInvoice(db, stripe, faturaId);
+}
+
+export type BaixaManual =
+  | { resultado: "baixada" | "ja_paga"; orgId: string | null }
+  | { resultado: "nao_aberta"; status: string };
+
+/**
+ * Baixa manual de fatura pela equipe da plataforma (0046, BP-4): o cliente
+ * pagou fora do Stripe (transferência, depósito, Pix direto). A fatura é
+ * quitada no Stripe com `paid_out_of_band` e marcada com `paid_with = manual`
+ * e quem deu a baixa; o Stripe continua a fonte, e o webhook repete a mesma
+ * projeção. Idempotente: fatura já paga só é espelhada de novo.
+ */
+export async function settleInvoiceManually(
+  db: SupabaseClient,
+  stripe: Stripe,
+  stripeInvoiceId: string,
+  adminUserId: string,
+): Promise<BaixaManual> {
+  const fatura = await stripe.invoices.retrieve(stripeInvoiceId);
+  if (fatura.status !== "open" && fatura.status !== "paid") {
+    return { resultado: "nao_aberta", status: fatura.status ?? "desconhecido" };
+  }
+
+  let resultado: "baixada" | "ja_paga" = "ja_paga";
+  if (fatura.status === "open") {
+    await stripe.invoices.update(stripeInvoiceId, {
+      metadata: { ...fatura.metadata, paid_with: "manual", settled_by: adminUserId },
+    });
+    await stripe.invoices.pay(stripeInvoiceId, { paid_out_of_band: true });
+    resultado = "baixada";
+  }
+
+  const subId = idOf(fatura.subscription);
+  if (subId) await mirrorSubscription(db, stripe, subId);
+  const orgId = await mirrorInvoice(db, stripe, stripeInvoiceId);
+  return { resultado, orgId };
 }
 
 /**

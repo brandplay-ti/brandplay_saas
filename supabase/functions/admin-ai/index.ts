@@ -527,6 +527,7 @@ Deno.serve(async (req) => {
     .from("platform_admins")
     .select("user_id")
     .eq("user_id", user.id)
+    .eq("role", "superadmin")
     .is("revoked_at", null)
     .maybeSingle();
   if (!vinculo) return json({ error: "Acesso restrito ao superadmin da plataforma." }, 403);

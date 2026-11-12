@@ -58,6 +58,7 @@ const TITULOS: [padrao: string, titulo: string | null][] = [
   ["/admin/clientes", "Clientes · Admin da plataforma"],
   ["/admin/planos", "Planos · Admin da plataforma"],
   ["/admin/faturamento", "Faturamento · Admin da plataforma"],
+  ["/admin/equipe", "Equipe · Admin da plataforma"],
   ["/admin/logs-falhas", "Logs de falhas · Admin da plataforma"],
 
   ["/campo", "Entregas · App de Campo"],

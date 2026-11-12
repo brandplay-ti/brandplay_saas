@@ -96,7 +96,7 @@ const OrganizationSetup = () => {
     setErrorMessage(null);
     setDiagnostic(null);
 
-    const [{ data, error }, { data: superadmin }] = await Promise.all([
+    const [{ data, error }, { data: papelNaPlataforma }] = await Promise.all([
       supabase
         .from("organization_members")
         .select("organization_id, role, organization:organizations(name)")
@@ -105,17 +105,17 @@ const OrganizationSetup = () => {
         .limit(1)
         .maybeSingle(),
       // Falha aqui não bloqueia o login: segue o fluxo de quem não é superadmin.
-      supabase.rpc("is_platform_admin"),
+      supabase.rpc("platform_role"),
     ]);
 
     const member = error ? null : (data as OrganizationMember | null);
     if (member?.organization_id) localStorage.setItem(ACTIVE_ORG_KEY, member.organization_id);
 
-    // O superadmin da plataforma entra sempre pela administração (ADR-0008),
-    // seja ou não membro de alguma organização; o painel dela fica a um clique
-    // em "Painel da organização". Redirecionamento é experiência: a fronteira
-    // é o banco.
-    if (superadmin === true) {
+    // A equipe da plataforma (superadmin e suporte, ADR-0008 e 0046) entra
+    // sempre pela administração, seja ou não membro de alguma organização; o
+    // painel dela fica a um clique em "Painel da organização".
+    // Redirecionamento é experiência: a fronteira é o banco.
+    if (papelNaPlataforma) {
       navigate("/admin", { replace: true });
       return;
     }
