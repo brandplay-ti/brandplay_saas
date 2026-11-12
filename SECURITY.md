@@ -67,6 +67,13 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   `billing_*` não aceitam escrita de `authenticated`, então ninguém se dá um
   plano ou estende o próprio teste pela API. Limites de plano são gatilhos no
   banco, não verificação de tela.
+- **Suporte da plataforma** (0046). Segundo papel de `platform_admins`
+  (`role = 'suporte'`), lido por `is_platform_staff()`. Lista clientes, abre a
+  ficha, dá baixa em fatura (`admin-invoices`), lança desconto e abre sessão de
+  suporte; `is_platform_admin()` (cobrança direta, faturamento, planos, IA,
+  auditoria) continua só do superadmin. O superadmin concede e revoga Suporte
+  pela tela (`admin_equipe_*`, `admin-team`); nenhuma função de
+  `authenticated` grava ou revoga superadmin.
 - **Superadmin da plataforma** (ADR-0008, área `/admin`). Papel em
   `platform_admins`, lido por `is_platform_admin()`; só `service_role` e as
   funções de concessão escrevem ali, e `authenticated` não as executa — a

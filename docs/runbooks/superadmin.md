@@ -3,9 +3,15 @@
 Decisão: ADR-0008. Regras de cobrança: `docs/business/cobranca.md`.
 
 O superadmin opera o BrandPlay pela área `/admin` do portal: clientes,
-cobrança, faturamento e catálogo de planos. Ele **não** vê dados de domínio
-dos clientes (patrocinadores, contratos, propostas) e não precisa ser membro
-de nenhuma organização.
+cobrança, faturamento, catálogo de planos, IA e a equipe. Ele **não** vê dados
+de domínio dos clientes (patrocinadores, contratos, propostas) sem sessão de
+suporte e não precisa ser membro de nenhuma organização.
+
+O **Suporte** (0046) é o segundo papel da equipe: lista os clientes, abre a
+ficha, dá baixa em fatura, lança desconto e entra no painel do cliente. Não vê
+visão geral, faturamento, planos, IA nem a equipe; não libera acesso, não
+estende teste e não troca o tipo de cliente. É cadastrado pelo superadmin na
+tela **Equipe** (seção abaixo), não por SQL.
 
 ## Conceder
 
@@ -58,10 +64,29 @@ select public.platform_admin_revoke('pessoa@empresa.com', 'Saiu da equipe');
 Vale na hora no banco: a sessão aberta perde o acesso na próxima consulta. A
 linha de `platform_admins` fica com `revoked_at` (histórico).
 
+## Suporte (pela tela Equipe)
+
+Em `/admin/equipe` o superadmin:
+
+- **Cadastra suporte**: nome, e-mail, senha temporária e motivo. Sem conta
+  com o e-mail, a conta é criada (confirmada, sem organização pessoal) com a
+  senha temporária — passe-a à pessoa por um canal seguro. Com conta, ela só
+  ganha o perfil e mantém a senha dela.
+- **Revoga**: o acesso cai na próxima consulta e a sessão de suporte aberta é
+  encerrada.
+- **Reativa** quem já foi suporte.
+
+Tudo exige motivo e vai para a auditoria (`suporte_concedido`,
+`suporte_revogado`). A tela nunca concede, rebaixa nem revoga superadmin.
+Promover um suporte a superadmin é a concessão manual acima
+(`platform_admin_grant`).
+
+No seed local: `suporte@brandplay.local` / `brandplay-dev`.
+
 ## Quem é superadmin
 
 ```sql
-select u.email, pa.comment, pa.created_at, pa.revoked_at
+select u.email, pa.role, pa.comment, pa.created_at, pa.revoked_at
   from public.platform_admins pa
   join auth.users u on u.id = pa.user_id
  order by pa.created_at;
@@ -73,9 +98,24 @@ select u.email, pa.comment, pa.created_at, pa.revoked_at
 |---|---|---|
 | Visão geral | MRR, recebido no mês, organizações por situação, testes que acabam em 3 dias, boletos aguardando, atrasos | `admin_clientes()`, `admin_faturamento_*` |
 | Clientes | Lista com situação (assinante, teste, provisória, sem acesso), plano, uso e MRR | `admin_clientes()` |
-| Cliente | Cadastro, owner, cobrança, uso, assinaturas, faturas, liberações e histórico; **liberar acesso**, **revogar liberação**, **estender teste**, **desconto ou isenção**, **ver como admin** | `admin_cliente_detalhe()`, `admin_liberar_acesso()`, `admin_revogar_liberacao()`, `admin_estender_teste()`, Edge Function `admin-discounts`, `admin_abrir_sessao_suporte()` |
+| Cliente | Cadastro, owner, cobrança, uso, assinaturas, faturas, liberações e histórico; **liberar acesso**, **revogar liberação**, **estender teste**, **desconto ou isenção**, **dar baixa em fatura**, **ver como admin** | `admin_cliente_detalhe()`, `admin_liberar_acesso()`, `admin_revogar_liberacao()`, `admin_estender_teste()`, Edge Functions `admin-discounts` e `admin-invoices`, `admin_abrir_sessao_suporte()` |
 | Planos | Catálogo completo; criar, editar, tirar de venda, sincronizar com o Stripe | Edge Function `admin-plans` |
 | Faturamento | Realizado (caixa, mês a mês) e projetado (MRR, crescimento, churn) | `admin_faturamento_realizado()`, `admin_faturamento_projetado()` |
+| Equipe | Superadmin e suporte; cadastrar, revogar e reativar suporte | `admin_equipe()`, `admin_equipe_*`, Edge Function `admin-team` |
+
+O Suporte vê só **Clientes** e a ficha do cliente, com desconto, baixa e "ver
+como admin". As outras telas e ações voltam para a lista de clientes e as
+funções do banco recusam.
+
+## Baixa manual de fatura
+
+Para quando o cliente pagou fora do Stripe (transferência, depósito, Pix
+direto). Na ficha, a fatura **em aberto** tem **Dar baixa** (superadmin ou
+suporte, com motivo). A fatura é quitada **no Stripe** (`paid_out_of_band`,
+metadata `paid_with = manual` e `settled_by`), a assinatura volta a ficar em
+dia pelo próprio Stripe e a projeção é regravada. Não há desfazer pela tela:
+um estorno é feito no Stripe. Sem `STRIPE_SECRET_KEY` no ambiente a baixa é
+recusada.
 
 Liberar acesso, revogar e estender exigem motivo. Os limites são do banco:
 liberação de 1 a 720 h (padrão = `billing_settings.provisional_access_hours`),
