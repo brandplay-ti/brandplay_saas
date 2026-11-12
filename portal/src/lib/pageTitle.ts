@@ -43,7 +43,6 @@ const TITULOS: [padrao: string, titulo: string | null][] = [
   ["/dashboard/relatorios", "Relatórios"],
   ["/dashboard/equipe", "Equipe"],
   ["/dashboard/portal-access", "Acessos ao Portal"],
-  ["/dashboard/logs-falhas", "Logs de Falhas"],
   ["/dashboard/configuracoes", "Configurações"],
   ["/dashboard/plano", "Plano e cobrança"],
   ["/dashboard/brandtrack", "BrandTrack"],
@@ -59,6 +58,7 @@ const TITULOS: [padrao: string, titulo: string | null][] = [
   ["/admin/clientes", "Clientes · Admin da plataforma"],
   ["/admin/planos", "Planos · Admin da plataforma"],
   ["/admin/faturamento", "Faturamento · Admin da plataforma"],
+  ["/admin/logs-falhas", "Logs de falhas · Admin da plataforma"],
 
   ["/campo", "Entregas · App de Campo"],
   ["/campo/entregas/:id", "Entrega · App de Campo"],

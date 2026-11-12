@@ -108,6 +108,24 @@ plano de teste, à frente do teste grátis e da liberação provisória. Assinat
 com acesso continua na frente. O aviso de dias restantes do teste não aparece
 enquanto a isenção vale. Desconto abaixo de 100% não muda o acesso.
 
+## Atualização (0045, BP-3)
+
+Logs de falha são telemetria **da plataforma**, não dado de domínio:
+`backend_error_logs` (falhas de banco, `log-db-error`) e `error_reports`
+(falhas de tela, `report-error`). Antes, cada usuário lia os próprios
+registros e o owner/admin lia os da organização, numa tela do painel
+(`/dashboard/logs-falhas`). Isso mostrava a qualquer cliente mensagens internas
+do banco e o SQL das policies (`matching_policies`).
+
+Agora só o superadmin lê, pelas policies `*_platform_admin_read` (padrão 9), na
+tela `/admin/logs-falhas`, que junta todos os clientes e filtra por cliente,
+usuário, tabela, ação e severidade. Ninguém escreve pela API: as duas funções
+gravam com a service role. A organização que o navegador manda só fica no
+registro se o usuário do JWT for membro ativo dela.
+
+"Equipe de suporte" é o próprio superadmin: não existe papel só de suporte.
+Um papel assim, com leitura dos logs e sem cobrança, seria uma decisão nova.
+
 ## Relacionados
 
 ADR-0002 (tenant), ADR-0007 (cobrança), `docs/architecture/plano-superadmin.md`,
