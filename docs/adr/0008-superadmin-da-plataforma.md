@@ -152,6 +152,11 @@ A equipe da plataforma ganhou um segundo papel, o **Suporte**, em
 - Conta nova de Suporte não ganha organização pessoal: a `admin-team` grava
   um pré-cadastro (`platform_staff_signups`, 15 minutos) que o
   `handle_new_user` reconhece, como o convite de patrocinador (0022).
+- **Seletor de cliente** (portal, sem mudança de banco): escolher um cliente
+  no menu abre a sessão de suporte da 0035 por 8 horas com motivo fixo
+  ("Seleção de cliente no menu"); voltar à visão de admin a encerra. A regra
+  da 0035 não muda: a sessão não cria membership nem concede owner, expira
+  sozinha e é auditada.
 
 ## Relacionados
 

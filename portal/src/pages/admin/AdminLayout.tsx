@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlatformRole } from "@/hooks/usePlatformAdmin";
+import { ClientSelector } from "@/components/admin/ClientSelector";
 import { PLATFORM_ROLE_LABEL } from "@/lib/platformAdmin";
 
 // `somenteSuperadmin`: o Suporte (0046) não vê faturamento, planos, IA nem a
@@ -104,7 +105,8 @@ const AdminLayout = () => {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 min-w-0">
+            <ClientSelector className="max-w-[16rem]" labelClassName="hidden sm:inline" />
             {temOrganizacao.data && (
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/dashboard">Painel da organização</Link>
