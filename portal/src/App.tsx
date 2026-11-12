@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GlobalErrorReporter } from "@/components/GlobalErrorReporter";
 import { DocumentTitle } from "@/components/DocumentTitle";
+import { SomenteSuperadmin } from "@/components/admin/SomenteSuperadmin";
 import { ConfirmProvider } from "@/hooks/useConfirm";
 import Landing from "./pages/Landing";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -71,6 +72,7 @@ const AdminRevenue = lazyPage(() => import("./pages/admin/AdminRevenue"));
 const AdminAi = lazyPage(() => import("./pages/admin/AdminAi"));
 const AdminAiClientDetail = lazyPage(() => import("./pages/admin/AdminAiClientDetail"));
 const AdminAiPrecos = lazyPage(() => import("./pages/admin/AdminAiPrecos"));
+const AdminTeam = lazyPage(() => import("./pages/admin/AdminTeam"));
 const NotFound = lazyPage(() => import("./pages/NotFound.tsx"));
 
 const queryClient = new QueryClient();
@@ -141,8 +143,9 @@ const App = () => (
               <Route path="relatorios" element={<BrandTrackReports />} />
             </Route>
           </Route>
-          {/* Administração da plataforma (superadmin, ADR-0008). A guarda do
-              layout é experiência; quem barra é o banco. */}
+          {/* Administração da plataforma (superadmin e suporte, ADR-0008 e
+              0046). As guardas do layout e das rotas são experiência; quem
+              barra é o banco. */}
           <Route
             path="/admin"
             element={
@@ -151,14 +154,15 @@ const App = () => (
               </ProtectedRoute>
             }
           >
-            <Route index element={<AdminOverview />} />
+            <Route index element={<SomenteSuperadmin><AdminOverview /></SomenteSuperadmin>} />
             <Route path="clientes" element={<AdminClients />} />
             <Route path="clientes/:id" element={<AdminClientDetail />} />
-            <Route path="planos" element={<AdminPlans />} />
-            <Route path="faturamento" element={<AdminRevenue />} />
-            <Route path="ia" element={<AdminAi />} />
-            <Route path="ia/clientes/:id" element={<AdminAiClientDetail />} />
-            <Route path="ia/precos" element={<AdminAiPrecos />} />
+            <Route path="planos" element={<SomenteSuperadmin><AdminPlans /></SomenteSuperadmin>} />
+            <Route path="faturamento" element={<SomenteSuperadmin><AdminRevenue /></SomenteSuperadmin>} />
+            <Route path="ia" element={<SomenteSuperadmin><AdminAi /></SomenteSuperadmin>} />
+            <Route path="ia/clientes/:id" element={<SomenteSuperadmin><AdminAiClientDetail /></SomenteSuperadmin>} />
+            <Route path="ia/precos" element={<SomenteSuperadmin><AdminAiPrecos /></SomenteSuperadmin>} />
+            <Route path="equipe" element={<SomenteSuperadmin><AdminTeam /></SomenteSuperadmin>} />
           </Route>
           <Route path="/campo" element={<FieldLayout />}>
             <Route index element={<FieldDeliveries />} />

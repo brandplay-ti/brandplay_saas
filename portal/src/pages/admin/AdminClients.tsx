@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AccessSourceBadge } from "@/components/admin/AccessSourceBadge";
-import { useAdminClients, useAdminPlans } from "@/hooks/usePlatformAdmin";
+import { useAdminClients, useAdminPlans, usePlatformRole } from "@/hooks/usePlatformAdmin";
 import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { formatCents, formatDate, SUBSCRIPTION_STATUS_LABEL } from "@/lib/billing";
 import { ACCESS_SOURCE_LABEL, filterClients, type AccessSource, type ClientFilters } from "@/lib/platformAdmin";
@@ -24,6 +24,8 @@ const ESCOPO = { escopo: "plataforma" } as const;
 const AdminClients = () => {
   const clientes = useAdminClients();
   const planos = useAdminPlans();
+  // MRR é faturamento: o banco devolve nulo para o Suporte (0046).
+  const { isPlatformAdmin: veMrr } = usePlatformRole();
   const [search, setSearch] = useFiltroSalvo("admin-clientes", "search", "", ESCOPO);
   const [source, setSource] = useFiltroSalvo<ClientFilters["source"]>("admin-clientes", "source", "todas", {
     ...ESCOPO,
@@ -143,7 +145,7 @@ const AdminClients = () => {
                     <TableHead>Plano</TableHead>
                     <TableHead className="hidden lg:table-cell">Assinatura</TableHead>
                     <TableHead className="hidden md:table-cell">Uso</TableHead>
-                    <TableHead className="text-right">MRR</TableHead>
+                    {veMrr && <TableHead className="text-right">MRR</TableHead>}
                     <TableHead className="hidden lg:table-cell">Desde</TableHead>
                     <TableHead className="w-8">
                       <span className="sr-only">Abrir</span>
@@ -181,9 +183,11 @@ const AdminClients = () => {
                       <TableCell className="hidden md:table-cell text-sm tabular-nums">
                         {c.properties} prop. · {c.users_active + c.invites_pending} usu.
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {c.mrr_cents > 0 ? formatCents(c.mrr_cents) : "—"}
-                      </TableCell>
+                      {veMrr && (
+                        <TableCell className="text-right tabular-nums">
+                          {c.mrr_cents ? formatCents(c.mrr_cents) : "—"}
+                        </TableCell>
+                      )}
                       <TableCell className="hidden lg:table-cell">{formatDate(c.created_at)}</TableCell>
                       <TableCell>
                         <Link

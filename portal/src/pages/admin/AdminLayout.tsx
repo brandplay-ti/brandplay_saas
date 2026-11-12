@@ -2,7 +2,7 @@ import { Link, Outlet, useNavigate } from "react-router-dom";
 import { Suspense } from "react";
 import { PageLoader } from "@/components/PageLoader";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3, Building2, LayoutDashboard, Loader2, LogOut, Package, ShieldAlert, Sparkles } from "lucide-react";
+import { BarChart3, Building2, LayoutDashboard, Loader2, LogOut, Package, ShieldAlert, Sparkles, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 import { NavLink } from "@/components/NavLink";
@@ -10,14 +10,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useIsPlatformAdmin } from "@/hooks/usePlatformAdmin";
+import { usePlatformRole } from "@/hooks/usePlatformAdmin";
+import { PLATFORM_ROLE_LABEL } from "@/lib/platformAdmin";
 
+// `somenteSuperadmin`: o Suporte (0046) não vê faturamento, planos, IA nem a
+// equipe. Esconder é experiência; as funções do banco recusam.
 const NAV = [
-  { title: "Visão geral", to: "/admin", icon: LayoutDashboard, end: true },
-  { title: "Clientes", to: "/admin/clientes", icon: Building2, end: false },
-  { title: "Planos", to: "/admin/planos", icon: Package, end: false },
-  { title: "Faturamento", to: "/admin/faturamento", icon: BarChart3, end: false },
-  { title: "IA", to: "/admin/ia", icon: Sparkles, end: false },
+  { title: "Visão geral", to: "/admin", icon: LayoutDashboard, end: true, somenteSuperadmin: true },
+  { title: "Clientes", to: "/admin/clientes", icon: Building2, end: false, somenteSuperadmin: false },
+  { title: "Planos", to: "/admin/planos", icon: Package, end: false, somenteSuperadmin: true },
+  { title: "Faturamento", to: "/admin/faturamento", icon: BarChart3, end: false, somenteSuperadmin: true },
+  { title: "IA", to: "/admin/ia", icon: Sparkles, end: false, somenteSuperadmin: true },
+  { title: "Equipe", to: "/admin/equipe", icon: Users, end: false, somenteSuperadmin: true },
 ];
 
 /**
@@ -28,13 +32,14 @@ const NAV = [
 const AdminLayout = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { isPlatformAdmin, loading, error } = useIsPlatformAdmin();
+  const { role, isPlatformAdmin, isPlatformStaff, loading, error } = usePlatformRole();
+  const itens = NAV.filter((item) => isPlatformAdmin || !item.somenteSuperadmin);
 
   // O link para o painel só aparece para quem também é membro de alguma
   // organização; o superadmin da plataforma não precisa ser.
   const temOrganizacao = useQuery({
     queryKey: ["admin", "has-organization", user?.id ?? null],
-    enabled: !!user && isPlatformAdmin,
+    enabled: !!user && isPlatformStaff,
     staleTime: 5 * 60_000,
     queryFn: async () => {
       const { count, error: erro } = await supabase
@@ -61,7 +66,7 @@ const AdminLayout = () => {
     );
   }
 
-  if (error || !isPlatformAdmin) {
+  if (error || !isPlatformStaff) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface-soft p-4">
         <Card className="max-w-md w-full">
@@ -92,7 +97,10 @@ const AdminLayout = () => {
             <Logo showWordmark={false} sizeClassName="h-8" />
             <div className="min-w-0">
               <p className="text-sm font-semibold leading-tight">Administração da plataforma</p>
-              <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {user?.email}
+                {role && ` · ${PLATFORM_ROLE_LABEL[role]}`}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -108,7 +116,7 @@ const AdminLayout = () => {
         </div>
         <nav aria-label="Administração" className="mx-auto max-w-7xl overflow-x-auto px-2 md:px-4">
           <ul className="flex gap-1">
-            {NAV.map((item) => (
+            {itens.map((item) => (
               <li key={item.to}>
                 <NavLink
                   to={item.to}

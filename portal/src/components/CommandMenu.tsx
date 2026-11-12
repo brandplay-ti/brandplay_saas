@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
-import { useIsPlatformAdmin } from "@/hooks/usePlatformAdmin";
+import { usePlatformRole } from "@/hooks/usePlatformAdmin";
 import { gruposVisiveis } from "@/lib/navegacao";
 import { filtrarPaginas, termoDeBusca } from "@/lib/buscaGlobal";
 
@@ -24,7 +24,8 @@ const ehMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigat
 export const CommandMenu = () => {
   const navigate = useNavigate();
   const { orgId, can, clientType, isAdmin, loading } = useOrganization();
-  const { isPlatformAdmin } = useIsPlatformAdmin();
+  // O atalho para /admin vale para a equipe inteira: superadmin e suporte (0046).
+  const { isPlatformStaff } = usePlatformRole();
   const [open, setOpen] = useState(false);
   const [entrada, setEntrada] = useState("");
   const [termo, setTermo] = useState<string | null>(null);
@@ -48,10 +49,10 @@ export const CommandMenu = () => {
 
   const paginas = useMemo(
     () =>
-      gruposVisiveis({ can, clientType, isAdmin, loading, isPlatformAdmin }).flatMap((g) =>
+      gruposVisiveis({ can, clientType, isAdmin, loading, isPlatformAdmin: isPlatformStaff }).flatMap((g) =>
         g.items.map((i) => ({ ...i, grupo: g.label })),
       ),
-    [can, clientType, isAdmin, loading, isPlatformAdmin],
+    [can, clientType, isAdmin, loading, isPlatformStaff],
   );
   const paginasFiltradas = filtrarPaginas(paginas, entrada);
 
