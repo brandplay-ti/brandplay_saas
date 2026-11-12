@@ -123,7 +123,8 @@ Padrão da plataforma (ADR-0008, `0027`–`0029`):
 
 9. **Superadmin** (`<tabela>_platform_admin_read`) — leitura extra para
    `is_platform_admin()`, só em tabelas da cobrança e da própria plataforma
-   (`billing_*`, `platform_admin_audit_log`). Nunca em tabela de domínio dos
+   (`billing_*`, `platform_admin_audit_log`, e os logs de falha
+   `backend_error_logs`/`error_reports`, que desde a 0045 só o superadmin lê). Nunca em tabela de domínio dos
    clientes. O resto do que o superadmin vê vem por funções `admin_*`
    `SECURITY DEFINER` que começam com `platform_admin_require()`, devolvem só
    cadastro, cobrança e contagens, e gravam toda alteração em

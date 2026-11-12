@@ -1,4 +1,4 @@
--- Testes do superadmin da plataforma (0027–0029, ADR-0008).
+-- Testes do superadmin da plataforma (0027–0029 e 0045, ADR-0008).
 --
 --   npm run supabase:test        (roda junto com seguranca.sql e cobranca.sql)
 --
@@ -372,6 +372,70 @@ begin
   exception when insufficient_privilege then null;
   end;
   raise notice 'OK (h): auditoria e cobrança continuam só de leitura para o superadmin';
+end $$;
+reset role;
+
+-- (i) logs de falha: só o superadmin lê, de todos os clientes (0045) -------
+insert into public.backend_error_logs (id, organization_id, user_id, user_email, table_name, action, error_message) values
+  ('e1a00000-0000-4000-8000-000000000001', 'a2000000-0000-4000-8000-000000000001', '2a000000-0000-4000-8000-00000000000a', 'superadmin.a@teste.local', 'sponsors', 'INSERT', 'falha A'),
+  ('e1b00000-0000-4000-8000-000000000002', 'b2000000-0000-4000-8000-000000000002', '2b000000-0000-4000-8000-00000000000b', 'superadmin.b@teste.local', 'sponsors', 'INSERT', 'falha B'),
+  ('e1c00000-0000-4000-8000-000000000003', null, '2a000000-0000-4000-8000-00000000000a', 'superadmin.a@teste.local', 'unknown', 'SELECT', 'falha sem organização');
+insert into public.error_reports (id, organization_id, user_id, message) values
+  ('e2a00000-0000-4000-8000-000000000001', 'a2000000-0000-4000-8000-000000000001', '2a000000-0000-4000-8000-00000000000a', 'tela A'),
+  ('e2b00000-0000-4000-8000-000000000002', 'b2000000-0000-4000-8000-000000000002', '2b000000-0000-4000-8000-00000000000b', 'tela B');
+
+-- Owner A: nem os próprios registros, nem os da organização (antes da 0045, lia os dois).
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"2a000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+do $$
+begin
+  if (select count(*) from public.backend_error_logs) <> 0
+     or (select count(*) from public.error_reports) <> 0 then
+    raise exception 'FALHA (i): owner da organização lê logs de falha';
+  end if;
+  begin
+    insert into public.backend_error_logs (organization_id, user_id, table_name, action)
+    values ('a2000000-0000-4000-8000-000000000001', '2a000000-0000-4000-8000-00000000000a', 'sponsors', 'INSERT');
+    raise exception 'FALHA (i): usuário gravou log de falha pela API';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.error_reports (user_id, message) values ('2a000000-0000-4000-8000-00000000000a', 'forjado');
+    raise exception 'FALHA (i): usuário gravou relatório de erro pela API';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+
+-- Superadmin revogado: nada.
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"2d000000-0000-4000-8000-00000000000d","role":"authenticated"}', true);
+do $$
+begin
+  if (select count(*) from public.backend_error_logs) <> 0
+     or (select count(*) from public.error_reports) <> 0 then
+    raise exception 'FALHA (i): superadmin revogado lê logs de falha';
+  end if;
+end $$;
+reset role;
+
+-- Superadmin: os de todos os clientes, inclusive sem organização; sem escrita.
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"2e000000-0000-4000-8000-00000000000e","role":"authenticated"}', true);
+do $$
+begin
+  if (select count(*) from public.backend_error_logs
+       where id in ('e1a00000-0000-4000-8000-000000000001', 'e1b00000-0000-4000-8000-000000000002', 'e1c00000-0000-4000-8000-000000000003')) <> 3
+     or (select count(*) from public.error_reports
+       where id in ('e2a00000-0000-4000-8000-000000000001', 'e2b00000-0000-4000-8000-000000000002')) <> 2 then
+    raise exception 'FALHA (i): superadmin não lê os logs de falha de todos os clientes';
+  end if;
+  begin
+    delete from public.backend_error_logs;
+    raise exception 'FALHA (i): superadmin apagou log de falha pela API';
+  exception when insufficient_privilege then null;
+  end;
+  raise notice 'OK (i): logs de falha só para o superadmin, de todos os clientes, só leitura';
 end $$;
 reset role;
 
