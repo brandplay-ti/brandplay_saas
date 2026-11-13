@@ -21,7 +21,7 @@ export const ROTULO_DA_TABELA: Record<string, string> = {
   organizations: "Organizações",
   organization_members: "Membros da organização",
   opportunities: "Negociações",
-  sports_properties: "Propriedades",
+  sports_properties: "Projetos",
   sponsors: "Patrocinadores",
   profiles: "Perfis",
   unknown: "Outra",

@@ -76,12 +76,12 @@ export const CurrentPlanCard = ({ status, contractedPlanName, canManage, pending
 
         <div className="grid gap-6 sm:grid-cols-2">
           <UsageMeter
-            label="Propriedades"
+            label="Projetos"
             uso={status.usage.properties}
             limite={plano?.max_properties ?? null}
-            unidade="propriedades"
+            unidade="projetos"
             semPlano={!plano}
-            nota="Edições e temporadas de uma propriedade não contam."
+            nota="Edições e temporadas de um projeto não contam."
           />
           <UsageMeter
             label="Usuários"

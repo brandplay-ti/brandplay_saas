@@ -101,7 +101,7 @@ Padrão adicionado pela reconciliação com o Lovable (ADR-0005, `0017`):
    `can_access_module(auth.uid(), organization_id, '<crm|operacional|financeiro>', true)`
    (`comercial` → crm, `operacional` → operacional, `financeiro` →
    financeiro). Usado nas 38 tabelas de CRM, propostas, contratos, parcelas,
-   entregas, ativos e propriedades. Ao criar uma tabela nova desses módulos,
+   entregas, ativos e projetos. Ao criar uma tabela nova desses módulos,
    use este padrão, não o 1 (que deixaria qualquer membro escrever).
 
 Padrão da cobrança (ADR-0007, `0024`):
@@ -133,7 +133,7 @@ Padrão da plataforma (ADR-0008, `0027`–`0029`):
 
 Relatório em landing page (ADR-0011, `0040`): `property_posts` e
 `property_indicators` seguem o padrão 7 com os módulos `crm` ou
-`operacional`, e a organização vem **da propriedade** pelo gatilho
+`operacional`, e a organização vem **do projeto** pelo gatilho
 `tg_relatorio_vinculos` (o valor enviado pelo cliente é descartado). `reports`
 tem leitura por membro e pelo portal do patrocinador (publicado), escrita pelo
 módulo, regras de publicação no gatilho `tg_reports_regras` (público e

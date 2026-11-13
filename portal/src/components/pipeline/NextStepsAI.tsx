@@ -81,7 +81,7 @@ export function NextStepsAI({ context, targetId, opportunityId, ownerId, propert
       .eq("organization_id", orgId)
       .order("name", { ascending: true });
     if (error) {
-      toast.error("Erro ao carregar propriedades");
+      toast.error("Erro ao carregar projetos");
       return;
     }
     setProperties((data ?? []) as PropOption[]);
@@ -211,13 +211,13 @@ export function NextStepsAI({ context, targetId, opportunityId, ownerId, propert
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-64 p-2" align="end">
-                          <p className="text-xs font-medium px-2 py-1">Escolha a propriedade</p>
+                          <p className="text-xs font-medium px-2 py-1">Escolha o projeto</p>
                           {!properties ? (
                             <div className="flex items-center justify-center py-4">
                               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                             </div>
                           ) : properties.length === 0 ? (
-                            <p className="text-xs text-muted-foreground px-2 py-2">Nenhuma propriedade encontrada.</p>
+                            <p className="text-xs text-muted-foreground px-2 py-2">Nenhum projeto encontrado.</p>
                           ) : (
                             <div className="max-h-64 overflow-y-auto space-y-1">
                               {properties.map((p) => (

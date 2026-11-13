@@ -61,7 +61,7 @@ Lacunas:
 - **55 tabelas** são escritas pelo portal (insert/update/delete/upsert direto
   via PostgREST, em 41 arquivos) e só `sponsors` e `opportunities` têm algum
   rastro de campo. Contratos, parcelas, propostas, entregas, cotas, ativos e
-  propriedades não têm nenhum. Equipes e permissões têm trilha própria em
+  projetos não têm nenhum. Equipes e permissões têm trilha própria em
   `team_audit_log`.
 - Nenhum log registra **exclusão** nem o **conjunto de campos alterados**.
 - Nenhum log registra **origem** (portal, portal do patrocinador, Edge

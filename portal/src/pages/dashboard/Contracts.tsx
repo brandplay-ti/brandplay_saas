@@ -436,11 +436,11 @@ export default function Contracts() {
                       </Select>
                     </div>
                     <div className="grid gap-2">
-                      <Label>Propriedade</Label>
+                      <Label>Projeto</Label>
                       <Select value={form.property_id} onValueChange={(v) => setForm({ ...form, property_id: v })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">Nenhuma</SelectItem>
+                          <SelectItem value="none">Nenhum</SelectItem>
                           {properties.map((p) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
                         </SelectContent>
                       </Select>
@@ -564,7 +564,7 @@ export default function Contracts() {
                   <TableHead>Número</TableHead>
                   <TableHead>Título</TableHead>
                   <TableHead>Marca</TableHead>
-                  <TableHead>Propriedade</TableHead>
+                  <TableHead>Projeto</TableHead>
                   <TableHead>Vigência</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead>Status</TableHead>
@@ -1214,7 +1214,7 @@ function ContractDetail({
             <Info label="Início" value={formatDate(contract.start_date)} />
             <Info label="Fim" value={formatDate(contract.end_date)} />
             {contract.property_id && (
-              <Info icon={<Building2 className="h-3 w-3" />} label="Propriedade" value={propertiesById[contract.property_id] ?? "—"} />
+              <Info icon={<Building2 className="h-3 w-3" />} label="Projeto" value={propertiesById[contract.property_id] ?? "—"} />
             )}
             {contract.due_day && <Info icon={<CalendarIcon className="h-3 w-3" />} label="Vencimento" value={`Dia ${contract.due_day}`} />}
           </div>
@@ -1738,11 +1738,11 @@ function EditContractDialog({
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label>Propriedade</Label>
+              <Label>Projeto</Label>
               <Select value={form.property_id} onValueChange={(v) => setForm({ ...form, property_id: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Nenhuma</SelectItem>
+                  <SelectItem value="none">Nenhum</SelectItem>
                   {properties.map((p) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
                 </SelectContent>
               </Select>

@@ -170,7 +170,7 @@ export interface Numero {
   fonte?: string | null;
 }
 
-/** Faixa de números: o que a propriedade já tem mais os indicadores "numeros". */
+/** Faixa de números: o que o projeto já tem mais os indicadores "numeros". */
 export function numerosPrincipais(p: PaginaRelatorio): Numero[] {
   const saida: Numero[] = [];
   const prop = p.propriedade;
@@ -256,16 +256,16 @@ export interface Bloco {
 
 /** Ordem da página. A capa e o rodapé aparecem sempre e não entram aqui. */
 export const BLOCOS: Bloco[] = [
-  { id: "numeros", titulo: "Números principais", exige: "2 números (dados da propriedade ou indicadores da categoria Números)" },
-  { id: "resumo", titulo: "Resumo executivo", exige: "resumo do relatório ou texto público da propriedade" },
-  { id: "patrocinadores", titulo: "Patrocinadores", exige: "relatório da propriedade com 1 patrocinador com cota vendida ou contrato" },
-  { id: "jornada", titulo: "Jornada da temporada", exige: "2 momentos cadastrados na propriedade" },
+  { id: "numeros", titulo: "Números principais", exige: "2 números (dados do projeto ou indicadores da categoria Números)" },
+  { id: "resumo", titulo: "Resumo executivo", exige: "resumo do relatório ou texto público do projeto" },
+  { id: "patrocinadores", titulo: "Patrocinadores", exige: "relatório do projeto com 1 patrocinador com cota vendida ou contrato" },
+  { id: "jornada", titulo: "Jornada da temporada", exige: "2 momentos cadastrados no projeto" },
   { id: "video", titulo: "Vídeo em destaque", exige: "1 vídeo do YouTube cadastrado" },
   { id: "digital", titulo: "Resultados digitais", exige: "1 indicador Digital ou 1 post com visualizações" },
   { id: "transmissao", titulo: "Transmissão", exige: "1 indicador da categoria Transmissão" },
   { id: "conteudos", titulo: "Conteúdos e posts", exige: "1 post ou vídeo cadastrado" },
   { id: "publico", titulo: "Perfil do público", exige: "1 indicador da categoria Público" },
-  { id: "acervo", titulo: "Acervo de fotos", exige: "1 foto na galeria da propriedade" },
+  { id: "acervo", titulo: "Acervo de fotos", exige: "1 foto na galeria do projeto" },
   { id: "imprensa", titulo: "Na imprensa", exige: "1 matéria cadastrada" },
   { id: "contrapartidas", titulo: "Contrapartidas", exige: "relatório de patrocinador com 1 entrega" },
   { id: "contato", titulo: "Contato e download", exige: "botão de contato ou link do relatório completo" },

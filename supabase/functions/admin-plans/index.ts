@@ -100,7 +100,7 @@ function validarCampos(entrada: Record<string, unknown>, criando: boolean): Part
     campos.price_cents = inteiroOuNulo(entrada.price_cents, "Preço (centavos)", 100, PRECO_MAXIMO);
   }
   if ("max_properties" in entrada) {
-    campos.max_properties = inteiroOuNulo(entrada.max_properties, "Propriedades", 0, 100_000);
+    campos.max_properties = inteiroOuNulo(entrada.max_properties, "Projetos", 0, 100_000);
   }
   if ("max_users" in entrada) {
     campos.max_users = inteiroOuNulo(entrada.max_users, "Usuários", 1, 100_000);

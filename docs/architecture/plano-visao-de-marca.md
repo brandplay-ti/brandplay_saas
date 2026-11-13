@@ -55,7 +55,7 @@
    volta como estava.
 7. **A dúvida maior não é técnica: o que é "patrocinador" quando o cliente é
    a própria marca** (seção 4.1, D3). Recomendação: o patrocinador continua
-   sendo a marca (ou as marcas do grupo) e a propriedade continua sendo o que
+   sendo a marca (ou as marcas do grupo) e o projeto continua sendo o que
    se patrocina. O modelo de dados fica igual; só muda o rótulo.
 
 ## 2. Glossário e conflito de nomes
@@ -73,7 +73,7 @@ Proposta (D1):
 - **No banco**: `organizations.client_type`, valores `agencia` e `marca`.
   Evita `brand`, que já está em quatro tabelas.
 - **Na tela**: "Tipo de cliente: Agência ou Marca".
-- **Quem é "agência"?** O rótulo do cadastro hoje é "Empresa / Propriedade"
+- **Quem é "agência"?** O rótulo do cadastro hoje é "Empresa / Projeto"
   (`Auth.tsx`). Clubes, federações e organizadores de evento vendem
   patrocínio do mesmo jeito que uma agência. Sugestão: "Agência ou detentor de
   direitos" no cadastro e "Agência" no resto (D1).
@@ -101,13 +101,13 @@ continua, mas uma parte depende do funil ou muda de rótulo.
 | Detalhe do patrocinador | `pages/dashboard/SponsorDetail.tsx` | **Ajusta** | somem negociações, propostas, `MeetingPrepAI` e o botão de renovação (`create_renewal_opportunity`, l. 138); ficam contratos, entregas, documentos, contatos, `SponsorPortalAccess`, `ROIWidget`, `ExecutiveSummaryAI` (D8) |
 | Contratos | `pages/dashboard/Contracts.tsx` l. 211, 281-283, 371, 1637 | **Ajusta** | o seletor "Oportunidade" some; o contrato nasce direto, sem proposta |
 | Entregas | `pages/dashboard/Deliveries.tsx` l. 222, 322, 787, 869 | **Ajusta** | filtro e campo "Oportunidade" somem |
-| Propriedade: abas "Leads" e "Propostas", publicação do media kit | `pages/dashboard/PropertyDetail.tsx` l. 1283-1292, 1460-1486, 2488, 2552 | **Some** | o resto da propriedade fica |
-| Checklist da propriedade | `components/property/PropertyChecklist.tsx` l. 143, 455 | **Ajusta** | vínculo com oportunidade some |
+| Projeto: abas "Leads" e "Propostas", publicação do media kit | `pages/dashboard/PropertyDetail.tsx` l. 1283-1292, 1460-1486, 2488, 2552 | **Some** | o resto do projeto fica |
+| Checklist do projeto | `components/property/PropertyChecklist.tsx` l. 143, 455 | **Ajusta** | vínculo com oportunidade some |
 | Calendário | `pages/dashboard/Calendar.tsx` l. 85-94 | **Ajusta** | `opportunity_activities` some; `crm_tasks` fica com o vínculo de patrocinador |
 | Relatórios: aba Pipeline, funil e perdas no Analytics, `RevenueForecastWidget`, `QuotaHeatmapWidget` | `pages/dashboard/Reports.tsx`, `components/reports/AnalyticsTab.tsx` | **Ajusta** | `ROIWidget` e `TicketBenchmarkWidget` ficam (D8) |
 | Relatório de sell-out de cotas | `components/reports/SelloutReportGenerator.tsx` | D7 | "sell-out" mede cota vendida, visão de quem vende |
 | Relatório de entregas (PDF) | `components/pipeline/OpportunityDrawer.tsx` l. 768 | **Ajusta: precisa sair do funil** | hoje só nasce da oportunidade (seção 5.7) |
-| Relatórios de resultado (landing page) | `pages/dashboard/RelatoriosDeResultado.tsx`, `RelatorioEditor.tsx`, `/r/:slug` | **Fica** | parte da propriedade, não do funil |
+| Relatórios de resultado (landing page) | `pages/dashboard/RelatoriosDeResultado.tsx`, `RelatorioEditor.tsx`, `/r/:slug` | **Fica** | parte do projeto, não do funil |
 | Notificações | `pages/dashboard/Notifications.tsx`, `components/notifications/NotificationsBell.tsx` | **Ajusta** | `opportunity_stale`, `opportunity_lost`, `opportunity_mention` e `proposal_expiring` deixam de existir |
 | Logs de falhas | `pages/admin/AdminFailureLogs.tsx` (era `pages/dashboard/FailureLogs.tsx`) | Fica | área do superadmin desde a 0045 (BP-3); não aparece para a marca |
 | Media kit público e formulário de lead | `pages/PublicMediaKit.tsx` l. 275-287 | **Some** | barrado no banco (seção 5.5) |
@@ -116,7 +116,7 @@ continua, mas uma parte depende do funil ou muda de rótulo.
 | Criar organização | `pages/onboarding/OrganizationSetup.tsx` l. 93 | **Ajusta** | escolha do tipo |
 | Plano e cobrança | `pages/dashboard/Plan.tsx` | D10 | confirmação do tipo na contratação |
 | Admin: clientes | `pages/admin/AdminClients.tsx`, `AdminClientDetail.tsx` | **Ajusta** | coluna e filtro "Tipo"; troca no cartão "Cadastro" |
-| BrandTrack, Propriedades, Ativos, Entregas, App de Campo, Financeiro, Configurações | — | **Fica** | |
+| BrandTrack, Projetos, Ativos, Entregas, App de Campo, Financeiro, Configurações | — | **Fica** | |
 | Portal do patrocinador | `pages/portal/*` | D5 | `PortalDeliveries` usa `contracts.opportunity_id` só como filtro; funciona sem |
 
 ### 3.2 Banco (tabelas, funções, gatilhos)
@@ -183,15 +183,15 @@ passado de `crm` para `vendas` nas funções do funil:
 
 ### 4.1 O que é "patrocinador" para a marca
 
-Hoje a organização vende: ela tem propriedades (ou as representa), monta
+Hoje a organização vende: ela tem projetos (ou as representa), monta
 cotas, capta patrocinadores (as marcas) e fecha contratos com eles. Quando o
 cliente é a marca, o sentido se inverte: a organização **compra** patrocínio.
-As propriedades que ela patrocina são de terceiros (clube, federação,
+Os projetos que ela patrocina são de terceiros (clube, federação,
 organizador), e o patrocinador de todo contrato é ela mesma.
 
 | | a. Patrocinador = a própria marca (recomendado) | b. Patrocinador = o detentor de direitos |
 |---|---|---|
-| Como | Um cadastro em `sponsors` por marca do grupo ("Marca X", "Marca X Zero"); contrato = marca × propriedade | `sponsors` passa a guardar o clube; a propriedade fica abaixo dele |
+| Como | Um cadastro em `sponsors` por marca do grupo ("Marca X", "Marca X Zero"); contrato = marca × projeto | `sponsors` passa a guardar o clube; o projeto fica abaixo dele |
 | Esquema | Igual | Igual, com significado trocado |
 | BrandTrack | Funciona: detecta o logo do patrocinador (`sponsor_brandtrack_profiles`) | **Quebra**: o "patrocinador" seria o clube, cujo logo não interessa |
 | Portal do patrocinador | Vira acesso de leitura para outra área da marca (D5) | Vira portal para o clube, um uso novo |
@@ -200,7 +200,7 @@ organizador), e o patrocinador de todo contrato é ela mesma.
 
 Lacuna em qualquer das duas: `sports_properties` não tem campo de
 **detentor de direitos** nem de contato do clube. Para a agência isso não
-fazia falta (a propriedade é dela ou do cliente dela). Para a marca, é o
+fazia falta (o projeto é dela ou do cliente dela). Para a marca, é o
 contato principal do contrato (D3a).
 
 ### 4.2 O que some e o que fica
@@ -292,7 +292,7 @@ alter table public.organizations
   (seção 6).
 - Continua valendo a ADR-0008: o superadmin lê cadastro e cobrança, não dado
   de domínio. Para o aviso de impacto, use contagens (quantas oportunidades
-  abertas, quantas propriedades publicadas), no padrão das contagens que
+  abertas, quantos projetos publicados), no padrão das contagens que
   `admin_cliente_detalhe` já devolve.
 
 ### 5.3 Matriz de permissões e teto por tipo
@@ -395,7 +395,7 @@ Isso também melhora a agência, que hoje só gera o relatório pelo funil.
 - `billing_plans` tem só `max_properties` e `max_users`. Pela
   `docs/business/cobranca.md`, nenhum módulo é bloqueado por plano. Nada aqui
   muda isso: o funil some por **tipo**, não por plano.
-- Para a marca, "propriedades" são as propriedades patrocinadas, não as que
+- Para a marca, "projetos" são os que ela patrocina, não os que
   ela vende. O limite continua fazendo sentido como métrica de uso.
 - Planos diferentes por tipo (D9): se o comercial quiser preço próprio para
   marcas, o caminho é uma coluna `billing_plans.client_types text[]`. O
@@ -485,7 +485,7 @@ policies.
 | **0** | Fechar as decisões da seção 9; ADR-0013; regras em `docs/business/tipo-de-cliente.md` | — | — |
 | **1** | Tipo gravado, sem efeito na tela: coluna, proteção, cadastro, `create-organization`, admin com auditoria, `clientType` no `useOrganization` | `client_type`, gatilho de proteção, `admin_alterar_tipo_de_cliente`, `create_organization_with_owner(_client_type)`, `handle_new_user`, `admin_clientes`/`_detalhe` | Baixo: coluna nova com padrão |
 | **2** | Módulo `vendas` e teto: funil some para a marca no banco e na tela; media kit e lead barrados; guarda de rota | check e backfill da matriz, `modulo_disponivel`, `can_access_module`, ~15 policies, `is_property_published`, RPCs `copy_*`/renovação | **Alto**: muda policies; deve entrar antes da fase 2 de equipes |
-| **3** | Telas compartilhadas: Dashboard, Contratos, Entregas, Patrocinador, Propriedade, Calendário, Relatórios, Notificações, IA (prompts e ferramentas); relatório de entregas por contrato; rótulos (D3, D6) | `get_delivery_report_data` por contrato | Médio |
+| **3** | Telas compartilhadas: Dashboard, Contratos, Entregas, Patrocinador, Projeto, Calendário, Relatórios, Notificações, IA (prompts e ferramentas); relatório de entregas por contrato; rótulos (D3, D6) | `get_delivery_report_data` por contrato | Médio |
 | **4** | Cobrança por tipo, se D9 pedir; confirmação na contratação (D10) | `billing_plans.client_types` | Baixo |
 
 Fases 1 e 2 podem ir juntas para produção, mas a 1 sozinha já é segura:
@@ -504,7 +504,7 @@ recomendação da tabela.
 | D1 | Nomes: `client_type` (`agencia`/`marca`) no banco; "Agência" e "Marca" na tela; "Agência ou detentor de direitos" no cadastro? | Sim |
 | D2 | O media kit público e o formulário de lead somem para a marca? | Sim. São captação. Barrar no banco e manter `is_published`/slug para a volta |
 | D3 | O que é "patrocinador" para a marca? (4.1) | (a): o patrocinador é a marca ou as marcas do grupo; renomear o menu para "Marcas"; ciclo de vida `prospect … cliente_ativo` escondido |
-| D3a | Precisa de campo de detentor de direitos e contato na propriedade? | Sim, mas na fase 3, como campos simples em `sports_properties`; não criar entidade nova sem pedido |
+| D3a | Precisa de campo de detentor de direitos e contato no projeto? | Sim, mas na fase 3, como campos simples em `sports_properties`; não criar entidade nova sem pedido |
 | D4 | `crm_tasks` e `sponsor_proposal_profiles` ficam com a marca? | `crm_tasks` fica (tarefa do patrocinador, sem vínculo de oportunidade); `sponsor_proposal_profiles` vai para `vendas` |
 | D5 | Portal do patrocinador para a marca | Fica como está: leitura para quem não é membro (outra área, agência de mídia) |
 | D6 | Financeiro da marca é "a pagar"? Trocar rótulos (Recebido → Pago, Previsto → A pagar, inadimplência → vencido)? | Sim, só rótulos, na fase 3; `revenue-forecast` some para a marca |
@@ -530,7 +530,7 @@ Em `supabase/tests/` (novo `tipo_de_cliente.sql`, no estilo de
 - na agência, o papel com `vendas = none` e `crm = write` lê e edita
   patrocinadores e não vê o funil;
 - marca lê e escreve patrocinadores, cotas, contratos, parcelas e entregas;
-- `anon` não lê o media kit nem envia lead para propriedade publicada de
+- `anon` não lê o media kit nem envia lead para projeto publicado de
   marca; volta a ler depois da troca para agência;
 - owner/admin não mudam `client_type` por `update` direto; só
   `admin_alterar_tipo_de_cliente`, por superadmin, com comentário, gravando em
@@ -573,7 +573,7 @@ Pipeline, Propostas e Lead Scoring → `/dashboard/pipeline` redireciona.
 
 - `sports_properties_public_read` (0005) lia `is_published` direto, sem
   passar por `is_property_published`. Sem a correção na 0043, a página
-  pública da propriedade de uma marca continuaria legível por `anon`.
+  pública do projeto de uma marca continuaria legível por `anon`.
 - `check-notifications` já usa o client do usuário: com a RLS, as categorias
   do funil não geram nada para a marca, e a função não mudou.
 - `Calendar.tsx` lê `opportunity_activities` e o embed de oportunidade em
@@ -591,4 +591,4 @@ Pipeline, Propostas e Lead Scoring → `/dashboard/pipeline` redireciona.
 - Ficaram de fora (seguir quando houver pedido): prompts de IA do ponto de
   vista de quem compra (D8), rótulo "Patrocinador" dentro das telas de
   detalhe e formulários da marca, campos de detentor de direitos na
-  propriedade (D3a).
+  projeto (D3a).

@@ -196,7 +196,7 @@ const getOpportunityConversionMissingFields = (opp: Opp, target: "proposal" | "c
   if (!Number(opp.value) || Number(opp.value) <= 0) missing.push("valor");
   if (target === "contract") {
     if (!opp.sponsor_id) missing.push("sponsor");
-    if (!opp.property_id) missing.push("propriedade");
+    if (!opp.property_id) missing.push("projeto");
     if (!opp.assignee_id) missing.push("responsável");
   }
   return missing;
@@ -204,7 +204,7 @@ const getOpportunityConversionMissingFields = (opp: Opp, target: "proposal" | "c
 
 const getOpportunityConversionWarnings = (opp: Opp) => {
   const warnings: string[] = [];
-  if (!opp.property_id) warnings.push("propriedade");
+  if (!opp.property_id) warnings.push("projeto");
   if (!opp.sponsor_id) warnings.push("sponsor");
   if (!opp.assignee_id) warnings.push("responsável");
   if (!opp.tier_id) warnings.push("cota (tier)");
@@ -403,7 +403,7 @@ export function OpportunityDrawer({
       valor: "valor",
       sponsor: "sponsor",
       patrocinador: "sponsor",
-      propriedade: "propriedade",
+      projeto: "propriedade",
       responsável: "responsável",
       cota: "cota (tier)",
       "data prevista": "data prevista",
@@ -1255,14 +1255,14 @@ export function OpportunityDrawer({
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="grid gap-2 p-1" data-field="propriedade">
-                    <Label>Propriedade</Label>
+                    <Label>Projeto</Label>
                     <Select
                       value={opp.property_id ?? "none"}
                       onValueChange={(v) => updateField({ property_id: v === "none" ? null : v, tier_id: null })}
                     >
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">Nenhuma</SelectItem>
+                        <SelectItem value="none">Nenhum</SelectItem>
                         {properties.map((p) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
                       </SelectContent>
                     </Select>
@@ -1283,7 +1283,7 @@ export function OpportunityDrawer({
                       disabled={!opp.property_id || propertyTiers.length === 0}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder={!opp.property_id ? "Escolha propriedade" : "Nenhuma"} />
+                        <SelectValue placeholder={!opp.property_id ? "Escolha o projeto" : "Nenhuma"} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">Nenhuma</SelectItem>

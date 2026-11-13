@@ -70,7 +70,7 @@ const AdminPlans = () => {
                 <TableRow>
                   <TableHead>Plano</TableHead>
                   <TableHead className="text-right">Preço/mês</TableHead>
-                  <TableHead className="hidden md:table-cell">Propriedades</TableHead>
+                  <TableHead className="hidden md:table-cell">Projetos</TableHead>
                   <TableHead className="hidden md:table-cell">Usuários</TableHead>
                   <TableHead>Situação</TableHead>
                   <TableHead className="hidden lg:table-cell">Stripe</TableHead>

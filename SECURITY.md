@@ -102,7 +102,7 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   fornecedor da credencial em uso — tratar como subprocessador (IA-37).
   Operação: `docs/runbooks/ia.md`.
 - **Media Kit público** (`/p/:slug`, `portal/src/pages/PublicMediaKit.tsx`). Única
-  rota que aceita leitura anônima (`anon`) de propriedades publicadas e
+  rota que aceita leitura anônima (`anon`) de projetos publicados e
   insert público de leads. Qualquer dado exposto ali é público por definição
   — nunca adicione um campo a essa página ou às policies `*_public_read` sem
   confirmar que ele deveria mesmo ser visível sem login.

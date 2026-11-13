@@ -223,7 +223,7 @@ const Properties = () => {
       if (!avisarLimiteDoPlano(error)) toast.error(error.message);
       return;
     }
-    toast.success(editing ? "Propriedade atualizada!" : "Propriedade criada!");
+    toast.success(editing ? "Projeto atualizado!" : "Projeto criado!");
     setOpen(false);
     setEditing(null);
     setForm(emptyForm);
@@ -237,22 +237,22 @@ const Properties = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
       <PageHeader
-        title="Propriedades esportivas"
+        title="Projetos esportivos"
         description="Eventos, campeonatos e projetos que você comercializa."
         actions={
           <>
             <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
               <DialogTrigger asChild>
                 <Button onClick={openCreate} className="bg-gradient-brand hover:opacity-90 shadow-glow">
-                  <Plus className="h-4 w-4 mr-2" /> Nova propriedade
+                  <Plus className="h-4 w-4 mr-2" /> Novo projeto
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>{editing ? "Editar propriedade esportiva" : "Nova propriedade esportiva"}</DialogTitle>
+                  <DialogTitle>{editing ? "Editar projeto esportivo" : "Novo projeto esportivo"}</DialogTitle>
                   <DialogDescription>
                     {editing
-                      ? "Atualize as informações desta propriedade."
+                      ? "Atualize as informações deste projeto."
                       : "Estruture um evento, campeonato ou projeto patrocinável."}
                   </DialogDescription>
                 </DialogHeader>
@@ -316,7 +316,7 @@ const Properties = () => {
                       rows={3}
                       value={form.description}
                       onChange={(e) => setForm({ ...form, description: e.target.value })}
-                      placeholder="Breve descrição da propriedade..."
+                      placeholder="Breve descrição do projeto..."
                     />
                   </div>
 
@@ -328,7 +328,7 @@ const Properties = () => {
                     <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
                     <Button type="submit" disabled={submitting} className="bg-gradient-brand hover:opacity-90">
                       {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                      {editing ? "Salvar alterações" : "Criar propriedade"}
+                      {editing ? "Salvar alterações" : "Criar projeto"}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -341,7 +341,7 @@ const Properties = () => {
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar propriedade..."
+          placeholder="Buscar projeto..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
@@ -355,11 +355,11 @@ const Properties = () => {
           <CardContent className="py-16 text-center">
             <Trophy className="h-12 w-12 mx-auto text-primary mb-4" />
             <h3 className="font-semibold text-lg">
-              {properties.length === 0 ? "Nenhuma propriedade ainda" : "Nada encontrado"}
+              {properties.length === 0 ? "Nenhum projeto ainda" : "Nada encontrado"}
             </h3>
             <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
               {properties.length === 0
-                ? "Crie sua primeira propriedade esportiva para começar a estruturar suas cotas e ativos."
+                ? "Crie seu primeiro projeto esportivo para começar a estruturar suas cotas e ativos."
                 : "Tente buscar por outro termo."}
             </p>
             {properties.length === 0 && (
@@ -367,7 +367,7 @@ const Properties = () => {
                 onClick={() => setOpen(true)}
                 className="mt-6 bg-gradient-brand hover:opacity-90 shadow-glow"
               >
-                <Plus className="h-4 w-4 mr-2" /> Criar primeira propriedade
+                <Plus className="h-4 w-4 mr-2" /> Criar primeiro projeto
               </Button>
             )}
           </CardContent>
@@ -488,9 +488,9 @@ const Properties = () => {
                   ) : allocatedAssets.length === 0 ? (
                     <div className="py-12 text-center text-sm text-muted-foreground border border-dashed rounded-md">
                       <Boxes className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      Nenhum ativo alocado nesta propriedade ainda.
+                      Nenhum ativo alocado neste projeto ainda.
                       <br />
-                      Vá em <strong>Ativos</strong> e marque esta propriedade na alocação.
+                      Vá em <strong>Ativos</strong> e marque este projeto na alocação.
                     </div>
                   ) : (
                     <div className="space-y-2">

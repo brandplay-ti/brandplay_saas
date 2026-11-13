@@ -50,7 +50,7 @@ export default function LeadScoring() {
   const [scoring, setScoring] = useState(false);
 
   useEffect(() => {
-    // A propriedade escolhida é da organização anterior: não vale na nova.
+    // O projeto escolhido é da organização anterior: não vale na nova.
     setPropertyId("");
     if (!orgId) return;
     supabase.from("sports_properties").select("id,name").eq("organization_id", orgId).order("name").then(({ data }) => {
@@ -86,7 +86,7 @@ export default function LeadScoring() {
   const runScoring = async () => {
     if (!orgId) return;
     if (scopeMode === "property" && !propertyId) {
-      toast.error("Selecione uma propriedade.");
+      toast.error("Selecione um projeto.");
       return;
     }
     setScoring(true);
@@ -131,12 +131,12 @@ export default function LeadScoring() {
                 <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="global">Score global</SelectItem>
-                  <SelectItem value="property">Por propriedade</SelectItem>
+                  <SelectItem value="property">Por projeto</SelectItem>
                 </SelectContent>
               </Select>
               {scopeMode === "property" && (
                 <Select value={propertyId} onValueChange={setPropertyId}>
-                  <SelectTrigger className="w-[220px]"><SelectValue placeholder="Selecione propriedade" /></SelectTrigger>
+                  <SelectTrigger className="w-[220px]"><SelectValue placeholder="Selecione o projeto" /></SelectTrigger>
                   <SelectContent>
                     {properties.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                   </SelectContent>

@@ -32,7 +32,7 @@ type WizardOutput = {
 /**
  * Proposta que já existe (ex.: criada a partir do pipeline). Com ela, o
  * assistente não cria outra proposta: gera só as versões (conceito, deck,
- * WhatsApp, e-mail) para ela. Marca, patrocinador, propriedade e valor vêm da
+ * WhatsApp, e-mail) para ela. Marca, patrocinador, projeto e valor vêm da
  * proposta; os itens dela (ex.: copiados da cota) não são tocados.
  */
 export type PropostaExistente = {
@@ -275,7 +275,7 @@ export function ProposalWizardDialog({ sponsors = [], properties = [], proposta,
                 </Select>
               </div>
               <div className="space-y-2 col-span-2">
-                <Label>Propriedade</Label>
+                <Label>Projeto</Label>
                 <Select value={propertyId} onValueChange={setPropertyId}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -287,7 +287,7 @@ export function ProposalWizardDialog({ sponsors = [], properties = [], proposta,
               </>}
             </div>
             {proposta && (
-              <p className="text-xs text-muted-foreground">Patrocinador e propriedade vêm da proposta.</p>
+              <p className="text-xs text-muted-foreground">Patrocinador e projeto vêm da proposta.</p>
             )}
             <div className="space-y-2">
               <Label>Contexto adicional (opcional)</Label>

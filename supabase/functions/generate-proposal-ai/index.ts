@@ -2,7 +2,7 @@
 //
 // A proposta é criada na organização ativa (o portal grava com o `orgId`),
 // então é ela que a função recebe e valida contra o usuário do JWT. O
-// patrocinador e a propriedade, quando escolhidos, precisam ser dela (senão
+// patrocinador e o projeto, quando escolhidos, precisam ser dela (senão
 // 404); cotas e ativos do contexto também. Antes, os ativos vinham de todas
 // as organizações do usuário.
 
@@ -26,7 +26,7 @@ const FUNCIONALIDADE = "generate-proposal-ai";
 type Linha = Record<string, unknown>;
 
 const SISTEMA = `Você é um especialista em propostas comerciais para patrocínio esportivo no Brasil.
-Receba o contexto do patrocinador, da propriedade esportiva, dos ativos disponíveis e o briefing do usuário.
+Receba o contexto do patrocinador, do projeto esportivo, dos ativos disponíveis e o briefing do usuário.
 Gere uma proposta enxuta e persuasiva em português do Brasil, conectando os objetivos do patrocinador aos ativos disponíveis.
 - title: título curto (máx 80 chars), incluindo a marca quando souber.
 - message: mensagem comercial em 2-4 parágrafos, tom profissional e direto.
@@ -114,8 +114,8 @@ Deno.serve(async (req) => {
           .eq("organization_id", org)
           .order("position"),
       ]);
-      if (!p) throw new ErroDaRequisicao(404, "Propriedade não encontrada");
-      ctx.push(`PROPRIEDADE: ${p.name} (${p.category})${p.audience_estimate ? `\nAudiência estimada: ${p.audience_estimate}` : ""}${p.description ? `\nSobre: ${p.description}` : ""}`);
+      if (!p) throw new ErroDaRequisicao(404, "Projeto não encontrado");
+      ctx.push(`PROJETO: ${p.name} (${p.category})${p.audience_estimate ? `\nAudiência estimada: ${p.audience_estimate}` : ""}${p.description ? `\nSobre: ${p.description}` : ""}`);
       if (tiers?.length) {
         ctx.push(`COTAS DISPONÍVEIS:\n${(tiers as Linha[]).map((t) => `- ${t.name} (${t.level}) — R$ ${t.value}${t.benefits ? ` | ${t.benefits}` : ""}`).join("\n")}`);
       }
