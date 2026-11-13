@@ -90,7 +90,7 @@ const AdminFailureLogs = () => {
     <div className="space-y-6 animate-fade-in">
       <PageHeader
         title="Logs de falhas"
-        description={`Falhas de banco e de tela de todos os clientes, das mais recentes (até ${LIMITE_DE_FALHAS} por lista).`}
+        description={`Falhas de banco e de tela de todos os clientes, das mais recentes (até ${LIMITE_DE_FALHAS} por lista). Cada falha fica guardada por 3 meses.`}
         actions={
           <Button onClick={atualizar} disabled={atualizando} variant="outline" className="gap-2 self-start md:self-auto">
             <RefreshCw className={`h-4 w-4 ${atualizando ? "animate-spin" : ""}`} aria-hidden="true" /> Atualizar

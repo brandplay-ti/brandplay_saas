@@ -6314,6 +6314,13 @@ export type Database = {
         Returns: boolean
       }
       lidera_equipe: { Args: { _team_id: string }; Returns: boolean }
+      limpar_logs_de_falha: {
+        Args: never
+        Returns: {
+          removidos: number
+          tabela: string
+        }[]
+      }
       log_sponsor_interaction: {
         Args: {
           _contract_id: string
