@@ -34,7 +34,7 @@ const FieldEvents = () => {
       const { data: evs } = await supabase
         .from("property_events")
         .select("id, title, starts_at, ends_at, location, status, property_id, sports_properties(name)")
-        // Sem este filtro, a policy pública (0017) trazia eventos de propriedades
+        // Sem este filtro, a policy pública (0017) trazia eventos de projetos
         // publicadas de qualquer organização.
         .eq("organization_id", orgId)
         .gte("starts_at", new Date(Date.now() - 7 * 86400000).toISOString())

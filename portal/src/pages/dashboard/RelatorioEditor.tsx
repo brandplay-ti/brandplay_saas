@@ -72,7 +72,7 @@ export default function RelatorioEditor() {
     const ok = await confirm({
       title: "Excluir este relatório?",
       description:
-        "O link passa a mostrar que o relatório não está mais disponível. Não dá para desfazer. Posts, indicadores e fotos continuam na propriedade.",
+        "O link passa a mostrar que o relatório não está mais disponível. Não dá para desfazer. Posts, indicadores e fotos continuam no projeto.",
       confirmLabel: "Excluir",
       destructive: true,
     });

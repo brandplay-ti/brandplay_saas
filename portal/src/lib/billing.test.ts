@@ -143,14 +143,14 @@ describe("parsePlanLimitError", () => {
   it("lê o erro do PostgREST com hint e plano sugerido", () => {
     const erro = parsePlanLimitError({
       code: "23514",
-      message: "Limite de propriedades do plano Starter atingido (3 de 3).",
+      message: "Limite de projetos do plano Starter atingido (3 de 3).",
       details: "pro",
       hint: "limite_plano:propriedades",
     });
     expect(erro).toEqual({
       resource: "propriedades",
       suggestedPlanId: "pro",
-      message: "Limite de propriedades do plano Starter atingido (3 de 3).",
+      message: "Limite de projetos do plano Starter atingido (3 de 3).",
     });
   });
 
@@ -181,8 +181,8 @@ describe("planLimitMessage", () => {
 
 describe("uso", () => {
   it("rótulo e percentual com e sem teto", () => {
-    expect(usageLabel(2, 3, "propriedades")).toBe("2 de 3 propriedades");
-    expect(usageLabel(7, null, "propriedades")).toBe("7 propriedades (sem limite)");
+    expect(usageLabel(2, 3, "projetos")).toBe("2 de 3 projetos");
+    expect(usageLabel(7, null, "projetos")).toBe("7 projetos (sem limite)");
     expect(usagePercent(2, 4)).toBe(50);
     expect(usagePercent(5, 4)).toBe(100);
     expect(usagePercent(5, null)).toBeNull();

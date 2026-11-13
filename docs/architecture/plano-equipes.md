@@ -17,8 +17,8 @@
    dela**, nunca um tenant novo. Nada atravessa organizações: equipe, membro
    da equipe e projeto vinculado são sempre da mesma organização, garantido
    por chave estrangeira composta.
-2. **"Projeto" é a propriedade esportiva que já existe** (`sports_properties`,
-   com hierarquia por `parent_property_id`). Ela já está em oportunidades,
+2. **"Projeto" é o cadastro esportivo que já existe** (`sports_properties`,
+   com hierarquia por `parent_property_id`). Ele já está em oportunidades,
    propostas, contratos, entregas, cotas, eventos, mídia e relatórios. Criar
    uma entidade "projeto" paralela duplicaria isso (decisão D1).
 3. **Modelo recomendado: equipes recebem projetos; papéis recebem um
@@ -30,9 +30,9 @@
    "Organização inteira", que é o comportamento de hoje. Uma organização só
    passa a isolar equipes quando o administrador muda o escopo de um papel.
 5. **O administrador monta a estrutura (D12).** Dono e administrador veem
-   todas as propriedades, criam propriedades e equipes e vinculam membros e
+   todos os projetos, criam projetos e equipes e vinculam membros e
    projetos às equipes. O membro em escopo equipe herda os projetos das suas
-   equipes e não cria propriedade (7.7).
+   equipes e não cria projeto (7.7).
 6. **Pré-requisito: aceite de convite por quem já tem conta** (fase 0,
    entregue na `0041`). Antes dela, o convite só funcionava para quem se
    cadastrava depois dele (gatilho `handle_new_user`), e "vincular usuário já
@@ -51,7 +51,7 @@
 | Tela "Usuários & Permissões" (Membros, Permissões, Auditoria) | `pages/dashboard/Team.tsx`, `components/team/*` | base da tela nova |
 | Convite, reenvio, revogação, criação de usuário, troca de papel, reativação | Edge Function `manage-team-access` | ciclo de vida do membro |
 | Auditoria de equipe | `team_audit_log` (ações `invite_*`, `member_*`, `role_changed`, `permission_changed`) | trilha das alterações |
-| Hierarquia de propriedades | `sports_properties.parent_property_id` | herança de acesso para subprojetos |
+| Hierarquia de projetos | `sports_properties.parent_property_id` | herança de acesso para subprojetos |
 | Limite por plano | `billing_plans.max_users`, gatilho `trg_zz_billing_limit` | limitar equipes por plano, se for o caso |
 
 Onde está `property_id` hoje (raiz do escopo):
@@ -72,16 +72,21 @@ Onde está `property_id` hoje (raiz do escopo):
 
 ## 3. Conflito de nomes
 
-"Equipe" e "Projeto" já são **categorias de propriedade**
+"Equipe" e "Projeto" já são **categorias de projeto**
 (`Properties.tsx`: Evento, Campeonato, Projeto, Equipe, Atleta), e
-`sports_properties.teams_count` conta equipes esportivas. Um clube vai ter a
-propriedade "Equipe Sub-20" e a equipe de trabalho "Comercial SP" na mesma
+`sports_properties.teams_count` conta equipes esportivas. Um clube vai ter
+o projeto "Equipe Sub-20" e a equipe de trabalho "Comercial SP" na mesma
 tela.
+
+Desde a BP-6 (2026-11-13) a entidade inteira se chama "Projeto" na tela, e a
+categoria "Projeto" continua existindo: um projeto pode ter a categoria
+"Projeto". A categoria é dado gravado (`sports_properties.category`) e não
+foi renomeada; trocá-la é decisão de produto à parte.
 
 Proposta (D2):
 
 - **Na tela**: "Equipes de trabalho" no menu de configurações, e "Projetos"
-  como o nome genérico das propriedades nos vínculos ("projetos desta
+  como o nome genérico dos projetos nos vínculos ("projetos desta
   equipe").
 - **No banco**: `work_teams`, `work_team_members`, `work_team_properties`.
   Evita `teams`, que se confunde com a categoria e com `teams_count`.
@@ -95,7 +100,7 @@ Proposta (D2):
 | **Salesforce** | Objeto + hierarquia de papéis | "Organization-Wide Default" por objeto (privado / leitura / edição), hierarquia de papéis (o gestor vê o que o subordinado vê), regras de compartilhamento, perfis + *permission sets* aditivos, territórios. | Padrão por objeto e permissões **aditivas**; hierarquia fica para depois. |
 | **Zoho CRM** | Territórios | Registro atribuído a território; usuário vê o território e os filhos. | Herança para subníveis (= subprojetos). |
 | **GitHub** | Organização → equipes → repositórios | Papel definido **no vínculo** equipe↔repositório (read, triage, write, maintain, admin); equipes aninhadas herdam. | Acesso no vínculo equipe↔projeto (leitura ou edição). |
-| **Google Cloud IAM / Azure RBAC** | Organização → pasta → projeto | Papel concedido num nível vale para baixo; papéis predefinidos + personalizados. | Herança pela árvore de propriedades. |
+| **Google Cloud IAM / Azure RBAC** | Organização → pasta → projeto | Papel concedido num nível vale para baixo; papéis predefinidos + personalizados. | Herança pela árvore de projetos. |
 | **Jira / Linear / Asana** | Projeto ou equipe privada | Espaço privado só para membros; administrador vê tudo. | Administrador sempre com visão total. |
 | **Auth0 Organizations, WorkOS, Clerk** | Organização | Membros e papéis por organização. Não têm sub-escopo. | Confirma que sub-escopo é regra do produto, não do provedor de login. |
 | **Zanzibar / OpenFGA / SpiceDB** | Relação arbitrária | ReBAC num serviço externo. | Não agora: tira a decisão da RLS e cria mais um serviço para operar. |
@@ -120,9 +125,9 @@ Práticas que aparecem em quase todos:
 
 | | A. Equipe recebe projetos (recomendado) | B. Registro pertence a uma equipe | C. Organização por equipe |
 |---|---|---|---|
-| Como | Equipe ↔ propriedades; o registro herda o escopo do `property_id` que já tem. | Coluna `team_id` em cada registro raiz (estilo HubSpot). | Cada equipe vira uma organização. |
+| Como | Equipe ↔ projetos; o registro herda o escopo do `property_id` que já tem. | Coluna `team_id` em cada registro raiz (estilo HubSpot). | Cada equipe vira uma organização. |
 | Esforço no banco | Médio: policies das tabelas com projeto + herança nas filhas. | Alto: `team_id` em ~40 tabelas, preenchimento e migração de dados. | Baixo no banco. |
-| Coerência com o domínio | Alta: o trabalho já é organizado por propriedade. | Média: uma oportunidade de um projeto pode ser "de outra equipe". | Baixa: perde a visão consolidada, duplica patrocinador, cobrança por equipe. |
+| Coerência com o domínio | Alta: o trabalho já é organizado por projeto. | Média: uma oportunidade de um projeto pode ser "de outra equipe". | Baixa: perde a visão consolidada, duplica patrocinador, cobrança por equipe. |
 | Mudar alguém de equipe | Troca o vínculo; o histórico vai junto com o projeto. | Precisa reatribuir registros. | Migrar dados entre organizações. |
 | Patrocinador (sem projeto) | Precisa de regra própria (D5). | `team_id` direto. | Duplicado em cada organização. |
 
@@ -333,35 +338,35 @@ usuário:
 - Busca global (`CommandMenu`) e realtime: respeitam a RLS se continuarem no
   cliente do usuário.
 
-### 7.7 Propriedades (D12)
+### 7.7 Projetos (D12)
 
-O administrador monta a estrutura: dono e administrador veem todas as
-propriedades, criam propriedades e subprojetos, criam equipes e vinculam
-membros e projetos a elas. O membro não recebe propriedade uma a uma: herda
+O administrador monta a estrutura: dono e administrador veem todos os
+projetos, criam projetos e subprojetos, criam equipes e vinculam
+membros e projetos a elas. O membro não recebe projeto um a um: herda
 os projetos das equipes em que está, com os subprojetos quando o vínculo tem
 `include_children`.
 
 | Operação em `sports_properties` | Papel em escopo organização (hoje) | Papel em escopo equipe |
 |---|---|---|
 | Ler | todas (`is_org_member`) | só as de `projetos_visiveis` |
-| Criar propriedade ou subprojeto | CRM ou operacional com edição | não cria; o administrador cria |
+| Criar projeto ou subprojeto | CRM ou operacional com edição | não cria; o administrador cria |
 | Editar | CRM ou operacional com edição | só com vínculo `access = 'write'`; nunca muda `parent_property_id` |
 | Excluir | só owner/admin (0017) | só owner/admin |
 
 Regras:
 
 - **União entre módulos.** `sports_properties` serve ao CRM e ao
-  operacional, e o financeiro lê a propriedade de cada contrato. A
-  propriedade é visível quando o papel tem escopo `organizacao` em algum
+  operacional, e o financeiro lê o projeto de cada contrato. O
+  projeto é visível quando o papel tem escopo `organizacao` em algum
   módulo a que tem acesso, ou quando está nos projetos das equipes do
   usuário. Para isolar um papel, todos os módulos dele vão para "Minhas
   equipes" (a predefinição da 8.1 faz isso).
 - **`parent_property_id` não muda por quem está em escopo equipe** (o
-  gatilho recusa). Mover um subprojeto para baixo da propriedade de outra
+  gatilho recusa). Mover um subprojeto para baixo do projeto de outra
   equipe abriria os dados dele para essa equipe.
-- **Propriedade nova não entra sozinha em equipe nenhuma.** O administrador
+- **Projeto novo não entra sozinho em equipe nenhuma.** O administrador
   a vincula, na tela da equipe ou no cartão "Equipes com acesso" da
-  propriedade. Subprojeto novo de uma propriedade vinculada com
+  projeto. Subprojeto novo de um projeto vinculado com
   `include_children` já nasce visível para a equipe, porque
   `projetos_visiveis` percorre a árvore na consulta.
 - O media kit público (`*_public_read`) e o portal do patrocinador não
@@ -369,7 +374,7 @@ Regras:
 
 Suposição registrada em 2026-11-01: a criação só pelo administrador vale
 para papel em escopo equipe. Em escopo organização, Comercial e Operacional
-continuam criando propriedade como hoje (item 4 do resumo: nada muda para
+continuam criando projeto como hoje (item 4 do resumo: nada muda para
 quem não isola equipes). Se a criação tiver de ser só do administrador em
 qualquer caso, a policy `sports_properties_module_insert` da 0017 muda para
 todas as organizações, e isso precisa de decisão própria.
@@ -398,7 +403,7 @@ efeito.
 Sugestão de **predefinição** "Ativar isolamento por equipe": um botão que
 põe **todos os módulos** de Comercial e Operacional em "Minhas equipes" e
 deixa Financeiro em "Organização" (o financeiro normalmente concilia tudo).
-Um módulo deixado em Organização mantém o papel vendo todas as propriedades
+Um módulo deixado em Organização mantém o papel vendo todos os projetos
 (7.7). O administrador ajusta depois.
 
 ### 8.2 Líder de equipe (administração delegada)
@@ -433,7 +438,7 @@ Na página atual "Usuários & Permissões" (`Team.tsx`):
    - **Membros**: adicionar a partir dos membros ativos da organização
      (combobox com busca, só dentro da organização), papel na equipe, data de
      fim opcional;
-   - **Projetos**: adicionar propriedades (árvore com subprojetos), acesso
+   - **Projetos**: adicionar projetos (árvore com subprojetos), acesso
      leitura/edição, "incluir subprojetos".
 3. **Permissões** (existe): escopo em cada célula, a predefinição e um aviso
    de quantos membros perdem visibilidade antes de salvar.
@@ -445,7 +450,7 @@ Na página atual "Usuários & Permissões" (`Team.tsx`):
 
 Fora da página:
 
-- Na **propriedade** (`PropertyDetail`): aba ou cartão "Equipes com acesso".
+- No **projeto** (`PropertyDetail`): aba ou cartão "Equipes com acesso".
 - No **formulário de patrocinador**: "Equipe responsável" quando o usuário
   está em mais de uma.
 - No **seletor de organização**: nada muda. A organização ativa continua
@@ -494,8 +499,8 @@ Fechadas com o usuário em 2026-11-01.
 
 | # | Pergunta | Decisão |
 |---|---|---|
-| D1 | "Projeto" é a propriedade (`sports_properties`) ou uma entidade nova acima dela? | Propriedade; propriedade-mãe agrupa subprojetos |
-| D2 | Nomes na tela e no banco | "Equipes de trabalho" / `work_teams`; a categoria de propriedade "Equipe" não muda |
+| D1 | "Projeto" é o cadastro de `sports_properties` ou uma entidade nova acima dele? | O cadastro existente; o projeto pai agrupa subprojetos |
+| D2 | Nomes na tela e no banco | "Equipes de trabalho" / `work_teams`; a categoria de projeto "Equipe" não muda |
 | D3 | Hierarquia organização → projeto → equipe, ou equipe recebe vários projetos? | N:N: uma equipe recebe vários projetos e um projeto pode estar em várias equipes |
 | D4 | Registro sem projeto com escopo equipe | Quem está em escopo equipe é obrigado a escolher projeto; os antigos sem projeto ficam com quem criou e com o escopo organização |
 | D5 | Patrocinador | (c): carteira da equipe (`work_team_sponsors`) **ou** negócio num projeto visível |
@@ -505,7 +510,7 @@ Fechadas com o usuário em 2026-11-01.
 | D9 | Poderes do líder de equipe | Só membros da própria equipe, entre os que já são da organização, e data de fim; não convida nem vincula projetos |
 | D10 | Equipes limitadas por plano? | Recurso dos planos pagos acima do de entrada; coluna `max_teams` em `billing_plans`, gatilho `trg_zz_billing_limit`. Quais planos e quantas equipes: definir em `docs/business/cobranca.md` na fase 4 |
 | D11 | Financeiro em escopo equipe vê parcelas só dos projetos dele? | Sim, se configurado; a predefinição deixa o financeiro na organização |
-| D12 | Quem vê e cria propriedades com escopo equipe | O administrador (dono/admin) vê todas, cria propriedades, subprojetos e equipes, e vincula membros e projetos às equipes. O membro herda os projetos das suas equipes e não cria propriedade (7.7) |
+| D12 | Quem vê e cria projetos com escopo equipe | O administrador (dono/admin) vê todos, cria projetos, subprojetos e equipes, e vincula membros e projetos às equipes. O membro herda os projetos das suas equipes e não cria projeto (7.7) |
 
 ## 12. Fases
 
@@ -515,7 +520,7 @@ Fechadas com o usuário em 2026-11-01.
 | **1** ✅ | Equipes e vínculos, sem efeito na visibilidade: cadastro, membros, projetos, auditoria, "Ver como", equipes no convite | `0042`: `work_teams*`, `unique (organization_id, id)` em `sports_properties`, coluna `scope` (padrão `organizacao`, sem seletor na tela), ações do audit log, `organization_invites.team_ids`; teste em `equipes.sql` | Baixo: só tabelas novas |
 | **2** | Escopo "Minhas equipes" em `sports_properties` (7.7), nas tabelas com `property_id` e nas filhas; seletor de escopo na matriz | `projetos_visiveis`, `no_escopo`, policies de leitura **e escrita** do padrão 7 e de `sports_properties`, gatilho de `parent_property_id` | **Alto**: muda policies de ~30 tabelas |
 | **3** | Patrocinadores (D5, D7, D7a) e revisão da seção 7.6 | `work_team_sponsors`, `unique (organization_id, id)` em `sponsors`, policies `sponsor_*`, RPCs definer, storage | Alto |
-| **4** | Predefinição, aviso de impacto, tela da propriedade, limite por plano | `max_teams` | Baixo |
+| **4** | Predefinição, aviso de impacto, tela do projeto, limite por plano | `max_teams` | Baixo |
 | **5** | Perfis personalizados e módulos novos (8.3) | troca da chave da matriz | Alto; só com demanda |
 
 Pendente da fase 1: a tela do líder de equipe. O banco já aplica a D9
@@ -540,8 +545,8 @@ com duas equipes A e B na mesma organização e uma segunda organização:
 - escopo `organizacao` (padrão) vê tudo, igual a hoje — os testes atuais de
   `seguranca.sql`, `cobranca.sql` e `relatorios.sql` passam sem mudança;
 - owner, admin e sessão de suporte veem tudo;
-- membro em escopo equipe vê só as propriedades das suas equipes (com o
-  subprojeto, quando `include_children`), não cria propriedade nem muda
+- membro em escopo equipe vê só os projetos das suas equipes (com o
+  subprojeto, quando `include_children`), não cria projeto nem muda
   `parent_property_id`; papel com um módulo em escopo organização vê todas;
 - não é possível vincular equipe a projeto ou usuário de outra organização
   (FK composta) nem enviar `organization_id` diferente (gatilho descarta);

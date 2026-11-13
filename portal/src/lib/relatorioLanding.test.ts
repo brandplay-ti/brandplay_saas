@@ -79,7 +79,7 @@ describe("números", () => {
     expect(formatarIndicador({ valor: 96231.98, formato: "compacto", prefixo: null, sufixo: "h" })).toBe("96,2 mil h");
   });
 
-  it("zero da propriedade conta como em branco (D8)", () => {
+  it("zero do projeto conta como em branco (D8)", () => {
     const p = pagina({
       propriedade: {
         nome: "SCP",
@@ -118,7 +118,7 @@ describe("blocos", () => {
     expect(blocosVisiveis(p)).not.toContain("imprensa");
   });
 
-  it("patrocinadores só no relatório da propriedade; contrapartidas só no do patrocinador", () => {
+  it("patrocinadores só no relatório do projeto; contrapartidas só no do patrocinador", () => {
     const entrega = {
       id: "1",
       titulo: "Placa",

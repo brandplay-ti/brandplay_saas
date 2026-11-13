@@ -253,14 +253,14 @@ export default function Proposals() {
     const property = properties.find((p) => p.id === form.property_id);
     const brand = form.brand.trim() || sponsor?.name || "Marca";
     const sponsorName = sponsor?.name || brand;
-    const propertyName = property?.name || "propriedade selecionada";
+    const propertyName = property?.name || "projeto selecionado";
     const validUntil = form.valid_until || addDaysInput(7);
     const template = PROPOSAL_TEMPLATES[key];
     const title = form.title.trim() || `Proposta ${propertyName} · ${brand}`;
     const message = [
       `Olá, ${sponsorName}.`,
       `Preparamos este rascunho para ${template.tone} entre ${brand} e ${propertyName}.`,
-      `A proposta consolida os ativos e entregas recomendados para conectar a marca ao público da propriedade, com validade até ${formatDateBR(validUntil)}.`,
+      `A proposta consolida os ativos e entregas recomendados para conectar a marca ao público do projeto, com validade até ${formatDateBR(validUntil)}.`,
       "Fico à disposição para ajustar escopo, formatos e cronograma antes do envio final.",
     ].join("\n\n");
     setForm({ ...form, title, brand: form.brand || brand, valid_until: validUntil, message });
@@ -286,7 +286,7 @@ export default function Proposals() {
         organization_id: orgId,
         channel: "email",
         title: `Proposta ${property?.name ?? "de patrocínio"} para ${brand}`,
-        content: `<p>Olá, ${escapeHtml(sponsor?.name ?? brand)}.</p><p>${escapeHtml(form.message || `Segue rascunho da proposta para ${template.tone} com a ${property?.name ?? "propriedade selecionada"}.`)}</p><p>Prazo de validade: <strong>${escapeHtml(formatDateBR(form.valid_until || null))}</strong>.</p><p>Posso ajustar qualquer ponto antes do envio final.</p>`,
+        content: `<p>Olá, ${escapeHtml(sponsor?.name ?? brand)}.</p><p>${escapeHtml(form.message || `Segue rascunho da proposta para ${template.tone} com ${property?.name ?? "o projeto selecionado"}.`)}</p><p>Prazo de validade: <strong>${escapeHtml(formatDateBR(form.valid_until || null))}</strong>.</p><p>Posso ajustar qualquer ponto antes do envio final.</p>`,
         metadata: { subject: `Proposta ${property?.name ?? "de patrocínio"} para ${brand}`, template: templateKey },
       },
       {
@@ -656,7 +656,7 @@ export default function Proposals() {
     if (!selected || !user || !orgId) return;
     const missingFields: string[] = [];
     if (!selected.sponsor_id) missingFields.push("sponsor");
-    if (!selected.property_id) missingFields.push("propriedade");
+    if (!selected.property_id) missingFields.push("projeto");
     if (!total || total <= 0) missingFields.push("valor");
     if (items.length === 0) missingFields.push("itens/ativos");
     if (!selected.valid_until) missingFields.push("data prevista");
@@ -866,11 +866,11 @@ export default function Proposals() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Propriedade</Label>
+                <Label className="text-xs">Projeto</Label>
                 <Select value={propertyFilter} onValueChange={setPropertyFilter}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="all">Todos</SelectItem>
                     {properties.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -1032,7 +1032,7 @@ export default function Proposals() {
                   <SelectContent><SelectItem value="none">— sem cadastro —</SelectItem>{sponsors.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><Label>Propriedade</Label>
+              <div><Label>Projeto</Label>
                 <Select value={form.property_id || "none"} onValueChange={(v) => setForm({ ...form, property_id: v === "none" ? "" : v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent><SelectItem value="none">— nenhuma —</SelectItem>{properties.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
@@ -1345,7 +1345,7 @@ export default function Proposals() {
                       </Select>
                     </div>
                     <div className="space-y-1 p-1" data-field="propriedade">
-                      <Label className="text-xs text-muted-foreground">Propriedade</Label>
+                      <Label className="text-xs text-muted-foreground">Projeto</Label>
                       <Select value={selected.property_id ?? "none"} onValueChange={(v) => updateProposalField("property_id", v === "none" ? null : v)}>
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         <SelectContent><SelectItem value="none">— nenhuma —</SelectItem>{properties.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>

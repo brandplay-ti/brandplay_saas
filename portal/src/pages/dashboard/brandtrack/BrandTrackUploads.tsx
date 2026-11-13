@@ -154,12 +154,12 @@ const BrandTrackUploads = () => {
       .maybeSingle();
     if (existing?.id) return existing as EventRow;
 
-    // O evento fica na organização da propriedade, não na mais antiga do usuário.
+    // O evento fica na organização do projeto, não na mais antiga do usuário.
     const property = properties.find((p) => p.id === propId);
     const { data, error } = await db
       .from("brandtrack_events")
       .insert({
-        name: property?.name ?? "Propriedade",
+        name: property?.name ?? "Projeto",
         owner_id: user.id,
         organization_id: property?.organization_id,
         property_id: propId,
@@ -251,7 +251,7 @@ const BrandTrackUploads = () => {
   const handleFiles = async (files: FileList | null) => {
     if (!files || !user) return;
     if (!eventId) {
-      toast.error("Escolha uma propriedade antes de subir arquivos.");
+      toast.error("Escolha um projeto antes de subir arquivos.");
       if (inputRef.current) inputRef.current.value = "";
       return;
     }
@@ -302,7 +302,7 @@ const BrandTrackUploads = () => {
     const normalizedUrl = instagramUrl.trim();
     if (!user) return;
     if (!eventId) {
-      toast.error("Escolha uma propriedade antes de adicionar links.");
+      toast.error("Escolha um projeto antes de adicionar links.");
       return;
     }
     if (!isInstagramPostUrl(normalizedUrl)) {
@@ -417,7 +417,7 @@ const BrandTrackUploads = () => {
       toast.error(error.message);
       return;
     }
-    toast.success("Propriedade atualizada nas mídias selecionadas");
+    toast.success("Projeto atualizado nas mídias selecionadas");
     setBulkEvent("");
     setSelectedIds([]);
     void load();
@@ -485,9 +485,9 @@ const BrandTrackUploads = () => {
         <CardContent className="space-y-4">
           <div className="grid gap-3">
             <div className="space-y-2">
-              <Label>Propriedade</Label>
+              <Label>Projeto</Label>
               <Select value={propertyId} onValueChange={(v) => void selectProperty(v)}>
-                <SelectTrigger className="md:w-96"><SelectValue placeholder="Selecionar propriedade" /></SelectTrigger>
+                <SelectTrigger className="md:w-96"><SelectValue placeholder="Selecionar projeto" /></SelectTrigger>
                 <SelectContent>
                   {properties.map((p) => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
@@ -495,17 +495,17 @@ const BrandTrackUploads = () => {
                 </SelectContent>
               </Select>
               {properties.length === 0 && (
-                <p className="text-xs text-muted-foreground">Nenhuma propriedade cadastrada. Cadastre no módulo Propriedades.</p>
+                <p className="text-xs text-muted-foreground">Nenhum projeto cadastrado. Cadastre no módulo Projetos.</p>
               )}
               {resolvingProperty && (
-                <p className="text-xs text-muted-foreground flex items-center gap-2"><Loader2 className="h-3 w-3 animate-spin" /> Preparando propriedade…</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-2"><Loader2 className="h-3 w-3 animate-spin" /> Preparando projeto…</p>
               )}
             </div>
           </div>
 
           {expectedBrands.length > 0 && (
             <div className="rounded-lg border bg-muted/30 p-3">
-              <div className="mb-2 text-sm font-medium">Contexto IA da propriedade</div>
+              <div className="mb-2 text-sm font-medium">Contexto IA do projeto</div>
               <div className="flex flex-wrap gap-2">
                 {expectedBrands.slice(0, 12).map((brand) => (
                   <Badge key={brand.id} variant="secondary" className="gap-1">
@@ -529,7 +529,7 @@ const BrandTrackUploads = () => {
             }}
             {...clicavel(() => {
               if (!eventId) {
-                toast.error("Escolha uma propriedade antes de selecionar arquivos.");
+                toast.error("Escolha um projeto antes de selecionar arquivos.");
                 return;
               }
               inputRef.current?.click();
@@ -606,12 +606,12 @@ const BrandTrackUploads = () => {
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Buscar por título, propriedade ou marca detectada"
+                  placeholder="Buscar por título, projeto ou marca detectada"
                 />
                 <Select value={filterProperty} onValueChange={setFilterProperty}>
-                  <SelectTrigger><SelectValue placeholder="Propriedade" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Projeto" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas as propriedades</SelectItem>
+                    <SelectItem value="all">Todos os projetos</SelectItem>
                     {properties.map((p) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
                   </SelectContent>
                 </Select>
@@ -646,7 +646,7 @@ const BrandTrackUploads = () => {
                 {selectedIds.length > 0 && (
                   <div className="ml-auto flex flex-wrap items-center gap-2">
                     <Select value={bulkEvent} onValueChange={(v) => { setBulkEvent(v); void bulkMoveEvent(v); }}>
-                      <SelectTrigger className="w-56"><SelectValue placeholder="Mover para propriedade" /></SelectTrigger>
+                      <SelectTrigger className="w-56"><SelectValue placeholder="Mover para o projeto" /></SelectTrigger>
                       <SelectContent>
                         {properties.map((p) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
                       </SelectContent>

@@ -73,7 +73,7 @@ export function QuotaHeatmapWidget() {
           <CardTitle className="flex items-center gap-2 text-base">
             <LayoutGrid className="h-4 w-4 text-primary" /> Heatmap de cotas vendidas
           </CardTitle>
-          <p className="text-xs text-muted-foreground mt-1">% de slots vendidos por propriedade × cota</p>
+          <p className="text-xs text-muted-foreground mt-1">% de slots vendidos por projeto × cota</p>
         </div>
         <Button size="sm" variant="ghost" onClick={load} disabled={loading}>
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
@@ -82,7 +82,7 @@ export function QuotaHeatmapWidget() {
       <CardContent>
         {grid.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center">
-            Crie cotas em Propriedades → Cotas para visualizar o heatmap.
+            Crie cotas em Projetos → Cotas para visualizar o heatmap.
           </p>
         ) : (
           <div className="space-y-3">

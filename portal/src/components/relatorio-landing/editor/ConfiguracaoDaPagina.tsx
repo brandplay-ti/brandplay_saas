@@ -96,7 +96,7 @@ export function ConfiguracaoDaPagina({ relatorio, pagina, podeEditar, podePublic
                 id="rel-subtitulo"
                 value={form.subtitle}
                 onChange={(e) => campo("subtitle", e.target.value)}
-                placeholder="Sem subtítulo, a capa usa a chamada pública da propriedade."
+                placeholder="Sem subtítulo, a capa usa a chamada pública do projeto."
                 maxLength={300}
                 disabled={travado}
               />
@@ -109,7 +109,7 @@ export function ConfiguracaoDaPagina({ relatorio, pagina, podeEditar, podePublic
                 onChange={(e) => campo("summary", e.target.value)}
                 rows={6}
                 maxLength={3000}
-                placeholder="Sem resumo, a página usa o texto público da propriedade. Separe parágrafos com uma linha em branco."
+                placeholder="Sem resumo, a página usa o texto público do projeto. Separe parágrafos com uma linha em branco."
                 disabled={travado}
               />
             </div>

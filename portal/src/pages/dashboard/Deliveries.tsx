@@ -355,7 +355,7 @@ export default function Deliveries() {
       )
       .join("");
 
-    const header = `<tr><th>Entrega</th><th>Marca</th><th>Tipo</th><th>Qtd</th><th>Propriedade</th><th>Oportunidade</th><th>Status</th><th>Aprovação</th><th>Prev.</th><th>Entregue em</th><th>Evidência</th><th>Notas</th></tr>`;
+    const header = `<tr><th>Entrega</th><th>Marca</th><th>Tipo</th><th>Qtd</th><th>Projeto</th><th>Oportunidade</th><th>Status</th><th>Aprovação</th><th>Prev.</th><th>Entregue em</th><th>Evidência</th><th>Notas</th></tr>`;
 
     const win = window.open("", "_blank", "width=1200,height=800");
     if (!win) return toast.error("Permita pop-ups para exportar o PDF");
@@ -458,7 +458,7 @@ export default function Deliveries() {
             </div>
 
             <div class="meta-grid">
-              <div><label>Propriedade</label><span>${esc(d.property_id ? propertyNameById[d.property_id] : "—")}</span></div>
+              <div><label>Projeto</label><span>${esc(d.property_id ? propertyNameById[d.property_id] : "—")}</span></div>
               <div><label>Oportunidade</label><span>${esc(d.opportunity_id ? opportunities.find((o) => o.id === d.opportunity_id)?.brand : "—")}</span></div>
               <div><label>Data prevista</label><span>${fullDate(d.due_date)}</span></div>
               <div><label>Registrado em campo</label><span>${fullDateTime(d.delivered_at)}</span></div>
@@ -752,11 +752,11 @@ export default function Deliveries() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="prop">Propriedade</Label>
+                      <Label htmlFor="prop">Projeto</Label>
                       <Select value={form.property_id} onValueChange={(v) => setForm({ ...form, property_id: v })}>
                         <SelectTrigger id="prop"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">Nenhuma</SelectItem>
+                          <SelectItem value="none">Nenhum</SelectItem>
                           {properties.map((p) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
                         </SelectContent>
                       </Select>
@@ -828,17 +828,17 @@ export default function Deliveries() {
             <div className="relative flex-1 min-w-[200px]">
               <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Buscar por título, marca, tipo, propriedade ou notas..."
+                placeholder="Buscar por título, marca, tipo, projeto ou notas..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 h-9"
               />
             </div>
             <Select value={filterProperty} onValueChange={setFilterProperty}>
-              <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Propriedade" /></SelectTrigger>
+              <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Projeto" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas propriedades</SelectItem>
-                <SelectItem value="none">Sem propriedade</SelectItem>
+                <SelectItem value="all">Todos os projetos</SelectItem>
+                <SelectItem value="none">Sem projeto</SelectItem>
                 {properties.map((p) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
               </SelectContent>
             </Select>
@@ -1079,7 +1079,7 @@ function DeliveriesTableView({
             <TableHead>Entrega</TableHead>
             <TableHead>Marca</TableHead>
             <TableHead>Tipo</TableHead>
-            <TableHead>Propriedade</TableHead>
+            <TableHead>Projeto</TableHead>
             {temVendas && <TableHead>Oportunidade</TableHead>}
             <TableHead>Status</TableHead>
             <TableHead>Aprovação</TableHead>
@@ -1395,7 +1395,7 @@ function DetailSheet({
             </div>
             {propertyName && (
               <div>
-                <p className="text-xs text-muted-foreground">Propriedade</p>
+                <p className="text-xs text-muted-foreground">Projeto</p>
                 <p className="flex items-center gap-1"><Building2 className="h-3 w-3" />{propertyName}</p>
               </div>
             )}

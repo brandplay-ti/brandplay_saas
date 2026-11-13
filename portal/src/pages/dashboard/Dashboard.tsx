@@ -290,7 +290,7 @@ const Dashboard = () => {
         return (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             <ModuleCard to="/dashboard/patrocinadores" icon={<Users className="h-4 w-4" />} label={marca ? "Marcas" : "Patrocinadores"} value={counts.sponsors} />
-            <ModuleCard to="/dashboard/propriedades" icon={<Trophy className="h-4 w-4" />} label="Propriedades" value={counts.properties} />
+            <ModuleCard to="/dashboard/propriedades" icon={<Trophy className="h-4 w-4" />} label="Projetos" value={counts.properties} />
             <ModuleCard to="/dashboard/ativos" icon={<Boxes className="h-4 w-4" />} label="Ativos" value={counts.assets} />
             {temVendas && (
               <>

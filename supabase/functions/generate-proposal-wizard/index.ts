@@ -2,7 +2,7 @@
 // ativações, itens, deck, WhatsApp e e-mail.
 //
 // Como no rascunho simples, a proposta nasce na organização ativa: ela vem
-// do portal e é validada contra o usuário do JWT. Patrocinador e propriedade
+// do portal e é validada contra o usuário do JWT. Patrocinador e projeto
 // escolhidos precisam ser dela (senão 404), e os ativos do contexto também.
 
 import { gerar } from "../_shared/ai/camada.ts";
@@ -24,7 +24,7 @@ const FUNCIONALIDADE = "generate-proposal-wizard";
 /** Linha do PostgREST (as funções não têm os tipos gerados do banco). */
 type Linha = Record<string, unknown>;
 
-const SISTEMA = `Você é especialista do método Scout em propriedades esportivas. Crie uma proposta de patrocínio completa e estruturada.
+const SISTEMA = `Você é especialista do método Scout em projetos esportivos. Crie uma proposta de patrocínio completa e estruturada.
 Padrão Scout: conceito inspirador (1 frase + storytelling curto), ativações concretas e mensuráveis, entregas formatadas como itens contratáveis.
 Sempre escreva em português brasileiro, tom profissional e direto.
 
@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
           .eq("property_id", propertyId)
           .eq("organization_id", org),
       ]);
-      if (!p) throw new ErroDaRequisicao(404, "Propriedade não encontrada");
+      if (!p) throw new ErroDaRequisicao(404, "Projeto não encontrado");
       propriedade = p;
       ativos = (alocacoes ?? [])
         .map((a: Linha) => a.asset as Linha | null)
@@ -138,9 +138,9 @@ Deno.serve(async (req) => {
     const pedidoDoUsuario = `MARCA: ${brand}
 OBJETIVO: ${objective}${budget ? `\nORÇAMENTO ALVO: R$ ${budget.toLocaleString("pt-BR")}` : ""}
 
-${propriedade ? `PROPRIEDADE: ${propriedade.name} (${propriedade.category})
+${propriedade ? `PROJETO: ${propriedade.name} (${propriedade.category})
 Sobre: ${propriedade.public_about ?? propriedade.description ?? "—"}
-Público estimado: ${propriedade.audience_estimate ?? "n/d"}` : "Sem propriedade específica selecionada."}
+Público estimado: ${propriedade.audience_estimate ?? "n/d"}` : "Sem projeto específico selecionado."}
 
 ${patrocinador ? `PATROCINADOR: ${patrocinador.name} | Segmento: ${patrocinador.segment ?? "n/d"} | Tags: ${tags}
 Notas: ${patrocinador.notes ?? "—"}` : ""}

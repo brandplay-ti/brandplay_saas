@@ -11,11 +11,11 @@ Não confundir com `/dashboard/relatorios`, o painel analítico interno
 ## O que é
 
 Uma página institucional, aberta por link (`/r/<endereço>`), com os resultados
-de uma **propriedade** e, opcionalmente, de um **patrocinador** nela:
+de um **projeto** e, opcionalmente, de um **patrocinador** nele:
 
 | Tipo | Como se cria | O que mostra |
 |---|---|---|
-| Relatório da propriedade | Sem patrocinador | Temporada: números, patrocinadores por cota, jornada, conteúdos, público, acervo, imprensa |
+| Relatório do projeto | Sem patrocinador | Temporada: números, patrocinadores por cota, jornada, conteúdos, público, acervo, imprensa |
 | Relatório do patrocinador | Com patrocinador (e, se quiser, um contrato) | Prestação de contas: o conteúdo marcado com a marca e o geral, resultados digitais da marca e as contrapartidas com status |
 
 O relatório do patrocinador nunca mostra post, foto ou indicador marcado com
@@ -33,24 +33,24 @@ O bloco só aparece com o dado mínimo e pode ser desligado no editor.
 
 | Bloco | Fonte | Mínimo |
 |---|---|---|
-| Capa | Título, subtítulo (ou chamada pública da propriedade), capa da propriedade ou primeira foto, logos | sempre |
-| Números | Equipes, participantes, público, torcedores e premiação da propriedade; quantidade de momentos; indicadores "Números" | 2 números |
-| Resumo | Resumo do relatório ou texto público da propriedade | texto |
-| Patrocinadores | Cotas vendidas (`tier_sales`) e contratos ativos/encerrados na propriedade | relatório da propriedade com 1 patrocinador |
-| Jornada | Momentos da propriedade (`property_events`) e fotos ligadas a eles | 2 momentos |
+| Capa | Título, subtítulo (ou chamada pública do projeto), capa do projeto ou primeira foto, logos | sempre |
+| Números | Equipes, participantes, público, torcedores e premiação do projeto; quantidade de momentos; indicadores "Números" | 2 números |
+| Resumo | Resumo do relatório ou texto público do projeto | texto |
+| Patrocinadores | Cotas vendidas (`tier_sales`) e contratos ativos/encerrados no projeto | relatório do projeto com 1 patrocinador |
+| Jornada | Momentos do projeto (`property_events`) e fotos ligadas a eles | 2 momentos |
 | Vídeo em destaque | Vídeo do YouTube destacado, senão o mais visto | 1 vídeo do YouTube |
 | Digital | Soma das métricas dos posts (só os da marca, no relatório do patrocinador) e indicadores "Digital" | 1 indicador ou 1 post com visualizações |
 | Transmissão | Indicadores "Transmissão" | 1 indicador |
 | Conteúdos | Posts, reels e vídeos; ranking dos 10 mais vistos | 1 post |
 | Público | Indicadores "Público", agrupados (faixa etária, gênero, cidade) | 1 indicador |
-| Acervo | Fotos da galeria da propriedade, filtráveis por patrocinador, momento e etiqueta | 1 foto |
+| Acervo | Fotos da galeria do projeto, filtráveis por patrocinador, momento e etiqueta | 1 foto |
 | Imprensa | Posts do tipo "Matéria" | 1 matéria |
-| Contrapartidas | Entregas do patrocinador na propriedade (ou do contrato escolhido) | relatório do patrocinador com 1 entrega |
+| Contrapartidas | Entregas do patrocinador no projeto (ou do contrato escolhido) | relatório do patrocinador com 1 entrega |
 | Contato | Botão de contato (link https, WhatsApp ou mailto) e link do relatório completo | um dos dois |
 
 ### Números em branco
 
-Zero conta como em branco nas contagens da propriedade (o cadastro antigo usa
+Zero conta como em branco nas contagens do projeto (o cadastro antigo usa
 `0` como padrão). Um indicador com valor zero só aparece se "exibir zero"
 estiver marcado.
 
@@ -62,7 +62,7 @@ Entregue ou aprovada, e não reprovada pelo patrocinador.
 
 - Cadastrados por link `https`. A rede e o tipo são reconhecidos pelo link;
   YouTube e TikTok trazem o título pelo oEmbed público.
-- Pertencem à propriedade e servem a todos os relatórios dela. Marcar o
+- Pertencem ao projeto e servem a todos os relatórios dele. Marcar o
   patrocinador faz o post entrar no relatório dele.
 - **Métricas**: YouTube é buscado automaticamente (chave da YouTube Data API,
   no máximo uma busca por post a cada hora). Instagram, TikTok, Facebook, X e
@@ -74,14 +74,14 @@ Entregue ou aprovada, e não reprovada pelo patrocinador.
 
 ## Fotos
 
-As fotos são as da galeria da propriedade. No editor, cada foto recebe
+As fotos são as da galeria do projeto. No editor, cada foto recebe
 legenda, momento, patrocinador, etiquetas e a marcação **"contém menores de
 idade"**. Foto com menores nunca aparece num relatório **público**; nos
 demais acessos, aparece.
 
 Evidências das entregas (fotos do App de Campo) aparecem nas contrapartidas
 só para a equipe e para o patrocinador. No relatório público, nunca: para
-mostrar uma delas, coloque-a na galeria da propriedade, onde passa pela
+mostrar uma delas, coloque-a na galeria do projeto, onde passa pela
 marcação de menores.
 
 ## Quem acessa
@@ -109,7 +109,7 @@ relatório sem acesso respondem igual ("não encontrado").
 - Excluir é definitivo e lógico: o link passa a mostrar "Este relatório não
   está mais disponível. Entre em contato com o responsável pela conta." O
   endereço nunca é reaproveitado. Posts, indicadores e fotos continuam na
-  propriedade.
+  projeto.
 
 ## Cobrança
 
@@ -120,7 +120,7 @@ Sem limite de relatórios por plano. Organização sem acesso não cria nem edit
 
 A página nunca mostra valor de contrato, parcela, cota ou oportunidade, nem
 notas internas, descrição de entrega ou comentário de aprovação. A premiação
-da propriedade e indicadores digitados pela organização com prefixo "R$" são
+do projeto e indicadores digitados pela organização com prefixo "R$" são
 dados que a própria organização escolheu publicar.
 
 ## Cores da organização

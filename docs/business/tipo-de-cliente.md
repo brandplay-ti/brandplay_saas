@@ -30,7 +30,7 @@ O bloqueio é no banco, para qualquer papel, e não só no menu.
 ## O que a marca tem, igual à agência
 
 Patrocinadores (na tela, **"Marcas"**: a própria marca ou as marcas do grupo),
-propriedades (o que a marca patrocina), cotas (a cota comprada), ativos,
+projetos (o que a marca patrocina), cotas (a cota comprada), ativos,
 contratos, parcelas, entregas e aprovação, App de Campo, BrandTrack,
 relatórios de resultado (`/r/:slug`), relatório de entregas, portal do
 patrocinador, ROI, benchmark de ticket, resumo executivo, equipe e
@@ -64,8 +64,8 @@ Nada é apagado nem alterado (D11).
 
 ## Cobrança
 
-Mesmos planos, preços e limites para os dois tipos (D9). "Propriedades" no
-limite do plano são, para a marca, as propriedades que ela patrocina.
+Mesmos planos, preços e limites para os dois tipos (D9). "Projetos" no
+limite do plano são, para a marca, os projetos que ela patrocina.
 
 ## Permissões
 

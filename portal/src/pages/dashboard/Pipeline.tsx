@@ -741,7 +741,7 @@ export default function Pipeline() {
   };
 
   const getExportRows = () => [
-    ["Marca", "Estágio", "Score", "Valor", "Sponsor", "Propriedade", "Responsável", "Fechamento previsto", "Próxima ação", "Dias na etapa"],
+    ["Marca", "Estágio", "Score", "Valor", "Sponsor", "Projeto", "Responsável", "Fechamento previsto", "Próxima ação", "Dias na etapa"],
     ...sortedFiltered.map((opp) => [
       opp.brand,
       getStageMeta(opp.stage).label,
@@ -1096,11 +1096,11 @@ export default function Pipeline() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="property">Propriedade</Label>
+                        <Label htmlFor="property">Projeto</Label>
                         <Select value={form.property_id} onValueChange={(v) => setForm({ ...form, property_id: v })}>
-                          <SelectTrigger id="property"><SelectValue placeholder="Nenhuma" /></SelectTrigger>
+                          <SelectTrigger id="property"><SelectValue placeholder="Nenhum" /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="none">Nenhuma</SelectItem>
+                            <SelectItem value="none">Nenhum</SelectItem>
                             {properties.map((p) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
                           </SelectContent>
                         </Select>
@@ -1210,16 +1210,16 @@ export default function Pipeline() {
             <div className="relative flex-1 min-w-[200px]">
               <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Buscar por marca, sponsor, propriedade, notas ou responsável..."
+                placeholder="Buscar por marca, sponsor, projeto, notas ou responsável..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 h-9"
               />
             </div>
             <Select value={filterProperty} onValueChange={setFilterProperty}>
-              <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Propriedade" /></SelectTrigger>
+              <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Projeto" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas propriedades</SelectItem>
+                <SelectItem value="all">Todos os projetos</SelectItem>
                 {properties.map((p) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
               </SelectContent>
             </Select>
@@ -1920,7 +1920,7 @@ function PipelineTableView({
               <SortableTableHead active={sortMode === "stage_asc" || sortMode === "stage_desc"} desc={sortMode === "stage_desc"} onClick={() => toggleSort("stage_asc", "stage_desc")}>Estágio</SortableTableHead>
               <th className="px-4 py-3 text-left font-medium">Score</th>
               <SortableTableHead align="right" active={sortMode === "value_asc" || sortMode === "value_desc"} desc={sortMode === "value_desc"} onClick={() => toggleSort("value_asc", "value_desc")}>Valor</SortableTableHead>
-              <th className="px-4 py-3 text-left font-medium">Propriedade</th>
+              <th className="px-4 py-3 text-left font-medium">Projeto</th>
               <SortableTableHead active={sortMode === "assignee" || sortMode === "assignee_desc"} desc={sortMode === "assignee_desc"} onClick={() => toggleSort("assignee", "assignee_desc")}>Responsável</SortableTableHead>
               <SortableTableHead active={sortMode === "close_date" || sortMode === "close_date_desc"} desc={sortMode === "close_date_desc"} onClick={() => toggleSort("close_date", "close_date_desc")}>Data prevista</SortableTableHead>
               <th className="px-4 py-3 text-left font-medium">Próxima ação</th>

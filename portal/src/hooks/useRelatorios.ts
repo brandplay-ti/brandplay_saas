@@ -5,7 +5,7 @@ import { readEdgeFunctionError } from "@/lib/edgeFunctionError";
 import type { PaginaRelatorio } from "@/lib/relatorioLanding";
 
 // Dados do relatório em landing page (ADR-0011). A organização de cada linha
-// nova vem da propriedade, por gatilho no banco (0040), e não do portal.
+// nova vem do projeto, por gatilho no banco (0040), e não do portal.
 
 export type Relatorio = Tables<"reports">;
 export type PostDaPropriedade = Tables<"property_posts">;
@@ -14,7 +14,7 @@ export type FotoDaPropriedade = Tables<"property_media">;
 
 /**
  * O tipo gerado exige `organization_id` no insert, mas o gatilho
- * `tg_relatorio_vinculos` sempre o troca pela organização da propriedade. O
+ * `tg_relatorio_vinculos` sempre o troca pela organização do projeto. O
  * uuid nulo não existe em `organizations`: se o gatilho sumir, o insert falha
  * em vez de gravar a linha na organização errada.
  */
@@ -31,7 +31,7 @@ export const relatorioKeys = {
 };
 
 /** Relatórios da organização ativa, sem os excluídos. */
-/** Conteúdo da propriedade mudou: a lista dele e as páginas abertas no editor. */
+/** Conteúdo do projeto mudou: a lista dele e as páginas abertas no editor. */
 function invalidarConteudo(qc: ReturnType<typeof useQueryClient>, chave: readonly unknown[]) {
   qc.invalidateQueries({ queryKey: chave });
   qc.invalidateQueries({ queryKey: ["relatorios", "pagina"] });
@@ -102,7 +102,7 @@ export function useSalvarRelatorio(id: string | undefined) {
   });
 }
 
-/** Propriedades, patrocinadores, contratos e momentos para os seletores do editor. */
+/** Projetos, patrocinadores, contratos e momentos para os seletores do editor. */
 export function useApoioDoRelatorio(orgId: string | null, propertyId?: string) {
   return useQuery({
     queryKey: relatorioKeys.apoio(orgId, propertyId),
@@ -313,7 +313,7 @@ export function useSalvarFoto(propertyId: string | undefined) {
   });
 }
 
-/** Envia fotos para a galeria da propriedade (mesmo caminho do `PropertyMediaGallery`). */
+/** Envia fotos para a galeria do projeto (mesmo caminho do `PropertyMediaGallery`). */
 export function useEnviarFotos(propertyId: string | undefined, userId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({

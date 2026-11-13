@@ -45,7 +45,7 @@ export default function RelatoriosDeResultado() {
 
   const enviar = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!propriedade) return toast.error("Escolha a propriedade");
+    if (!propriedade) return toast.error("Escolha o projeto");
     const t = titulo.trim() || tituloSugerido(propriedade, patrocinador);
     if (!t) return toast.error("Informe o título");
     try {
@@ -73,7 +73,7 @@ export default function RelatoriosDeResultado() {
       <PageHeader
         title="Relatórios de resultado"
         icon={Presentation}
-        description="Landing pages com os resultados de uma propriedade ou de um patrocínio: números, fotos, posts, vídeos e entregas, com as cores da sua marca. Compartilhe por link."
+        description="Landing pages com os resultados de um projeto ou de um patrocínio: números, fotos, posts, vídeos e entregas, com as cores da sua marca. Compartilhe por link."
         actions={
           <Button onClick={() => setAberto(true)} disabled={!podeEditar}>
             <Plus className="mr-2 h-4 w-4" /> Novo relatório
@@ -87,7 +87,7 @@ export default function RelatoriosDeResultado() {
         <EmptyState
           icon={Presentation}
           title="Nenhum relatório ainda"
-          description="Crie um para a temporada de uma propriedade ou para a prestação de contas de um patrocinador."
+          description="Crie um para a temporada de um projeto ou para a prestação de contas de um patrocinador."
           action={podeEditar && (
             <Button onClick={() => setAberto(true)}>
               <Plus className="mr-2 h-4 w-4" /> Criar o primeiro
@@ -144,12 +144,12 @@ export default function RelatoriosDeResultado() {
             <DialogHeader>
               <DialogTitle>Novo relatório</DialogTitle>
               <DialogDescription>
-                Sem patrocinador, o relatório mostra a temporada da propriedade. Com patrocinador, vira a prestação de contas
+                Sem patrocinador, o relatório mostra a temporada do projeto. Com patrocinador, vira a prestação de contas
                 dele, com as contrapartidas.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-2">
-              <Label>Propriedade</Label>
+              <Label>Projeto</Label>
               <Select
                 value={propriedade}
                 onValueChange={(v) => {
@@ -157,7 +157,7 @@ export default function RelatoriosDeResultado() {
                   setContrato(NENHUM);
                 }}
               >
-                <SelectTrigger><SelectValue placeholder="Escolha a propriedade" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Escolha o projeto" /></SelectTrigger>
                 <SelectContent>
                   {apoio?.propriedades.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                 </SelectContent>
@@ -174,7 +174,7 @@ export default function RelatoriosDeResultado() {
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={TODOS}>Nenhum: relatório da propriedade</SelectItem>
+                  <SelectItem value={TODOS}>Nenhum: relatório do projeto</SelectItem>
                   {apoio?.patrocinadores.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -185,7 +185,7 @@ export default function RelatoriosDeResultado() {
                 <Select value={contrato} onValueChange={setContrato}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NENHUM}>Todas as entregas do patrocinador nesta propriedade</SelectItem>
+                    <SelectItem value={NENHUM}>Todas as entregas do patrocinador neste projeto</SelectItem>
                     {contratos.map((c) => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}
                   </SelectContent>
                 </Select>

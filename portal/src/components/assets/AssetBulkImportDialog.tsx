@@ -45,7 +45,7 @@ interface ParsedRow {
 }
 
 const TEMPLATE = [
-  "nome,categoria,valor_unitario,quantidade,propriedade,observacoes",
+  "nome,categoria,valor_unitario,quantidade,projeto,observacoes",
   "Placa de campo 3x1,Placa,25000,2,Campeonato Estadual,Visível nas transmissões",
   "Naming do evento,Naming,150000,1,,Cota exclusiva",
 ].join("\n");
@@ -63,6 +63,7 @@ const HEADER_ALIASES: Record<string, string> = {
   quantidade: "quantity",
   qtd: "quantity",
   quantity: "quantity",
+  projeto: "property",
   propriedade: "property",
   property: "property",
   observacoes: "notes",
@@ -123,7 +124,7 @@ export default function AssetBulkImportDialog({
 
       const propertyName = get("property");
       const propertyId = propertyName ? propByName.get(norm(propertyName)) ?? null : null;
-      if (propertyName && !propertyId) warnings.push("Propriedade não encontrada");
+      if (propertyName && !propertyId) warnings.push("Projeto não encontrado");
 
       return {
         line: idx + 2,
@@ -249,7 +250,7 @@ export default function AssetBulkImportDialog({
             <FileSpreadsheet className="h-5 w-5 text-primary" /> Importar ativos em massa
           </DialogTitle>
           <DialogDescription>
-            Envie um arquivo CSV ou cole o conteúdo. Colunas: nome, categoria, valor_unitario, quantidade, propriedade, observacoes.
+            Envie um arquivo CSV ou cole o conteúdo. Colunas: nome, categoria, valor_unitario, quantidade, projeto, observacoes.
           </DialogDescription>
         </DialogHeader>
 
@@ -309,7 +310,7 @@ export default function AssetBulkImportDialog({
                       <th className="p-2">Categoria</th>
                       <th className="p-2">Valor</th>
                       <th className="p-2">Qtd</th>
-                      <th className="p-2">Propriedade</th>
+                      <th className="p-2">Projeto</th>
                       <th className="p-2">Situação</th>
                     </tr>
                   </thead>
