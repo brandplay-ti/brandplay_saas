@@ -1058,3 +1058,23 @@ Suposições:
   pré-cadastro.
 - Baixa manual: a projeção marca `payment_method` nulo para fatura com
   `paid_with = manual` (o meio real não passa pelo Stripe).
+
+## Retenção dos logs de falha (0047, BP-5, ADR-0014)
+
+`backend_error_logs` e `error_reports` guardam no máximo 3 meses. O job
+`limpar-logs-de-falha` do `pg_cron` roda todo dia às 03:00 UTC e chama
+`public.limpar_logs_de_falha()`, que apaga as linhas com
+`created_at < now() - interval '3 months'` e devolve quantas saíram de cada
+tabela. É o primeiro uso do `pg_cron` no projeto.
+
+Suposições:
+
+- "Logs de erros" da demanda são estas duas tabelas, as da tela
+  `/admin/logs-falhas`. As trilhas de auditoria (`platform_admin_audit_log`,
+  `team_audit_log`, `*_audit_logs`) não são logs de falha e ficam fora; a
+  retenção delas é a do plano de auditoria (24 meses).
+- "Até 3 meses" é `interval '3 months'` contado de `created_at`, com rodada
+  diária: uma linha pode ficar até um dia a mais que o prazo.
+- A função não é `SECURITY DEFINER` e não tem `EXECUTE` para `anon`,
+  `authenticated` nem `service_role`: roda com o dono do job (quem aplicou a
+  migration). Nenhuma tela ou Edge Function a chama.
