@@ -81,6 +81,12 @@ estender esse fluxo.
   `organization_id` derivado do JWT/`organization_members`, nunca do body;
   nunca logue prompt, resposta ou chave. **`admin-ai`** — só superadmin ativo;
   auditar em `platform_admin_audit_log`; resposta e auditoria só com `key_hint`.
+- **Suporte da plataforma** (`platform_admins.role = 'suporte'`, 0046) — lê
+  pela `is_platform_staff()`/`platform_staff_require()` só o que a demanda deu
+  a ele (clientes, ficha, desconto, baixa, sessão de suporte). Função ou Edge
+  Function administrativa nova é do superadmin (`platform_admin_require()`,
+  `role = 'superadmin'`) a menos que a regra de negócio diga o contrário.
+  Nenhuma função de `authenticated` grava, rebaixa ou revoga superadmin.
 - **Superadmin da plataforma** (`platform_admins`, `admin_*`, `admin-plans`,
   área `/admin`, ADR-0008) — papel concedido só à mão por quem opera o banco;
   nunca abra escrita de `platform_admins` para `authenticated` nem crie

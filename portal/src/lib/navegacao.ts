@@ -1,5 +1,5 @@
 import { moduloDisponivel, type TipoDeCliente } from "@/lib/permissoes";
-import { LayoutDashboard, Trophy, Boxes, Briefcase, FileText, FileSignature, FileBarChart, Truck, Wallet, BarChart3, Users, UserCog, ShieldCheck, Settings as SettingsIcon, Sparkles, Camera, Eye, Upload, Tag, ListChecks, Image as ImageIcon, AlertTriangle, Bell, CalendarDays, CreditCard, ShieldEllipsis, Presentation } from "lucide-react";
+import { LayoutDashboard, Trophy, Boxes, Briefcase, FileText, FileSignature, FileBarChart, Truck, Wallet, BarChart3, Users, UserCog, ShieldCheck, Settings as SettingsIcon, Sparkles, Camera, Eye, Upload, Tag, ListChecks, Image as ImageIcon, Bell, CalendarDays, CreditCard, ShieldEllipsis, Presentation } from "lucide-react";
 
 /**
  * Menu do painel: fonte única para a barra lateral (`AppSidebar`) e para a
@@ -74,7 +74,6 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { title: "Equipe", url: "/dashboard/equipe", icon: UserCog, modules: ["team"] },
       { title: "Acessos ao Portal", url: "/dashboard/portal-access", icon: ShieldCheck, modules: ["team"] },
-      { title: "Logs de Falhas", url: "/dashboard/logs-falhas", icon: AlertTriangle, modules: ["team"] },
       { title: "Configurações", url: "/dashboard/configuracoes", icon: SettingsIcon, modules: ["team"] },
       { title: "Plano e cobrança", url: "/dashboard/plano", icon: CreditCard, modules: ["team"] },
     ],

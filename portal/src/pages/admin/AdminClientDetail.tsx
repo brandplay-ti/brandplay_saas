@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, CalendarPlus, ExternalLink, Eye, History, Loader2, Percent, Unlock } from "lucide-react";
+import { AlertTriangle, ArrowLeft, BadgeCheck, CalendarPlus, ExternalLink, Eye, History, Loader2, Percent, Unlock } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -19,8 +19,10 @@ import {
   useGrantAccess,
   useOpenSupportSession,
   useOrgDiscounts,
+  usePlatformRole,
   useRevokeDiscount,
   useRevokeGrant,
+  useSettleInvoice,
 } from "@/hooks/usePlatformAdmin";
 import {
   formatCents,
@@ -66,6 +68,10 @@ const AdminClientDetail = () => {
   const aplicarDesconto = useApplyDiscount(id);
   const revogarDesconto = useRevokeDiscount(id);
   const abrirSessao = useOpenSupportSession(id);
+  const darBaixa = useSettleInvoice(id);
+  // Liberação, extensão de teste e tipo de cliente são do superadmin; o
+  // Suporte lança desconto, dá baixa e abre sessão (0046). O banco repete a regra.
+  const { isPlatformAdmin } = usePlatformRole();
 
   if (detalhe.isLoading) {
     return (
@@ -111,56 +117,60 @@ const AdminClientDetail = () => {
             <p className="mt-1 text-muted-foreground">Cliente desde {formatDate(org.created_at)}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <CommentedActionDialog
-              trigger={
-                <Button variant="outline">
-                  <CalendarPlus /> Estender teste
-                </Button>
-              }
-              title="Estender o teste grátis"
-              description={
-                billing.trial_ends_at
-                  ? `O teste termina em ${formatDateTime(billing.trial_ends_at)}. Os dias são somados a partir do fim atual, ou de agora se já terminou.`
-                  : "Os dias são somados a partir de agora."
-              }
-              confirmLabel="Estender"
-              numberField={{ label: "Dias", min: 1, max: 90, defaultValue: 7 }}
-              onConfirm={async ({ amount, comment }) => {
-                try {
-                  const r = await estender.mutateAsync({ days: amount ?? 0, comment });
-                  toast.success(`Teste estendido até ${formatDateTime(r.trial_ends_at)}.`);
-                } catch (e) {
-                  avisarErro(e);
-                  throw e;
+            {isPlatformAdmin && (
+              <CommentedActionDialog
+                trigger={
+                  <Button variant="outline">
+                    <CalendarPlus /> Estender teste
+                  </Button>
                 }
-              }}
-            />
-            <CommentedActionDialog
-              trigger={
-                <Button>
-                  <Unlock /> Liberar acesso
-                </Button>
-              }
-              title="Liberar acesso provisoriamente"
-              description="Não altera a assinatura: o acesso cai sozinho no fim do prazo. Valem os limites do plano que aguarda pagamento, ou os do teste."
-              confirmLabel="Liberar"
-              numberField={{
-                label: "Horas",
-                min: 1,
-                max: 720,
-                defaultValue: horasPadrao,
-                description: `Padrão da plataforma: ${horasPadrao} h. Máximo: 720 h (30 dias).`,
-              }}
-              onConfirm={async ({ amount, comment }) => {
-                try {
-                  const r = await liberar.mutateAsync({ hours: amount ?? 0, comment });
-                  toast.success(`Acesso liberado até ${formatDateTime(r.expires_at)}.`);
-                } catch (e) {
-                  avisarErro(e);
-                  throw e;
+                title="Estender o teste grátis"
+                description={
+                  billing.trial_ends_at
+                    ? `O teste termina em ${formatDateTime(billing.trial_ends_at)}. Os dias são somados a partir do fim atual, ou de agora se já terminou.`
+                    : "Os dias são somados a partir de agora."
                 }
-              }}
-            />
+                confirmLabel="Estender"
+                numberField={{ label: "Dias", min: 1, max: 90, defaultValue: 7 }}
+                onConfirm={async ({ amount, comment }) => {
+                  try {
+                    const r = await estender.mutateAsync({ days: amount ?? 0, comment });
+                    toast.success(`Teste estendido até ${formatDateTime(r.trial_ends_at)}.`);
+                  } catch (e) {
+                    avisarErro(e);
+                    throw e;
+                  }
+                }}
+              />
+            )}
+            {isPlatformAdmin && (
+              <CommentedActionDialog
+                trigger={
+                  <Button>
+                    <Unlock /> Liberar acesso
+                  </Button>
+                }
+                title="Liberar acesso provisoriamente"
+                description="Não altera a assinatura: o acesso cai sozinho no fim do prazo. Valem os limites do plano que aguarda pagamento, ou os do teste."
+                confirmLabel="Liberar"
+                numberField={{
+                  label: "Horas",
+                  min: 1,
+                  max: 720,
+                  defaultValue: horasPadrao,
+                  description: `Padrão da plataforma: ${horasPadrao} h. Máximo: 720 h (30 dias).`,
+                }}
+                onConfirm={async ({ amount, comment }) => {
+                  try {
+                    const r = await liberar.mutateAsync({ hours: amount ?? 0, comment });
+                    toast.success(`Acesso liberado até ${formatDateTime(r.expires_at)}.`);
+                  } catch (e) {
+                    avisarErro(e);
+                    throw e;
+                  }
+                }}
+              />
+            )}
             <DiscountDialog
               trigger={
                 <Button variant="outline">
@@ -272,7 +282,7 @@ const AdminClientDetail = () => {
         </CardContent>
       </Card>
 
-      <ClientTypeAdminCard orgId={id} />
+      <ClientTypeAdminCard orgId={id} canChange={isPlatformAdmin} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card>
@@ -363,7 +373,7 @@ const AdminClientDetail = () => {
                       {g.comment ?? (g.kind === "confianca" ? "Comprovante de boleto enviado pelo cliente" : "—")}
                     </TableCell>
                     <TableCell className="text-right">
-                      {g.active ? (
+                      {g.active && isPlatformAdmin ? (
                         <CommentedActionDialog
                           trigger={
                             <Button variant="outline" size="sm">
@@ -385,7 +395,7 @@ const AdminClientDetail = () => {
                           }}
                         />
                       ) : (
-                        <Badge variant="outline">{g.revoked_at ? "Revogada" : "Encerrada"}</Badge>
+                        <Badge variant="outline">{g.active ? "Vigente" : g.revoked_at ? "Revogada" : "Encerrada"}</Badge>
                       )}
                     </TableCell>
                   </TableRow>
@@ -439,7 +449,10 @@ const AdminClientDetail = () => {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Faturas</CardTitle>
-            <CardDescription>Só leitura: o Stripe é a fonte do financeiro.</CardDescription>
+            <CardDescription>
+              O Stripe é a fonte do financeiro. Fatura em aberto que o cliente pagou por fora recebe baixa: ela é
+              quitada no Stripe.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {invoices.length === 0 ? (
@@ -453,7 +466,7 @@ const AdminClientDetail = () => {
                     <TableHead>Status</TableHead>
                     <TableHead>Pagamento</TableHead>
                     <TableHead className="text-right">
-                      <span className="sr-only">Abrir no Stripe</span>
+                      <span className="sr-only">Ações</span>
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -472,7 +485,28 @@ const AdminClientDetail = () => {
                           <p className="text-xs text-muted-foreground">{PAYMENT_METHOD_LABEL[f.payment_method]}</p>
                         )}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right whitespace-nowrap">
+                        {f.status === "aberta" && (
+                          <CommentedActionDialog
+                            trigger={
+                              <Button variant="outline" size="sm">
+                                <BadgeCheck /> Dar baixa
+                              </Button>
+                            }
+                            title={`Dar baixa na fatura ${f.number ?? ""}`.trim()}
+                            description={`${formatCents(f.amount_cents)}, vencimento ${formatDate(f.due_at)}. Use quando o cliente pagou fora do Stripe (transferência, depósito, Pix direto). A fatura é quitada no Stripe e a assinatura volta a ficar em dia. Não dá para desfazer pela tela.`}
+                            confirmLabel="Dar baixa"
+                            onConfirm={async ({ comment }) => {
+                              try {
+                                const r = await darBaixa.mutateAsync({ invoiceId: f.id, comment });
+                                toast.success(r.resultado === "ja_paga" ? "A fatura já estava paga no Stripe." : "Baixa registrada.");
+                              } catch (e) {
+                                avisarErro(e);
+                                throw e;
+                              }
+                            }}
+                          />
+                        )}
                         {f.hosted_invoice_url && (
                           <Button asChild variant="ghost" size="sm">
                             <a href={f.hosted_invoice_url} target="_blank" rel="noopener noreferrer" aria-label={`Abrir fatura ${f.number ?? ""} no Stripe`}>
@@ -495,7 +529,7 @@ const AdminClientDetail = () => {
           <CardTitle className="flex items-center gap-2 text-base">
             <History className="h-4 w-4" aria-hidden="true" /> Histórico administrativo
           </CardTitle>
-          <CardDescription>Ações do superadmin sobre esta organização (últimas 50).</CardDescription>
+          <CardDescription>Ações da equipe da plataforma sobre esta organização (últimas 50).</CardDescription>
         </CardHeader>
         <CardContent>
           {audit.length === 0 ? (

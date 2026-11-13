@@ -1,6 +1,6 @@
 import { useOrganization } from "@/hooks/useOrganization";
 import { gruposVisiveis, urlAtiva } from "@/lib/navegacao";
-import { useIsPlatformAdmin } from "@/hooks/usePlatformAdmin";
+import { usePlatformRole } from "@/hooks/usePlatformAdmin";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -16,6 +16,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/Logo";
+import { ClientSelector } from "@/components/admin/ClientSelector";
 import { cn } from "@/lib/utils";
 
 export const AppSidebar = () => {
@@ -24,9 +25,10 @@ export const AppSidebar = () => {
   const location = useLocation();
   const { can, clientType, isAdmin, loading } = useOrganization();
   // Só o atalho: a área /admin se protege sozinha (layout + banco).
-  const { isPlatformAdmin } = useIsPlatformAdmin();
+  // O atalho para /admin vale para a equipe inteira: superadmin e suporte (0046).
+  const { isPlatformStaff } = usePlatformRole();
 
-  const visibleGroups = gruposVisiveis({ can, clientType, isAdmin, loading, isPlatformAdmin });
+  const visibleGroups = gruposVisiveis({ can, clientType, isAdmin, loading, isPlatformAdmin: isPlatformStaff });
   const activeUrl = urlAtiva(visibleGroups, location.pathname);
 
   return (
@@ -39,6 +41,15 @@ export const AppSidebar = () => {
         )}
       </SidebarHeader>
       <SidebarContent>
+        {/* Equipe da plataforma: troca de cliente ou volta à visão de admin (BP-4). */}
+        {isPlatformStaff && !collapsed && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Cliente</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <ClientSelector className="w-full" />
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
         {visibleGroups.map((group) => (
           <SidebarGroup key={group.label}>
             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>

@@ -1,11 +1,12 @@
 import { Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GlobalErrorReporter } from "@/components/GlobalErrorReporter";
 import { DocumentTitle } from "@/components/DocumentTitle";
+import { SomenteSuperadmin } from "@/components/admin/SomenteSuperadmin";
 import { ConfirmProvider } from "@/hooks/useConfirm";
 import Landing from "./pages/Landing";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -42,7 +43,6 @@ const CalendarPage = lazyPage(() => import("./pages/dashboard/Calendar"));
 const PortalAccess = lazyPage(() => import("./pages/dashboard/PortalAccess"));
 const Settings = lazyPage(() => import("./pages/dashboard/Settings"));
 const Team = lazyPage(() => import("./pages/dashboard/Team"));
-const FailureLogs = lazyPage(() => import("./pages/dashboard/FailureLogs"));
 const Plan = lazyPage(() => import("./pages/dashboard/Plan"));
 const BrandTrackLayout = lazyPage(() => import("./pages/dashboard/brandtrack/BrandTrackLayout"));
 const BrandTrackDashboard = lazyPage(() => import("./pages/dashboard/brandtrack/BrandTrackDashboard"));
@@ -71,6 +71,8 @@ const AdminRevenue = lazyPage(() => import("./pages/admin/AdminRevenue"));
 const AdminAi = lazyPage(() => import("./pages/admin/AdminAi"));
 const AdminAiClientDetail = lazyPage(() => import("./pages/admin/AdminAiClientDetail"));
 const AdminAiPrecos = lazyPage(() => import("./pages/admin/AdminAiPrecos"));
+const AdminTeam = lazyPage(() => import("./pages/admin/AdminTeam"));
+const AdminFailureLogs = lazyPage(() => import("./pages/admin/AdminFailureLogs"));
 const NotFound = lazyPage(() => import("./pages/NotFound.tsx"));
 
 const queryClient = new QueryClient();
@@ -128,7 +130,8 @@ const App = () => (
             <Route path="notificacoes" element={<Notifications />} />
             <Route path="portal-access" element={<PortalAccess />} />
             <Route path="equipe" element={<Team />} />
-            <Route path="logs-falhas" element={<FailureLogs />} />
+            {/* Logs de falha são da plataforma (BP-3): moraram aqui até a 0045. */}
+            <Route path="logs-falhas" element={<Navigate to="/admin/logs-falhas" replace />} />
             <Route path="configuracoes" element={<Settings />} />
             <Route path="plano" element={<Plan />} />
             <Route path="brandtrack" element={<BrandTrackLayout />}>
@@ -141,8 +144,9 @@ const App = () => (
               <Route path="relatorios" element={<BrandTrackReports />} />
             </Route>
           </Route>
-          {/* Administração da plataforma (superadmin, ADR-0008). A guarda do
-              layout é experiência; quem barra é o banco. */}
+          {/* Administração da plataforma (superadmin e suporte, ADR-0008 e
+              0046). As guardas do layout e das rotas são experiência; quem
+              barra é o banco. */}
           <Route
             path="/admin"
             element={
@@ -151,14 +155,16 @@ const App = () => (
               </ProtectedRoute>
             }
           >
-            <Route index element={<AdminOverview />} />
+            <Route index element={<SomenteSuperadmin><AdminOverview /></SomenteSuperadmin>} />
             <Route path="clientes" element={<AdminClients />} />
             <Route path="clientes/:id" element={<AdminClientDetail />} />
-            <Route path="planos" element={<AdminPlans />} />
-            <Route path="faturamento" element={<AdminRevenue />} />
-            <Route path="ia" element={<AdminAi />} />
-            <Route path="ia/clientes/:id" element={<AdminAiClientDetail />} />
-            <Route path="ia/precos" element={<AdminAiPrecos />} />
+            <Route path="planos" element={<SomenteSuperadmin><AdminPlans /></SomenteSuperadmin>} />
+            <Route path="faturamento" element={<SomenteSuperadmin><AdminRevenue /></SomenteSuperadmin>} />
+            <Route path="ia" element={<SomenteSuperadmin><AdminAi /></SomenteSuperadmin>} />
+            <Route path="ia/clientes/:id" element={<SomenteSuperadmin><AdminAiClientDetail /></SomenteSuperadmin>} />
+            <Route path="ia/precos" element={<SomenteSuperadmin><AdminAiPrecos /></SomenteSuperadmin>} />
+            <Route path="equipe" element={<SomenteSuperadmin><AdminTeam /></SomenteSuperadmin>} />
+            <Route path="logs-falhas" element={<SomenteSuperadmin><AdminFailureLogs /></SomenteSuperadmin>} />
           </Route>
           <Route path="/campo" element={<FieldLayout />}>
             <Route index element={<FieldDeliveries />} />

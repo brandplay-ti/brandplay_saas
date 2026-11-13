@@ -507,6 +507,22 @@ Suposições registradas:
 - MRR usa o preço **atual** do catálogo, não o preço real de cada assinatura
   no Stripe (que fica no preço antigo depois de um reajuste).
 
+### Logs de falha só para o superadmin (0045, BP-3)
+
+`backend_error_logs` e `error_reports` passaram do padrão 3 com leitura de
+owner/admin (0017: `*_own_read` e `*_admin_read`) para o padrão 9:
+`*_platform_admin_read` com `is_platform_admin()`, sem escrita para `anon` e
+`authenticated` (insert/update/delete revogados). São telemetria da plataforma
+e continuam fora da policy restritiva de cobrança e do teste `(m)`.
+
+Suposição: os registros podem trazer, em `error_details`, valores da linha que
+falhou (ex.: chave duplicada). O superadmin passa a vê-los; é o custo de
+diagnosticar a falha, e não é leitura das tabelas de domínio. As funções que
+gravam (`log-db-error`, `report-error`) cortam o texto livre e só guardam a
+`organization_id` enviada quando o usuário é membro ativo dela
+(`_shared/logs_de_falha.ts`); senão gravam nula e marcam
+`metadata.organizacao_descartada`.
+
 ## Relatório de entrega: quais evidências entram (0030, 2026-10-17)
 
 `get_delivery_report_data` alimenta o PDF de `generate-delivery-report`. A
@@ -1011,3 +1027,54 @@ de negócio em `docs/business/tipo-de-cliente.md`; análise e decisões em
   recortado pelo contrato, com `subject` (marca e valor do contrato) no lugar
   de `opportunity`. Só `service_role`; `generate-delivery-report` confere
   antes, com o client do usuário, que ele lê o contrato.
+
+## Perfil Suporte e equipe da plataforma (0046, BP-4)
+
+`platform_admins` passou a ser a equipe da plataforma, com `role`
+(`superadmin` | `suporte`, padrão `superadmin` para as linhas existentes).
+
+| Tabela / função | O que é | Quem |
+| --- | --- | --- |
+| `platform_admins.role` | papel na equipe | escrita só por `platform_admin_grant` (superadmin, manual) e `admin_equipe_*` (suporte, pelo superadmin) |
+| `platform_staff_signups` | pré-cadastro de conta da equipe (15 min) | sem policy; só service role e `admin_equipe_pre_cadastro` |
+| `is_platform_admin()` | **só superadmin** (mudou de sentido) | todas as policies e funções que já a usavam |
+| `is_platform_staff()`, `platform_staff_require()`, `platform_role()` | superadmin ou suporte | `admin_clientes`, `admin_cliente_detalhe`, `admin_tipo(s)_de_cliente`, sessão de suporte, `billing_discounts_platform_staff_read` |
+| `admin_equipe()`, `admin_equipe_conceder_suporte(email, motivo)`, `admin_equipe_revogar_suporte(user, motivo)`, `admin_equipe_pre_cadastro(email)` | equipe pela tela | só superadmin |
+
+Suposições:
+
+- MRR por cliente é faturamento: `admin_clientes()` devolve `mrr_cents` nulo
+  para o Suporte. As faturas da ficha são o que o Suporte precisa para dar
+  baixa; a leitura direta de `billing_*` continua só do superadmin.
+- Liberação provisória, extensão de teste e troca do tipo de cliente seguem
+  só do superadmin: a demanda (BP-4) pediu ao Suporte listar clientes, dar
+  baixa e lançar desconto.
+- `admin_equipe_conceder_suporte` não rebaixa superadmin ativo (erro
+  `check_violation`) e é idempotente para suporte ativo. `platform_admin_grant`
+  promove suporte a superadmin (`role = 'superadmin'`).
+- Revogar suporte encerra a sessão de suporte aberta dele.
+- `handle_new_user` (corpo da 0043) não cria organização pessoal quando há
+  pré-cadastro pendente e no prazo para o e-mail. Conceder suporte consome o
+  pré-cadastro.
+- Baixa manual: a projeção marca `payment_method` nulo para fatura com
+  `paid_with = manual` (o meio real não passa pelo Stripe).
+
+## Retenção dos logs de falha (0047, BP-5, ADR-0014)
+
+`backend_error_logs` e `error_reports` guardam no máximo 3 meses. O job
+`limpar-logs-de-falha` do `pg_cron` roda todo dia às 03:00 UTC e chama
+`public.limpar_logs_de_falha()`, que apaga as linhas com
+`created_at < now() - interval '3 months'` e devolve quantas saíram de cada
+tabela. É o primeiro uso do `pg_cron` no projeto.
+
+Suposições:
+
+- "Logs de erros" da demanda são estas duas tabelas, as da tela
+  `/admin/logs-falhas`. As trilhas de auditoria (`platform_admin_audit_log`,
+  `team_audit_log`, `*_audit_logs`) não são logs de falha e ficam fora; a
+  retenção delas é a do plano de auditoria (24 meses).
+- "Até 3 meses" é `interval '3 months'` contado de `created_at`, com rodada
+  diária: uma linha pode ficar até um dia a mais que o prazo.
+- A função não é `SECURITY DEFINER` e não tem `EXECUTE` para `anon`,
+  `authenticated` nem `service_role`: roda com o dono do job (quem aplicou a
+  migration). Nenhuma tela ou Edge Function a chama.

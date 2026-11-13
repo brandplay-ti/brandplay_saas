@@ -95,6 +95,11 @@ parada nesse intervalo:
 Liberações do superadmin, revogações e extensões de teste ficam no histórico
 administrativo (`platform_admin_audit_log`), com autor e motivo.
 
+**Baixa manual** (0046): fatura em aberto que o cliente pagou fora do Stripe
+recebe baixa na ficha do cliente, pelo superadmin ou pelo Suporte, com motivo.
+A fatura é quitada no Stripe (`paid_out_of_band`, `paid_with = manual`); a
+regra de acesso não muda, porque a assinatura fica em dia pelo próprio Stripe.
+
 A liberação nunca muda a assinatura: quando o boleto compensa, ela fica ativa
 sozinha; quando o prazo passa sem compensar, o acesso cai. Durante a
 liberação valem os limites do plano contratado.

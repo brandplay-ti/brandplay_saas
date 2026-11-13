@@ -7,7 +7,7 @@
 // A leitura do catálogo não passa por aqui: `billing_plans` é de leitura
 // pública (0024). Escrever só por aqui, porque o Stripe acompanha o catálogo.
 //
-// Ordem: JWT → superadmin ativo (`platform_admins`) → valida → grava
+// Ordem: JWT → superadmin ativo (`platform_admins`, role superadmin) → valida → grava
 // `billing_plans` → sincroniza o Stripe → audita. O banco é a fonte da regra
 // comercial (ADR-0007); o Stripe só espelha produto e preço. Se o Stripe
 // falhar depois da gravação, a resposta diz, e "Sincronizar" ou o próximo
@@ -280,6 +280,7 @@ Deno.serve(async (req) => {
     .from("platform_admins")
     .select("user_id")
     .eq("user_id", user.id)
+    .eq("role", "superadmin")
     .is("revoked_at", null)
     .maybeSingle();
   if (!vinculo) return json({ error: "Acesso restrito ao superadmin da plataforma." }, 403);

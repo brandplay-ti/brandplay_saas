@@ -1,4 +1,4 @@
-// Desconto e isenção do superadmin (0035).
+// Desconto e isenção pela equipe da plataforma (0035): superadmin ou suporte (0046).
 //
 //   POST { action: "apply",  organization_id, percent_off, duration_months, comment }
 //   POST { action: "revoke", discount_id, comment }
@@ -227,7 +227,8 @@ Deno.serve(async (req) => {
     .eq("user_id", userData.user.id)
     .is("revoked_at", null)
     .maybeSingle();
-  if (!vinculo) return json({ error: "Acesso restrito ao superadmin da plataforma." }, 403);
+  // Qualquer vínculo ativo: superadmin ou suporte lançam e revogam desconto (0046).
+  if (!vinculo) return json({ error: "Acesso restrito à equipe da plataforma." }, 403);
 
   let corpo: Corpo;
   try {

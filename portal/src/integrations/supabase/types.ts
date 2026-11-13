@@ -3158,6 +3158,7 @@ export type Database = {
           comment: string
           created_at: string
           revoked_at: string | null
+          role: string
           updated_at: string
           user_id: string
         }
@@ -3165,6 +3166,7 @@ export type Database = {
           comment: string
           created_at?: string
           revoked_at?: string | null
+          role?: string
           updated_at?: string
           user_id: string
         }
@@ -3172,8 +3174,39 @@ export type Database = {
           comment?: string
           created_at?: string
           revoked_at?: string | null
+          role?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      platform_staff_signups: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          created_by: string
+          email: string
+          expires_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          created_by: string
+          email: string
+          expires_at: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -5871,6 +5904,31 @@ export type Database = {
         Args: { _comentario: string; _sessao_id: string }
         Returns: Json
       }
+      admin_equipe: {
+        Args: never
+        Returns: {
+          comment: string
+          created_at: string
+          email: string
+          full_name: string
+          last_sign_in_at: string
+          revoked_at: string
+          role: string
+          user_id: string
+        }[]
+      }
+      admin_equipe_conceder_suporte: {
+        Args: { _comentario: string; _email: string }
+        Returns: string
+      }
+      admin_equipe_pre_cadastro: {
+        Args: { _email: string }
+        Returns: undefined
+      }
+      admin_equipe_revogar_suporte: {
+        Args: { _comentario: string; _user_id: string }
+        Returns: undefined
+      }
       admin_estender_teste: {
         Args: { _comentario: string; _dias: number; _org_id: string }
         Returns: Json
@@ -6242,6 +6300,7 @@ export type Database = {
         | { Args: { _org_id: string; _user_id: string }; Returns: boolean }
         | { Args: { target_org_id: string }; Returns: boolean }
       is_platform_admin: { Args: never; Returns: boolean }
+      is_platform_staff: { Args: never; Returns: boolean }
       is_property_published: {
         Args: { target_property_id: string }
         Returns: boolean
@@ -6255,6 +6314,13 @@ export type Database = {
         Returns: boolean
       }
       lidera_equipe: { Args: { _team_id: string }; Returns: boolean }
+      limpar_logs_de_falha: {
+        Args: never
+        Returns: {
+          removidos: number
+          tabela: string
+        }[]
+      }
       log_sponsor_interaction: {
         Args: {
           _contract_id: string
@@ -6305,6 +6371,8 @@ export type Database = {
         Args: { _comment: string; _email: string }
         Returns: string
       }
+      platform_role: { Args: never; Returns: string }
+      platform_staff_require: { Args: never; Returns: undefined }
       projetos_das_equipes: {
         Args: { _org_id: string; _user_id: string }
         Returns: {
