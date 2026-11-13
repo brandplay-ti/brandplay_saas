@@ -18,7 +18,7 @@ export const getOpportunityStageChecklistIssues = (
     return [
       !opportunity.sponsor_id ? "sponsor definido" : null,
       !Number.isFinite(Number(opportunity.value)) || Number(opportunity.value) <= 0 ? "valor preenchido" : null,
-      !opportunity.property_id ? "propriedade selecionada" : null,
+      !opportunity.property_id ? "projeto selecionado" : null,
       opportunity.pendingActivities <= 0 ? "próxima atividade criada" : null,
     ].filter(Boolean) as string[];
   }

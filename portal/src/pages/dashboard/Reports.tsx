@@ -346,7 +346,7 @@ export default function Reports() {
   };
   const exportPipelineCSV = () => {
     const rows: (string | number)[][] = [
-      ["Marca", "Estágio", "Valor", "Propriedade", "Patrocinador", "Criado em"],
+      ["Marca", "Estágio", "Valor", "Projeto", "Patrocinador", "Criado em"],
       ...filteredOpportunities.map((o) => [
         o.brand,
         STAGE_LABELS[o.stage] ?? o.stage,
@@ -482,11 +482,11 @@ export default function Reports() {
             <DateInput value={to} onValueChange={setTo} />
           </div>
           <div className="space-y-1">
-            <Label>Propriedade</Label>
+            <Label>Projeto</Label>
             <Select value={propertyId} onValueChange={setPropertyId}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 {properties.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
               </SelectContent>
             </Select>

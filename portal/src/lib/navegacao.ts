@@ -40,7 +40,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Plays",
     items: [
-      { title: "Propriedades", url: "/dashboard/propriedades", icon: Trophy, modules: ["crm", "operacional"] },
+      { title: "Projetos", url: "/dashboard/propriedades", icon: Trophy, modules: ["crm", "operacional"] },
       { title: "Ativos", url: "/dashboard/ativos", icon: Boxes, modules: ["crm", "operacional"] },
     ],
   },

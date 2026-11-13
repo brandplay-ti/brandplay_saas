@@ -83,7 +83,7 @@ export function usePessoasDaOrganizacao(orgId: string | null) {
   });
 }
 
-/** Propriedades da organização: os "projetos" que as equipes recebem. */
+/** Projetos da organização: o que as equipes recebem. */
 export function useProjetosDaOrganizacao(orgId: string | null) {
   return useQuery({
     queryKey: ["projetos-da-organizacao", orgId],

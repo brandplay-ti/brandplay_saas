@@ -461,7 +461,7 @@ export default function Assets() {
     <div className="space-y-6">
       <PageHeader
         title="Ativos"
-        description="Catálogo global de ativos patrocináveis. Aloque em propriedades e use em contratos."
+        description="Catálogo global de ativos patrocináveis. Aloque em projetos e use em contratos."
         icon={Boxes}
         actions={
           <>
@@ -656,7 +656,7 @@ export default function Assets() {
                     return props.length > 0 ? (
                       <div className="shrink-0 hidden md:flex flex-col w-40 text-xs">
                         <span className="text-muted-foreground flex items-center gap-1 truncate">
-                          <MapPin className="h-3 w-3 shrink-0" /> Propriedades
+                          <MapPin className="h-3 w-3 shrink-0" /> Projetos
                         </span>
                         <span className="truncate font-medium">{props.join(" · ")}</span>
                       </div>
@@ -767,11 +767,11 @@ export default function Assets() {
                 </Select>
               </div>
               <div>
-                <Label>Propriedade (opcional)</Label>
+                <Label>Projeto (opcional)</Label>
                 <Select value={form.property_id} onValueChange={(v) => setForm({ ...form, property_id: v === "__none__" ? "__none__" : v })}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">Nenhuma</SelectItem>
+                    <SelectItem value="__none__">Nenhum</SelectItem>
                     {properties.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -1083,12 +1083,12 @@ export default function Assets() {
                 </div>
 
                 <div>
-                  <Label className="text-sm">Alocação em propriedades</Label>
+                  <Label className="text-sm">Alocação em projetos</Label>
                   <p className="text-xs text-muted-foreground mb-2">
-                    Marque as propriedades onde este ativo está disponível.
+                    Marque os projetos em que este ativo está disponível.
                   </p>
                   {properties.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Nenhuma propriedade cadastrada.</p>
+                    <p className="text-sm text-muted-foreground">Nenhum projeto cadastrado.</p>
                   ) : (
                     <div className="space-y-1">
                       {properties.map((p) => {

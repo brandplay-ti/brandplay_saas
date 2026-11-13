@@ -542,7 +542,7 @@ export default function PropertyDetail() {
     ]);
 
     if (!prop) {
-      toast.error("Propriedade não encontrada");
+      toast.error("Projeto não encontrado");
       navigate("/dashboard/propriedades");
       return;
     }
@@ -570,7 +570,7 @@ export default function PropertyDetail() {
       .eq("property_id", id);
     setChecklistItems((checklistData as any[]) ?? []);
 
-    // Carrega entregas da propriedade (para o mapa de ativos)
+    // Carrega entregas do projeto (para o mapa de ativos)
     const { data: deliveriesData } = await supabase
       .from("deliveries")
       .select("id, title, status, asset_type, due_date, brand, sponsor_id, sponsors(id, name)")
@@ -600,7 +600,7 @@ export default function PropertyDetail() {
     setTierAssetsMap(taMap);
     setTierAssetQtyMap(qtyMap);
 
-    // tiers + filtro de vendas dessa propriedade
+    // tiers + filtro de vendas desse projeto
     const tiersList = (tiersData as Tier[]) ?? [];
     const tierIds = new Set(tiersList.map((t) => t.id));
     const propSales = (salesData as TierSale[] ?? []).filter((s) => tierIds.has(s.tier_id));
@@ -990,7 +990,7 @@ export default function PropertyDetail() {
     ws["!cols"] = [{ wch: 38 }, { wch: 20 }, { wch: 14 }, ...tiers.map(() => ({ wch: 14 }))];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Mapa das cotas");
-    const safe = (property?.name ?? "propriedade").replace(/[^\w\- ]+/g, "").trim() || "propriedade";
+    const safe = (property?.name ?? "projeto").replace(/[^\w\- ]+/g, "").trim() || "projeto";
     XLSX.writeFile(wb, `mapa-cotas-${safe}.xlsx`);
     toast.success("Planilha exportada");
   };
@@ -1051,7 +1051,7 @@ export default function PropertyDetail() {
     ws["!cols"] = header.map((h, i) => ({ wch: i === 0 ? 38 : h.length + 8 }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Mapa de ativos");
-    const safe = (property?.name ?? "propriedade").replace(/[^\w\- ]+/g, "").trim() || "propriedade";
+    const safe = (property?.name ?? "projeto").replace(/[^\w\- ]+/g, "").trim() || "projeto";
     XLSX.writeFile(wb, `mapa-ativos-${safe}.xlsx`);
     toast.success("Planilha exportada");
   };
@@ -1350,7 +1350,7 @@ export default function PropertyDetail() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
       {/* HEADER */}
-      <Breadcrumbs items={[{ label: "Propriedades", to: "/dashboard/propriedades" }, { label: property.name }]} />
+      <Breadcrumbs items={[{ label: "Projetos", to: "/dashboard/propriedades" }, { label: property.name }]} />
       <div className="flex items-start gap-4">
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
@@ -1372,7 +1372,7 @@ export default function PropertyDetail() {
       {/* KPIs */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">Visão rápida da propriedade</p>
+          <p className="text-sm text-muted-foreground">Visão rápida do projeto</p>
           <Button
             variant="ghost"
             size="sm"
@@ -1512,7 +1512,7 @@ export default function PropertyDetail() {
             <CardHeader className="pb-2"><CardTitle className="text-base">Sobre</CardTitle></CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                {property?.about || "Sem descrição. Edite a propriedade para adicionar."}
+                {property?.about || "Sem descrição. Edite o projeto para adicionar."}
               </p>
             </CardContent>
           </Card>
@@ -1638,7 +1638,7 @@ export default function PropertyDetail() {
             <CardContent className="space-y-4">
               {checklistSummary.total === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Nenhuma tarefa cadastrada no checklist desta propriedade.
+                  Nenhuma tarefa cadastrada no checklist deste projeto.
                 </p>
               ) : (
                 <>
@@ -1706,7 +1706,7 @@ export default function PropertyDetail() {
           {property.description && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Sobre a propriedade</CardTitle>
+                <CardTitle className="text-base">Sobre o projeto</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm whitespace-pre-wrap">{property.description}</p>
@@ -1882,7 +1882,7 @@ export default function PropertyDetail() {
                 <CardContent className="space-y-4">
                   {assets.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      Nenhum ativo alocado nesta propriedade.
+                      Nenhum ativo alocado neste projeto.
                     </p>
                   ) : (
                     <>
@@ -2361,7 +2361,7 @@ export default function PropertyDetail() {
         <TabsContent value="seasons" className="space-y-4 mt-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Edições anteriores e futuras desta propriedade.
+              Edições anteriores e futuras deste projeto.
             </p>
             <Button size="sm" onClick={() => setSeasonDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-1" /> Nova edição
@@ -2453,13 +2453,13 @@ export default function PropertyDetail() {
               </div>
 
               <div className="space-y-1.5">
-                <Label>Sobre a propriedade (texto público)</Label>
+                <Label>Sobre o projeto (texto público)</Label>
                 <Textarea
                   rows={5}
                   maxLength={2000}
                   value={pubForm.public_about}
                   onChange={(e) => setPubForm({ ...pubForm, public_about: e.target.value })}
-                  placeholder="Descreva a propriedade para potenciais patrocinadores..."
+                  placeholder="Descreva o projeto para potenciais patrocinadores..."
                 />
               </div>
 
@@ -2569,7 +2569,7 @@ export default function PropertyDetail() {
         {/* PROPOSALS */}
         <TabsContent value="proposals" className="space-y-4 mt-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">Propostas vinculadas a esta propriedade.</p>
+            <p className="text-sm text-muted-foreground">Propostas vinculadas a este projeto.</p>
             <Button size="sm" variant="outline" onClick={() => navigate("/dashboard/propostas")}>
               <ExternalLink className="h-3.5 w-3.5 mr-1" /> Ir para Propostas
             </Button>
@@ -2577,7 +2577,7 @@ export default function PropertyDetail() {
           {proposals.length === 0 ? (
             <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">
               <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              Nenhuma proposta vinculada a esta propriedade.
+              Nenhuma proposta vinculada a este projeto.
             </CardContent></Card>
           ) : (
             <div className="space-y-2">
@@ -2606,7 +2606,7 @@ export default function PropertyDetail() {
         {/* CONTRACTS */}
         <TabsContent value="contracts" className="space-y-4 mt-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">Contratos vigentes e histórico desta propriedade.</p>
+            <p className="text-sm text-muted-foreground">Contratos vigentes e histórico deste projeto.</p>
             <Button size="sm" variant="outline" onClick={() => navigate("/dashboard/contratos")}>
               <ExternalLink className="h-3.5 w-3.5 mr-1" /> Ir para Contratos
             </Button>
@@ -2648,7 +2648,7 @@ export default function PropertyDetail() {
         {/* ACTIVE SPONSORS */}
         <TabsContent value="sponsors" className="space-y-4 mt-4">
           <p className="text-sm text-muted-foreground">
-            Patrocinadores com contratos ativos ou cotas vendidas nesta propriedade.
+            Patrocinadores com contratos ativos ou cotas vendidas neste projeto.
           </p>
           {activeSponsors.length === 0 ? (
             <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">
@@ -3003,7 +3003,7 @@ export default function PropertyDetail() {
                   if (assets.length === 0)
                     return (
                       <p className="text-xs text-muted-foreground text-center py-4">
-                        Nenhum ativo alocado nesta propriedade.
+                        Nenhum ativo alocado neste projeto.
                       </p>
                     );
                   if (list.length === 0)
@@ -3158,7 +3158,7 @@ export default function PropertyDetail() {
           <DialogHeader>
             <DialogTitle>Nova edição / temporada</DialogTitle>
             <DialogDescription>
-              Cria uma nova edição vinculada a esta propriedade.
+              Cria uma nova edição vinculada a este projeto.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={createSeason} className="space-y-3">

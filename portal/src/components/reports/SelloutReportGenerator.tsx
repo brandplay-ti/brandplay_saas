@@ -20,7 +20,7 @@ export const SelloutReportGenerator = () => {
   const [selected, setSelected] = useState<Report | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Propriedades e relatórios só da organização ativa.
+  // Projetos e relatórios só da organização ativa.
   const loadReports = useCallback(async () => {
     if (!orgId) return;
     const { data } = await supabase
@@ -49,7 +49,7 @@ export const SelloutReportGenerator = () => {
 
   const generate = async () => {
     if (!propertyId) {
-      toast.error("Selecione uma propriedade");
+      toast.error("Selecione um projeto");
       return;
     }
     setLoading(true);
@@ -85,7 +85,7 @@ export const SelloutReportGenerator = () => {
           <div className="flex flex-col sm:flex-row gap-2">
             <Select value={propertyId} onValueChange={setPropertyId}>
               <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Selecione uma propriedade" />
+                <SelectValue placeholder="Selecione um projeto" />
               </SelectTrigger>
               <SelectContent>
                 {properties.map((p) => (

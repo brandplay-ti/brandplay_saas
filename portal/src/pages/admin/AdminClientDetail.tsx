@@ -330,7 +330,7 @@ const AdminClientDetail = () => {
           </CardHeader>
           <CardContent>
             <dl className="grid gap-3">
-              <Campo rotulo="Propriedades" valor={usageLabel(usage.properties, plano?.max_properties ?? null, "propriedades")} />
+              <Campo rotulo="Projetos" valor={usageLabel(usage.properties, plano?.max_properties ?? null, "projetos")} />
               <Campo
                 rotulo="Usuários (ativos + convites)"
                 valor={usageLabel(usage.users_active + usage.invites_pending, plano?.max_users ?? null, "usuários")}

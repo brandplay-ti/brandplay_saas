@@ -174,7 +174,7 @@ export function PostsDaPropriedade({ propertyId, patrocinadores, momentos, podeE
   const remover = async (post: PostDaPropriedade) => {
     const ok = await confirm({
       title: "Excluir este post?",
-      description: "Ele sai de todos os relatórios desta propriedade.",
+      description: "Ele sai de todos os relatórios deste projeto.",
       confirmLabel: "Excluir",
       destructive: true,
     });
@@ -224,7 +224,7 @@ export function PostsDaPropriedade({ propertyId, patrocinadores, momentos, podeE
           <div className="space-y-1.5">
             <CardTitle>Posts, vídeos e matérias</CardTitle>
             <CardDescription className="max-w-2xl">
-              Cadastre pelo link. Os posts são da propriedade e entram em todos os relatórios dela; marque o patrocinador
+              Cadastre pelo link. Os posts são do projeto e entram em todos os relatórios dele; marque o patrocinador
               para que entrem no relatório dele.
             </CardDescription>
           </div>

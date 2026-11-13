@@ -148,7 +148,7 @@ export function IndicadoresDaPropriedade({ propertyId, patrocinadores, podeEdita
     <div className="space-y-6">
       <p className="max-w-3xl text-sm text-muted-foreground">
         Números que não nascem na plataforma (TNT, Google Analytics, demografia do Instagram), sempre com a fonte. Zero só
-        aparece se você marcar "exibir zero". Os indicadores são da propriedade; marque o patrocinador para os que são só
+        aparece se você marcar "exibir zero". Os indicadores são do projeto; marque o patrocinador para os que são só
         dele.
       </p>
       {isLoading ? (
@@ -267,7 +267,7 @@ export function IndicadoresDaPropriedade({ propertyId, patrocinadores, podeEdita
                 <Select value={form.sponsor_id} onValueChange={(v) => campo("sponsor_id", v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NENHUM}>Geral (todos os relatórios da propriedade)</SelectItem>
+                    <SelectItem value={NENHUM}>Geral (todos os relatórios do projeto)</SelectItem>
                     {patrocinadores.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                   </SelectContent>
                 </Select>

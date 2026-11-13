@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
 
     if (body.property_name || body.sponsor_name) {
       text(
-        `Filtros: ${body.property_name ? `Propriedade: ${body.property_name}` : ""}${body.property_name && body.sponsor_name ? "  •  " : ""}${body.sponsor_name ? `Patrocinador: ${body.sponsor_name}` : ""}`,
+        `Filtros: ${body.property_name ? `Projeto: ${body.property_name}` : ""}${body.property_name && body.sponsor_name ? "  •  " : ""}${body.sponsor_name ? `Patrocinador: ${body.sponsor_name}` : ""}`,
         { color: MUTED, size: 9 }
       );
       y -= 18;

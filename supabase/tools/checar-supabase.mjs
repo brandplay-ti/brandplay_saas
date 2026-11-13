@@ -32,12 +32,12 @@ process.stdout.on('error', (erro) => {
 
 // `sports_properties` é a sonda certa porque é uma das poucas tabelas que
 // `anon` pode ler: a policy `sports_properties_public_read` (0005, seção 8)
-// libera as propriedades publicadas para o Media Kit público. A maioria das
+// libera os projetos publicados para o Media Kit público. A maioria das
 // tabelas não é legível sem sessão, e um "permission denied" ali não
 // distinguiria banco vazio de RLS funcionando.
 //
 // A contagem é só informativa: num ambiente recém-migrado, sem a importação
-// dos dados reais, nenhuma propriedade está publicada e zero linhas é o
+// dos dados reais, nenhum projeto está publicado e zero linhas é o
 // esperado.
 //
 // É também a tabela que a página pública do Media Kit consulta: se esta leitura
@@ -469,7 +469,7 @@ if (!sonda) {
 
   ok(`schema aplicado (\`${TABELA_SONDA}\` existe e é legível).`);
   if (Number.isFinite(total)) {
-    console.log(`     ${total} propriedade(s) publicada(s) visíveis para \`anon\`.`);
+    console.log(`     ${total} projeto(s) publicado(s) visíveis para \`anon\`.`);
   }
 }
 

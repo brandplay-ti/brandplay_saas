@@ -134,7 +134,7 @@ const FieldEvidenceImportDialog = ({ eventId, organizationId, excludedIds = [], 
   const importSelected = async () => {
     if (!user) return;
     if (!eventId) {
-      toast.error("Escolha uma propriedade antes de importar.");
+      toast.error("Escolha um projeto antes de importar.");
       return;
     }
     const toImport = selected.filter((id) => !isExcluded(id));

@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
             mensagens: [{
               papel: "usuario",
               conteudo:
-                `Você é um analista do mercado brasileiro de patrocínio esportivo. Para cada segmento abaixo, estime o ticket médio anual realista de uma cota de patrocínio (em BRL) no mercado brasileiro de propriedades esportivas regionais/nacionais, com mínimo, máximo e uma breve justificativa.\n\nSegmentos: ${interno.map((i) => i.segment).join(", ")}`,
+                `Você é um analista do mercado brasileiro de patrocínio esportivo. Para cada segmento abaixo, estime o ticket médio anual realista de uma cota de patrocínio (em BRL) no mercado brasileiro de projetos esportivos regionais/nacionais, com mínimo, máximo e uma breve justificativa.\n\nSegmentos: ${interno.map((i) => i.segment).join(", ")}`,
             }],
             json: {
               nome: "benchmark_de_ticket",
