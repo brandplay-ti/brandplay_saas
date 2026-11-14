@@ -24,6 +24,8 @@ import {
 import { NextStepsAI } from "@/components/pipeline/NextStepsAI";
 import { NextActionsWidget } from "@/components/sponsors/NextActionsWidget";
 import { ChurnRiskWidget } from "@/components/dashboard/ChurnRiskWidget";
+import { PrimeirosPassosWidget } from "@/components/dashboard/PrimeirosPassosWidget";
+import { usePrimeirosPassos } from "@/hooks/usePrimeirosPassos";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -70,6 +72,7 @@ const STAGE_LABELS: Record<string, string> = {
 };
 
 type WidgetId =
+  | "primeirosPassos"
   | "kpis"
   | "modules"
   | "aiActions"
@@ -83,6 +86,7 @@ type WidgetId =
   | "recentSponsors";
 
 const WIDGET_META: Record<WidgetId, { label: string; full?: boolean }> = {
+  primeirosPassos: { label: "Primeiros passos", full: true },
   kpis: { label: "KPIs financeiros", full: true },
   modules: { label: "Atalhos por módulo", full: true },
   aiActions: { label: "Ações sugeridas pela IA", full: true },
@@ -97,6 +101,7 @@ const WIDGET_META: Record<WidgetId, { label: string; full?: boolean }> = {
 };
 
 const DEFAULT_WIDGETS: { id: WidgetId; visible: boolean }[] = [
+  { id: "primeirosPassos", visible: true },
   { id: "kpis", visible: true },
   { id: "modules", visible: true },
   { id: "aiActions", visible: true },
@@ -115,10 +120,15 @@ const Dashboard = () => {
   const { orgId, can, clientType } = useOrganization();
   const marca = clientType === "marca";
   const temVendas = can("vendas");
+  const { guia } = usePrimeirosPassos();
   // Funil e propostas só com o módulo vendas; o risco de churn é a visão de
   // quem vende patrocínio e fica fora da marca (plano-visao-de-marca.md, D8).
+  // O guia de primeiros passos some sozinho quando os passos do membro acabam
+  // (docs/business/primeiros-passos.md).
   const widgetDisponivel = (id: WidgetId) =>
-    (temVendas || (id !== "funnel" && id !== "recentProposals")) && !(marca && id === "churnRisk");
+    (temVendas || (id !== "funnel" && id !== "recentProposals")) &&
+    !(marca && id === "churnRisk") &&
+    (id !== "primeirosPassos" || (guia !== null && !guia.terminado));
   // Para a marca a parcela é pagamento feito, não recebido (D6).
   const rotulo = marca
     ? { recebido: "Pago", previsto: "A pagar" }
@@ -153,8 +163,9 @@ const Dashboard = () => {
         stored.forEach((s) => {
           if (WIDGET_META[s.id]) merged.push({ id: s.id, visible: s.visible !== false });
         });
-        DEFAULT_WIDGETS.forEach((d) => {
-          if (!merged.find((m) => m.id === d.id)) merged.push(d);
+        // Widget novo entra na posição padrão dele (o guia, no topo), não no fim.
+        DEFAULT_WIDGETS.forEach((d, posicao) => {
+          if (!merged.find((m) => m.id === d.id)) merged.splice(Math.min(posicao, merged.length), 0, d);
         });
         setWidgets(merged);
       }
@@ -271,8 +282,15 @@ const Dashboard = () => {
     [deliveries]
   );
 
+  const ocultarGuia = () => {
+    toggleVisible("primeirosPassos");
+    toast("Guia ocultado", { description: "Para ver de novo, use Personalizar." });
+  };
+
   const renderWidget = (id: WidgetId) => {
     switch (id) {
+      case "primeirosPassos":
+        return guia && <PrimeirosPassosWidget guia={guia} onOcultar={ocultarGuia} />;
       case "kpis":
         return (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
