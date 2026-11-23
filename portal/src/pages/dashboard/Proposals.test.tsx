@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const { PROPOSTA } = vi.hoisted(() => ({ PROPOSTA: {
+const { PROPOSTA, ESCRITAS } = vi.hoisted(() => ({ ESCRITAS: [] as { tabela: string; metodo: string; args: unknown[] }[], PROPOSTA: {
   id: "prop-1",
   organization_id: "org-1",
   title: "Proposta Copa Verão · Marca X",
@@ -35,7 +35,10 @@ vi.mock("@/integrations/supabase/client", () => {
             return (resolve: (v: typeof resultado) => void, reject?: (e: unknown) => void) =>
               Promise.resolve(resultado).then(resolve, reject);
           }
-          return () => consulta;
+          return (...args: unknown[]) => {
+            if (chave === "update" || chave === "eq") ESCRITAS.push({ tabela: nome, metodo: String(chave), args });
+            return consulta;
+          };
         },
       },
     );
@@ -127,5 +130,32 @@ describe("Propostas — link direto", () => {
 
     await screen.findAllByText(PROPOSTA.title);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+});
+
+describe("Propostas — mensagem na aba Info (BP-8)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    ESCRITAS.length = 0;
+  });
+
+  it("edita a mensagem de uma proposta sem mensagem e grava ao sair do campo", async () => {
+    tela("/dashboard/propostas?proposal=prop-1");
+    const painel = await screen.findByRole("dialog");
+
+    // Radix Tabs ativa a aba no mousedown.
+    fireEvent.mouseDown(within(painel).getByRole("tab", { name: "Info" }));
+    const campo = await within(painel).findByLabelText("Mensagem");
+    expect(campo).toHaveValue("");
+
+    fireEvent.change(campo, { target: { value: "Segue a proposta revisada." } });
+    fireEvent.blur(campo);
+
+    await waitFor(() =>
+      expect(ESCRITAS).toContainEqual({ tabela: "proposals", metodo: "update", args: [{ message: "Segue a proposta revisada." }] }),
+    );
+    expect(ESCRITAS).toContainEqual({ tabela: "proposals", metodo: "eq", args: ["id", "prop-1"] });
+    await waitFor(() => expect(campo).toHaveValue("Segue a proposta revisada."));
   });
 });
