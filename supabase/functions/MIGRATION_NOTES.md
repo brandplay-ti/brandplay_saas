@@ -177,8 +177,8 @@ Toda função de IA segue o mesmo roteiro, com o apoio de `_shared/ai/funcao.ts`
 | `prepare-meeting-ai` | padrao | do patrocinador | crm |
 | `task-insights` | padrao | da tarefa / item | crm ou operacional |
 | `score-leads` | rapido | ativa do portal | crm (escrita) |
-| `generate-proposal-ai` | padrao | ativa do portal | crm |
-| `generate-proposal-wizard` | padrao | ativa do portal | crm |
+| `generate-proposal-ai` | padrao | ativa do portal | vendas (escrita) |
+| `generate-proposal-wizard` | padrao | ativa do portal | vendas (escrita) |
 | `estimate-activation-values` | padrao | ativa do portal (proposta e projeto informados precisam ser dela) | vendas |
 | `suggest-next-steps` | padrao | do registro (oportunidade, patrocinador, contrato, proposta, entrega); ativa do portal no painel e na lista de entregas | crm; operacional nas entregas |
 | `summarize-contract` | padrao | do contrato | crm |
