@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/hooks/useOrganization";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
+import { mensagemDeErroDeGravacao } from "@/lib/permissoes";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
@@ -70,6 +73,8 @@ type Props = {
 export function ProposalVersionsEditor({ proposta, itens = [], onPropostaAlterada, onItensAlterados }: Props) {
   const proposalId = proposta.id;
   const organizationId = proposta.organization_id;
+  // Ler as versões vale para quem lê o funil; salvar, gerar e incluir nos itens, só para quem edita (BP-2).
+  const podeEditar = useOrganization().canWrite("vendas");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<Channel | null>(null);
   const [versions, setVersions] = useState<Record<Channel, Version>>(EMPTY);
@@ -100,6 +105,7 @@ export function ProposalVersionsEditor({ proposta, itens = [], onPropostaAlterad
     setVersions((v) => ({ ...v, [ch]: { ...v[ch], ...patch } }));
 
   const save = async (ch: Channel) => {
+    if (!podeEditar) return;
     setSaving(ch);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -126,7 +132,7 @@ export function ProposalVersionsEditor({ proposta, itens = [], onPropostaAlterad
       }
       toast.success(`${CHANNEL_LABEL[ch]} salvo!`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao salvar");
+      toast.error(mensagemDeErroDeGravacao(e, "vendas", "Falha ao salvar"));
     } finally {
       setSaving(null);
     }
@@ -161,7 +167,7 @@ export function ProposalVersionsEditor({ proposta, itens = [], onPropostaAlterad
       toast.success(rows.length === 1 ? "Ativação incluída nos itens." : `${rows.length} ativações incluídas nos itens.`);
       await onItensAlterados?.();
     } catch (e) {
-      toast.error("Não foi possível incluir nos itens", { description: e instanceof Error ? e.message : undefined });
+      toast.error("Não foi possível incluir nos itens", { description: mensagemDeErroDeGravacao(e, "vendas") });
     } finally {
       setIncluindo(false);
       setPendentes(null);
@@ -170,6 +176,7 @@ export function ProposalVersionsEditor({ proposta, itens = [], onPropostaAlterad
 
   // Uma ativação sem risco entra direto; várias, ou com aviso, pedem confirmação.
   const pedirInclusao = (indices: number[]) => {
+    if (!podeEditar) return;
     if (indices.length === 0) { toast.info("Todas as ativações já estão nos itens."); return; }
     if (indices.length === 1 && !riscoDeDuplicar(activations[indices[0]], itens)) {
       incluirNosItens(indices);
@@ -180,12 +187,16 @@ export function ProposalVersionsEditor({ proposta, itens = [], onPropostaAlterad
 
   return (
     <>
-    <div className="flex justify-end">
-      <ProposalWizardDialog
-        proposta={proposta}
-        onSaved={() => { load(); onPropostaAlterada?.(); onItensAlterados?.(); }}
-      />
-    </div>
+    {podeEditar ? (
+      <div className="flex justify-end">
+        <ProposalWizardDialog
+          proposta={proposta}
+          onSaved={() => { load(); onPropostaAlterada?.(); onItensAlterados?.(); }}
+        />
+      </div>
+    ) : (
+      <SomenteLeitura module="vendas" />
+    )}
     <Tabs defaultValue="concept" className="mt-2">
       <TabsList className="grid grid-cols-4 w-full">
         <TabsTrigger value="concept">Conceito</TabsTrigger>
@@ -194,7 +205,8 @@ export function ProposalVersionsEditor({ proposta, itens = [], onPropostaAlterad
         <TabsTrigger value="email">E-mail</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="concept" className="space-y-3 pt-3">
+      <TabsContent value="concept" className="pt-3">
+        <fieldset disabled={!podeEditar} className="space-y-3">
         <div>
           <Label className="text-xs">Título</Label>
           <Input value={concept.title ?? ""} onChange={(e) => update("concept", { title: e.target.value })} />
@@ -269,30 +281,31 @@ export function ProposalVersionsEditor({ proposta, itens = [], onPropostaAlterad
           />
         </div>
         <div className="flex justify-end">
-          <Button size="sm" onClick={() => save("concept")} disabled={saving === "concept"}>
+          <Button size="sm" onClick={() => save("concept")} disabled={!podeEditar || saving === "concept"}>
             {saving === "concept" ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />} Salvar
           </Button>
         </div>
+        </fieldset>
       </TabsContent>
 
       <TabsContent value="deck" className="space-y-2 pt-3">
         <div className="flex justify-end gap-2">
           <Button size="sm" variant="outline" onClick={() => copy(versions.deck.content, "Proposta")}><Copy className="h-3 w-3 mr-1" /> Copiar</Button>
-          <Button size="sm" onClick={() => save("deck")} disabled={saving === "deck"}>
+          <Button size="sm" onClick={() => save("deck")} disabled={!podeEditar || saving === "deck"}>
             {saving === "deck" ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />} Salvar
           </Button>
         </div>
-        <Textarea rows={14} value={versions.deck.content} onChange={(e) => update("deck", { content: e.target.value })} className="font-mono text-xs" placeholder="Estrutura do deck em bullets..." />
+        <Textarea rows={14} value={versions.deck.content} readOnly={!podeEditar} onChange={(e) => update("deck", { content: e.target.value })} className="font-mono text-xs" placeholder="Estrutura do deck em bullets..." />
       </TabsContent>
 
       <TabsContent value="whatsapp" className="space-y-2 pt-3">
         <div className="flex justify-end gap-2">
           <Button size="sm" variant="outline" onClick={() => copy(versions.whatsapp.content, "WhatsApp")}><Copy className="h-3 w-3 mr-1" /> Copiar</Button>
-          <Button size="sm" onClick={() => save("whatsapp")} disabled={saving === "whatsapp"}>
+          <Button size="sm" onClick={() => save("whatsapp")} disabled={!podeEditar || saving === "whatsapp"}>
             {saving === "whatsapp" ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />} Salvar
           </Button>
         </div>
-        <Textarea rows={6} value={versions.whatsapp.content} onChange={(e) => update("whatsapp", { content: e.target.value })} placeholder="Mensagem curta para WhatsApp..." />
+        <Textarea rows={6} value={versions.whatsapp.content} readOnly={!podeEditar} onChange={(e) => update("whatsapp", { content: e.target.value })} placeholder="Mensagem curta para WhatsApp..." />
         <p className="text-xs text-muted-foreground">{versions.whatsapp.content.length} caracteres</p>
       </TabsContent>
 
@@ -301,16 +314,17 @@ export function ProposalVersionsEditor({ proposta, itens = [], onPropostaAlterad
           <Label className="text-xs">Assunto</Label>
           <Input
             value={versions.email.metadata?.subject ?? versions.email.title ?? ""}
+            readOnly={!podeEditar}
             onChange={(e) => update("email", { title: e.target.value, metadata: { ...versions.email.metadata, subject: e.target.value } })}
           />
         </div>
         <div>
           <Label className="text-xs">Corpo (HTML)</Label>
-          <Textarea rows={10} value={versions.email.content} onChange={(e) => update("email", { content: e.target.value })} className="font-mono text-xs" />
+          <Textarea rows={10} value={versions.email.content} readOnly={!podeEditar} onChange={(e) => update("email", { content: e.target.value })} className="font-mono text-xs" />
         </div>
         <div className="flex justify-end gap-2">
           <Button size="sm" variant="outline" onClick={() => copy(versions.email.content, "E-mail HTML")}><Copy className="h-3 w-3 mr-1" /> Copiar HTML</Button>
-          <Button size="sm" onClick={() => save("email")} disabled={saving === "email"}>
+          <Button size="sm" onClick={() => save("email")} disabled={!podeEditar || saving === "email"}>
             {saving === "email" ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />} Salvar
           </Button>
         </div>

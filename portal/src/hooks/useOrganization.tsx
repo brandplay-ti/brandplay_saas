@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { logBackendDbError } from "@/lib/backendErrorLogger";
 import {
   moduloDisponivel,
+  podeEditarModulo,
+  podeEditarModuloPadrao,
   podeVerModulo,
   podeVerModuloPadrao,
   type AcessoDeModulo,
@@ -34,7 +36,10 @@ type OrganizationContextValue = {
   /** Tipo de cliente da organização ativa. A marca não tem funil (módulo `vendas`). */
   clientType: TipoDeCliente;
   isAdmin: boolean;
+  /** Vê o módulo (lê ou edita). Menu e rotas. */
   can: (module: ModuloDePermissao) => boolean;
+  /** Edita o módulo (`write` na matriz), como `can_access_module(..., true)` na RLS. Botões de criar e alterar. */
+  canWrite: (module: ModuloDePermissao) => boolean;
   loading: boolean;
   organizations: OrgSummary[];
   switchOrganization: (newOrgId: string) => void;
@@ -204,11 +209,17 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo<OrganizationContextValue>(() => {
     const isAdmin = role === "owner" || role === "admin";
     // Mesmo teto do banco (modulo_disponivel); o banco continua sendo a fronteira.
+    const acessoDe = (module: ModuloDePermissao) =>
+      grants?.find((g) => g.organization_id === orgId && g.role === role && g.module === module)?.access;
     const can = (module: ModuloDePermissao) => {
       if (!role || !moduloDisponivel(clientType, module)) return false;
       if (!grants) return podeVerModuloPadrao(role, module);
-      const acesso = grants.find((g) => g.organization_id === orgId && g.role === role && g.module === module)?.access;
-      return podeVerModulo(acesso);
+      return podeVerModulo(acessoDe(module));
+    };
+    const canWrite = (module: ModuloDePermissao) => {
+      if (!role || !moduloDisponivel(clientType, module)) return false;
+      if (!grants) return podeEditarModuloPadrao(role, module);
+      return podeEditarModulo(acessoDe(module));
     };
     return {
       orgId,
@@ -218,6 +229,7 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
       clientType,
       isAdmin,
       can,
+      canWrite,
       loading,
       organizations,
       switchOrganization,
@@ -241,6 +253,7 @@ export const useOrganization = (): OrganizationContextValue => {
     clientType: "agencia",
     isAdmin: false,
     can: () => false,
+    canWrite: () => false,
     loading: false,
     organizations: [],
     switchOrganization: () => {},

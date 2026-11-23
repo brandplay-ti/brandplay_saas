@@ -28,7 +28,7 @@ type Props = {
 };
 
 export function GenerateProposalAIDialog({ sponsors, properties, onGenerated }: Props) {
-  const { orgId } = useOrganization();
+  const { orgId, canWrite } = useOrganization();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [briefing, setBriefing] = useState("");
@@ -71,6 +71,9 @@ export function GenerateProposalAIDialog({ sponsors, properties, onGenerated }: 
       setLoading(false);
     }
   };
+
+  // Quem só lê o funil não gera o que não poderia salvar (BP-2).
+  if (!canWrite("vendas")) return null;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

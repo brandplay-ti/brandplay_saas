@@ -86,6 +86,18 @@ describe("OrganizationProvider com papéis diferentes por organização", () => 
     expect(org.can("operacional")).toBe(true);
   });
 
+  it("lê vendas mas só edita onde a matriz diz write (BP-2)", async () => {
+    const operacional = await ativa(KIDS);
+    expect(operacional.can("vendas")).toBe(true);
+    expect(operacional.canWrite("vendas")).toBe(false);
+    expect(operacional.canWrite("operacional")).toBe(true);
+    expect(operacional.canWrite("team")).toBe(false);
+
+    localStorage.clear();
+    const admin = await ativa(SCOUT);
+    expect(admin.canWrite("vendas")).toBe(true);
+  });
+
   it("sem organização salva, usa a primeira e o papel dela", async () => {
     const org = await ativa(null);
     expect(org.orgId).toBe(KIDS);

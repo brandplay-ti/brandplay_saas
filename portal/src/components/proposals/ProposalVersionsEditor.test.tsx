@@ -57,6 +57,10 @@ vi.mock("@/integrations/supabase/client", () => {
 });
 
 vi.mock("./ProposalWizardDialog", () => ({ ProposalWizardDialog: () => null }));
+const organizacao = vi.hoisted(() => ({ podeEditar: true }));
+vi.mock("@/hooks/useOrganization", () => ({
+  useOrganization: () => ({ orgId: "org-1", canWrite: () => organizacao.podeEditar }),
+}));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 
 import { toast } from "sonner";
@@ -86,6 +90,7 @@ describe("ProposalVersionsEditor — ativações nos itens", () => {
     vi.clearAllMocks();
     estado.inserts = [];
     estado.erroNoInsert = null;
+    organizacao.podeEditar = true;
   });
 
   it("inclui direto a ativação sem risco, com o valor dela e quantidade 1", async () => {
@@ -191,6 +196,26 @@ describe("ProposalVersionsEditor — sugestão de valores pela IA", () => {
     expect(valores[0].value).toMatch(/1\.500,00/);
     expect(valores[1].value).toMatch(/800,00/);
     expect(screen.getAllByText("Sugestão da IA")).toHaveLength(1);
+    expect(insertsDeItens()).toHaveLength(0);
+  });
+});
+
+describe("ProposalVersionsEditor — quem só lê o funil (BP-2)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    estado.inserts = [];
+    estado.erroNoInsert = null;
+    organizacao.podeEditar = false;
+  });
+
+  it("mostra as versões, avisa que é somente leitura e não deixa salvar nem incluir nos itens", async () => {
+    tela();
+    expect(await screen.findByDisplayValue("Conceito")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Somente leitura");
+    for (const nome of ["Salvar", "Adicionar aos itens", "Adicionar todas aos itens"]) {
+      for (const botao of screen.getAllByRole("button", { name: nome })) expect(botao).toBeDisabled();
+    }
+    fireEvent.click(screen.getAllByRole("button", { name: "Adicionar aos itens" })[0]);
     expect(insertsDeItens()).toHaveLength(0);
   });
 });
