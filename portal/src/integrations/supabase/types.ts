@@ -1984,6 +1984,206 @@ export type Database = {
           },
         ]
       }
+      edition_folders: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          organization_id: string
+          parent_folder_id: string | null
+          property_id: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          parent_folder_id?: string | null
+          property_id: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          parent_folder_id?: string | null
+          property_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edition_folders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "edition_folders_parent_fkey"
+            columns: ["property_id", "parent_folder_id"]
+            isOneToOne: false
+            referencedRelation: "edition_folders"
+            referencedColumns: ["property_id", "id"]
+          },
+          {
+            foreignKeyName: "edition_folders_property_fkey"
+            columns: ["organization_id", "property_id"]
+            isOneToOne: false
+            referencedRelation: "sports_properties"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      edition_media: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          created_at: string
+          created_by: string | null
+          declared_size_bytes: number | null
+          error_message: string | null
+          file_name: string
+          folder_id: string | null
+          id: string
+          kind: string
+          mime_type: string | null
+          organization_id: string
+          property_id: string
+          status: string
+          storage_prefix: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          declared_size_bytes?: number | null
+          error_message?: string | null
+          file_name: string
+          folder_id?: string | null
+          id?: string
+          kind: string
+          mime_type?: string | null
+          organization_id: string
+          property_id: string
+          status?: string
+          storage_prefix?: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          declared_size_bytes?: number | null
+          error_message?: string | null
+          file_name?: string
+          folder_id?: string | null
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          organization_id?: string
+          property_id?: string
+          status?: string
+          storage_prefix?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edition_media_folder_fkey"
+            columns: ["property_id", "folder_id"]
+            isOneToOne: false
+            referencedRelation: "edition_folders"
+            referencedColumns: ["property_id", "id"]
+          },
+          {
+            foreignKeyName: "edition_media_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "edition_media_property_fkey"
+            columns: ["organization_id", "property_id"]
+            isOneToOne: false
+            referencedRelation: "sports_properties"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      edition_media_objects: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          media_id: string
+          mime_type: string | null
+          object_key: string
+          organization_id: string
+          size_bytes: number | null
+          status: string
+          updated_at: string
+          upload_id: string | null
+          variant: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          media_id: string
+          mime_type?: string | null
+          object_key: string
+          organization_id: string
+          size_bytes?: number | null
+          status?: string
+          updated_at?: string
+          upload_id?: string | null
+          variant: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          media_id?: string
+          mime_type?: string | null
+          object_key?: string
+          organization_id?: string
+          size_bytes?: number | null
+          status?: string
+          updated_at?: string
+          upload_id?: string | null
+          variant?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edition_media_objects_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "edition_media"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "edition_media_objects_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       error_reports: {
         Row: {
           component_stack: string | null
@@ -5843,6 +6043,15 @@ export type Database = {
           entity_type: string | null
           label: string | null
           organization_id: string | null
+        }
+        Relationships: []
+      }
+      edition_storage_usage: {
+        Row: {
+          object_count: number | null
+          organization_id: string | null
+          property_id: string | null
+          total_bytes: number | null
         }
         Relationships: []
       }

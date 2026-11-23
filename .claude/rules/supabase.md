@@ -149,6 +149,16 @@ Equipe se arquiva e membro se revoga, sem `DELETE`. Até a fase 2 do plano,
 nenhuma policy de domínio olha as equipes nem `organization_role_grants.scope`:
 não use essas tabelas para esconder dado antes de ela existir.
 
+Mídia da edição (BP-7, `0049`): `edition_folders` e `edition_media` seguem o
+padrão 7 (`crm` ou `operacional`), sem `DELETE` (arquiva por `archived_at`),
+com a organização vinda do projeto por gatilho e pasta do mesmo projeto por
+FK composta `(property_id, id)`. O caminho do objeto no R2
+(`storage_prefix`, `object_key`) é montado no banco com identificadores,
+nunca aceito do cliente. Status, erro e tamanho da mídia e tudo de
+`edition_media_objects` são escritos só pelo servidor (service role); uso de
+armazenamento é a soma de `size_bytes` lido no R2, nunca o tamanho que o
+navegador informou.
+
 Uma tabela nova que represente algo **limitado por plano** precisa de gatilho
 `trg_zz_billing_limit` no padrão da `0024` (erro com
 `hint = 'limite_plano:<recurso>'` e plano sugerido em `detail`) e de uma
