@@ -179,6 +179,7 @@ Toda função de IA segue o mesmo roteiro, com o apoio de `_shared/ai/funcao.ts`
 | `score-leads` | rapido | ativa do portal | crm (escrita) |
 | `generate-proposal-ai` | padrao | ativa do portal | crm |
 | `generate-proposal-wizard` | padrao | ativa do portal | crm |
+| `estimate-activation-values` | padrao | ativa do portal (proposta e projeto informados precisam ser dela) | vendas |
 | `suggest-next-steps` | padrao | do registro (oportunidade, patrocinador, contrato, proposta, entrega); ativa do portal no painel e na lista de entregas | crm; operacional nas entregas |
 | `summarize-contract` | padrao | do contrato | crm |
 | `ai-assistant` | padrao | da conversa; conversa nova na ativa do portal | crm |

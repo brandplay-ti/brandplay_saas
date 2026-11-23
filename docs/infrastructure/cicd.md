@@ -46,15 +46,17 @@ homologação (`supabase/tools/diagnostico/`), sem rede.
 com até 5 tentativas, porque o `esm.sh` recusa parte dos downloads em rajada
 (`refused stream`) e cada tentativa continua de onde a anterior parou. Depois,
 `deno test --allow-read supabase/functions/_shared/
-supabase/functions/admin-ai/ supabase/functions/fetch-social-stats/` roda os
+supabase/functions/admin-ai/ supabase/functions/estimate-activation-values/
+supabase/functions/fetch-social-stats/` roda os
 testes uma única vez, com o Deno fixado na `v2.1.4` (a mesma da imagem
 `denoland/deno` usada localmente). Cobre a camada de IA (`_shared/ai/`), a cifra das chaves
-(`_shared/ai-crypto.ts`), a função `admin-ai` e as regras de busca de URL
+(`_shared/ai-crypto.ts`), a função `admin-ai`, as regras do prompt e da
+resposta do `estimate-activation-values` (`contexto.ts`) e as regras de busca de URL
 externa do `fetch-social-stats` (`busca.ts`), sem rede de
 fornecedor nem banco. Bloqueante. As pastas são listadas uma a uma: o
 `create-organization/organization_rls_test.ts` precisa de stack e
 credenciais. Sem Deno instalado, rode localmente pela imagem:
-`docker run --rm -v "$PWD/supabase:/app/supabase:ro" -w /app denoland/deno:2.1.4 test --allow-read supabase/functions/_shared/ supabase/functions/admin-ai/ supabase/functions/fetch-social-stats/`.
+`docker run --rm -v "$PWD/supabase:/app/supabase:ro" -w /app denoland/deno:2.1.4 test --allow-read supabase/functions/_shared/ supabase/functions/admin-ai/ supabase/functions/estimate-activation-values/ supabase/functions/fetch-social-stats/`.
 
 **Job `migrations`**:
 
