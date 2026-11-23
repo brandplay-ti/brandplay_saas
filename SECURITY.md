@@ -22,7 +22,7 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   derivar `user.id` dele e escopar toda consulta por organização. Nunca devem
   confiar em `organization_id`/`user_id` vindos do corpo da requisição.
   Funções de IA de produto (`ai-assistant`, `score-leads`, `generate-proposal-wizard`,
-  entre outras) passam pela camada `_shared/ai/` (ADR-0010): credencial por
+  `estimate-activation-values`, entre outras) passam pela camada `_shared/ai/` (ADR-0010): credencial por
   organização (OpenAI, Gemini ou Anthropic), guardas de orçamento e registro em
   `ai_usage_events`. Chaves de fornecedor ficam cifradas em `ai_credentials`;
   a Edge Function `admin-ai` grava e testa credenciais (superadmin). Nunca

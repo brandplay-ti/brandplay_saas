@@ -177,6 +177,9 @@ ${extra ? `CONTEXTO ADICIONAL: ${extra}` : ""}`;
       deck: texto(p.deck),
       whatsapp: texto(p.whatsapp, 2000),
       email: { subject: texto(email.subject, 300), body_html: texto(email.body_html) },
+      // O modelo que a camada usou de fato (o fornecedor da organização), para a
+      // tela gravar em `proposal_versions.model`.
+      modelo: `${resposta.fornecedor}/${resposta.modelo}`,
     });
   } catch (e) {
     return respostaDeFalha(e, FUNCIONALIDADE);
