@@ -27,6 +27,7 @@ import { FileText, Plus, Search, Trash2, Send, FileDown, CheckCircle2, XCircle, 
 import { GenerateProposalAIDialog, type GeneratedProposal } from "@/components/proposals/GenerateProposalAIDialog";
 import { ProposalWizardDialog } from "@/components/proposals/ProposalWizardDialog";
 import { ProposalVersionsEditor } from "@/components/proposals/ProposalVersionsEditor";
+import { ProposalMessageField } from "@/components/proposals/ProposalMessageField";
 import { NextStepsAI } from "@/components/pipeline/NextStepsAI";
 import { AssetCatalogToolbar, type AssetSortBy } from "@/components/assets/AssetCatalogToolbar";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -653,11 +654,14 @@ export default function Proposals() {
     load();
   };
 
-  const updateProposalField = async (field: "sponsor_id" | "property_id" | "valid_until", value: string | null) => {
+  const updateProposalField = async (field: "sponsor_id" | "property_id" | "valid_until" | "message", value: string | null) => {
     if (!selected) return;
-    const { error } = await supabase.from("proposals").update({ [field]: value } as any).eq("id", selected.id);
+    const id = selected.id;
+    const { error } = await supabase.from("proposals").update({ [field]: value } as any).eq("id", id);
     if (error) return toast.error("Erro", { description: error.message });
-    setSelected({ ...selected, [field]: value } as Proposal);
+    // Atualização funcional: dois campos gravados em sequência (sair da
+    // mensagem e trocar o patrocinador) não desfazem um ao outro.
+    setSelected((atual) => (atual && atual.id === id ? { ...atual, [field]: value } : atual));
     load();
   };
 
@@ -1380,9 +1384,7 @@ export default function Proposals() {
                       <p className="text-xs text-muted-foreground">Ajuste em Itens ou no valor fechado.</p>
                     </div>
                   </div>
-                  {selected.message && (
-                    <div><Label className="text-xs text-muted-foreground">Mensagem</Label><p className="text-sm whitespace-pre-wrap">{selected.message}</p></div>
-                  )}
+                  <ProposalMessageField value={selected.message} onSave={(v) => updateProposalField("message", v)} />
                 </TabsContent>
 
                 <TabsContent value="ia" className="pt-4">
