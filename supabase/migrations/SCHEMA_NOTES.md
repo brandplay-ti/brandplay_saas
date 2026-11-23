@@ -1098,3 +1098,53 @@ Suposições:
   (ver `docs/architecture/plano-equipes.md`, seção 3).
 - Os `comment on` antigos que dizem "propriedade" ficam; só os da 0048 usam o
   nome novo.
+
+## Mídia da edição (0049, BP-7.03)
+
+Base de dados da feature BP-7 (upload de vídeos e corte inteligente). Quatro
+objetos novos:
+
+- `edition_folders` — pastas e subpastas da edição (D12), em árvore
+  (`parent_folder_id`). Só no banco: mover ou renomear não toca no R2.
+- `edition_media` — um arquivo (vídeo ou foto) da edição, na raiz ou numa
+  pasta. Guarda o `storage_prefix` do R2
+  (`<organizacao>/<projeto raiz>/<edicao>/<midia>`), montado pelo gatilho
+  `tg_midia_edicao_regras` com identificadores e fixo depois de criado.
+- `edition_media_objects` — cada objeto no R2 de uma mídia (variante
+  `original`, `analise`, `miniatura`, `relatorio`...), com a chave montada
+  pelo gatilho `tg_midia_edicao_objetos` e o tamanho real lido no R2.
+- `edition_storage_usage` — view (`security_invoker`) com a soma dos objetos
+  enviados por organização e projeto (D3, RF12).
+
+RLS: pastas e mídia no padrão 7 (leitura por membro; criar e alterar com
+`crm` ou `operacional` de escrita), sem DELETE. Objetos: leitura por membro,
+sem policy nem grant de escrita para `authenticated` (só service role). As
+três tabelas têm `billing_access_restrictive`. Sem leitura pelo portal do
+patrocinador e sem `anon`.
+
+Suposições:
+
+- A mídia aceita tanto uma edição (`parent_property_id` preenchido) quanto
+  um projeto raiz sem edições. A feature fala em edição (D1), mas nada no
+  modelo exige isso, e o relatório já é por `sports_properties`. Quando é o
+  próprio projeto raiz, raiz e edição se repetem no caminho.
+- O "projeto" do caminho é o topo da cadeia de `parent_property_id` (há
+  cadeias de mais de um nível desde a 0042). Se a edição mudar de mãe
+  depois, o caminho não muda: identificadores não mudam e o objeto no R2 não
+  se move.
+- Pasta só arquiva vazia (sem subpasta nem mídia ativa); nada entra em pasta
+  arquivada nem sai do arquivo com a pasta-mãe arquivada. A demanda não diz
+  o que acontece com o conteúdo de uma pasta arquivada; assim nada fica
+  escondido sem dono.
+- Nome de pasta é único entre as pastas ativas do mesmo nível, sem
+  diferenciar maiúsculas.
+- Status do envio (`aguardando_envio` → `enviando` → `enviado` →
+  `processando` → `pronto`/`erro`), `error_message` e `declared_size_bytes`
+  são do servidor: com `auth.uid()` o gatilho recusa a mudança (42501) e, na
+  criação, força o status inicial. O tamanho declarado é o que o navegador
+  informou ao criar a mídia; só serve para a tela (RNF2).
+- O `upload_id` do multipart do R2 fica legível para os membros: sozinho não
+  serve para nada sem a chave do R2, que só a Edge Function tem.
+- Segmentos (corte inteligente) ficam para a BP-7.12, porque dependem das
+  categorias em aberto (D6). Metadados do vídeo (duração, codec, resolução)
+  entram com o processamento (BP-7.08).
