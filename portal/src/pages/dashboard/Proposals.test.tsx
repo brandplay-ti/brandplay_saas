@@ -1,0 +1,131 @@
+import type { ReactNode } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const { PROPOSTA } = vi.hoisted(() => ({ PROPOSTA: {
+  id: "prop-1",
+  organization_id: "org-1",
+  title: "Proposta Copa Verão · Marca X",
+  proposal_number: "42",
+  brand: "Marca X",
+  sponsor_id: null,
+  property_id: null,
+  total_value: 10000,
+  status: "rascunho",
+  valid_until: null,
+  message: null,
+  pdf_path: null,
+  converted_opportunity_id: null,
+  converted_contract_id: null,
+  created_at: "2026-11-01T00:00:00Z",
+} }));
+
+vi.mock("@/integrations/supabase/client", () => {
+  // Qualquer encadeamento (.select().eq().order()...) devolve a mesma consulta,
+  // que resolve com a lista da tabela.
+  function tabela(nome: string) {
+    const resultado = { data: nome === "proposals" ? [PROPOSTA] : [], error: null };
+    const consulta: Record<string | symbol, unknown> = new Proxy(
+      {},
+      {
+        get: (_alvo, chave) => {
+          if (chave === "then") {
+            return (resolve: (v: typeof resultado) => void, reject?: (e: unknown) => void) =>
+              Promise.resolve(resultado).then(resolve, reject);
+          }
+          return () => consulta;
+        },
+      },
+    );
+    return consulta;
+  }
+  return {
+    supabase: {
+      from: (nome: string) => tabela(nome),
+      rpc: vi.fn(() => Promise.resolve({ data: null, error: null })),
+      functions: { invoke: vi.fn(() => Promise.resolve({ data: null, error: null })) },
+      auth: { getUser: vi.fn(() => Promise.resolve({ data: { user: { id: "user-1" } } })) },
+      storage: { from: () => ({ createSignedUrl: vi.fn() }) },
+    },
+  };
+});
+
+vi.mock("@/hooks/useOrganization", () => ({
+  useOrganization: () => ({ orgId: "org-1", role: "owner", isAdmin: true, loading: false, refresh: vi.fn() }),
+}));
+vi.mock("@/hooks/useAuth", () => ({ useAuth: () => ({ user: { id: "user-1" } }) }));
+vi.mock("@/hooks/useConfirm", () => ({ useConfirm: () => vi.fn() }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
+
+// O `localStorage` do Node mais novo encobre o do jsdom (como em useFiltroSalvo.test).
+const armazenado = new Map<string, string>();
+vi.stubGlobal("localStorage", {
+  getItem: (k: string) => armazenado.get(k) ?? null,
+  setItem: (k: string, v: string) => void armazenado.set(k, v),
+  removeItem: (k: string) => void armazenado.delete(k),
+  clear: () => armazenado.clear(),
+});
+
+import { toast } from "sonner";
+import Proposals from "./Proposals";
+
+function Endereco() {
+  const { search } = useLocation();
+  return <output data-testid="endereco">{search}</output>;
+}
+
+function tela(url: string) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const envoltorio = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>
+      <MemoryRouter initialEntries={[url]}>{children}</MemoryRouter>
+    </QueryClientProvider>
+  );
+  return render(
+    <Routes>
+      <Route
+        path="/dashboard/propostas"
+        element={
+          <>
+            <Proposals />
+            <Endereco />
+          </>
+        }
+      />
+    </Routes>,
+    { wrapper: envoltorio },
+  );
+}
+
+describe("Propostas — link direto", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+
+  it("abre a proposta do parâmetro ?proposal e tira o parâmetro da URL", async () => {
+    tela("/dashboard/propostas?proposal=prop-1");
+
+    const painel = await screen.findByRole("dialog");
+    expect(painel).toHaveTextContent(PROPOSTA.title);
+    await waitFor(() => expect(screen.getByTestId("endereco")).toHaveTextContent(""));
+    expect(toast.info).not.toHaveBeenCalled();
+  });
+
+  it("avisa e não abre nada quando a proposta não está na organização", async () => {
+    tela("/dashboard/propostas?proposal=de-outra-org");
+
+    await waitFor(() => expect(toast.info).toHaveBeenCalledWith("Proposta não encontrada nesta organização."));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByTestId("endereco")).toHaveTextContent("");
+  });
+
+  it("sem parâmetro, só lista", async () => {
+    tela("/dashboard/propostas");
+
+    await screen.findAllByText(PROPOSTA.title);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+});
