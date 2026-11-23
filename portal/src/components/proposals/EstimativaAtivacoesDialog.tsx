@@ -167,7 +167,8 @@ export function EstimativaAtivacoesDialog({ organizationId, ativacoes, proposalI
                         ? <Badge variant="outline">Sem referência na sua base</Badge>
                         : <Badge variant="secondary">Sugestão: {formatarMoeda(l.suggested_value)}</Badge>}
                     </div>
-                    {l.rationale && <p className="text-xs text-muted-foreground">{l.rationale}</p>}
+                    {/* Sem base, o motivo já está no aviso acima: não repete em cada linha. */}
+                    {l.rationale && !semBase && <p className="text-xs text-muted-foreground">{l.rationale}</p>}
                     {l.overlaps_with && (
                       <p className="flex items-center gap-1 text-xs text-warning-strong">
                         <AlertTriangle className="h-3 w-3" /> Pode duplicar o item "{l.overlaps_with}" da proposta.
