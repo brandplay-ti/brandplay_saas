@@ -332,6 +332,23 @@ export default function Proposals() {
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams, orgId, loadedOrgId, loading, proposals]);
 
+  // Ativações da aba Versões IA viraram itens: recarrega a lista e grava o total
+  // (fora do valor geral), porque esses itens já entram com valor (BP-9).
+  const recarregarItensDasAtivacoes = async () => {
+    if (!selected) return;
+    const { data } = await supabase.from("proposal_items").select("*").eq("proposal_id", selected.id).order("position");
+    const lista = (data ?? []) as Item[];
+    setItems(lista);
+    if (selected.use_flat_value) return;
+    const novoTotal = lista.reduce((s, i) => s + i.quantity * Number(i.unit_value), 0);
+    const id = selected.id;
+    const { error } = await supabase.from("proposals").update({ total_value: novoTotal }).eq("id", id);
+    if (error) return;
+    // Atualização funcional: o assistente recarrega a proposta ao mesmo tempo.
+    setSelected((prev) => (prev && prev.id === id ? { ...prev, total_value: novoTotal } : prev));
+    setProposals((prev) => prev.map((p) => (p.id === id ? { ...p, total_value: novoTotal } : p)));
+  };
+
   // O assistente da aba Versões IA pode preencher a mensagem da proposta aberta.
   const recarregarSelecionada = async () => {
     if (!selected) return;
@@ -1302,7 +1319,12 @@ export default function Proposals() {
                 </TabsContent>
 
                 <TabsContent value="versions" className="pt-4">
-                  <ProposalVersionsEditor proposta={selected} onPropostaAlterada={recarregarSelecionada} />
+                  <ProposalVersionsEditor
+                    proposta={selected}
+                    itens={items}
+                    onPropostaAlterada={recarregarSelecionada}
+                    onItensAlterados={recarregarItensDasAtivacoes}
+                  />
                 </TabsContent>
 
                 <TabsContent value="actions" className="space-y-3 pt-4">
