@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -93,6 +93,7 @@ export default function Proposals() {
   const { user } = useAuth();
   const { orgId } = useOrganization();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
@@ -107,6 +108,8 @@ export default function Proposals() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [loading, setLoading] = useState(true);
+  // Organização cuja lista está em `proposals` (o link direto espera por ela).
+  const [loadedOrgId, setLoadedOrgId] = useState<string | null>(null);
   const [search, setSearch] = useFiltroSalvo("propostas", "search", "");
   const [statusFilter, setStatusFilter] = useFiltroSalvo("propostas", "statusFilter", "all");
   const [sponsorFilter, setSponsorFilter] = useFiltroSalvo("propostas", "sponsorFilter", "all");
@@ -162,6 +165,7 @@ export default function Proposals() {
     setFunnels(((fn ?? []) as any[]) as Funnel[]);
     setAssets(((as ?? []) as any[]).map((a) => ({ ...a, unit_value: Number(a.unit_value) })));
     setTiers(((tr ?? []) as any[]).map((t) => ({ ...t, value: Number(t.value) })));
+    setLoadedOrgId(orgId);
     setLoading(false);
   };
   useEffect(() => { load(); }, [orgId]);
@@ -312,6 +316,21 @@ export default function Proposals() {
     const { data } = await supabase.from("proposal_items").select("*").eq("proposal_id", p.id).order("position");
     setItems((data ?? []) as Item[]);
   };
+
+  // Link direto: /dashboard/propostas?proposal=<id> (botão "Abrir" da jornada no
+  // pipeline). Abre a proposta depois da carga e tira o parâmetro da URL, para o
+  // painel não reabrir ao ser fechado. Uma proposta fora da organização ativa não
+  // está na lista e não abre.
+  useEffect(() => {
+    const alvo = searchParams.get("proposal");
+    if (!alvo || !orgId || loading || loadedOrgId !== orgId) return;
+    const encontrada = proposals.find((p) => p.id === alvo);
+    if (encontrada) openDetail(encontrada);
+    else toast.info("Proposta não encontrada nesta organização.");
+    const next = new URLSearchParams(searchParams);
+    next.delete("proposal");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, orgId, loadedOrgId, loading, proposals]);
 
   // O assistente da aba Versões IA pode preencher a mensagem da proposta aberta.
   const recarregarSelecionada = async () => {

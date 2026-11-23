@@ -998,7 +998,7 @@ export function OpportunityDrawer({
         label: "Proposta",
         done: !!journey.proposal,
         active: !journey.proposal,
-        href: journey.proposal ? `/dashboard/propostas` : null,
+        href: journey.proposal ? `/dashboard/propostas?proposal=${journey.proposal.id}` : null,
         status: journey.proposal?.status,
         info: journey.proposal
           ? [
@@ -1021,7 +1021,7 @@ export function OpportunityDrawer({
         label: "Contrato",
         done: !!journey.contract,
         active: !!journey.proposal && !journey.contract,
-        href: journey.contract ? `/dashboard/contratos` : null,
+        href: journey.contract ? `/dashboard/contratos?contract=${journey.contract.id}` : null,
         status: journey.contract?.status,
         info: journey.contract
           ? [
