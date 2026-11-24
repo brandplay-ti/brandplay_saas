@@ -27,9 +27,18 @@ Utilizar para os fluxos críticos do produto:
 - media kit público (`/p/:slug`) e envio de lead.
 
 Os testes E2E usam o Supabase **local** (`docker/supabase`), nunca dados de
-produção, e devem instanciar/limpar os dados que criam. Hoje existe apenas 1
-spec de e2e — expandir a cobertura é bem-vindo, mas priorize os fluxos acima
-antes de casos de borda.
+produção, e devem instanciar/limpar os dados que criam. Expandir a cobertura
+é bem-vindo, mas priorize os fluxos acima antes de casos de borda.
+
+### Celular
+
+Além do `chromium` (desktop), o `playwright.config.ts` tem os projetos
+`mobile-android` (Pixel 7) e `mobile-ios` (iPhone 13, WebKit). Eles rodam só
+os testes com `@mobile` no título (`grep`), e o desktop pula esses testes
+(`grepInvert`). Toda demanda do plano mobile
+(`docs/architecture/plano-versao-mobile.md`) que adapta uma tela põe `@mobile`
+no `describe` do fluxo dela, para o fluxo rodar no celular. Só os projetos de
+celular: `npm run test:e2e:mobile`.
 
 ## Regra
 

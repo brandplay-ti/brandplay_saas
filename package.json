@@ -16,6 +16,7 @@
     "test": "npm run test -w portal",
     "test:watch": "npm run test:watch -w portal",
     "test:e2e": "npm run test:e2e -w portal",
+    "test:e2e:mobile": "npm run test:e2e:mobile -w portal",
     "format": "prettier --write portal/src",
     "format:check": "prettier --check portal/src",
     "supabase:up": "docker compose --env-file docker/supabase/.env -f docker/supabase/docker-compose.yml -f docker/supabase/docker-compose.local.yml up -d",

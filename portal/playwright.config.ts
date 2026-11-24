@@ -24,10 +24,24 @@ export default defineConfig({
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
       },
+  // Celular (plano mobile, MOB-19): os projetos mobile rodam só os testes
+  // marcados com @mobile no título. Cada demanda que adapta uma tela marca o
+  // fluxo dela; os demais specs continuam só no desktop até a tela mudar.
   projects: [
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      grepInvert: /@mobile/,
+    },
+    {
+      name: 'mobile-android',
+      use: { ...devices['Pixel 7'] },
+      grep: /@mobile/,
+    },
+    {
+      name: 'mobile-ios',
+      use: { ...devices['iPhone 13'] },
+      grep: /@mobile/,
     },
   ],
 });
