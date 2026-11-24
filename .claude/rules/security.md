@@ -76,6 +76,12 @@ estender esse fluxo.
   parcela ou cota, nota interna ou conteúdo de outro patrocinador; no modo
   público, nada marcado com menores nem evidência privada. Embed de rede
   social só pelo id validado (`external_id`), nunca pela URL crua.
+- **Mídia da edição no R2** (`midia-r2`, ADR-0015) — assina URL só depois de
+  ler a mídia com o token do usuário (sem linha visível pela RLS, sem URL);
+  envio exige escrita em `crm`/`operacional`; caminho do objeto só o do banco,
+  nunca do corpo; tamanho gravado é o do HEAD no R2. Patrocinador não recebe
+  URL até a integração com o relatório (D11, BP-7.16). `R2_SECRET_ACCESS_KEY`
+  só no serviço `functions`, nunca com `VITE_`.
 - **Edge Functions de IA** (`ai-assistant`, `score-leads`, etc.) — usam a
   camada `_shared/ai/` (ADR-0010), não API de fornecedor direta. Confirme
   `organization_id` derivado do JWT/`organization_members`, nunca do body;

@@ -485,6 +485,17 @@ services:
       # Metricas dos videos do YouTube no relatorio (ADR-0011). Vazio = so
       # metrica manual.
       YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
+      # Midia da edicao no Cloudflare R2 (BP-7, `midia-r2`). Sem chave ou
+      # bucket, a funcao responde 503. R2_ENDPOINT, R2_PUBLIC_ENDPOINT e
+      # R2_REGION ficam vazios nos ambientes hospedados: o endpoint sai do
+      # R2_ACCOUNT_ID e a regiao e `auto`. Ver docs/runbooks/armazenamento-r2.md.
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID:-}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+      R2_BUCKET: ${R2_BUCKET:-}
+      R2_ENDPOINT: ${R2_ENDPOINT:-}
+      R2_PUBLIC_ENDPOINT: ${R2_PUBLIC_ENDPOINT:-}
+      R2_REGION: ${R2_REGION:-}
       # Scrape de GET /functions/v1/metricas. Vazio = a rota responde 404.
       EDGE_METRICS_TOKEN: ${EDGE_METRICS_TOKEN:-}
       # Base dos links que saem por e-mail. Vem do ambiente, e nao do corpo da

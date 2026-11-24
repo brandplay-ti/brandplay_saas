@@ -3,7 +3,7 @@
 Feature BP-7 (análise de mídia da edição), decisões D2 e D10. Os vídeos e as
 fotos do material da edição vão direto entre o navegador e o R2 por URL
 pré-assinada, sem passar pela VPS. A URL é emitida pela Edge Function da
-BP-7.05, que confere a permissão antes. O banco guarda a estrutura e o tamanho
+BP-7.05 (`midia-r2`, ADR-0015), que confere a permissão antes. O banco guarda a estrutura e o tamanho
 real de cada objeto (`edition_media`, `edition_media_objects`, migration
 0049).
 
@@ -100,11 +100,13 @@ chaves do Stripe):
 | `R2_SECRET_ACCESS_KEY` | Secret Access Key da chave do ambiente |
 | `R2_BUCKET`            | nome do bucket do ambiente            |
 
-Local: as mesmas variáveis em `docker/supabase/.env`, com a chave do bucket
-`brandplay-midia-dev`.
+`R2_ENDPOINT`, `R2_PUBLIC_ENDPOINT` e `R2_REGION` ficam **vazios** nos
+ambientes hospedados: o endpoint sai do `R2_ACCOUNT_ID` e a região é `auto`.
+Elas só existem para o MinIO local.
 
-Até a BP-7.05 ligar essas variáveis ao serviço `functions` no compose,
-preencher o Dockploy não muda nada no ambiente. Pode ser feito antes.
+Depois de preencher, publique o Compose do Supabase do ambiente: as variáveis
+entram no serviço `functions` e a Edge Function `midia-r2` passa a assinar.
+Sem elas, a função responde 503 ("armazenamento de mídia não configurado").
 
 Nunca:
 
@@ -112,6 +114,37 @@ Nunca:
 - usar o prefixo `VITE_`: a chave é só do servidor (RNF4);
 - criar chave com acesso à conta inteira ou a todos os buckets;
 - reaproveitar a chave de um ambiente em outro.
+
+## Desenvolvimento local
+
+Sem conta na Cloudflare, o MinIO local faz o papel do R2 (profile `midia` do
+`docker-compose.local.yml`, ADR-0015):
+
+1. `npm run supabase:chaves` gera, além dos segredos do Supabase, a senha do
+   MinIO e as `R2_*` apontando para ele (`R2_ENDPOINT=http://minio:9000`,
+   `R2_PUBLIC_ENDPOINT=http://localhost:9010`, `R2_REGION=us-east-1`, bucket
+   `brandplay-midia-dev`). Num `.env` anterior, cole só essas linhas.
+2. `npm run supabase:up`, depois `npm run supabase:midia`: sobe o MinIO
+   (API na 9010, console na 9011) e cria o bucket.
+3. Recrie o `functions` para ele ler as variáveis novas:
+   `docker compose ... up -d --force-recreate functions`.
+
+Para testar contra o bucket `brandplay-midia-dev` do R2 de verdade, troque no
+`.env` as `R2_*` pelas do passo 5 (com `R2_ENDPOINT`, `R2_PUBLIC_ENDPOINT` e
+`R2_REGION` vazias) e recrie o `functions`.
+
+### Conferir o ambiente local
+
+```bash
+node supabase/tools/testar-midia-r2.mjs
+```
+
+Com o seed aplicado, o roteiro cria um projeto de teste e faz um envio
+multipart de verdade (2 partes), a retomada, a conclusão, a leitura e o
+download. Confere que o tamanho gravado é o do armazenamento e que outra
+organização, um financeiro (sem módulo) e uma mídia arquivada não recebem URL.
+No fim apaga o que criou. Só roda contra `localhost`: ele usa a service role
+do `.env` local.
 
 ## Limites e custos para conferir
 

@@ -115,6 +115,13 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   com menores nem evidência de entrega (D10). Campo novo na página = campo
   novo nessa função, com o teste de `supabase/tests/relatorios.sql`.
   Embeds de redes sociais são montados pelo id validado, nunca pela URL crua.
+- **Mídia da edição no R2** (Edge Function `midia-r2`, ADR-0015). Assina URLs
+  de envio e leitura do Cloudflare R2. Antes de assinar, lê a mídia com o
+  token do usuário (sem linha visível pela RLS da 0049, sem URL), exige escrita
+  no módulo `crm` ou `operacional` para enviar e usa só o caminho gravado no
+  banco. O tamanho gravado é o do HEAD no R2. `R2_SECRET_ACCESS_KEY` só no
+  serviço `functions`, chave restrita ao bucket do ambiente. Roteiro de
+  isolamento: `supabase/tools/testar-midia-r2.mjs` (só stack local).
 
 ## O que nunca deve vazar
 
@@ -123,6 +130,7 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   cadastradas em `ai_credentials`)
 - `RESEND_API_KEY`
 - `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET`
+- `R2_SECRET_ACCESS_KEY` (e o par `R2_ACCESS_KEY_ID`) do armazenamento de mídia
 - `YOUTUBE_API_KEY`
 - JWT secret, senha do Postgres, qualquer credencial de infraestrutura
 - Tokens de sessão, cookies, headers de autorização em logs

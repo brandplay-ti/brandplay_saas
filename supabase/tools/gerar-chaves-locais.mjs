@@ -90,6 +90,24 @@ const valores = {
   AI_KEYS_MASTER_KEY: randomBytes(32).toString('base64'),
 };
 
+// Mídia da edição (BP-7.05): o MinIO local faz o papel do Cloudflare R2. A
+// Edge Function `midia-r2` chama o MinIO pela rede do compose (`minio:9000`)
+// e entrega ao navegador URLs para a porta publicada no host. Para testar
+// contra o bucket de desenvolvimento do R2 de verdade, troque estas linhas no
+// `.env` (docs/runbooks/armazenamento-r2.md).
+const senhaMinio = aleatorio(32);
+Object.assign(valores, {
+  MINIO_ROOT_USER: 'brandplay-dev',
+  MINIO_ROOT_PASSWORD: senhaMinio,
+  R2_ACCOUNT_ID: '',
+  R2_ACCESS_KEY_ID: 'brandplay-dev',
+  R2_SECRET_ACCESS_KEY: senhaMinio,
+  R2_BUCKET: 'brandplay-midia-dev',
+  R2_ENDPOINT: 'http://minio:9000',
+  R2_PUBLIC_ENDPOINT: 'http://localhost:9010',
+  R2_REGION: 'us-east-1',
+});
+
 // `--env`: só as atribuições, sem a prosa. É o que o CI acrescenta ao `.env`
 // gerado a partir do `.env.example` — um parser de dotenv não engole texto
 // solto, e filtrar a saída no workflow esconderia a intenção.

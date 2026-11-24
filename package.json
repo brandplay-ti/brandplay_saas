@@ -19,6 +19,8 @@
     "format": "prettier --write portal/src",
     "format:check": "prettier --check portal/src",
     "supabase:up": "docker compose --env-file docker/supabase/.env -f docker/supabase/docker-compose.yml -f docker/supabase/docker-compose.local.yml up -d",
+    "supabase:midia": "docker compose --env-file docker/supabase/.env -f docker/supabase/docker-compose.yml -f docker/supabase/docker-compose.local.yml --profile midia up -d minio minio-init",
+    "supabase:testar-midia": "node supabase/tools/testar-midia-r2.mjs",
     "supabase:down": "docker compose --env-file docker/supabase/.env -f docker/supabase/docker-compose.yml -f docker/supabase/docker-compose.local.yml down",
     "supabase:logs": "docker compose --env-file docker/supabase/.env -f docker/supabase/docker-compose.yml -f docker/supabase/docker-compose.local.yml logs -f",
     "supabase:reset": "docker compose --env-file docker/supabase/.env -f docker/supabase/docker-compose.yml -f docker/supabase/docker-compose.local.yml down -v",
