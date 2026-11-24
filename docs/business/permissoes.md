@@ -60,7 +60,32 @@ Edge Functions do módulo:
   `generate-sellout-report` continuam com leitura: gravam só cache ou o próprio
   relatório gerado, em tabelas do padrão tenant (`is_org_member`).
 
+### Funil e captação (`vendas`)
+
+| Tela | Escrita exigida |
+|---|---|
+| Pipeline: nova oportunidade, arrastar entre estágios, trocar estágio na lista compacta, marcar perda, excluir | `vendas` |
+| Pipeline: trocar responsável da oportunidade e da próxima tarefa | `vendas` |
+| Pipeline: "Priorizar meu dia" | sugerir é leitura; "Criar tarefas" pede `vendas` |
+| Pipeline: funis e SLAs | owner/admin (policies `*_admin_*`) |
+| Pipeline: probabilidades por estágio | do próprio usuário (`user_stage_probabilities_own`) |
+| Oportunidade: campos, contatos, atividades, timeline, excluir, avançar jornada, gerar proposta | `vendas` |
+| Oportunidade: converter em contrato | `vendas` e (`crm` ou `financeiro`), porque também grava o contrato |
+| Oportunidade: "Novo" patrocinador | `crm` |
+| Oportunidade: sincronizar estágio com a jornada | só para quem edita; para quem só lê, nada é gravado |
+| Próximos passos (IA): virar atividade | `vendas`; virar item de checklist, `operacional` ou `crm` |
+| Lead scoring: "Gerar / Atualizar com IA" | `vendas` (a `score-leads` exige escrita) |
+| Calendário: concluir e mudar data | o módulo da origem: tarefa `crm`, atividade `vendas`, checklist `operacional` ou `crm` |
+
+Lacuna conhecida, sem mudança de banco nesta tarefa: `opportunity_contacts`
+ainda está no padrão tenant da 0005 (`is_org_member`, qualquer membro grava).
+A tela já segue `vendas`; levar a policy para o padrão 7 é uma migration à parte.
+
+Edge Functions do módulo: `score-leads`, `generate-proposal-ai` e
+`generate-proposal-wizard` exigem escrita; `suggest-next-steps`,
+`prepare-meeting-ai` e `estimate-activation-values` só leem.
+
 ### Ainda por fazer
 
-Funil (Pipeline, oportunidade, Lead scoring), Contratos e Financeiro, e
-Operacional (entregas, campo, projetos, ativos, BrandTrack), cada um no seu PR.
+Contratos e Financeiro, e Operacional (entregas, campo, projetos, ativos,
+BrandTrack), cada um no seu PR.

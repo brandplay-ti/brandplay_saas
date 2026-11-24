@@ -14,6 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useOrganization } from "@/hooks/useOrganization";
+import { mensagemDeErroDeGravacao } from "@/lib/permissoes";
 import { Plus, Trash2, Users, Mail, Phone, AlertCircle, Building2 } from "lucide-react";
 
 export type ContactType = "geral" | "contrato" | "financeiro";
@@ -55,6 +57,9 @@ export const OpportunityContactsPanel = ({
   hasContract = false,
   hasInstallments = false,
 }: Props) => {
+  // A RLS de opportunity_contacts ainda é a do tenant (qualquer membro grava);
+  // a tela segue a regra do Funil, como o resto da oportunidade (BP-29).
+  const editavel = useOrganization().canWrite("vendas");
   const [contacts, setContacts] = useState<OpportunityContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -105,7 +110,7 @@ export const OpportunityContactsPanel = ({
     });
     setSaving(false);
     if (error) {
-      toast.error("Erro ao salvar contato", { description: error.message });
+      toast.error("Erro ao salvar contato", { description: mensagemDeErroDeGravacao(error, "vendas") });
       return;
     }
     toast.success(
@@ -121,7 +126,7 @@ export const OpportunityContactsPanel = ({
   const removeContact = async (id: string) => {
     const { error } = await supabase.from("opportunity_contacts").delete().eq("id", id);
     if (error) {
-      toast.error("Erro ao excluir contato", { description: error.message });
+      toast.error("Erro ao excluir contato", { description: mensagemDeErroDeGravacao(error, "vendas") });
       return;
     }
     setContacts((prev) => prev.filter((c) => c.id !== id));
@@ -142,10 +147,12 @@ export const OpportunityContactsPanel = ({
           Contatos da oportunidade
           {contacts.length > 0 && <Badge variant="secondary">{contacts.length}</Badge>}
         </div>
-        <Button size="sm" variant="outline" onClick={() => openForm("geral")}>
-          <Plus className="h-4 w-4 mr-1.5" />
-          Adicionar
-        </Button>
+        {editavel && (
+          <Button size="sm" variant="outline" onClick={() => openForm("geral")}>
+            <Plus className="h-4 w-4 mr-1.5" />
+            Adicionar
+          </Button>
+        )}
       </div>
 
       <p className="text-xs text-muted-foreground flex items-center gap-1.5">
@@ -155,7 +162,7 @@ export const OpportunityContactsPanel = ({
           : "Sem patrocinador vinculado — os contatos serão copiados assim que você vincular um."}
       </p>
 
-      {(missingContract || missingFinance) && (
+      {editavel && (missingContract || missingFinance) && (
         <div className="rounded-md border border-warning/30 bg-warning/10 p-2.5 space-y-2 text-xs">
           {missingContract && (
             <div className="flex items-center justify-between gap-2">
@@ -182,7 +189,7 @@ export const OpportunityContactsPanel = ({
         </div>
       )}
 
-      {showForm && (
+      {editavel && showForm && (
         <div className="rounded-md border p-3 space-y-3 bg-muted/30">
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
@@ -279,7 +286,7 @@ export const OpportunityContactsPanel = ({
                       )}
                     </div>
                   </div>
-                  <Button
+                  {editavel && <Button
                     aria-label="Remover contato"
                     size="icon"
                     variant="ghost"
@@ -287,7 +294,7 @@ export const OpportunityContactsPanel = ({
                     onClick={() => removeContact(c.id)}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  </Button>}
                 </div>
               ))}
             </div>
