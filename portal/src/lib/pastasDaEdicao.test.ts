@@ -8,7 +8,6 @@ import {
   destinosDaPasta,
   erroNoNomeDaPasta,
   filhasDe,
-  formatarBytes,
   maeArquivada,
   subarvore,
   type MidiaNaPasta,
@@ -148,15 +147,5 @@ describe("maeArquivada", () => {
     expect(maeArquivada(comMaeArquivada, "f")).toBe(true);
     expect(maeArquivada(comMaeArquivada, "m")).toBe(false);
     expect(maeArquivada(PASTAS, "c1")).toBe(false);
-  });
-});
-
-describe("formatarBytes", () => {
-  it("usa base 1000 e vírgula decimal", () => {
-    expect(formatarBytes(0)).toBe("0 B");
-    expect(formatarBytes(1500)).toBe("1,5 KB");
-    expect(formatarBytes(42_000_000_000)).toBe("42,0 GB");
-    expect(formatarBytes(250_000_000)).toBe("250 MB");
-    expect(formatarBytes(null)).toBe("—");
   });
 });

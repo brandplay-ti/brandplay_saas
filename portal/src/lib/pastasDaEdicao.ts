@@ -173,17 +173,3 @@ export function maeArquivada(pastas: PastaDaEdicao[], pastaId: string): boolean 
   if (!pasta?.parent_folder_id) return false;
   return !!pastas.find((p) => p.id === pasta.parent_folder_id)?.archived_at;
 }
-
-/** Tamanho em bytes para a tela (base 1000, como os fornecedores cobram). */
-export function formatarBytes(bytes: number | null | undefined): string {
-  if (bytes === null || bytes === undefined || !Number.isFinite(bytes) || bytes < 0) return "—";
-  const unidades = ["B", "KB", "MB", "GB", "TB"];
-  let valor = bytes;
-  let i = 0;
-  while (valor >= 1000 && i < unidades.length - 1) {
-    valor /= 1000;
-    i++;
-  }
-  const casas = i === 0 || valor >= 100 ? 0 : 1;
-  return `${valor.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas })} ${unidades[i]}`;
-}

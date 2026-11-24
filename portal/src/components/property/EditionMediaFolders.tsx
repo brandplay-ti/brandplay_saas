@@ -67,10 +67,10 @@ import {
   destinosDaPasta,
   erroNoNomeDaPasta,
   filhasDe,
-  formatarBytes,
   maeArquivada,
   subarvore,
 } from "@/lib/pastasDaEdicao";
+import { formatarBytes } from "@/lib/armazenamento";
 
 const RAIZ = "__raiz__";
 
