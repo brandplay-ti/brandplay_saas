@@ -36,7 +36,7 @@ import { ativarComTeclado } from "@/lib/clicavel";
 import { EmptyState } from "@/components/common/EmptyState";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 import { SomenteLeitura } from "@/components/SomenteLeitura";
-import { mensagemDeErroDeGravacao, mensagemSemEdicao } from "@/lib/permissoes";
+import { MODULOS_DO_CONTRATO, mensagemDeErroDeGravacao, mensagemSemEdicao } from "@/lib/permissoes";
 
 
 type Status = "rascunho" | "enviada" | "aceita" | "recusada" | "expirada";
@@ -97,6 +97,8 @@ export default function Proposals() {
   const { orgId, canWrite } = useOrganization();
   // Quem só lê o funil vê as propostas, mas não cria nem altera (BP-2). A RLS é a fronteira.
   const podeEditar = canWrite("vendas");
+  // Converter em contrato também grava o contrato: escrita em CRM ou Financeiro (BP-29).
+  const podeCriarContrato = podeEditar && MODULOS_DO_CONTRATO.some((m) => canWrite(m));
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -749,7 +751,7 @@ export default function Proposals() {
       flat_value: useFlat ? total : 0,
       status: "rascunho",
     }).select().single();
-    if (error) return toast.error("Erro", { description: error.message });
+    if (error) return toast.error("Erro", { description: mensagemDeErroDeGravacao(error, MODULOS_DO_CONTRATO) });
     if (items.length > 0) {
       const { error: copyError } = await supabase.rpc("copy_proposal_items_to_contract", {
         _contract_id: c!.id,
@@ -1383,7 +1385,7 @@ export default function Proposals() {
                         <Briefcase className="h-4 w-4 mr-2" />
                         {selected.converted_opportunity_id ? "Oportunidade criada" : "→ Pipeline"}
                       </Button>
-                      <Button variant="outline" onClick={convertToContract} disabled={!!selected.converted_contract_id}>
+                      <Button variant="outline" onClick={convertToContract} disabled={!podeCriarContrato || !!selected.converted_contract_id}>
                         <FileSignature className="h-4 w-4 mr-2" />
                         {selected.converted_contract_id ? "Contrato criado" : "→ Contrato"}
                       </Button>

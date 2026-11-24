@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
+import { mensagemDeErroDeGravacao, mensagemSemEdicao } from "@/lib/permissoes";
 import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -90,7 +92,9 @@ const statusConfig: Record<InstallmentStatus, { label: string; tone: StatusTone 
 
 export default function Finance() {
   const { user } = useAuth();
-  const { orgId } = useOrganization();
+  const { orgId, canWrite } = useOrganization();
+  // Dar baixa e reabrir parcela pedem escrita no Financeiro (BP-29).
+  const podeEditar = canWrite("financeiro");
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useFiltroSalvo("financeiro", "search", "");
@@ -204,16 +208,18 @@ export default function Finance() {
 
   const markPaid = async () => {
     if (!selected) return;
-    const { error } = await supabase
+    const { data: alteradas, error } = await supabase
       .from("installments")
       .update({
         status: "pago",
         paid_at: paidAt,
         paid_amount: Number(paidAmount),
       })
-      .eq("id", selected.id);
-    if (error) {
-      toast.error("Erro", { description: error.message });
+      .eq("id", selected.id)
+      .select("id");
+    // A RLS recusa o UPDATE sem erro (0 linhas): sem linha de volta, nada mudou.
+    if (error || !alteradas?.length) {
+      toast.error("Erro", { description: error ? mensagemDeErroDeGravacao(error, "financeiro") : mensagemSemEdicao("financeiro") });
       return;
     }
     toast.success("Parcela marcada como paga");
@@ -224,16 +230,17 @@ export default function Finance() {
   const reopenInstallment = async () => {
     if (!selected) return;
     const overdue = dataLocal(selected.due_date) < new Date(new Date().toDateString());
-    const { error } = await supabase
+    const { data: alteradas, error } = await supabase
       .from("installments")
       .update({
         status: overdue ? "atrasado" : "pendente",
         paid_at: null,
         paid_amount: null,
       })
-      .eq("id", selected.id);
-    if (error) {
-      toast.error("Erro", { description: error.message });
+      .eq("id", selected.id)
+      .select("id");
+    if (error || !alteradas?.length) {
+      toast.error("Erro", { description: error ? mensagemDeErroDeGravacao(error, "financeiro") : mensagemSemEdicao("financeiro") });
       return;
     }
     toast.success("Parcela reaberta");
@@ -249,6 +256,7 @@ export default function Finance() {
         icon={Wallet}
         actions={
           <>
+            {!podeEditar && <div className="max-w-md"><SomenteLeitura module="financeiro" /></div>}
             <Button variant="outline" size="sm" onClick={load} disabled={loading}>
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
               Atualizar
@@ -488,7 +496,19 @@ export default function Finance() {
                   </div>
                 </div>
 
-                {selected.status !== "pago" ? (
+                {!podeEditar ? (
+                  <div className="space-y-3 border-t pt-4">
+                    {selected.status === "pago" && (
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Pago em:</span>{" "}
+                        <span className="font-medium">{fmtDate(selected.paid_at)}</span>
+                        {" · "}
+                        <span className="font-medium">{fmtBRL(selected.paid_amount ?? selected.amount)}</span>
+                      </div>
+                    )}
+                    <SomenteLeitura module="financeiro" />
+                  </div>
+                ) : selected.status !== "pago" ? (
                   <div className="space-y-3 border-t pt-4">
                     <div>
                       <Label htmlFor="paid_at">Data do pagamento</Label>
