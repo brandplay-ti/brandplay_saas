@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
+import { MODULOS_DA_OPERACAO, mensagemDeErroDeGravacao, mensagemSemEdicao } from "@/lib/permissoes";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -60,7 +62,10 @@ const FieldDeliveryDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { orgId } = useOrganization();
+  const { orgId, canWrite } = useOrganization();
+  // Registrar a entrega grava em deliveries (Entregas ou CRM). Os anexos seguem a
+  // mesma regra na tela, embora delivery_attachments ainda seja do tenant (BP-29).
+  const podeEditar = MODULOS_DA_OPERACAO.some((m) => canWrite(m));
   const [delivery, setDelivery] = useState<Delivery | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -181,9 +186,9 @@ const FieldDeliveryDetail = () => {
       destructive: true,
     });
     if (!confirmado) return;
-    const { error } = await supabase.from("delivery_attachments").delete().eq("id", att.id);
-    if (error) {
-      toast.error(error.message);
+    const { data: apagados, error } = await supabase.from("delivery_attachments").delete().eq("id", att.id).select("id");
+    if (error || !apagados?.length) {
+      toast.error("Não foi possível remover o anexo", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) : mensagemSemEdicao(MODULOS_DA_OPERACAO) });
       return;
     }
     await supabase.storage.from("delivery-evidence").remove([att.storage_path]);
@@ -205,13 +210,14 @@ const FieldDeliveryDetail = () => {
         update.status = "entregue";
         update.delivered_at = new Date().toISOString().slice(0, 10);
       }
-      const { error } = await supabase.from("deliveries").update(update).eq("id", delivery.id);
+      const { data: salvas, error } = await supabase.from("deliveries").update(update).eq("id", delivery.id).select("id");
       if (error) throw error;
+      // A RLS recusa o UPDATE sem erro (0 linhas): sem linha de volta, nada foi registrado.
+      if (!salvas?.length) throw new Error(mensagemSemEdicao(MODULOS_DA_OPERACAO));
       toast.success(markDelivered ? "Entrega registrada!" : "Notas salvas");
       navigate("/campo");
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Erro ao salvar";
-      toast.error(msg);
+      toast.error(mensagemDeErroDeGravacao(e, MODULOS_DA_OPERACAO, "Erro ao salvar"));
     } finally {
       setSaving(false);
     }
@@ -253,6 +259,8 @@ const FieldDeliveryDetail = () => {
           )}
         </Card>
 
+        {!podeEditar && <SomenteLeitura module={MODULOS_DA_OPERACAO} />}
+
         <div>
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium">Anexos</h3>
@@ -288,13 +296,13 @@ const FieldDeliveryDetail = () => {
                       </span>
                     </a>
                   )}
-                  <button
+                  {podeEditar && <button
                     onClick={() => removeAttachment(att)}
                     className="absolute top-1 right-1 bg-background/90 hover:bg-destructive hover:text-destructive-foreground rounded-md p-1 shadow-sm transition-colors"
                     aria-label="Remover"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  </button>}
                   {att.geo && (
                     <div className="absolute bottom-1 left-1 bg-background/80 backdrop-blur rounded px-1 py-0.5 text-[9px] flex items-center gap-0.5">
                       <MapPin className="w-2.5 h-2.5" />
@@ -306,7 +314,7 @@ const FieldDeliveryDetail = () => {
             </div>
           )}
 
-          {canAddMore ? (
+          {!podeEditar ? null : canAddMore ? (
             <div className="grid grid-cols-3 gap-2">
               <Button
                 variant="outline"
@@ -383,6 +391,7 @@ const FieldDeliveryDetail = () => {
           />
         </div>
 
+        {podeEditar && <>
         <div>
           <label className="text-sm font-medium mb-1.5 block">Notas (opcional)</label>
           <Textarea
@@ -411,6 +420,7 @@ const FieldDeliveryDetail = () => {
             Salvar sem concluir
           </Button>
         </div>
+        </>}
       </div>
     </div>
   );

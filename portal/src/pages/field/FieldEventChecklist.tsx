@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
+import { MODULOS_DA_OPERACAO, mensagemDeErroDeGravacao, mensagemSemEdicao } from "@/lib/permissoes";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,7 +29,9 @@ const FieldEventChecklist = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { orgId } = useOrganization();
+  const { orgId, canWrite } = useOrganization();
+  // Concluir item do checklist grava em property_checklist_items: Entregas ou CRM (BP-29).
+  const podeEditar = MODULOS_DA_OPERACAO.some((m) => canWrite(m));
   const [event, setEvent] = useState<Event | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,7 +93,7 @@ const FieldEventChecklist = () => {
       });
       if (upErr) throw upErr;
 
-      const { error } = await supabase
+      const { data: concluidos, error } = await supabase
         .from("property_checklist_items")
         .update({
           status: "concluido",
@@ -98,14 +102,19 @@ const FieldEventChecklist = () => {
           evidence_taken_at: new Date().toISOString(),
           evidence_taken_by: user.id,
         })
-        .eq("id", activeItemId);
+        .eq("id", activeItemId)
+        .select("id");
       if (error) throw error;
+      // A RLS recusa o UPDATE sem erro (0 linhas): a foto enviada não vale sem o item.
+      if (!concluidos?.length) {
+        await supabase.storage.from("delivery-evidence").remove([path]);
+        throw new Error(mensagemSemEdicao(MODULOS_DA_OPERACAO));
+      }
 
       toast.success("Item concluído");
       await load();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Erro";
-      toast.error(msg);
+      toast.error(mensagemDeErroDeGravacao(e, MODULOS_DA_OPERACAO, "Erro"));
     } finally {
       setSavingId(null);
       setActiveItemId(null);
@@ -115,13 +124,15 @@ const FieldEventChecklist = () => {
   const toggleStatus = async (item: Item) => {
     if (item.status === "concluido") {
       setSavingId(item.id);
-      const { error } = await supabase
+      const { data: reabertos, error } = await supabase
         .from("property_checklist_items")
         .update({ status: "pendente" })
-        .eq("id", item.id);
+        .eq("id", item.id)
+        .select("id");
       setSavingId(null);
-      if (error) toast.error(error.message);
-      else load();
+      if (error || !reabertos?.length) {
+        toast.error("Não foi possível reabrir o item", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) : mensagemSemEdicao(MODULOS_DA_OPERACAO) });
+      } else load();
     } else {
       triggerCamera(item.id);
     }
@@ -148,6 +159,8 @@ const FieldEventChecklist = () => {
           </div>
         </Card>
 
+        {!podeEditar && <SomenteLeitura module={MODULOS_DA_OPERACAO} />}
+
         {loading ? (
           <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-20 w-full" />)}</div>
         ) : items.length === 0 ? (
@@ -163,7 +176,8 @@ const FieldEventChecklist = () => {
                   <div className="flex items-start gap-3">
                     <button
                       onClick={() => toggleStatus(item)}
-                      disabled={savingId === item.id}
+                      disabled={!podeEditar || savingId === item.id}
+                      aria-label={done ? "Reabrir item" : "Concluir item"}
                       className="flex-shrink-0 mt-0.5"
                     >
                       {savingId === item.id ? (
@@ -183,7 +197,7 @@ const FieldEventChecklist = () => {
                         <img src={item.evidence_url} alt="" className="mt-2 w-20 h-20 rounded-md object-cover" />
                       )}
                     </div>
-                    {!done && (
+                    {!done && podeEditar && (
                       <Button aria-label="Tirar foto" size="icon" variant="outline" className="flex-shrink-0" onClick={() => triggerCamera(item.id)}>
                         <Camera className="w-4 h-4" />
                       </Button>

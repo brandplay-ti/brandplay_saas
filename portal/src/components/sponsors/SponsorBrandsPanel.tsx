@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Trash2, Tag } from "lucide-react";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
+import { mensagemDeErroDeGravacao } from "@/lib/permissoes";
 
 const db = supabase as any;
 
@@ -21,11 +23,12 @@ interface SponsorBrand {
 
 export const SponsorBrandsPanel = ({ sponsorId }: { sponsorId: string }) => {
   const { user } = useAuth();
-  const { orgId, can } = useOrganization();
+  const { orgId, canWrite } = useOrganization();
   const [brands, setBrands] = useState<SponsorBrand[]>([]);
   const [form, setForm] = useState({ name: "", category: "", website: "" });
   const [loading, setLoading] = useState(true);
-  const editable = can("crm");
+  // Escrita, não leitura: quem só lê o CRM vê as marcas sem alterar (BP-29).
+  const editable = canWrite("crm");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -50,18 +53,20 @@ export const SponsorBrandsPanel = ({ sponsorId }: { sponsorId: string }) => {
       website: form.website.trim() || null,
       created_by: user?.id ?? null,
     });
-    if (error) return toast.error("Erro", { description: error.message });
+    if (error) return toast.error("Erro", { description: mensagemDeErroDeGravacao(error, "crm") });
     setForm({ name: "", category: "", website: "" });
     load();
   };
 
   const toggleActive = async (b: SponsorBrand) => {
-    await db.from("sponsor_brands").update({ is_active: !b.is_active }).eq("id", b.id);
+    const { error } = await db.from("sponsor_brands").update({ is_active: !b.is_active }).eq("id", b.id);
+    if (error) return toast.error("Erro", { description: mensagemDeErroDeGravacao(error, "crm") });
     load();
   };
 
   const remove = async (b: SponsorBrand) => {
-    await db.from("sponsor_brands").delete().eq("id", b.id);
+    const { error } = await db.from("sponsor_brands").delete().eq("id", b.id);
+    if (error) return toast.error("Erro", { description: mensagemDeErroDeGravacao(error, "crm") });
     load();
   };
 
@@ -95,6 +100,8 @@ export const SponsorBrandsPanel = ({ sponsorId }: { sponsorId: string }) => {
           </Card>
         ))
       )}
+
+      {!editable && <SomenteLeitura module="crm" />}
 
       {editable && (
         <div className="rounded-md border border-dashed p-3 space-y-2">

@@ -3,6 +3,7 @@
 // Para 'activate' e 'invite' envia e-mail (`_shared/email.ts`), se configurado.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { escapeHtml as escHtml, sendEmail } from "../_shared/email.ts";
+import { logContexto } from "../_shared/observabilidade.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -72,27 +73,42 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Confere se o usuário é dono do patrocinador (ou admin)
     const { data: sponsor } = await admin
       .from("sponsors")
-      .select("id, name, owner_id")
+      .select("id, name, organization_id")
       .eq("id", body.sponsor_id)
       .maybeSingle();
-    if (!sponsor) {
+    if (!sponsor?.organization_id) {
       return new Response(JSON.stringify({ error: "sponsor_not_found" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { data: isAdmin } = await admin.rpc("has_role", {
+    logContexto(req, { user_id: user.id, organization_id: sponsor.organization_id, code: `portal.${body.action}` });
+
+    // Mesma regra da RLS de sponsor_portal_access e sponsor_invites: escrita
+    // no CRM da organização dona do patrocinador (BP-29). Antes valia ser o
+    // criador do patrocinador ou ter o papel global `admin` (has_role, que
+    // não respeita a organização). Pelo client do usuário, para valer também
+    // a sessão de suporte, que depende de auth.uid().
+    const { data: podeEditar, error: erroDeAcesso } = await userClient.rpc("can_access_module", {
       _user_id: user.id,
-      _role: "admin",
+      _org_id: sponsor.organization_id,
+      _module: "crm",
+      _write: true,
     });
-    if (sponsor.owner_id !== user.id && !isAdmin) {
-      return new Response(JSON.stringify({ error: "forbidden" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (erroDeAcesso) throw new Error(`validação de acesso falhou: ${erroDeAcesso.code ?? "?"}`);
+    if (podeEditar !== true) {
+      return new Response(
+        JSON.stringify({
+          error: "forbidden",
+          message: "Seu papel só lê Patrocinadores e CRM nesta organização. Para alterar o acesso ao portal, peça acesso de edição a um administrador.",
+        }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     const portalUrl = safePortalUrl(body.portal_url, req.headers.get("origin"));

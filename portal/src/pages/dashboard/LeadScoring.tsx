@@ -10,6 +10,7 @@ import { Sparkles, Loader2, Flame, Snowflake, ThermometerSun, ExternalLink } fro
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useOrganization } from "@/hooks/useOrganization";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
 import { avisarErroDeIA } from "@/lib/erroDeIA";
 import { PageHeader } from "@/components/common/PageHeader";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
@@ -39,7 +40,9 @@ const classUI: Record<Score["classification"], { label: string; tone: StatusTone
 };
 
 export default function LeadScoring() {
-  const { orgId } = useOrganization();
+  const { orgId, canWrite } = useOrganization();
+  // A score-leads só serve gravada (lead_scores) e exige escrita no Funil (BP-29).
+  const podeGerar = canWrite("vendas");
   const [properties, setProperties] = useState<Property[]>([]);
   const [scopeMode, setScopeMode] = useState<"global" | "property">("global");
   const [propertyId, setPropertyId] = useState<string>("");
@@ -142,10 +145,14 @@ export default function LeadScoring() {
                   </SelectContent>
                 </Select>
               )}
-              <Button onClick={runScoring} disabled={scoring || !orgId}>
-                {scoring ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
-                Gerar / Atualizar com IA
-              </Button>
+              {podeGerar ? (
+                <Button onClick={runScoring} disabled={scoring || !orgId}>
+                  {scoring ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
+                  Gerar / Atualizar com IA
+                </Button>
+              ) : (
+                <div className="max-w-md"><SomenteLeitura module="vendas" /></div>
+              )}
             </div>
           </>
         }

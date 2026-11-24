@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/dialog";
 import { FileUp, Download, Trash2, Sparkles, Loader2, FileText } from "lucide-react";
 import { useConfirm } from "@/hooks/useConfirm";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
+import { mensagemDeErroDeGravacao, mensagemSemEdicao } from "@/lib/permissoes";
 
 const db = supabase as any;
 const BUCKET = "sponsor-documents";
@@ -140,7 +142,7 @@ export function SponsorDocumentsPanel({ sponsorId, organizationId, editable }: P
     setSaving(false);
     if (error) {
       await supabase.storage.from(BUCKET).remove([path]);
-      toast.error("Erro ao salvar", { description: error.message });
+      toast.error("Erro ao salvar", { description: mensagemDeErroDeGravacao(error, "crm") });
       return;
     }
     toast.success("Arquivo enviado");
@@ -165,9 +167,10 @@ export function SponsorDocumentsPanel({ sponsorId, organizationId, editable }: P
       destructive: true,
     });
     if (!confirmado) return;
-    const { error } = await db.from("sponsor_documents").delete().eq("id", doc.id);
-    if (error) {
-      toast.error("Erro ao excluir", { description: error.message });
+    // A RLS recusa o DELETE sem erro (0 linhas): sem a linha apagada, o arquivo fica.
+    const { data: apagados, error } = await db.from("sponsor_documents").delete().eq("id", doc.id).select("id");
+    if (error || !apagados?.length) {
+      toast.error("Erro ao excluir", { description: error ? mensagemDeErroDeGravacao(error, "crm") : mensagemSemEdicao("crm") });
       return;
     }
     await supabase.storage.from(BUCKET).remove([doc.file_path]);
@@ -179,7 +182,7 @@ export function SponsorDocumentsPanel({ sponsorId, organizationId, editable }: P
     setDocs((prev) => prev.map((d) => (d.id === doc.id ? { ...d, ai_enabled: value } : d)));
     const { error } = await db.from("sponsor_documents").update({ ai_enabled: value }).eq("id", doc.id);
     if (error) {
-      toast.error("Erro ao atualizar", { description: error.message });
+      toast.error("Erro ao atualizar", { description: mensagemDeErroDeGravacao(error, "crm") });
       load();
     }
   };
@@ -203,6 +206,7 @@ export function SponsorDocumentsPanel({ sponsorId, organizationId, editable }: P
         )}
       </CardHeader>
       <CardContent className="space-y-2">
+        {!editable && <SomenteLeitura module="crm" />}
         {loading ? (
           <p className="text-sm text-muted-foreground flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
@@ -233,11 +237,11 @@ export function SponsorDocumentsPanel({ sponsorId, organizationId, editable }: P
                   aria-label="Usar na IA"
                 />
               </div>
-              <Button variant="outline" size="sm" onClick={() => handleDownload(doc)}>
+              <Button variant="outline" size="sm" aria-label="Baixar arquivo" onClick={() => handleDownload(doc)}>
                 <Download className="h-4 w-4" />
               </Button>
               {editable && (
-                <Button variant="ghost" size="sm" onClick={() => handleDelete(doc)}>
+                <Button variant="ghost" size="sm" aria-label="Excluir arquivo" onClick={() => handleDelete(doc)}>
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               )}

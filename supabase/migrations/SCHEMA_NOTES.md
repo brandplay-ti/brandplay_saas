@@ -313,7 +313,7 @@ pura de nome/assinatura, sem nenhuma pista adicional).
 | `is_org_member(uuid, uuid)` (sobrecarga) | alta | Assinatura documentada em `types.ts`; lógica idêntica à versão `auth.uid()` de 0004 |
 | `has_org_role(uuid, org_role[], uuid)` (sobrecarga) | alta | Idem |
 | `get_user_org` | média | Ambíguo por natureza no modelo multi-org (CLAUDE.md §6); heurística "membership mais antiga" documentada |
-| `has_role` | alta | Call site: `supabase/functions/manage-portal-access/index.ts` |
+| `has_role` | alta | Sem call site desde a BP-29: a `manage-portal-access` passou a exigir escrita no CRM (`can_access_module`), ver `docs/business/permissoes.md` |
 | `has_sponsor_access` | alta (schema) | Nenhum call site; espelha `has_sponsor_portal_access` de 0004 |
 | `user_sponsor_ids` | alta (schema) | Nenhum call site; schema puro |
 | `log_sponsor_interaction` | alta | Insert tipado em `sponsor_interactions`, colunas confirmadas em 0003 |

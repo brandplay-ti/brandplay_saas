@@ -38,6 +38,8 @@ import {
 import { Breadcrumbs } from "@/components/common/Breadcrumbs";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
 import { formatarNumero } from "@/lib/mascaras";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
+import { mensagemDeErroDeGravacao, mensagemSemEdicao } from "@/lib/permissoes";
 
 const db = supabase as any;
 
@@ -54,11 +56,15 @@ interface Contact { id: string; name: string; role: string | null; email: string
 
 export default function SponsorDetail() {
   const { id } = useParams();
-  const { orgId, can, clientType } = useOrganization();
+  const { orgId, can, canWrite, clientType } = useOrganization();
   // Sem o módulo vendas (marca, ou papel sem acesso): sem negociações,
   // propostas, preparação de reunião nem renovação pelo funil.
   const temVendas = can("vendas");
   const marca = clientType === "marca";
+  // Editar a conta (ciclo, prioridade, saúde, dados, documentos) pede escrita
+  // no CRM; ver o módulo não basta (BP-29). A renovação abre negociação: vendas.
+  const editable = canWrite("crm");
+  const podeRenovar = canWrite("vendas");
   const [sponsor, setSponsor] = useState<Sponsor | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [opportunities, setOpportunities] = useState<any[]>([]);
@@ -71,8 +77,8 @@ export default function SponsorDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [searchParams] = useSearchParams();
   useEffect(() => {
-    if (searchParams.get("edit") === "1") setEditOpen(true);
-  }, [searchParams]);
+    if (searchParams.get("edit") === "1" && editable) setEditOpen(true);
+  }, [searchParams, editable]);
   const [profile, setProfile] = useState<SponsorProfileValue>(emptySponsorProfile());
 
   const load = useCallback(async (opts?: { silent?: boolean }) => {
@@ -141,15 +147,18 @@ export default function SponsorDetail() {
 
   const createRenewal = async (contractId: string) => {
     const { error } = await db.rpc("create_renewal_opportunity", { _contract_id: contractId });
-    if (error) return toast.error("Erro", { description: error.message });
+    if (error) return toast.error("Erro", { description: mensagemDeErroDeGravacao(error, "vendas") });
     toast.success("Renovação criada", { description: "Uma nova negociação foi aberta no pipeline." });
     load();
   };
 
   const patch = async (values: Record<string, unknown>) => {
     if (!sponsor) return;
-    const { error } = await db.from("sponsors").update(values).eq("id", sponsor.id);
-    if (error) return toast.error("Erro", { description: error.message });
+    // A RLS recusa o UPDATE sem erro (0 linhas): sem linha de volta, nada mudou.
+    const { data: alteradas, error } = await db.from("sponsors").update(values).eq("id", sponsor.id).select("id");
+    if (error || !alteradas?.length) {
+      return toast.error("Erro", { description: error ? mensagemDeErroDeGravacao(error, "crm") : mensagemSemEdicao("crm") });
+    }
     setSponsor({ ...sponsor, ...(values as any) });
     toast.success("Conta atualizada");
   };
@@ -166,7 +175,6 @@ export default function SponsorDetail() {
   const logoUrl = sponsor.logo_path
     ? supabase.storage.from("sponsor-logos").getPublicUrl(sponsor.logo_path).data.publicUrl
     : null;
-  const editable = can("crm");
   const daysNoContact = daysSince(sponsor.last_contact_at);
 
   return (
@@ -220,6 +228,7 @@ export default function SponsorDetail() {
             </div>
 
           )}
+          {!editable && <div className="w-full sm:w-auto sm:max-w-sm"><SomenteLeitura module="crm" /></div>}
         </CardContent>
       </Card>
 
@@ -412,7 +421,7 @@ export default function SponsorDetail() {
                   </div>
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium">{formatBRL(Number(c.total_value ?? 0))}</p>
-                    {editable && temVendas && c.status === "ativo" && (
+                    {podeRenovar && c.status === "ativo" && (
                       <Button size="sm" variant="outline" onClick={() => createRenewal(c.id)}>
                         <RefreshCw className="h-4 w-4 mr-2" /> Gerar renovação
                       </Button>
