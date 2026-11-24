@@ -116,6 +116,21 @@ MOB-05, MOB-13, MOB-15) e entram na fase 3.
 
 Tamanho: **P** até 1 dia, **M** 2–3 dias, **G** uma semana ou mais.
 
+No board do Plane, a feature-mãe é a **BP-30** ("Versão mobile do portal") e
+cada demanda é uma filha dela. A label é Feature quando a demanda cria
+componente e Update quando adapta tela existente. A prioridade segue a fase
+(alta, média, baixa).
+
+| Demanda | Item | Demanda | Item | Demanda | Item |
+|---|---|---|---|---|---|
+| MOB-01 | BP-33 | MOB-08 | BP-32 | MOB-14 | BP-42 |
+| MOB-02 | BP-34 | MOB-10 | BP-40 | MOB-15 | BP-44 |
+| MOB-03 | BP-37 | MOB-11 | BP-45 | MOB-16 | BP-47 |
+| MOB-04 | BP-38 | MOB-12 | BP-41 | MOB-17 | BP-46 |
+| MOB-05 | BP-39 | MOB-13 | BP-43 | MOB-18 | BP-48 |
+| MOB-06 | BP-35 | MOB-19 | BP-31 | | |
+| MOB-07 | BP-36 | | | | |
+
 ### Fase 1: fundação
 
 **MOB-01. Casca mobile do painel** (M)
