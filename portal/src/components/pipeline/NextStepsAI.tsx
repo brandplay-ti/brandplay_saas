@@ -8,6 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sparkles, Loader2, Plus, Phone, Mail, Users, ListChecks, StickyNote } from "lucide-react";
 import { toast } from "sonner";
+import { mensagemDeErroDeGravacao } from "@/lib/permissoes";
+
+/** Checklist do projeto: policies `operacional OR crm` (0017). */
+const MODULOS_DO_CHECKLIST = ["operacional", "crm"] as const;
 
 type Step = {
   title: string;
@@ -47,7 +51,11 @@ const PRIO_CLS = {
 type PropOption = { id: string; name: string };
 
 export function NextStepsAI({ context, targetId, opportunityId, ownerId, propertyId, onActivityCreated }: Props) {
-  const { orgId } = useOrganization();
+  const { orgId, canWrite } = useOrganization();
+  // Sugerir é leitura; virar atividade ou item de checklist grava, e só aparece
+  // para quem escreve no módulo da tabela (BP-29).
+  const podeCriarAtividade = canWrite("vendas");
+  const podeCriarChecklist = MODULOS_DO_CHECKLIST.some((m) => canWrite(m));
   const [steps, setSteps] = useState<Step[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState<number | null>(null);
@@ -106,7 +114,7 @@ export function NextStepsAI({ context, targetId, opportunityId, ownerId, propert
       toast.success("Atividade criada");
       onActivityCreated?.();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro");
+      toast.error("Erro ao criar atividade", { description: mensagemDeErroDeGravacao(e, "vendas", "Erro") });
     } finally {
       setCreating(null);
     }
@@ -132,7 +140,7 @@ export function NextStepsAI({ context, targetId, opportunityId, ownerId, propert
       toast.success("Tarefa adicionada ao checklist");
       setOpenPicker(null);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro");
+      toast.error("Erro ao adicionar ao checklist", { description: mensagemDeErroDeGravacao(e, MODULOS_DO_CHECKLIST, "Erro") });
     } finally {
       setAddingChecklist(null);
     }
@@ -191,13 +199,13 @@ export function NextStepsAI({ context, targetId, opportunityId, ownerId, propert
                     Em {s.due_in_days} {s.due_in_days === 1 ? "dia" : "dias"}
                   </span>
                   <div className="flex items-center gap-1">
-                    {opportunityId && ownerId && (
+                    {podeCriarAtividade && opportunityId && ownerId && (
                       <Button size="sm" variant="ghost" onClick={() => createActivity(s, i)} disabled={creating === i}>
                         {creating === i ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Plus className="h-3 w-3 mr-1" />}
                         Criar atividade
                       </Button>
                     )}
-                    {propertyId ? (
+                    {!podeCriarChecklist ? null : propertyId ? (
                       <Button size="sm" variant="ghost" onClick={() => addToChecklist(s, i, propertyId)} disabled={addingChecklist === i}>
                         {addingChecklist === i ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <ListChecks className="h-3 w-3 mr-1" />}
                         Adicionar ao checklist

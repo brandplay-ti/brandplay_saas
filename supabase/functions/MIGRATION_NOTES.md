@@ -176,7 +176,7 @@ Toda função de IA segue o mesmo roteiro, com o apoio de `_shared/ai/funcao.ts`
 | `ticket-benchmark-ai` | padrao | ativa do portal | crm |
 | `prepare-meeting-ai` | padrao | do patrocinador | crm |
 | `task-insights` | padrao | da tarefa / item | crm ou operacional |
-| `score-leads` | rapido | ativa do portal | crm (escrita) |
+| `score-leads` | rapido | ativa do portal | vendas (escrita; era crm antes da 0043) |
 | `generate-proposal-ai` | padrao | ativa do portal | vendas (escrita) |
 | `generate-proposal-wizard` | padrao | ativa do portal | vendas (escrita) |
 | `estimate-activation-values` | padrao | ativa do portal (proposta e projeto informados precisam ser dela) | vendas |
