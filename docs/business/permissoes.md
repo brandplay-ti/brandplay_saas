@@ -29,7 +29,7 @@ cruzamentos são leitura.
 
 ## Onde já vale
 
-A BP-29 entra por módulo. Proposta (Funil) veio na BP-2
+A BP-29 entrou por módulo, em quatro PRs. Proposta (Funil) veio na BP-2
 (`docs/business/propostas.md`).
 
 ### Patrocinadores e CRM (`crm`)
@@ -119,6 +119,39 @@ Edge Functions do módulo: `summarize-contract` continua com leitura (grava o
 resumo só se a RLS deixar e devolve `saved: false` para quem só lê);
 `generate-contract-pdf` e `generate-delivery-report` são exportação.
 
-### Ainda por fazer
+### Entregas e campo, projetos e ativos (`operacional` ou `crm`)
 
-Operacional (entregas, campo, projetos, ativos, BrandTrack), no próximo PR.
+| Tela | Escrita exigida |
+|---|---|
+| Entregas: nova, editar, arrastar entre status, aprovar ou reprovar | `operacional` ou `crm` (`MODULOS_DA_OPERACAO`) |
+| Entregas: excluir | owner/admin (`deliveries_admin_delete`) |
+| Campo: registrar entrega, notas e anexos; concluir item do checklist do evento | `operacional` ou `crm` |
+| Projetos: novo e editar | `operacional` ou `crm` |
+| Projeto: agenda, temporadas, página pública (media kit), galeria, checklist | `operacional` ou `crm` |
+| Projeto: cotas, vender e liberar vaga, colar mapa, quantidades por cota | `crm` |
+| Ativos: novo, importar CSV, editar, fotos, alocação em projetos | `operacional` ou `crm` |
+| Ativos: excluir | owner/admin (`assets_admin_delete`) |
+
+O status "atrasada" das entregas é calculado na tela e só é gravado quando
+quem abre a tela edita; quem só lê vê o valor calculado.
+
+Excluir mídia do projeto e foto de ativo gravam primeiro a linha e só depois
+apagam o arquivo (mesmo ajuste dos documentos e contratos). No campo, foto do
+checklist enviada para um item que a RLS não deixou concluir é removida.
+
+Edge Functions do módulo: `social-posts` (ação `atualizar`) já exige escrita
+em `crm` ou `operacional`; `task-insights`, `suggest-next-steps` e
+`generate-delivery-report` só leem.
+
+### Fora desta regra, de propósito
+
+- **BrandTrack** (`brandtrack_*`, 0005): as tabelas estão no padrão tenant
+  (`is_org_member`, qualquer membro grava), então a RLS não recusa nada ali e
+  a tela não foi alterada. Restringir o BrandTrack a quem edita Entregas é uma
+  decisão de produto e pede migration.
+- **Anexos de entrega** (`delivery_attachments`) também estão no padrão
+  tenant; a tela do campo já segue a regra da entrega.
+
+Lacunas de RLS registradas (sem mudança de banco na BP-29):
+`opportunity_contacts`, `delivery_attachments`, `brandtrack_*` e os buckets
+`contracts` e de evidências, todos no padrão tenant.

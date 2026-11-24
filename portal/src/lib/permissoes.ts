@@ -92,6 +92,12 @@ export type ModulosDeEscrita = ModuloDePermissao | readonly ModuloDePermissao[];
 /** Contrato, cláusulas e ativos do contrato: policies `crm OR financeiro` (0017). */
 export const MODULOS_DO_CONTRATO = ["crm", "financeiro"] as const;
 
+/**
+ * Entregas, projetos, ativos, checklist, eventos e mídia do projeto: policies
+ * `operacional OR crm` (0017). Cotas e vendas de cota são só `crm`.
+ */
+export const MODULOS_DA_OPERACAO = ["operacional", "crm"] as const;
+
 function rotuloDoModulo(module: ModuloDePermissao): string {
   return MODULOS_DE_PERMISSAO.find((m) => m.key === module)?.label ?? module;
 }

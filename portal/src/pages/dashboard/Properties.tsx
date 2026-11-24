@@ -36,6 +36,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
+import { MODULOS_DA_OPERACAO, mensagemDeErroDeGravacao } from "@/lib/permissoes";
 import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { usePlanLimitNotice } from "@/hooks/usePlanLimitNotice";
 import { toast } from "sonner";
@@ -84,7 +86,9 @@ const STATUSES: Record<string, { label: string; variant: "default" | "secondary"
 
 const Properties = () => {
   const { user } = useAuth();
-  const { orgId } = useOrganization();
+  const { orgId, canWrite } = useOrganization();
+  // Criar e editar projeto pedem escrita em Entregas ou CRM (0017, BP-29).
+  const podeEditar = MODULOS_DA_OPERACAO.some((m) => canWrite(m));
   const navigate = useNavigate();
   const avisarLimiteDoPlano = usePlanLimitNotice();
   const [properties, setProperties] = useState<Property[]>([]);
@@ -220,7 +224,7 @@ const Properties = () => {
       : await supabase.from("sports_properties").insert({ owner_id: user.id, organization_id: orgId, ...payload });
     setSubmitting(false);
     if (error) {
-      if (!avisarLimiteDoPlano(error)) toast.error(error.message);
+      if (!avisarLimiteDoPlano(error)) toast.error("Não foi possível salvar o projeto", { description: mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) });
       return;
     }
     toast.success(editing ? "Projeto atualizado!" : "Projeto criado!");
@@ -241,7 +245,8 @@ const Properties = () => {
         description="Eventos, campeonatos e projetos que você comercializa."
         actions={
           <>
-            <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
+            {!podeEditar && <div className="max-w-md"><SomenteLeitura module={MODULOS_DA_OPERACAO} /></div>}
+            {podeEditar && <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
               <DialogTrigger asChild>
                 <Button onClick={openCreate} className="bg-gradient-brand hover:opacity-90 shadow-glow">
                   <Plus className="h-4 w-4 mr-2" /> Novo projeto
@@ -333,7 +338,7 @@ const Properties = () => {
                   </DialogFooter>
                 </form>
               </DialogContent>
-            </Dialog>
+            </Dialog>}
           </>
         }
       />
@@ -362,7 +367,7 @@ const Properties = () => {
                 ? "Crie seu primeiro projeto esportivo para começar a estruturar suas cotas e ativos."
                 : "Tente buscar por outro termo."}
             </p>
-            {properties.length === 0 && (
+            {properties.length === 0 && podeEditar && (
               <Button
                 onClick={() => setOpen(true)}
                 className="mt-6 bg-gradient-brand hover:opacity-90 shadow-glow"
@@ -389,7 +394,7 @@ const Properties = () => {
                     </div>
                     <div className="flex items-center gap-1">
                       <Badge variant={status.variant}>{status.label}</Badge>
-                      <Button
+                      {podeEditar && <Button
                         type="button"
                         variant="ghost"
                         size="icon"
@@ -401,7 +406,7 @@ const Properties = () => {
                         }}
                       >
                         <Pencil className="h-3.5 w-3.5" />
-                      </Button>
+                      </Button>}
                     </div>
                   </div>
                   <h3 className="font-semibold text-lg leading-tight">{p.name}</h3>

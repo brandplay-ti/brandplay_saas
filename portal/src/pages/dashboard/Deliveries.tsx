@@ -3,6 +3,8 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
+import { MODULOS_DA_OPERACAO, mensagemDeErroDeGravacao, mensagemSemEdicao } from "@/lib/permissoes";
 import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -133,7 +135,10 @@ const isOverdue = (d: Delivery) => {
 
 export default function Deliveries() {
   const { user } = useAuth();
-  const { orgId, can } = useOrganization();
+  const { orgId, can, canWrite, isAdmin } = useOrganization();
+  // Criar, editar, mover e aprovar entrega pedem escrita em Entregas ou CRM
+  // (0017); excluir é de owner/admin (deliveries_admin_delete). BP-29.
+  const podeEditar = MODULOS_DA_OPERACAO.some((m) => canWrite(m));
   // Vínculo com oportunidade só existe com o funil (marca não tem).
   const temVendas = can("vendas");
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
@@ -211,7 +216,8 @@ export default function Deliveries() {
       }
       return d;
     });
-    if (toUpdate.length > 0) {
+    // Quem só lê vê o "atrasada" calculado, sem gravar (a RLS não aplicaria).
+    if (podeEditar && toUpdate.length > 0) {
       await supabase.from("deliveries").update({ status: "atrasada" }).in("id", toUpdate);
     }
 
@@ -613,7 +619,7 @@ export default function Deliveries() {
       : await supabase.from("deliveries").insert({ owner_id: user.id, organization_id: orgId, ...payload });
 
     if (error) {
-      toast.error(editId ? "Erro ao salvar entrega" : "Erro ao criar entrega");
+      toast.error(editId ? "Erro ao salvar entrega" : "Erro ao criar entrega", { description: mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) });
       return;
     }
     toast.success(editId ? "Entrega atualizada" : "Entrega criada");
@@ -625,9 +631,10 @@ export default function Deliveries() {
 
   const handleDelete = async () => {
     if (!deleteId || !orgId) return;
-    const { error } = await supabase.from("deliveries").delete().eq("id", deleteId).eq("organization_id", orgId);
-    if (error) {
-      toast.error("Erro ao excluir");
+    // A RLS recusa o DELETE de quem não é owner/admin sem erro (0 linhas).
+    const { data: apagadas, error } = await supabase.from("deliveries").delete().eq("id", deleteId).eq("organization_id", orgId).select("id");
+    if (error || !apagadas?.length) {
+      toast.error("Erro ao excluir", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) : "Só o proprietário ou um administrador exclui entregas." });
       return;
     }
     toast.success("Entrega removida");
@@ -641,7 +648,7 @@ export default function Deliveries() {
   const handleDragEnd = async (e: DragEndEvent) => {
     setActiveId(null);
     const { active, over } = e;
-    if (!over) return;
+    if (!over || !podeEditar) return;
     const id = String(active.id);
     const newStatus = String(over.id) as Status;
     const item = deliveries.find((d) => d.id === id);
@@ -653,9 +660,9 @@ export default function Deliveries() {
     }
 
     setDeliveries((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
-    const { error } = await supabase.from("deliveries").update(patch).eq("id", id).eq("organization_id", orgId);
-    if (error) {
-      toast.error("Erro ao mover entrega");
+    const { data: movidas, error } = await supabase.from("deliveries").update(patch).eq("id", id).eq("organization_id", orgId).select("id");
+    if (error || !movidas?.length) {
+      toast.error("Erro ao mover entrega", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) : mensagemSemEdicao(MODULOS_DA_OPERACAO) });
       fetchData();
     }
   };
@@ -664,9 +671,9 @@ export default function Deliveries() {
     const patch: Partial<Delivery> = { approval };
     if (comment !== undefined) patch.approval_comment = comment;
     if (approval === "aprovada") patch.status = "aprovada";
-    const { error } = await supabase.from("deliveries").update(patch).eq("id", id);
-    if (error) {
-      toast.error("Erro ao atualizar aprovação");
+    const { data: alteradas, error } = await supabase.from("deliveries").update(patch).eq("id", id).select("id");
+    if (error || !alteradas?.length) {
+      toast.error("Erro ao atualizar aprovação", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) : mensagemSemEdicao(MODULOS_DA_OPERACAO) });
       return;
     }
     toast.success(approval === "aprovada" ? "Entrega aprovada" : approval === "reprovada" ? "Entrega reprovada" : "Aprovação resetada");
@@ -700,7 +707,8 @@ export default function Deliveries() {
                   <NextStepsAI context="delivery" />
                 </DialogContent>
               </Dialog>
-              <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
+              {!podeEditar && <div className="max-w-md"><SomenteLeitura module={MODULOS_DA_OPERACAO} /></div>}
+              {podeEditar && <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
                 <DialogTrigger asChild>
                   <Button onClick={() => resetForm()}><Plus className="h-4 w-4 mr-2" />Nova entrega</Button>
                 </DialogTrigger>
@@ -788,7 +796,7 @@ export default function Deliveries() {
                   <Button onClick={handleSave}>{editId ? "Salvar" : "Criar"}</Button>
                 </DialogFooter>
               </DialogContent>
-            </Dialog>
+            </Dialog>}
             </div>
           </>
         }
@@ -961,14 +969,14 @@ export default function Deliveries() {
           propertiesById={propertiesById}
           opportunitiesById={opportunitiesById}
           onOpen={(d) => setDetail(d)}
-          onEdit={openEdit}
+          onEdit={podeEditar ? openEdit : undefined}
         />
       ) : viewMode === "compact" ? (
         <DeliveriesCompactView
           items={filtered}
           propertiesById={propertiesById}
           onOpen={(d) => setDetail(d)}
-          onEdit={openEdit}
+          onEdit={podeEditar ? openEdit : undefined}
         />
       ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -979,7 +987,8 @@ export default function Deliveries() {
                 status={status}
                 items={grouped[status.id]}
                 onOpen={(d) => setDetail(d)}
-                onEdit={openEdit}
+                onEdit={podeEditar ? openEdit : undefined}
+                editavel={podeEditar}
                 propertiesById={propertiesById}
               />
             ))}
@@ -997,9 +1006,9 @@ export default function Deliveries() {
         propertiesById={propertiesById}
         opportunitiesById={opportunitiesById}
         onClose={() => setDetail(null)}
-        onDelete={(id) => setDeleteId(id)}
-        onApproval={updateApproval}
-        onEdit={openEdit}
+        onDelete={isAdmin ? (id) => setDeleteId(id) : undefined}
+        onApproval={podeEditar ? updateApproval : undefined}
+        onEdit={podeEditar ? openEdit : undefined}
       />
 
       <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
@@ -1067,7 +1076,7 @@ function DeliveriesTableView({
   propertiesById: Record<string, string>;
   opportunitiesById: Record<string, string>;
   onOpen: (d: Delivery) => void;
-  onEdit: (d: Delivery) => void;
+  onEdit?: (d: Delivery) => void;
 }) {
   const { can } = useOrganization();
   const temVendas = can("vendas");
@@ -1106,14 +1115,16 @@ function DeliveriesTableView({
                 {formatDate(d.due_date) ?? "—"}
               </TableCell>
               <TableCell className="text-right">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => { e.stopPropagation(); onEdit(d); }}
-                  aria-label="Editar entrega"
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
+                {onEdit && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); onEdit(d); }}
+                    aria-label="Editar entrega"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
               </TableCell>
             </TableRow>
           ))}
@@ -1132,7 +1143,7 @@ function DeliveriesCompactView({
   items: Delivery[];
   propertiesById: Record<string, string>;
   onOpen: (d: Delivery) => void;
-  onEdit: (d: Delivery) => void;
+  onEdit?: (d: Delivery) => void;
 }) {
   return (
     <Card className="divide-y divide-border">
@@ -1151,9 +1162,11 @@ function DeliveriesCompactView({
           <span className={`text-xs ${isOverdue(d) ? "text-destructive font-medium" : "text-muted-foreground"}`}>
             {formatDate(d.due_date) ?? "—"}
           </span>
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={(e) => { e.stopPropagation(); onEdit(d); }} aria-label="Editar entrega">
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
+          {onEdit && (
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={(e) => { e.stopPropagation(); onEdit(d); }} aria-label="Editar entrega">
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+          )}
         </div>
       ))}
     </Card>
@@ -1165,15 +1178,18 @@ function KanbanColumn({
   items,
   onOpen,
   onEdit,
+  editavel,
   propertiesById,
 }: {
   status: { id: Status; label: string; color: string };
   items: Delivery[];
   onOpen: (d: Delivery) => void;
-  onEdit: (d: Delivery) => void;
+  onEdit?: (d: Delivery) => void;
+  /** Sem escrita, os cards não arrastam (BP-29). */
+  editavel: boolean;
   propertiesById: Record<string, string>;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: status.id });
+  const { setNodeRef, isOver } = useDroppable({ id: status.id, disabled: !editavel });
   return (
     <div
       ref={setNodeRef}
@@ -1196,11 +1212,12 @@ function KanbanColumn({
             propertyName={d.property_id ? propertiesById[d.property_id] ?? null : null}
             onOpen={onOpen}
             onEdit={onEdit}
+            editavel={editavel}
           />
         ))}
         {items.length === 0 && (
           <div className="text-xs text-muted-foreground text-center py-6 border border-dashed rounded-md">
-            Solte aqui
+            {editavel ? "Solte aqui" : "Nenhuma entrega"}
           </div>
         )}
       </div>
@@ -1213,16 +1230,18 @@ function DraggableCard({
   propertyName,
   onOpen,
   onEdit,
+  editavel,
 }: {
   item: Delivery;
   propertyName: string | null;
   onOpen: (d: Delivery) => void;
-  onEdit: (d: Delivery) => void;
+  onEdit?: (d: Delivery) => void;
+  editavel: boolean;
 }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: item.id });
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: item.id, disabled: !editavel });
   return (
     <div ref={setNodeRef} {...attributes} className={isDragging ? "opacity-40" : ""}>
-      <DeliveryCard item={item} propertyName={propertyName} dragHandleProps={listeners} onOpen={onOpen} onEdit={onEdit} />
+      <DeliveryCard item={item} propertyName={propertyName} dragHandleProps={editavel ? listeners : undefined} onOpen={onOpen} onEdit={onEdit} />
     </div>
   );
 }
@@ -1260,13 +1279,15 @@ function DeliveryCard({
   return (
     <Card className={`p-3 group hover:shadow-md transition-shadow ${dragging ? "shadow-lg rotate-2" : ""}`}>
       <div className="flex items-start gap-2">
-        <button
-          {...dragHandleProps}
-          className="text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing pt-0.5"
-          aria-label="Arrastar"
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
+        {(dragHandleProps || dragging) && (
+          <button
+            {...dragHandleProps}
+            className="text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing pt-0.5"
+            aria-label="Arrastar"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        )}
         <div
           className={`flex-1 min-w-0 cursor-pointer ${FOCO_CLICAVEL}`}
           {...clicavel(() => onOpen?.(item))}
@@ -1320,9 +1341,9 @@ function DetailSheet({
   propertiesById: Record<string, string>;
   opportunitiesById: Record<string, string>;
   onClose: () => void;
-  onDelete: (id: string) => void;
-  onApproval: (id: string, approval: Approval, comment?: string) => void;
-  onEdit: (d: Delivery) => void;
+  onDelete?: (id: string) => void;
+  onApproval?: (id: string, approval: Approval, comment?: string) => void;
+  onEdit?: (d: Delivery) => void;
 }) {
   const [comment, setComment] = useState("");
   type FieldAtt = {
@@ -1484,7 +1505,7 @@ function DetailSheet({
 
 
 
-          <div className="border-t pt-4">
+          {onApproval ? <div className="border-t pt-4">
             <p className="text-sm font-semibold mb-2">Aprovação do patrocinador</p>
             <Textarea
               placeholder="Comentário do patrocinador..."
@@ -1511,16 +1532,20 @@ function DetailSheet({
                 <XCircle className="h-4 w-4 mr-1" />Reprovar
               </Button>
             </div>
-          </div>
+          </div> : (
+            <div className="border-t pt-4"><SomenteLeitura module={MODULOS_DA_OPERACAO} /></div>
+          )}
         </div>
 
         <DialogFooter className="flex-row justify-between sm:justify-between">
-          <Button variant="ghost" size="sm" onClick={() => onDelete(delivery.id)} className="text-destructive">
-            <Trash2 className="h-4 w-4 mr-1" />Excluir
-          </Button>
+          {onDelete ? (
+            <Button variant="ghost" size="sm" onClick={() => onDelete(delivery.id)} className="text-destructive">
+              <Trash2 className="h-4 w-4 mr-1" />Excluir
+            </Button>
+          ) : <span />}
           <div className="flex gap-2">
             <Button variant="outline" onClick={onClose}>Fechar</Button>
-            <Button onClick={() => onEdit(delivery)}><Pencil className="h-4 w-4 mr-1" />Editar</Button>
+            {onEdit && <Button onClick={() => onEdit(delivery)}><Pencil className="h-4 w-4 mr-1" />Editar</Button>}
           </div>
         </DialogFooter>
       </DialogContent>
