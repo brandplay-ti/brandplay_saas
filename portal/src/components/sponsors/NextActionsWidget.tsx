@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
+import { mensagemDeErroDeGravacao } from "@/lib/permissoes";
 
 type Row = {
   id: string;
@@ -25,7 +26,9 @@ const fmtDate = (iso: string) => {
 const isOverdue = (iso: string) => new Date(iso).getTime() < Date.now();
 
 export const NextActionsWidget = () => {
-  const { orgId } = useOrganization();
+  const { orgId, canWrite } = useOrganization();
+  // Concluir grava em sponsor_interactions: escrita no CRM (BP-29).
+  const podeConcluir = canWrite("crm");
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState<string | null>(null);
@@ -62,7 +65,7 @@ export const NextActionsWidget = () => {
       .eq("id", id);
     setCompleting(null);
     if (error) {
-      toast.error("Erro ao concluir", { description: error.message });
+      toast.error("Erro ao concluir", { description: mensagemDeErroDeGravacao(error, "crm") });
       return;
     }
     setRows((prev) => prev.filter((r) => r.id !== id));
@@ -113,7 +116,7 @@ export const NextActionsWidget = () => {
                       </span>
                     </div>
                   </div>
-                  <Button
+                  {podeConcluir && <Button
                     aria-label="Marcar como concluída"
                     size="icon"
                     variant="ghost"
@@ -127,7 +130,7 @@ export const NextActionsWidget = () => {
                     ) : (
                       <CheckCircle2 className="h-3.5 w-3.5" />
                     )}
-                  </Button>
+                  </Button>}
                 </div>
               </div>
             );

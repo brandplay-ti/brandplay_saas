@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { mensagemDeErroDeGravacao } from "@/lib/permissoes";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
 import { Copy, ExternalLink, Loader2, Plus, Presentation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,15 +16,16 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useApoioDoRelatorio, useCriarRelatorio, useRelatorios } from "@/hooks/useRelatorios";
-import { enderecoDoRelatorio, ROTULO_DO_MODO, ROTULO_DO_STATUS, TOM_DO_STATUS } from "@/lib/relatorioLanding";
+import { enderecoDoRelatorio, MODULOS_DO_RELATORIO, ROTULO_DO_MODO, ROTULO_DO_STATUS, TOM_DO_STATUS } from "@/lib/relatorioLanding";
 
 const TODOS = "todos";
 const NENHUM = "nenhum";
 
 export default function RelatoriosDeResultado() {
   const navigate = useNavigate();
-  const { orgId, can } = useOrganization();
-  const podeEditar = can("crm") || can("operacional");
+  const { orgId, canWrite } = useOrganization();
+  // Escrita em CRM ou Entregas, como as policies da 0040; ler não basta (BP-29).
+  const podeEditar = MODULOS_DO_RELATORIO.some((m) => canWrite(m));
   const { data: relatorios, isLoading } = useRelatorios(orgId);
   const { data: apoio } = useApoioDoRelatorio(orgId);
   const criar = useCriarRelatorio();
@@ -59,7 +62,7 @@ export default function RelatoriosDeResultado() {
       toast.success("Relatório criado");
       navigate(`/dashboard/relatorios/paginas/${id}`);
     } catch (erro) {
-      toast.error("Não foi possível criar", { description: (erro as Error).message });
+      toast.error("Não foi possível criar", { description: mensagemDeErroDeGravacao(erro, MODULOS_DO_RELATORIO) });
     }
   };
 
@@ -75,9 +78,13 @@ export default function RelatoriosDeResultado() {
         icon={Presentation}
         description="Landing pages com os resultados de um projeto ou de um patrocínio: números, fotos, posts, vídeos e entregas, com as cores da sua marca. Compartilhe por link."
         actions={
-          <Button onClick={() => setAberto(true)} disabled={!podeEditar}>
-            <Plus className="mr-2 h-4 w-4" /> Novo relatório
-          </Button>
+          podeEditar ? (
+            <Button onClick={() => setAberto(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Novo relatório
+            </Button>
+          ) : (
+            <div className="max-w-md"><SomenteLeitura module={MODULOS_DO_RELATORIO} /></div>
+          )
         }
       />
 

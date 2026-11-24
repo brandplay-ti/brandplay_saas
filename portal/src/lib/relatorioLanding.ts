@@ -6,6 +6,12 @@
 import { componentesRgb, corSegura, PRIMARIA_PADRAO, SECUNDARIA_PADRAO, textoSobrePrimaria } from "@/lib/marca";
 import type { StatusTone } from "@/lib/statusTone";
 
+/**
+ * Quem grava relatório, posts, indicadores e fotos: escrita em qualquer um dos
+ * dois módulos, como as policies da 0040 (`crm` OR `operacional`).
+ */
+export const MODULOS_DO_RELATORIO = ["crm", "operacional"] as const;
+
 export type EstiloDoRelatorio = "escuro" | "claro";
 export type ModoDeAcesso = "organizacao" | "publico";
 export type StatusDoRelatorio = "rascunho" | "publicado" | "excluido";

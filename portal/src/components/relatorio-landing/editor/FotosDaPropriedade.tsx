@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { mensagemDeErroDeGravacao } from "@/lib/permissoes";
+import { MODULOS_DO_RELATORIO } from "@/lib/relatorioLanding";
 import { ImagePlus, Loader2, ShieldAlert } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -135,7 +137,7 @@ export function FotosDaPropriedade({ propertyId, userId, patrocinadores, momento
   const salvar = (id: string) => (campos: Partial<FotoDaPropriedade>) =>
     salvarFoto.mutate(
       { id, ...campos },
-      { onError: (erro) => toast.error("Não foi possível salvar a foto", { description: erro.message }) },
+      { onError: (erro) => toast.error("Não foi possível salvar a foto", { description: mensagemDeErroDeGravacao(erro, MODULOS_DO_RELATORIO) }) },
     );
 
   const aoEscolher = async (lista: FileList | null) => {

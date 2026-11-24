@@ -1,5 +1,7 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
+import { mensagemDeErroDeGravacao } from "@/lib/permissoes";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
 import { ArrowLeft, Copy, ExternalLink, Loader2, Presentation, Send, Trash2, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,14 +17,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useApoioDoRelatorio, usePaginaDoRelatorio, useRelatorio, useSalvarRelatorio } from "@/hooks/useRelatorios";
-import { blocosVisiveis, enderecoDoRelatorio, ROTULO_DO_MODO, ROTULO_DO_STATUS, TOM_DO_STATUS } from "@/lib/relatorioLanding";
+import { blocosVisiveis, enderecoDoRelatorio, MODULOS_DO_RELATORIO, ROTULO_DO_MODO, ROTULO_DO_STATUS, TOM_DO_STATUS } from "@/lib/relatorioLanding";
 
 export default function RelatorioEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const confirm = useConfirm();
   const { user } = useAuth();
-  const { orgId, can, isAdmin } = useOrganization();
+  const { orgId, canWrite, isAdmin } = useOrganization();
   const { data: relatorio, isLoading } = useRelatorio(id);
   const { data: apoio } = useApoioDoRelatorio(orgId, relatorio?.property_id);
   const { data: pagina } = usePaginaDoRelatorio(relatorio?.status === "excluido" ? undefined : relatorio?.slug);
@@ -42,7 +44,8 @@ export default function RelatorioEditor() {
     );
   }
 
-  const podeEditar = can("crm") || can("operacional");
+  // Escrita em CRM ou Entregas, como as policies da 0040; ler não basta (BP-29).
+  const podeEditar = MODULOS_DO_RELATORIO.some((m) => canWrite(m));
   // Relatório público: publicar, despublicar e editar são de owner/admin (D4).
   const podeMexer = podeEditar && (relatorio.access_mode !== "publico" || isAdmin);
   const publicado = relatorio.status === "publicado";
@@ -64,7 +67,7 @@ export default function RelatorioEditor() {
       await salvar.mutateAsync({ status: publicado ? "rascunho" : "publicado" });
       toast.success(publicado ? "Relatório voltou para rascunho" : "Relatório publicado");
     } catch (erro) {
-      toast.error("Não foi possível alterar", { description: (erro as Error).message });
+      toast.error("Não foi possível alterar", { description: mensagemDeErroDeGravacao(erro, MODULOS_DO_RELATORIO) });
     }
   };
 
@@ -82,7 +85,7 @@ export default function RelatorioEditor() {
       toast.success("Relatório excluído");
       navigate("/dashboard/relatorios/paginas");
     } catch (erro) {
-      toast.error("Não foi possível excluir", { description: (erro as Error).message });
+      toast.error("Não foi possível excluir", { description: mensagemDeErroDeGravacao(erro, MODULOS_DO_RELATORIO) });
     }
   };
 
@@ -140,6 +143,8 @@ export default function RelatorioEditor() {
           </div>
         }
       />
+
+      {!podeEditar && <SomenteLeitura module={MODULOS_DO_RELATORIO} />}
 
       <Tabs defaultValue="pagina">
         <TabsList className="h-auto flex-wrap">

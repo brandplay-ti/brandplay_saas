@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
+import { mensagemDeErroDeGravacao } from "@/lib/permissoes";
 import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +20,7 @@ import {
   useSalvarIndicador,
   type IndicadorDaPropriedade,
 } from "@/hooks/useRelatorios";
-import { formatarIndicador, type CategoriaDeIndicador, type FormatoDeIndicador } from "@/lib/relatorioLanding";
+import { formatarIndicador, MODULOS_DO_RELATORIO, type CategoriaDeIndicador, type FormatoDeIndicador } from "@/lib/relatorioLanding";
 
 const NENHUM = "nenhum";
 
@@ -127,7 +128,7 @@ export function IndicadoresDaPropriedade({ propertyId, patrocinadores, podeEdita
       toast.success(editando ? "Indicador atualizado" : "Indicador adicionado");
       setAberto(false);
     } catch (erro) {
-      toast.error("Não foi possível salvar", { description: (erro as Error).message });
+      toast.error("Não foi possível salvar", { description: mensagemDeErroDeGravacao(erro, MODULOS_DO_RELATORIO) });
     }
   };
 
@@ -138,7 +139,7 @@ export function IndicadoresDaPropriedade({ propertyId, patrocinadores, podeEdita
       await excluir.mutateAsync(i.id);
       toast.success("Indicador excluído");
     } catch (erro) {
-      toast.error("Não foi possível excluir", { description: (erro as Error).message });
+      toast.error("Não foi possível excluir", { description: mensagemDeErroDeGravacao(erro, MODULOS_DO_RELATORIO) });
     }
   };
 

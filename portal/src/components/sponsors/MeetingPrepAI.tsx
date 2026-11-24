@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { avisarErroDeIA } from "@/lib/erroDeIA";
+import { mensagemDeErroDeGravacao } from "@/lib/permissoes";
+import { useOrganization } from "@/hooks/useOrganization";
 import {
   CalendarClock, Sparkles, Loader2, Copy, Plus, AlertTriangle, ThumbsUp, HelpCircle, Info,
 } from "lucide-react";
@@ -52,6 +54,8 @@ export const MeetingPrepAI = ({ sponsorId, onTaskCreated }: { sponsorId: string;
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [creating, setCreating] = useState<number | null>(null);
+  // Gerar é leitura; virar tarefa grava em crm_tasks e pede escrita no CRM (BP-29).
+  const podeCriarTarefa = useOrganization().canWrite("crm");
 
   const generate = async () => {
     setLoading(true);
@@ -86,7 +90,7 @@ export const MeetingPrepAI = ({ sponsorId, onTaskCreated }: { sponsorId: string;
       toast.success("Tarefa criada");
       onTaskCreated?.();
     } catch (e) {
-      toast.error("Erro ao criar tarefa", { description: e instanceof Error ? e.message : "Erro desconhecido" });
+      toast.error("Erro ao criar tarefa", { description: mensagemDeErroDeGravacao(e, "crm", "Erro desconhecido") });
     } finally {
       setCreating(null);
     }
@@ -204,10 +208,10 @@ export const MeetingPrepAI = ({ sponsorId, onTaskCreated }: { sponsorId: string;
                     <Badge variant="outline" className={`text-[10px] ${PRIO_CLS[s.prioridade] ?? PRIO_CLS.media}`}>
                       {s.prioridade}
                     </Badge>
-                    <Button size="sm" variant="ghost" onClick={() => createTask(s, i)} disabled={creating === i}>
+                    {podeCriarTarefa && <Button size="sm" variant="ghost" onClick={() => createTask(s, i)} disabled={creating === i}>
                       {creating === i ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Plus className="h-3 w-3 mr-1" />}
                       Tarefa
-                    </Button>
+                    </Button>}
                   </div>
                 </div>
               ))}

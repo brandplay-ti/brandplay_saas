@@ -182,7 +182,7 @@ Toda função de IA segue o mesmo roteiro, com o apoio de `_shared/ai/funcao.ts`
 | `estimate-activation-values` | padrao | ativa do portal (proposta e projeto informados precisam ser dela) | vendas |
 | `suggest-next-steps` | padrao | do registro (oportunidade, patrocinador, contrato, proposta, entrega); ativa do portal no painel e na lista de entregas | crm; operacional nas entregas |
 | `summarize-contract` | padrao | do contrato | crm |
-| `ai-assistant` | padrao | da conversa; conversa nova na ativa do portal | crm |
+| `ai-assistant` | padrao | da conversa; conversa nova na ativa do portal | crm (as ferramentas que gravam só para quem escreve em crm/vendas, BP-29) |
 | `brandtrack-detect-image` | visao | da mídia | operacional |
 
 ### Lote 2 (IA-17, IA-18)
