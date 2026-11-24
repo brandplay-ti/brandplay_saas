@@ -22,7 +22,7 @@ export type MidiaDaEdicaoRow = Pick<
  * nulo não existe em `organizations`: se o gatilho sumir, o insert falha em
  * vez de gravar a pasta na organização errada.
  */
-const ORGANIZACAO_DO_GATILHO = "00000000-0000-0000-0000-000000000000";
+export const ORGANIZACAO_DO_GATILHO = "00000000-0000-0000-0000-000000000000";
 
 export const pastasKeys = {
   pastas: (propertyId: string | undefined) => ["midia-da-edicao", "pastas", propertyId] as const,

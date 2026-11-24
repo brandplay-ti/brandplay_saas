@@ -23,6 +23,7 @@ import { NotificationsBell } from "@/components/notifications/NotificationsBell"
 import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
 import { CommandMenu } from "@/components/CommandMenu";
 import { OrganizationProvider } from "@/hooks/useOrganization";
+import { EnvioDeMidiaProvider } from "@/hooks/useEnvioDeMidia";
 import { BillingGate } from "@/components/billing/BillingGate";
 import { SupportSessionBanner } from "@/components/admin/SupportSessionBanner";
 
@@ -102,7 +103,10 @@ const DashboardLayoutInner = () => {
 
 const DashboardLayout = () => (
   <OrganizationProvider>
-    <DashboardLayoutInner />
+    {/* Acima das telas: trocar de página não para o envio de mídia (BP-7.07). */}
+    <EnvioDeMidiaProvider>
+      <DashboardLayoutInner />
+    </EnvioDeMidiaProvider>
   </OrganizationProvider>
 );
 
