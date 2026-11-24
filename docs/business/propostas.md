@@ -64,6 +64,20 @@ As mesmas regras dos itens: quem escreve no módulo de vendas
 (`can_access_module(..., 'vendas', true)`, policies de `proposal_items`). A
 sugestão de valor exige leitura de vendas e lê só a organização ativa, sob RLS.
 
+Quem só **lê** o módulo de vendas (na matriz padrão, operacional e financeiro;
+ou qualquer papel com "Lê" em Funil e captação) abre a tela de propostas, vê as
+propostas, os itens e as versões e baixa o PDF já gerado, mas não cria, altera,
+gera com IA nem exclui (BP-2):
+
+- a tela esconde "Proposta Inteligente", "Gerar com IA", "Nova proposta",
+  "Funil" e "Excluir", desabilita os campos e mostra o aviso de somente
+  leitura (`canWrite("vendas")` em `useOrganization`);
+- `generate-proposal-ai` e `generate-proposal-wizard` exigem **escrita** em
+  vendas, como a `score-leads`: o resultado só serve gravado, então não se
+  gasta IA com quem não poderia salvar;
+- a fronteira continua sendo a RLS. Se a gravação for recusada (`42501`), a
+  tela mostra o aviso de permissão, não a mensagem do Postgres.
+
 ## Modelo de IA registrado
 
 As versões geradas pelo assistente gravam em `proposal_versions.model` o

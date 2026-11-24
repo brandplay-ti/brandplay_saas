@@ -16,6 +16,7 @@ import { Wand2, Loader2, Copy, ChevronRight, ChevronLeft, AlertTriangle } from "
 import { toast } from "sonner";
 import { avisarErroDeIA } from "@/lib/erroDeIA";
 import { formatarNumero } from "@/lib/mascaras";
+import { mensagemDeErroDeGravacao } from "@/lib/permissoes";
 import {
   type Ativacao,
   aplicarValores,
@@ -78,7 +79,7 @@ const sanitizeEmailHtml = (html: string) => DOMPurify.sanitize(html, {
 });
 
 export function ProposalWizardDialog({ sponsors = [], properties = [], proposta, onSaved }: Props) {
-  const { orgId: orgAtiva } = useOrganization();
+  const { orgId: orgAtiva, canWrite } = useOrganization();
   const orgId = proposta?.organization_id ?? orgAtiva;
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(1);
@@ -288,7 +289,7 @@ export function ProposalWizardDialog({ sponsors = [], properties = [], proposta,
       reset();
       onSaved();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao salvar");
+      toast.error(mensagemDeErroDeGravacao(e, "vendas", "Falha ao salvar"));
     } finally {
       setLoading(false);
     }
@@ -298,6 +299,9 @@ export function ProposalWizardDialog({ sponsors = [], properties = [], proposta,
     navigator.clipboard.writeText(text);
     toast.success(`${label} copiado!`);
   };
+
+  // Quem só lê o funil não gera o que não poderia salvar (BP-2): a função de IA e a RLS também recusam.
+  if (!canWrite("vendas")) return null;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>

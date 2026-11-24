@@ -84,7 +84,8 @@ Deno.serve(async (req) => {
     const sponsorId = corpo?.sponsor_id ? uuidDoCorpo(corpo, "sponsor_id") : null;
     const propertyId = corpo?.property_id ? uuidDoCorpo(corpo, "property_id") : null;
     if (!briefing && !objective) throw new ErroDaRequisicao(400, "Briefing ou objetivo é obrigatório");
-    await exigirModulo(cliente, usuario.id, org, "vendas");
+    // Escrita, não só leitura: o resultado só serve para gravar uma proposta (BP-2).
+    await exigirModulo(cliente, usuario.id, org, "vendas", true);
 
     const ctx: string[] = [];
 

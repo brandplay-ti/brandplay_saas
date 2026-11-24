@@ -3,6 +3,8 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 
 const estado = vi.hoisted(() => ({
   inserts: [] as { tabela: string; linhas: unknown }[],
+  /** Erro devolvido pelo insert em `proposals` (ex.: a RLS recusando, BP-2). */
+  erroNaProposta: null as { code: string; message: string } | null,
 }));
 
 vi.mock("@/integrations/supabase/client", () => {
@@ -19,7 +21,9 @@ vi.mock("@/integrations/supabase/client", () => {
           if (chave === "insert") {
             return (linhas: unknown) => {
               estado.inserts.push({ tabela: nome, linhas });
-              resultado = { data: nome === "proposals" ? { id: "prop-nova" } : null, error: null };
+              resultado = nome === "proposals" && estado.erroNaProposta
+                ? { data: null, error: estado.erroNaProposta }
+                : { data: nome === "proposals" ? { id: "prop-nova" } : null, error: null };
               return consulta;
             };
           }
@@ -38,10 +42,14 @@ vi.mock("@/integrations/supabase/client", () => {
   };
 });
 
-vi.mock("@/hooks/useOrganization", () => ({ useOrganization: () => ({ orgId: "org-1" }) }));
+const organizacao = vi.hoisted(() => ({ podeEditar: true }));
+vi.mock("@/hooks/useOrganization", () => ({
+  useOrganization: () => ({ orgId: "org-1", canWrite: () => organizacao.podeEditar }),
+}));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { ProposalWizardDialog } from "./ProposalWizardDialog";
 
 const GERADO = {
@@ -73,6 +81,8 @@ describe("ProposalWizardDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     estado.inserts = [];
+    estado.erroNaProposta = null;
+    organizacao.podeEditar = true;
     vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: GERADO, error: null } as never);
   });
 
@@ -144,5 +154,24 @@ describe("ProposalWizardDialog", () => {
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
     const versoes = inserts("proposal_versions")[0] as { model: string | null }[];
     expect(versoes.every((v) => v.model === null)).toBe(true);
+  });
+
+  it("quem só lê o funil não vê o assistente (BP-2)", () => {
+    organizacao.podeEditar = false;
+    render(<ProposalWizardDialog onSaved={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: /Proposta Inteligente/ })).not.toBeInTheDocument();
+  });
+
+  it("recusa da RLS ao salvar vira o aviso de permissão, não a mensagem do Postgres (BP-2)", async () => {
+    estado.erroNaProposta = { code: "42501", message: 'new row violates row-level security policy for table "proposals"' };
+    const onSaved = vi.fn();
+    render(<ProposalWizardDialog onSaved={onSaved} />);
+    await gerar();
+    fireEvent.click(screen.getByRole("button", { name: "Salvar proposta + versões" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    expect(vi.mocked(toast.error).mock.calls[0][0]).toMatch(/só lê Funil e captação/);
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(inserts("proposal_versions")).toHaveLength(0);
   });
 });

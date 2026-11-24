@@ -55,8 +55,17 @@ vi.mock("@/integrations/supabase/client", () => {
   };
 });
 
+const organizacao = vi.hoisted(() => ({ podeEditar: true }));
 vi.mock("@/hooks/useOrganization", () => ({
-  useOrganization: () => ({ orgId: "org-1", role: "owner", isAdmin: true, loading: false, refresh: vi.fn() }),
+  useOrganization: () => ({
+    orgId: "org-1",
+    role: "owner",
+    isAdmin: true,
+    loading: false,
+    refresh: vi.fn(),
+    can: () => true,
+    canWrite: () => organizacao.podeEditar,
+  }),
 }));
 vi.mock("@/hooks/useAuth", () => ({ useAuth: () => ({ user: { id: "user-1" } }) }));
 vi.mock("@/hooks/useConfirm", () => ({ useConfirm: () => vi.fn() }));
@@ -106,6 +115,7 @@ describe("Propostas — link direto", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    organizacao.podeEditar = true;
   });
 
   it("abre a proposta do parâmetro ?proposal e tira o parâmetro da URL", async () => {
@@ -138,6 +148,7 @@ describe("Propostas — mensagem na aba Info (BP-8)", () => {
     vi.clearAllMocks();
     localStorage.clear();
     ESCRITAS.length = 0;
+    organizacao.podeEditar = true;
   });
 
   it("edita a mensagem de uma proposta sem mensagem e grava ao sair do campo", async () => {
@@ -157,5 +168,39 @@ describe("Propostas — mensagem na aba Info (BP-8)", () => {
     );
     expect(ESCRITAS).toContainEqual({ tabela: "proposals", metodo: "eq", args: ["id", "prop-1"] });
     await waitFor(() => expect(campo).toHaveValue("Segue a proposta revisada."));
+  });
+});
+
+describe("Propostas — quem só lê o funil (BP-2)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    ESCRITAS.length = 0;
+    organizacao.podeEditar = false;
+  });
+
+  it("lista as propostas sem os botões de criar, enviar ao funil e excluir", async () => {
+    tela("/dashboard/propostas");
+
+    await screen.findAllByText(PROPOSTA.title);
+    expect(screen.getAllByRole("status").some((el) => el.textContent?.includes("Somente leitura"))).toBe(true);
+    for (const nome of [/Nova proposta/, /Proposta Inteligente/, /Gerar com IA/, /^Funil/, /^Excluir/]) {
+      expect(screen.queryByRole("button", { name: nome })).not.toBeInTheDocument();
+    }
+  });
+
+  it("abre a proposta com os campos bloqueados e sem gravar", async () => {
+    tela("/dashboard/propostas?proposal=prop-1");
+    const painel = await screen.findByRole("dialog");
+    expect(within(painel).getByRole("status")).toHaveTextContent("Somente leitura");
+
+    fireEvent.mouseDown(within(painel).getByRole("tab", { name: "Ações" }));
+    expect(await within(painel).findByRole("button", { name: /Excluir proposta/ })).toBeDisabled();
+    expect(within(painel).getByRole("button", { name: /Enviada/ })).toBeDisabled();
+    expect(within(painel).getByRole("button", { name: /Gerar PDF/ })).toBeDisabled();
+
+    fireEvent.mouseDown(within(painel).getByRole("tab", { name: "Info" }));
+    expect(await within(painel).findByLabelText("Mensagem")).toBeDisabled();
+    expect(ESCRITAS.filter((e) => e.metodo === "update")).toHaveLength(0);
   });
 });
