@@ -97,7 +97,7 @@ const Auth = () => {
             Transformando patrocínio em resultado.
           </h2>
           <p className="mt-4 text-primary-foreground/80 text-lg">
-            Gerencie propriedades, contratos, entregas e relatórios em uma única plataforma.
+            Gerencie projetos, contratos, entregas e relatórios em uma única plataforma.
           </p>
         </div>
         <p className="text-sm text-primary-foreground/70">
@@ -121,7 +121,7 @@ const Auth = () => {
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {mode === "login"
-              ? "Acesse o painel da sua propriedade."
+              ? "Acesse o painel dos seus projetos."
               : "Comece grátis em menos de 1 minuto."}
           </p>
 
@@ -147,7 +147,7 @@ const Auth = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="company">Empresa / Propriedade</Label>
+                  <Label htmlFor="company">Empresa / Projeto</Label>
                   <Input
                     id="company"
                     value={company}

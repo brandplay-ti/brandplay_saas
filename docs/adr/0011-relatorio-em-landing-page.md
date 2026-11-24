@@ -9,7 +9,7 @@ o painel analítico de `/dashboard/relatorios` (financeiro, pipeline, uso
 interno), nem o PDF de entrega. É uma página institucional, como as duas
 referências analisadas em 2026-10-18 e de novo em 2026-10-28:
 
-- `relatorio-scp.scoutsports.com.br`: a temporada da propriedade (números,
+- `relatorio-scp.scoutsports.com.br`: a temporada do projeto (números,
   patrocinadores por cota, jornada, público, painel social, vídeos, reels,
   imprensa, final, contato);
 - `relatorio-scp-claro.scoutsports.com.br`: a prestação de contas de um
@@ -38,10 +38,10 @@ marca, números sempre do banco e IA opcional.
    cada visita. A curadoria fica nos próprios dados (destaque, patrocinador,
    momento, "contém menores", blocos ocultos). Consequência aceita: editar um
    post ou uma foto aparece na hora num relatório já publicado.
-3. **Conteúdo é da propriedade, não do relatório.** `property_posts`
+3. **Conteúdo é do projeto, não do relatório.** `property_posts`
    (postagens, vídeos e matérias por link), `property_indicators` (números de
    fora da plataforma, com fonte) e as fotos de `property_media` servem a
-   todos os relatórios da propriedade. O relatório de patrocinador recebe o
+   todos os relatórios do projeto. O relatório de patrocinador recebe o
    conteúdo marcado com ele e o geral, nunca o de outro patrocinador.
 4. **Uma porta só para quem não é membro.** A Edge Function `report-view`
    (pública) decide o acesso e monta a página por duas funções `SECURITY

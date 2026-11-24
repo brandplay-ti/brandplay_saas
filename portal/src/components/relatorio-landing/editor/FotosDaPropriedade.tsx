@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { mensagemDeErroDeGravacao } from "@/lib/permissoes";
+import { MODULOS_DO_RELATORIO } from "@/lib/relatorioLanding";
 import { ImagePlus, Loader2, ShieldAlert } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -135,7 +137,7 @@ export function FotosDaPropriedade({ propertyId, userId, patrocinadores, momento
   const salvar = (id: string) => (campos: Partial<FotoDaPropriedade>) =>
     salvarFoto.mutate(
       { id, ...campos },
-      { onError: (erro) => toast.error("Não foi possível salvar a foto", { description: erro.message }) },
+      { onError: (erro) => toast.error("Não foi possível salvar a foto", { description: mensagemDeErroDeGravacao(erro, MODULOS_DO_RELATORIO) }) },
     );
 
   const aoEscolher = async (lista: FileList | null) => {
@@ -157,7 +159,7 @@ export function FotosDaPropriedade({ propertyId, userId, patrocinadores, momento
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <p className="max-w-3xl text-sm text-muted-foreground">
-          Fotos da galeria da propriedade. Ligue cada uma a um momento e a um patrocinador para montar a jornada e o acervo
+          Fotos da galeria do projeto. Ligue cada uma a um momento e a um patrocinador para montar a jornada e o acervo
           do relatório dele. Foto marcada com <strong>menores de idade</strong> nunca aparece num relatório público.
         </p>
         <Label
@@ -184,7 +186,7 @@ export function FotosDaPropriedade({ propertyId, userId, patrocinadores, momento
       {isLoading ? (
         <LoadingSkeleton variant="cards" count={3} />
       ) : !fotos?.length ? (
-        <p className="py-10 text-center text-sm text-muted-foreground">Nenhuma foto na galeria desta propriedade.</p>
+        <p className="py-10 text-center text-sm text-muted-foreground">Nenhuma foto na galeria deste projeto.</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {fotos.map((f) => (

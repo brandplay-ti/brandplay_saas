@@ -1,4 +1,21 @@
+// Registra uma falha de banco vista pelo portal (`logBackendDbError`).
+//
+// O registro vai para `backend_error_logs`, que só o superadmin lê (0045, tela
+// /admin/logs-falhas). O usuário vem do JWT; a organização enviada só fica se
+// ele for membro ativo dela; texto livre tem teto (`_shared/logs_de_falha.ts`).
+// O log do processo leva só o contexto (`logContexto`) e o código do erro:
+// e-mail e o erro bruto ficam na tabela, não no stdout.
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { logContexto } from "../_shared/observabilidade.ts";
+import {
+  acaoNormalizada,
+  chavesNormalizadas,
+  LIMITES,
+  linhaNormalizada,
+  organizacaoConfirmada,
+  textoLimitado,
+} from "../_shared/logs_de_falha.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,6 +43,12 @@ type PolicyDebugRow = {
   with_check?: string;
 };
 
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -39,80 +62,71 @@ Deno.serve(async (req) => {
     const { data: userData, error: userError } = await userClient.auth.getUser();
 
     if (userError || !userData.user) {
-      return new Response(JSON.stringify({ error: "Não autenticado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "Não autenticado" }, 401);
     }
+    const user = userData.user;
 
-    const body = await req.json().catch(() => ({}));
+    const lido = await req.json().catch(() => ({}));
+    const body = lido && typeof lido === "object" ? lido : {};
+    const erro = typeof body.error === "object" && body.error !== null ? body.error : {};
     const table = typeof body.table === "string" ? body.table : "unknown";
-    const action = typeof body.action === "string" ? body.action : "unknown";
     const safeTable = ALLOWED_TABLES.has(table) ? table : "unknown";
+    const action = acaoNormalizada(body.action);
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const organizacao = await organizacaoConfirmada(body.organizationId, user.id, async (orgId, userId) => {
+      const { data, error } = await admin
+        .from("organization_members")
+        .select("organization_id")
+        .eq("organization_id", orgId)
+        .eq("user_id", userId)
+        .eq("status", "ativo")
+        .maybeSingle();
+      if (error) throw error;
+      return data !== null;
+    });
+
+    logContexto(req, { user_id: user.id, organization_id: organizacao.organizationId, code: "log_db_error" });
+
     const { data: policies, error: policiesError } = safeTable !== "unknown"
       ? await admin.rpc("debug_table_policies", { _table_name: safeTable })
       : { data: null, error: null };
 
     const relatedPolicies = (Array.isArray(policies) ? policies as PolicyDebugRow[] : []).filter((policy) => {
       const cmd = String(policy.cmd ?? "").toUpperCase();
-      const expected = action.toUpperCase();
-      return cmd === "ALL" || cmd === expected;
+      return cmd === "ALL" || cmd === action;
     });
 
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      user: {
-        id: userData.user.id,
-        email: userData.user.email,
-      },
-      table: safeTable,
-      action,
-      organization_id: body.organizationId ?? null,
-      client_location: {
-        file: body.clientFile ?? null,
-        line: body.clientLine ?? null,
-      },
-      attempted_row_keys: Array.isArray(body.attemptedRowKeys) ? body.attemptedRowKeys : [],
-      db_error: body.error ?? null,
-      matching_policies: relatedPolicies,
-      policies_lookup_error: policiesError?.message ?? null,
-    };
-
-    console.error("DB_OPERATION_FAILURE", JSON.stringify(logEntry));
+    const errorCode = textoLimitado(erro.code, LIMITES.codigo);
+    console.error("DB_OPERATION_FAILURE", JSON.stringify({ table: safeTable, action, error_code: errorCode }));
 
     const { error: insertError } = await admin.from("backend_error_logs").insert({
-      user_id: userData.user.id,
-      user_email: userData.user.email ?? null,
-      organization_id: body.organizationId ?? null,
+      user_id: user.id,
+      user_email: user.email ?? null,
+      organization_id: organizacao.organizationId,
       table_name: safeTable,
       action,
-      client_file: body.clientFile ?? null,
-      client_line: typeof body.clientLine === "number" ? body.clientLine : null,
-      attempted_row_keys: Array.isArray(body.attemptedRowKeys) ? body.attemptedRowKeys : [],
-      error_code: body.error?.code ?? null,
-      error_message: body.error?.message ?? null,
-      error_details: body.error?.details ?? null,
-      error_hint: body.error?.hint ?? null,
+      client_file: textoLimitado(body.clientFile, LIMITES.arquivo),
+      client_line: linhaNormalizada(body.clientLine),
+      attempted_row_keys: chavesNormalizadas(body.attemptedRowKeys),
+      error_code: errorCode,
+      error_message: textoLimitado(erro.message, LIMITES.mensagem),
+      error_details: textoLimitado(erro.details, LIMITES.detalhe),
+      error_hint: textoLimitado(erro.hint, LIMITES.dica),
       matching_policies: relatedPolicies,
       metadata: {
         policies_lookup_error: policiesError?.message ?? null,
+        organizacao_descartada: organizacao.descartada,
       },
     });
 
     if (insertError) {
-      console.error("DB_ERROR_LOG_INSERT_FAILURE", insertError.message);
+      console.error("DB_ERROR_LOG_INSERT_FAILURE", insertError.code ?? "sem-codigo");
     }
 
-    return new Response(JSON.stringify({ ok: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ ok: true });
   } catch (error) {
-    console.error("DB_ERROR_LOGGER_FAILURE", error);
-    return new Response(JSON.stringify({ error: "Falha ao registrar log" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("DB_ERROR_LOGGER_FAILURE", error instanceof Error ? error.name : "erro desconhecido");
+    return json({ error: "Falha ao registrar log" }, 500);
   }
 });

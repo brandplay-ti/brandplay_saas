@@ -58,6 +58,7 @@ jobs:
       PASTAS_DE_TESTE: >-
         supabase/functions/_shared/
         supabase/functions/admin-ai/
+        supabase/functions/estimate-activation-values/
         supabase/functions/fetch-social-stats/
     steps:
       - uses: actions/checkout@v4

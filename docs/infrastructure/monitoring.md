@@ -3,8 +3,22 @@
 Monitore: saúde dos containers (todos os serviços do compose têm
 healthcheck), CPU, RAM e disco da VPS, saúde do banco, execução dos backups,
 taxa de erro do portal e das Edge Functions, falhas de autenticação relevantes
-e os logs de erro da aplicação (`backend_error_logs`, funções `log-db-error` e
-`report-error`).
+e os logs de erro da aplicação (`backend_error_logs` e `error_reports`, funções
+`log-db-error` e `report-error`). No portal, só o superadmin os vê, em
+`/admin/logs-falhas`, com filtro por cliente. Esses logs ficam 3 meses: o
+job `limpar-logs-de-falha` do `pg_cron` apaga o que passou do prazo todo dia
+às 03:00 UTC (0047, ADR-0014).
+
+Para conferir a limpeza num ambiente (SQL Editor do Studio, só leitura):
+
+```sql
+select d.start_time, d.status, d.return_message
+  from cron.job_run_details d
+  join cron.job j using (jobid)
+ where j.jobname = 'limpar-logs-de-falha'
+ order by d.start_time desc
+ limit 10;
+```
 
 Checagem rápida de um ambiente, só leitura (produção; em homologação,
 `teste.db.brandplay.com.br` e `teste.brandplay.com.br`):

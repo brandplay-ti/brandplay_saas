@@ -4,7 +4,7 @@
 - **Status**: proposta — **nenhuma das três telas foi dividida**. A revisão de
   2026-11-07 (seção 0) atualizou os números e registrou duas mudanças que
   afetam o desenho: os filtros do Pipeline passaram para `useFiltroSalvo` e o
-  tipo de cliente (ADR-0013) esconde três abas da propriedade.
+  tipo de cliente (ADR-0013) esconde três abas do projeto.
 - **Origem**: auditoria de UX/UI do portal, fase de jornada do usuário.
 - **Escopo**: `portal/src/pages/dashboard/PropertyDetail.tsx`,
   `portal/src/pages/dashboard/Pipeline.tsx` e
@@ -25,10 +25,10 @@ Nenhum item do plano está **feito**.
 | Dividir `PropertyDetail.tsx` | pendente | 3.222 linhas (eram 3.206), um componente de 2.958 linhas (264–3222), 46 `useState`, 13 abas, ~520 linhas de diálogos no fim (a partir da linha 2705). Não existe `components/property/detail/` nem `usePropertyDetail`. Galeria e checklist continuam componentes próprios (`components/property/PropertyMediaGallery.tsx`, `PropertyChecklist.tsx`) |
 | Dividir `Pipeline.tsx` | pendente | 2.351 linhas (eram 2.393); o componente principal (285–1542) ainda tem ~1.258 linhas e o arquivo ainda carrega 16 subcomponentes locais (eram 15: entrou `PipelineEmptyState`). Nada foi movido para `components/pipeline/` |
 | Filtros do Pipeline na URL | mudou de rumo | Os 14 filtros agora são `useFiltroSalvo("pipeline", ...)` (issue #51, commit `97a13aa`): guardados no `localStorage` por organização, não na URL. Isso resolve "sobreviver ao recarregar"; não resolve "compartilhar o link". Ver seção 3 e pergunta 1 da seção 7 |
-| Reagrupar as abas da propriedade (13 para 6) | ajustado | As 13 abas continuam. Desde o ADR-0013, `proposals`, `public` e `leads` só aparecem com o módulo `vendas` (`PropertyDetail.tsx`, `temVendas`); a organização marca vê 10. O reagrupamento precisa dizer o que acontece com a marca: seção 2 e pergunta 2 da seção 7 |
+| Reagrupar as abas do projeto (13 para 6) | ajustado | As 13 abas continuam. Desde o ADR-0013, `proposals`, `public` e `leads` só aparecem com o módulo `vendas` (`PropertyDetail.tsx`, `temVendas`); a organização marca vê 10. O reagrupamento precisa dizer o que acontece com a marca: seção 2 e pergunta 2 da seção 7 |
 | Aba ativa na URL (`?aba=`) | pendente | A aba ativa é `useState` e é lembrada em `localStorage` (`propertyTab:<id>`, linhas 273–278); nenhuma das três telas usa `useSearchParams`. No drawer a aba é `useState("jornada")` |
 | Dados por aba com react-query | pendente | As três telas ainda não têm `useQuery`. O padrão de referência já existe no repositório: `hooks/useEquipesDeTrabalho.ts` (chave `["equipes-de-trabalho", orgId]`, `enabled: !!orgId`), `useRelatorios.ts`, `useBilling.ts` |
-| Rede de proteção E2E antes de começar | ajustado | Hoje há quatro specs em `portal/e2e/` (`admin-ia`, `create-negotiation-permissions`, `recuperacao-senha`, `superadmin`), não só um. `create-negotiation-permissions` cobre criar uma negociação no Pipeline. Os três fluxos que o plano pede (criar cota na propriedade, mover etapa no kanban, registrar atividade no drawer) **continuam sem E2E** |
+| Rede de proteção E2E antes de começar | ajustado | Hoje há quatro specs em `portal/e2e/` (`admin-ia`, `create-negotiation-permissions`, `recuperacao-senha`, `superadmin`), não só um. `create-negotiation-permissions` cobre criar uma negociação no Pipeline. Os três fluxos que o plano pede (criar cota no projeto, mover etapa no kanban, registrar atividade no drawer) **continuam sem E2E** |
 | Premissa "sem mudança de banco, RLS ou Edge Function" | mantida | Continua válida. As policies de domínio agora checam `vendas` em vez de `crm` (`0043`) e a fase 2 de equipes (ADR-0012, não iniciada) vai filtrar as consultas por escopo, mas as consultas só mudam de lugar e herdam o que a RLS devolver |
 | `PipelineInsights` (painel "Atenção hoje", gargalos, perdas, desempenho) | ajustado | Não confundir com `components/pipeline/PipelineMetrics.tsx`, que já existe (funil e KPIs, usado na linha 1124 de `Pipeline.tsx`). `PipelineInsights` reúne `AttentionToday`, `StageConversionBottlenecks`, `LossesByReason`, `AssigneePerformanceDashboard` e `BoardRecommendations` |
 | Outras telas grandes | novo | Fora do plano original: `Contracts.tsx` 1.798 linhas, `Deliveries.tsx` 1.519, `Proposals.tsx` 1.494 e `Assets.tsx` 1.179. Não entram aqui; ver seção 6 |
@@ -51,12 +51,12 @@ Três arquivos concentram fluxos críticos e cresceram sem divisão:
 
 Efeitos para quem usa:
 
-- **Propriedade**: 13 abas lado a lado (Visão geral, Cotas, Mapa de ativos,
+- **Projeto**: 13 abas lado a lado (Visão geral, Cotas, Mapa de ativos,
   Agenda, Temporadas, Propostas, Contratos, Patrocinadores, Galeria,
   Checklist, Página pública, Leads, Sobre & Dados). No celular viram uma faixa
   com rolagem horizontal, e o que é do dia a dia (cotas, ativos) disputa
   espaço com o que é de configuração (página pública, temporadas).
-- **Tudo carrega junto**: as consultas da propriedade rodam ao abrir a tela,
+- **Tudo carrega junto**: as consultas do projeto rodam ao abrir a tela,
   mesmo que a pessoa só olhe uma aba.
 - **Qualquer mudança é arriscada**: 46 estados no mesmo componente e diálogos
   que dependem de estado compartilhado. Uma alteração numa aba re-renderiza
@@ -75,20 +75,20 @@ Efeitos para quem mantém: diff difícil de revisar, sem teste unitário possív
 3. **Dados por aba com react-query** (regra do projeto para código novo,
    `.claude/rules/architecture.md`): cada aba busca o que precisa só quando é
    aberta, com cache compartilhado. As escritas invalidam as chaves da
-   propriedade. A chave leva a organização ativa, como em
+   projeto. A chave leva a organização ativa, como em
    `useEquipesDeTrabalho`.
 4. **Sem mudança de banco, RLS ou Edge Function.** As consultas continuam as
    mesmas, só mudam de lugar. O filtro por `organization_id` vem do
    `useOrganization`, como hoje.
 
-## 2. Propriedade (`PropertyDetail.tsx`)
+## 2. Projeto (`PropertyDetail.tsx`)
 
 ### Estrutura proposta
 
 ```
 pages/dashboard/PropertyDetail.tsx        casca: cabeçalho, breadcrumbs, abas (~150 linhas)
 components/property/detail/
-  usePropertyDetail.ts                    propriedade + invalidação (react-query)
+  usePropertyDetail.ts                    projeto + invalidação (react-query)
   PropertyOverviewTab.tsx                 dashboard + sobre
   PropertyTiersTab.tsx                    cotas, mapa de cotas, diálogo de cota
   PropertyAssetsTab.tsx                   ativos alocados, mapa, editor de alocação
@@ -115,7 +115,7 @@ De 13 para 6:
 | Página pública | Página pública, Leads |
 
 A aba ativa vai para a URL (`?aba=cotas`), para o link e o voltar do navegador
-funcionarem. Hoje ela só fica no `localStorage` por propriedade; o valor salvo
+funcionarem. Hoje ela só fica no `localStorage` por projeto; o valor salvo
 passa a ser o padrão quando a URL não traz `aba`.
 
 **Tipo de cliente (ADR-0013).** A organização marca não tem o módulo `vendas`
@@ -190,14 +190,14 @@ passa a buscar só o que mostra.
 
 - `npm run type-check`, `npm test`, `npm run build`.
 - **Teste E2E do fluxo** antes de começar, para servir de rede de proteção
-  (hoje há quatro specs, nenhum deles nestes três fluxos): abrir propriedade e
+  (hoje há quatro specs, nenhum deles nestes três fluxos): abrir projeto e
   criar cota; mover oportunidade de etapa no kanban; registrar atividade no
   drawer. Os três estão na lista de fluxos críticos de `.claude/rules/testing.md`.
   O `create-negotiation-permissions.spec.ts` serve de modelo para o login
   (`E2E_USER_EMAIL` e `E2E_USER_PASSWORD`, com `test.skip` sem eles).
 - Conferência no navegador de cada aba extraída, com dados (Supabase local com
   seed), nas duas visões: organização agência e organização marca (para a
-  propriedade).
+  projeto).
 
 ## 6. Riscos e o que fica de fora
 

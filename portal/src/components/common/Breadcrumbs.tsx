@@ -16,7 +16,7 @@ export interface BreadcrumbTrailItem {
 }
 
 /**
- * Trilha de navegação das telas de detalhe ("Propriedades › Copa X"): mostra
+ * Trilha de navegação das telas de detalhe ("Projetos › Copa X"): mostra
  * onde o usuário está e leva de volta à lista, no lugar de um botão "Voltar"
  * solto.
  */

@@ -22,7 +22,8 @@ Todo PR e todo push em `dev`, `hml` e `main` executam:
 
 **`funcoes`**: `deno test --no-run` (download e tipos, com até 5 tentativas por
 causa do `esm.sh`) → `deno test --allow-read supabase/functions/_shared/
-supabase/functions/admin-ai/ supabase/functions/fetch-social-stats/` com o
+supabase/functions/admin-ai/ supabase/functions/estimate-activation-values/
+supabase/functions/fetch-social-stats/` com o
 Deno fixado (`v2.1.4`). Teste
 novo de Edge Function compartilhada vai para `_shared/` como `*_test.ts`, sem
 rede nem banco. Teste de uma função específica fica na pasta dela, e a pasta

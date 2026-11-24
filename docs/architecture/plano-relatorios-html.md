@@ -7,7 +7,7 @@
   `docs/business/relatorios.md` (seção 12). A fase 1 desta branch foi
   substituída pelo kit de marca da `0034_marca_da_organizacao.sql`.
 - **Escopo**: relatório em formato de landing page gerado a partir de uma
-  propriedade (`sports_properties`, categorias Evento, Campeonato, Projeto,
+  projeto (`sports_properties`, categorias Evento, Campeonato, Projeto,
   Equipe e Atleta), com as cores da organização, compartilhamento controlado e
   endereço permanente.
 - **Referências analisadas** (baixadas em 2026-10-18):
@@ -45,7 +45,7 @@
 
 | | Exemplo 1: SCP 2026 | Exemplo 2: SCP × Claro |
 |---|---|---|
-| Natureza | Relatório **da propriedade** (temporada), para mercado e patrocinadores | Relatório **do patrocinador**: prestação de contas de um contrato |
+| Natureza | Relatório **do projeto** (temporada), para mercado e patrocinadores | Relatório **do patrocinador**: prestação de contas de um contrato |
 | Construção | HTML estático escrito à mão, 104 KB (41 KB de CSS inline, 5 KB de JS) | **Template + dados**: `index.html` (18 KB de marcação), JSON embutido `evidence-data` (134 KB), `app.js` (25 KB), `styles.css` (50 KB) |
 | Mídia | 54 imagens, 12 vídeos do YouTube (`youtube-nocookie`), 8 reels do Instagram | 139 fotos com legenda, momento e tags; 14 vídeos; 6 posts com métricas |
 | Seções | Capa, números, patrocinadores por nível, resumo, jornada, Netflix, público (cidade, idade, gênero), territórios, painel social, earned media, transmissão, experiências, imprensa, top 10 conteúdos, final, depoimentos, contato, PDF | Capa, números, jornada, contexto, Netflix, digital, acervo filtrável, ação especial com métricas, **matriz de entregas (37 contrapartidas)**, fontes e documentos, PDF |
@@ -58,7 +58,7 @@ O que isso indica:
   `chatgpt.com/api/library/...` e `*.chatgpt.site` no JSON sugerem montagem
   manual assistida por IA, peça a peça, e não uma geração automática.
 - **Os dois tipos de relatório cabem no domínio do BrandPlay**: o da
-  propriedade usa `sports_properties`, `property_events`, cotas e mídia; o do
+  projeto usa `sports_properties`, `property_events`, cotas e mídia; o do
   patrocinador usa `contracts`, `deliveries`, `delivery_attachments` e
   aprovação, que já existem.
 - **Boa parte dos números do exemplo 1 vem de fora da plataforma** (TNT,
@@ -328,7 +328,7 @@ foto com legenda → foto sem legenda.
   | Ação | Quem |
   |---|---|
   | Ver relatórios da organização | Qualquer membro ativo |
-  | Criar e editar rascunho; publicar ou atualizar no modo "só a organização" | owner, admin, comercial, operacional (os papéis que já editam a propriedade) |
+  | Criar e editar rascunho; publicar ou atualizar no modo "só a organização" | owner, admin, comercial, operacional (os papéis que já editam o projeto) |
   | Publicar, atualizar ou passar para os modos público, senha ou pessoas; definir ou trocar a senha; enviar o link | owner, admin |
   | Excluir | owner, admin |
 
@@ -395,8 +395,8 @@ ordenam. A A virou a `0034_identidade_visual_organizacao.sql`.
 | Migration | Conteúdo | RLS |
 |---|---|---|
 | A. `_identidade_visual_organizacao` | `organizations`: `slug` (único, gerado do nome com `unaccent`, formato validado, lista reservada, fixo depois do primeiro relatório publicado), cores e fonte | Já coberta por `organizations_admin_write` |
-| B. `_conteudo_do_projeto` | `property_posts` (rede, URL, id externo, momento, patrocinador, destaque, métricas, origem `api`/`manual`, `metrics_fetched_at`), `property_indicators` (rótulo, valor, unidade, formato, fonte, período, categoria, patrocinador, `show_zero`), `property_mentions` (imprensa ou depoimento); `property_media.event_id`; `contains_minors` nas mídias lidas pelos blocos (`property_media`, `delivery_attachments`, `asset_photos`) | Padrão 7, com os mesmos módulos que já escrevem nas tabelas da propriedade (`crm` ou `operacional`) + `billing_access_restrictive` |
-| C. `_relatorios` | `reports` (propriedade, patrocinador e contrato opcionais, período, tipo, estilo, slug, modo de acesso, status, rascunho, snapshot publicado, dados de IA); `report_recipients`; `share_contacts`, `share_groups`, `share_group_members`. **Sem limite por plano** (decisão D3) | Leitura por membro; escrita por owner, admin, comercial e operacional; gatilho que exige owner/admin para mudar para modo externo, publicar ou atualizar um relatório externo, trocar senha e excluir (decisão D4); sem `DELETE` físico; `billing_access_restrictive`; **nenhuma policy para `anon`** |
+| B. `_conteudo_do_projeto` | `property_posts` (rede, URL, id externo, momento, patrocinador, destaque, métricas, origem `api`/`manual`, `metrics_fetched_at`), `property_indicators` (rótulo, valor, unidade, formato, fonte, período, categoria, patrocinador, `show_zero`), `property_mentions` (imprensa ou depoimento); `property_media.event_id`; `contains_minors` nas mídias lidas pelos blocos (`property_media`, `delivery_attachments`, `asset_photos`) | Padrão 7, com os mesmos módulos que já escrevem nas tabelas do projeto (`crm` ou `operacional`) + `billing_access_restrictive` |
+| C. `_relatorios` | `reports` (projeto, patrocinador e contrato opcionais, período, tipo, estilo, slug, modo de acesso, status, rascunho, snapshot publicado, dados de IA); `report_recipients`; `share_contacts`, `share_groups`, `share_group_members`. **Sem limite por plano** (decisão D3) | Leitura por membro; escrita por owner, admin, comercial e operacional; gatilho que exige owner/admin para mudar para modo externo, publicar ou atualizar um relatório externo, trocar senha e excluir (decisão D4); sem `DELETE` físico; `billing_access_restrictive`; **nenhuma policy para `anon`** |
 | D. `_acesso_aos_relatorios` | `report_secrets` (hash da senha e versão), `report_viewer_codes`, `report_viewer_sessions`, `report_access_log` | RLS ligada e sem policy; só `service_role`, como a cobrança (padrão 8) |
 | E. `_conexoes_sociais` (fase 6) | `social_connections` (metadados legíveis por owner/admin; token cifrado com AES-GCM na Edge Function, como `ai_credentials`); histórico de métricas por post | Padrão 4 para metadados; segredo só no servidor |
 

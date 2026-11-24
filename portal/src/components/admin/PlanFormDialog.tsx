@@ -41,7 +41,7 @@ const schema = z.object({
     const c = parseReais(v);
     return c === null || (!Number.isNaN(c) && c >= 100 && c <= 100_000_000);
   }, "Valor em reais (ex.: 490,00), a partir de R$ 1,00. Vazio = sob consulta."),
-  maxProperties: limite("Propriedades", 0),
+  maxProperties: limite("Projetos", 0),
   maxUsers: limite("Usuários", 1),
   features: z.string().refine((v) => {
     const lista = parseFeatures(v);
@@ -222,7 +222,7 @@ export const PlanFormDialog = ({ trigger, plan }: Props) => {
                 name="maxProperties"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Propriedades</FormLabel>
+                    <FormLabel>Projetos</FormLabel>
                     <FormControl>
                       <NumberInput ref={field.ref} name={field.name} onBlur={field.onBlur} value={field.value} onValueChange={field.onChange} placeholder="Sem limite" />
                     </FormControl>

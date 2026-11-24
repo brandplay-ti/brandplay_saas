@@ -63,7 +63,12 @@ async function idsAdminsDaOrganizacao(admin: SupabaseClient, orgId: string): Pro
 }
 
 async function idsSuperadmins(admin: SupabaseClient): Promise<string[]> {
-  const { data } = await admin.from("platform_admins").select("user_id").is("revoked_at", null);
+  // Só o superadmin: o Suporte (0046) não opera a IA.
+  const { data } = await admin
+    .from("platform_admins")
+    .select("user_id")
+    .eq("role", "superadmin")
+    .is("revoked_at", null);
   return (data ?? []).map((r) => r.user_id as string);
 }
 

@@ -119,7 +119,7 @@ export default function PortalLogin() {
             <p className="mt-2 text-sm text-muted-foreground">
               {mode === "login"
                 ? "Acesse entregas, contratos e relatórios."
-                : "Crie sua conta. A propriedade vai vincular seu acesso após confirmação."}
+                : "Crie sua conta. A equipe do projeto vai vincular seu acesso após confirmação."}
             </p>
           )}
 

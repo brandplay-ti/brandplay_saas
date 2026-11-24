@@ -17,7 +17,18 @@ vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => ({ user: { id: "u1" }, loading: false }),
 }));
 
-import { AdminActionError, useGrantAccess, useIsPlatformAdmin, useSavePlan } from "./usePlatformAdmin";
+import {
+  AdminActionError,
+  HORAS_DO_SELETOR,
+  MOTIVO_DO_SELETOR,
+  useAddSupport,
+  useEnterClient,
+  useGrantAccess,
+  useLeaveClient,
+  usePlatformRole,
+  useSavePlan,
+  useSettleInvoice,
+} from "./usePlatformAdmin";
 
 function wrapper() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
@@ -29,20 +40,66 @@ beforeEach(() => {
   invoke.mockReset();
 });
 
-describe("useIsPlatformAdmin", () => {
-  it("é superadmin só quando o banco responde true", async () => {
-    rpc.mockResolvedValue({ data: true, error: null });
-    const { result } = renderHook(() => useIsPlatformAdmin(), { wrapper: wrapper() });
+describe("usePlatformRole", () => {
+  it("superadmin é admin e equipe", async () => {
+    rpc.mockResolvedValue({ data: "superadmin", error: null });
+    const { result } = renderHook(() => usePlatformRole(), { wrapper: wrapper() });
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.isPlatformAdmin).toBe(true);
-    expect(rpc).toHaveBeenCalledWith("is_platform_admin");
+    expect(result.current).toMatchObject({ role: "superadmin", isPlatformAdmin: true, isPlatformStaff: true });
+    expect(rpc).toHaveBeenCalledWith("platform_role");
   });
 
-  it("erro na consulta não vira acesso", async () => {
+  it("suporte é equipe, mas não superadmin", async () => {
+    rpc.mockResolvedValue({ data: "suporte", error: null });
+    const { result } = renderHook(() => usePlatformRole(), { wrapper: wrapper() });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current).toMatchObject({ role: "suporte", isPlatformAdmin: false, isPlatformStaff: true });
+  });
+
+  it("valor desconhecido ou erro não vira acesso", async () => {
+    rpc.mockResolvedValue({ data: "owner", error: null });
+    const desconhecido = renderHook(() => usePlatformRole(), { wrapper: wrapper() });
+    await waitFor(() => expect(desconhecido.result.current.loading).toBe(false));
+    expect(desconhecido.result.current).toMatchObject({ role: null, isPlatformStaff: false });
+
     rpc.mockResolvedValue({ data: null, error: { message: "falhou" } });
-    const { result } = renderHook(() => useIsPlatformAdmin(), { wrapper: wrapper() });
+    const { result } = renderHook(() => usePlatformRole(), { wrapper: wrapper() });
     await waitFor(() => expect(result.current.error).toBeTruthy());
     expect(result.current.isPlatformAdmin).toBe(false);
+    expect(result.current.isPlatformStaff).toBe(false);
+  });
+});
+
+describe("useSettleInvoice", () => {
+  it("manda a fatura e o motivo para admin-invoices", async () => {
+    invoke.mockResolvedValue({ data: { id: "f1", resultado: "baixada" }, error: null });
+    const { result } = renderHook(() => useSettleInvoice("org-1"), { wrapper: wrapper() });
+    const r = await act(() => result.current.mutateAsync({ invoiceId: "f1", comment: "Pix direto" }));
+    expect(invoke).toHaveBeenCalledWith("admin-invoices", {
+      body: { action: "settle", invoice_id: "f1", comment: "Pix direto" },
+    });
+    expect(r.resultado).toBe("baixada");
+  });
+
+  it("propaga a mensagem da função", async () => {
+    invoke.mockResolvedValue({ data: { error: "Só fatura em aberto recebe baixa." }, error: null });
+    const { result } = renderHook(() => useSettleInvoice("org-1"), { wrapper: wrapper() });
+    await expect(result.current.mutateAsync({ invoiceId: "f1", comment: "Pix" })).rejects.toThrow(
+      "Só fatura em aberto recebe baixa.",
+    );
+  });
+});
+
+describe("useAddSupport", () => {
+  it("manda os campos com os nomes da Edge Function", async () => {
+    invoke.mockResolvedValue({ data: { user_id: "u2", conta: "nova" }, error: null });
+    const { result } = renderHook(() => useAddSupport(), { wrapper: wrapper() });
+    await act(() =>
+      result.current.mutateAsync({ email: "p@x.com", fullName: "Pessoa", password: "senha-temp", comment: "Atendimento" }),
+    );
+    expect(invoke).toHaveBeenCalledWith("admin-team", {
+      body: { action: "add", email: "p@x.com", full_name: "Pessoa", password: "senha-temp", comment: "Atendimento" },
+    });
   });
 });
 
@@ -88,5 +145,32 @@ describe("useGrantAccess", () => {
     await expect(
       act(() => result.current.mutateAsync({ hours: 48, comment: "x" })),
     ).rejects.toThrow("Acesso restrito ao superadmin da plataforma.");
+  });
+});
+
+describe("seletor de cliente", () => {
+  it("entrar abre a sessão de suporte de 8 h com o motivo do seletor", async () => {
+    rpc.mockResolvedValue({ data: { id: "s1", organization_id: "org-1", expires_at: "x" }, error: null });
+    const { result } = renderHook(() => useEnterClient(), { wrapper: wrapper() });
+    await act(() => result.current.mutateAsync("org-1"));
+    expect(HORAS_DO_SELETOR).toBe(8);
+    expect(rpc).toHaveBeenCalledWith("admin_abrir_sessao_suporte", {
+      _org_id: "org-1",
+      _horas: 8,
+      _comentario: MOTIVO_DO_SELETOR,
+    });
+  });
+
+  it("voltar encerra a sessão aberta", async () => {
+    rpc.mockResolvedValue({ data: null, error: null });
+    const { result } = renderHook(() => useLeaveClient(), { wrapper: wrapper() });
+    await act(() => result.current.mutateAsync("s1"));
+    expect(rpc).toHaveBeenCalledWith("admin_encerrar_sessao_suporte", expect.objectContaining({ _sessao_id: "s1" }));
+  });
+
+  it("erro do banco ao entrar vira AdminActionError", async () => {
+    rpc.mockResolvedValue({ data: null, error: { message: "Acesso restrito à equipe da plataforma.", code: "42501" } });
+    const { result } = renderHook(() => useEnterClient(), { wrapper: wrapper() });
+    await expect(result.current.mutateAsync("org-1")).rejects.toBeInstanceOf(AdminActionError);
   });
 });

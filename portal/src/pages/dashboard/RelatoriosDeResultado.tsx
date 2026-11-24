@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { mensagemDeErroDeGravacao } from "@/lib/permissoes";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
 import { Copy, ExternalLink, Loader2, Plus, Presentation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,15 +16,16 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useApoioDoRelatorio, useCriarRelatorio, useRelatorios } from "@/hooks/useRelatorios";
-import { enderecoDoRelatorio, ROTULO_DO_MODO, ROTULO_DO_STATUS, TOM_DO_STATUS } from "@/lib/relatorioLanding";
+import { enderecoDoRelatorio, MODULOS_DO_RELATORIO, ROTULO_DO_MODO, ROTULO_DO_STATUS, TOM_DO_STATUS } from "@/lib/relatorioLanding";
 
 const TODOS = "todos";
 const NENHUM = "nenhum";
 
 export default function RelatoriosDeResultado() {
   const navigate = useNavigate();
-  const { orgId, can } = useOrganization();
-  const podeEditar = can("crm") || can("operacional");
+  const { orgId, canWrite } = useOrganization();
+  // Escrita em CRM ou Entregas, como as policies da 0040; ler não basta (BP-29).
+  const podeEditar = MODULOS_DO_RELATORIO.some((m) => canWrite(m));
   const { data: relatorios, isLoading } = useRelatorios(orgId);
   const { data: apoio } = useApoioDoRelatorio(orgId);
   const criar = useCriarRelatorio();
@@ -45,7 +48,7 @@ export default function RelatoriosDeResultado() {
 
   const enviar = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!propriedade) return toast.error("Escolha a propriedade");
+    if (!propriedade) return toast.error("Escolha o projeto");
     const t = titulo.trim() || tituloSugerido(propriedade, patrocinador);
     if (!t) return toast.error("Informe o título");
     try {
@@ -59,7 +62,7 @@ export default function RelatoriosDeResultado() {
       toast.success("Relatório criado");
       navigate(`/dashboard/relatorios/paginas/${id}`);
     } catch (erro) {
-      toast.error("Não foi possível criar", { description: (erro as Error).message });
+      toast.error("Não foi possível criar", { description: mensagemDeErroDeGravacao(erro, MODULOS_DO_RELATORIO) });
     }
   };
 
@@ -73,11 +76,15 @@ export default function RelatoriosDeResultado() {
       <PageHeader
         title="Relatórios de resultado"
         icon={Presentation}
-        description="Landing pages com os resultados de uma propriedade ou de um patrocínio: números, fotos, posts, vídeos e entregas, com as cores da sua marca. Compartilhe por link."
+        description="Landing pages com os resultados de um projeto ou de um patrocínio: números, fotos, posts, vídeos e entregas, com as cores da sua marca. Compartilhe por link."
         actions={
-          <Button onClick={() => setAberto(true)} disabled={!podeEditar}>
-            <Plus className="mr-2 h-4 w-4" /> Novo relatório
-          </Button>
+          podeEditar ? (
+            <Button onClick={() => setAberto(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Novo relatório
+            </Button>
+          ) : (
+            <div className="max-w-md"><SomenteLeitura module={MODULOS_DO_RELATORIO} /></div>
+          )
         }
       />
 
@@ -87,7 +94,7 @@ export default function RelatoriosDeResultado() {
         <EmptyState
           icon={Presentation}
           title="Nenhum relatório ainda"
-          description="Crie um para a temporada de uma propriedade ou para a prestação de contas de um patrocinador."
+          description="Crie um para a temporada de um projeto ou para a prestação de contas de um patrocinador."
           action={podeEditar && (
             <Button onClick={() => setAberto(true)}>
               <Plus className="mr-2 h-4 w-4" /> Criar o primeiro
@@ -144,12 +151,12 @@ export default function RelatoriosDeResultado() {
             <DialogHeader>
               <DialogTitle>Novo relatório</DialogTitle>
               <DialogDescription>
-                Sem patrocinador, o relatório mostra a temporada da propriedade. Com patrocinador, vira a prestação de contas
+                Sem patrocinador, o relatório mostra a temporada do projeto. Com patrocinador, vira a prestação de contas
                 dele, com as contrapartidas.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-2">
-              <Label>Propriedade</Label>
+              <Label>Projeto</Label>
               <Select
                 value={propriedade}
                 onValueChange={(v) => {
@@ -157,7 +164,7 @@ export default function RelatoriosDeResultado() {
                   setContrato(NENHUM);
                 }}
               >
-                <SelectTrigger><SelectValue placeholder="Escolha a propriedade" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Escolha o projeto" /></SelectTrigger>
                 <SelectContent>
                   {apoio?.propriedades.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                 </SelectContent>
@@ -174,7 +181,7 @@ export default function RelatoriosDeResultado() {
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={TODOS}>Nenhum: relatório da propriedade</SelectItem>
+                  <SelectItem value={TODOS}>Nenhum: relatório do projeto</SelectItem>
                   {apoio?.patrocinadores.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -185,7 +192,7 @@ export default function RelatoriosDeResultado() {
                 <Select value={contrato} onValueChange={setContrato}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NENHUM}>Todas as entregas do patrocinador nesta propriedade</SelectItem>
+                    <SelectItem value={NENHUM}>Todas as entregas do patrocinador neste projeto</SelectItem>
                     {contratos.map((c) => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}
                   </SelectContent>
                 </Select>

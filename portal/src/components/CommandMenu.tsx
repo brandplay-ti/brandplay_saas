@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
-import { useIsPlatformAdmin } from "@/hooks/usePlatformAdmin";
+import { usePlatformRole } from "@/hooks/usePlatformAdmin";
 import { gruposVisiveis } from "@/lib/navegacao";
 import { filtrarPaginas, termoDeBusca } from "@/lib/buscaGlobal";
 
@@ -17,14 +17,15 @@ const ehMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigat
 
 /**
  * Busca global do painel (Ctrl+K / ⌘K): páginas do menu e registros da
- * organização ativa — patrocinadores, propriedades e contratos. Cada tipo só é
+ * organização ativa — patrocinadores, projetos e contratos. Cada tipo só é
  * buscado para quem tem o módulo; o filtro por organização é o da tela (RLS
  * garante que só vêm organizações das quais o usuário é membro).
  */
 export const CommandMenu = () => {
   const navigate = useNavigate();
   const { orgId, can, clientType, isAdmin, loading } = useOrganization();
-  const { isPlatformAdmin } = useIsPlatformAdmin();
+  // O atalho para /admin vale para a equipe inteira: superadmin e suporte (0046).
+  const { isPlatformStaff } = usePlatformRole();
   const [open, setOpen] = useState(false);
   const [entrada, setEntrada] = useState("");
   const [termo, setTermo] = useState<string | null>(null);
@@ -48,10 +49,10 @@ export const CommandMenu = () => {
 
   const paginas = useMemo(
     () =>
-      gruposVisiveis({ can, clientType, isAdmin, loading, isPlatformAdmin }).flatMap((g) =>
+      gruposVisiveis({ can, clientType, isAdmin, loading, isPlatformAdmin: isPlatformStaff }).flatMap((g) =>
         g.items.map((i) => ({ ...i, grupo: g.label })),
       ),
-    [can, clientType, isAdmin, loading, isPlatformAdmin],
+    [can, clientType, isAdmin, loading, isPlatformStaff],
   );
   const paginasFiltradas = filtrarPaginas(paginas, entrada);
 
@@ -125,7 +126,7 @@ export const CommandMenu = () => {
   const grupos: { titulo: string; icone: typeof Users; itens: Resultado[] }[] = registros
     ? [
         { titulo: "Patrocinadores", icone: Users, itens: registros.patrocinadores },
-        { titulo: "Propriedades", icone: Trophy, itens: registros.propriedades },
+        { titulo: "Projetos", icone: Trophy, itens: registros.propriedades },
         { titulo: "Contratos", icone: FileSignature, itens: registros.contratos },
       ]
     : [];
@@ -153,19 +154,19 @@ export const CommandMenu = () => {
         <DialogContent className="overflow-hidden p-0 shadow-lg">
           <DialogTitle className="sr-only">Busca</DialogTitle>
           <DialogDescription className="sr-only">
-            Busque páginas, patrocinadores, propriedades e contratos da organização ativa.
+            Busque páginas, patrocinadores, projetos e contratos da organização ativa.
           </DialogDescription>
           {/* shouldFilter={false}: o banco já filtra os registros (inclusive por
               número do contrato, que não aparece no texto do item). */}
           <Command shouldFilter={false} className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3">
-            <CommandInput value={entrada} onValueChange={setEntrada} placeholder="Buscar páginas, patrocinadores, propriedades, contratos…" />
+            <CommandInput value={entrada} onValueChange={setEntrada} placeholder="Buscar páginas, patrocinadores, projetos, contratos…" />
             <CommandList>
               {!buscando && !falhou && paginasFiltradas.length === 0 && !temRegistros && (
                 <CommandEmpty>Nada encontrado para “{entrada.trim()}”.</CommandEmpty>
               )}
               {falhou && (
                 <p className="px-4 py-3 text-sm text-destructive" role="alert">
-                  Não foi possível buscar patrocinadores, propriedades e contratos agora. Tente de novo em instantes.
+                  Não foi possível buscar patrocinadores, projetos e contratos agora. Tente de novo em instantes.
                 </p>
               )}
               {buscando && (

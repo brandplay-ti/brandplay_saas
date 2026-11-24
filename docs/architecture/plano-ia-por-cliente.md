@@ -33,7 +33,7 @@ ambiente, todas falham — é o "pararam de funcionar".
 | `prepare-meeting-ai` | JSON | ✅ `sponsors.organization_id` + `can_access_module` |
 | `task-insights` | JSON | ✅ registro da tarefa + `can_access_module` |
 | `sponsor-executive-summary` | texto | ❌ (dá para tirar do patrocinador) |
-| `generate-sellout-report` | texto longo | ❌ (dá para tirar da propriedade/evento) |
+| `generate-sellout-report` | texto longo | ❌ (dá para tirar do projeto/evento) |
 | `ticket-benchmark-ai` | JSON | ⚠️ `get_user_org` — devolve **uma** organização, ambíguo para quem está em várias |
 | `score-leads` | tool forçada | ❌ lê patrocinadores de **todas** as organizações do usuário num só prompt |
 | `detect-churn-risk` | texto curto | ❌ idem, varre tudo que o RLS deixa ver |

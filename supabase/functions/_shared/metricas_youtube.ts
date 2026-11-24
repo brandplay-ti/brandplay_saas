@@ -1,5 +1,5 @@
 // Atualiza views, curtidas e comentários dos vídeos do YouTube cadastrados
-// numa propriedade (`property_posts`). Usada pela `report-view` (em segundo
+// num projeto (`property_posts`). Usada pela `report-view` (em segundo
 // plano, quando o cache venceu) e pela `social-posts` (botão "Atualizar
 // métricas").
 //

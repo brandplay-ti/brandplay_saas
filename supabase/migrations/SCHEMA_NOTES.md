@@ -210,12 +210,12 @@ superfícies de acesso que não usam o modelo de `organization_members`:
    (`id, name, logo_path`), e faz **insert público** em `property_leads`
    (formulário "Quero ser patrocinador"). Isso só funciona se o RLS liberar
    leitura para o role `anon` nessas tabelas, com escopo limitado a
-   propriedades publicadas. Adicionei essas policies em `0005_rls_policies.sql`
+   projetos publicados. Adicionei essas policies em `0005_rls_policies.sql`
    (Seção 8) e as funções de apoio `is_property_published`,
    `is_asset_publicly_visible`, `is_tier_publicly_visible`,
    `is_sponsor_publicly_visible` em `0004_functions.sql`. **Atenção**: a
    policy `contracts_public_read` expõe `sponsor_id` e `status` de contratos
-   ativos/vencendo de propriedades publicadas para qualquer visitante anônimo
+   ativos/vencendo de projetos publicados para qualquer visitante anônimo
    — isso reproduz o comportamento observado no código-fonte atual, mas é uma
    decisão de produto que vale confirmar com o time (pode ser um vazamento de
    informação comercial não intencional no app original).
@@ -313,7 +313,7 @@ pura de nome/assinatura, sem nenhuma pista adicional).
 | `is_org_member(uuid, uuid)` (sobrecarga) | alta | Assinatura documentada em `types.ts`; lógica idêntica à versão `auth.uid()` de 0004 |
 | `has_org_role(uuid, org_role[], uuid)` (sobrecarga) | alta | Idem |
 | `get_user_org` | média | Ambíguo por natureza no modelo multi-org (CLAUDE.md §6); heurística "membership mais antiga" documentada |
-| `has_role` | alta | Call site: `supabase/functions/manage-portal-access/index.ts` |
+| `has_role` | alta | Sem call site desde a BP-29: a `manage-portal-access` passou a exigir escrita no CRM (`can_access_module`), ver `docs/business/permissoes.md` |
 | `has_sponsor_access` | alta (schema) | Nenhum call site; espelha `has_sponsor_portal_access` de 0004 |
 | `user_sponsor_ids` | alta (schema) | Nenhum call site; schema puro |
 | `log_sponsor_interaction` | alta | Insert tipado em `sponsor_interactions`, colunas confirmadas em 0003 |
@@ -406,7 +406,7 @@ Efeito sobre as seções anteriores deste documento:
 Diferenças deliberadas que permanecem:
 
 - `sports_properties.owner_id` sem `ON DELETE CASCADE` (no Lovable, excluir o
-  usuário apagaria as propriedades dele).
+  usuário apagaria os projetos dele).
 - 140 FKs e 129 índices que só existem aqui.
 - Policies com o papel global `has_role(..., 'admin')` e de "dono da linha"
   sem organização não portadas (isolamento por organização).
@@ -466,7 +466,7 @@ sob demanda para organização importada sem gatilho.
 
 Suposições registradas:
 
-- Edição/temporada (`parent_property_id`) não conta como propriedade.
+- Edição/temporada (`parent_property_id`) não conta como projeto.
 - Convite pendente (`status = 'pendente'` e não expirado — o critério de
   `handle_new_user`) ocupa vaga de usuário; o aceite de um convite pendente
   nunca é bloqueado.
@@ -506,6 +506,22 @@ Suposições registradas:
   assinatura cancelada pode não contar como cliente.
 - MRR usa o preço **atual** do catálogo, não o preço real de cada assinatura
   no Stripe (que fica no preço antigo depois de um reajuste).
+
+### Logs de falha só para o superadmin (0045, BP-3)
+
+`backend_error_logs` e `error_reports` passaram do padrão 3 com leitura de
+owner/admin (0017: `*_own_read` e `*_admin_read`) para o padrão 9:
+`*_platform_admin_read` com `is_platform_admin()`, sem escrita para `anon` e
+`authenticated` (insert/update/delete revogados). São telemetria da plataforma
+e continuam fora da policy restritiva de cobrança e do teste `(m)`.
+
+Suposição: os registros podem trazer, em `error_details`, valores da linha que
+falhou (ex.: chave duplicada). O superadmin passa a vê-los; é o custo de
+diagnosticar a falha, e não é leitura das tabelas de domínio. As funções que
+gravam (`log-db-error`, `report-error`) cortam o texto livre e só guardam a
+`organization_id` enviada quando o usuário é membro ativo dela
+(`_shared/logs_de_falha.ts`); senão gravam nula e marcam
+`metadata.organizacao_descartada`.
 
 ## Relatório de entrega: quais evidências entram (0030, 2026-10-17)
 
@@ -632,17 +648,17 @@ O que a 0033 muda:
   | Tabela | Pai (na ordem) |
   | --- | --- |
   | `installments`, `contract_churn_risk` | contrato |
-  | `deliveries` | contrato → oportunidade → patrocinador → propriedade |
-  | `contracts` | oportunidade → patrocinador → propriedade |
-  | `proposals` | patrocinador → propriedade |
+  | `deliveries` | contrato → oportunidade → patrocinador → projeto |
+  | `contracts` | oportunidade → patrocinador → projeto |
+  | `proposals` | patrocinador → projeto |
   | `proposal_versions` | proposta |
   | `delivery_attachments` | entrega |
-  | `sponsorship_tiers`, `brandtrack_events` | propriedade |
+  | `sponsorship_tiers`, `brandtrack_events` | projeto |
   | `brandtrack_media`, `brandtrack_event_brands` | evento do BrandTrack |
   | `brandtrack_detections` | mídia do BrandTrack |
   | `brandtrack_brands`, `sponsor_executive_summaries` | patrocinador |
-  | `lead_scores` | alvo (`target_type` sponsor/opportunity) → propriedade |
-  | `sellout_reports` | propriedade → `property_events` |
+  | `lead_scores` | alvo (`target_type` sponsor/opportunity) → projeto |
+  | `sellout_reports` | projeto → `property_events` |
 
 Decisões e suposições:
 
@@ -655,12 +671,12 @@ Decisões e suposições:
   `get_user_org`.
 - **`get_user_org` continua** para a linha que não referencia pai nenhum:
   `sponsors`, `sports_properties`, `assets`, um contrato/proposta sem
-  oportunidade, patrocinador nem propriedade; e em `opportunities`
+  oportunidade, patrocinador nem projeto; e em `opportunities`
   (`set_default_pipeline_funnel` e `validate_opportunity_org_access` resolvem
   antes) e nas preferências por usuário (`set_org_from_user_membership`). Para
   essas, a correção é o portal enviar a organização ativa. Conhecidos sem
   envio: `ProposalWizardDialog` (proposta; agora herda do patrocinador ou da
-  propriedade), `BrandTrackUploads` (evento herda da propriedade).
+  projeto), `BrandTrackUploads` (evento herda do projeto).
 - `delivery_attachments` sem `organization_id` (`FieldDeliveryDetail`) era
   **recusado** para entrega fora da primeira organização do usuário ("Registro
   pai pertence a outra organização"): não vazava, mas o anexo não subia. Agora
@@ -800,10 +816,10 @@ Tabelas novas: `property_posts` (posts, vídeos e matérias por link),
 (a página). `property_media` ganha `event_id`, `sponsor_id`, `tags` e
 `contains_minors`. Regras de negócio em `docs/business/relatorios.md`.
 
-- **Organização vem da propriedade.** O gatilho `tg_relatorio_vinculos`
-  sobrescreve `organization_id` das três tabelas novas com o da propriedade e
+- **Organização vem do projeto.** O gatilho `tg_relatorio_vinculos`
+  sobrescreve `organization_id` das três tabelas novas com o do projeto e
   recusa (`23503`) patrocinador, momento ou contrato de outra organização ou
-  propriedade. Em `property_media` ele só valida, e só quando há momento ou
+  projeto. Em `property_media` ele só valida, e só quando há momento ou
   patrocinador: linha antiga continua como era.
 - **`external_id`** só aceita `[A-Za-z0-9_-]{1,64}`: o embed é montado a
   partir dele, e o formato impede injetar algo no endereço do iframe. URL só
@@ -828,21 +844,21 @@ Tabelas novas: `property_posts` (posts, vídeos e matérias por link),
   (`can_access_module`); modo público, editar relatório público e excluir são
   de owner/admin. Sem `auth.uid()` (service role, SQL Editor) só valem as
   regras de integridade.
-- **Suposição**: relatório some com a propriedade (`on delete cascade`). O
+- **Suposição**: relatório some com o projeto (`on delete cascade`). O
   endereço some junto; como o sufixo é aleatório, não há como outro relatório
   herdar o mesmo link.
 - **`reports.sponsor_id` sem `on delete`**, como `deliveries` e
   `installments`: patrocinador com relatório não é apagado (é arquivado, no
   fluxo normal). Com `set null`, o relatório do patrocinador viraria em
-  silêncio o da propriedade inteira. Em posts, indicadores e fotos o vínculo
+  silêncio o do projeto inteiro. Em posts, indicadores e fotos o vínculo
   vira `null` (o conteúdo passa a ser geral). Contrato apagado deixa o
-  relatório com todas as entregas do patrocinador na propriedade.
+  relatório com todas as entregas do patrocinador no projeto.
 - **`report_landing_data(_report_id, _publico)`** é a lista de campos da
-  página. Não lê `about`, `description` nem `key_notes` da propriedade (só os
+  página. Não lê `about`, `description` nem `key_notes` do projeto (só os
   campos `public_*`), nem descrição de momento ou de entrega, notas,
   comentário de aprovação ou qualquer valor financeiro. Patrocinadores da
   página: cota vendida (`tier_sales.status` diferente de `cancelada`/
-  `cancelado`) numa cota da propriedade, ou contrato `ativo`, `vencendo` ou
+  `cancelado`) numa cota do projeto, ou contrato `ativo`, `vencendo` ou
   `encerrado` nela.
 
 ## Aceite de convite de organização (0041)
@@ -1001,7 +1017,7 @@ de negócio em `docs/business/tipo-de-cliente.md`; análise e decisões em
   sobrecarga ambígua).
 - **Leitura administrativa**: `admin_tipos_de_cliente()` (tipo de todas as
   organizações) e `admin_tipo_de_cliente(org)` (tipo e contagens do que fica
-  oculto: oportunidades abertas, propostas, propriedades publicadas, leads).
+  oculto: oportunidades abertas, propostas, projetos publicados, leads).
   Só contagens, como o resto da ADR-0008.
 - **`team_audit_log_action_check`** foi recriado com as ações da 0042
   (equipes), que vem antes na ordem, mais `client_type_changed`. Uma migration
@@ -1011,3 +1027,74 @@ de negócio em `docs/business/tipo-de-cliente.md`; análise e decisões em
   recortado pelo contrato, com `subject` (marca e valor do contrato) no lugar
   de `opportunity`. Só `service_role`; `generate-delivery-report` confere
   antes, com o client do usuário, que ele lê o contrato.
+
+## Perfil Suporte e equipe da plataforma (0046, BP-4)
+
+`platform_admins` passou a ser a equipe da plataforma, com `role`
+(`superadmin` | `suporte`, padrão `superadmin` para as linhas existentes).
+
+| Tabela / função | O que é | Quem |
+| --- | --- | --- |
+| `platform_admins.role` | papel na equipe | escrita só por `platform_admin_grant` (superadmin, manual) e `admin_equipe_*` (suporte, pelo superadmin) |
+| `platform_staff_signups` | pré-cadastro de conta da equipe (15 min) | sem policy; só service role e `admin_equipe_pre_cadastro` |
+| `is_platform_admin()` | **só superadmin** (mudou de sentido) | todas as policies e funções que já a usavam |
+| `is_platform_staff()`, `platform_staff_require()`, `platform_role()` | superadmin ou suporte | `admin_clientes`, `admin_cliente_detalhe`, `admin_tipo(s)_de_cliente`, sessão de suporte, `billing_discounts_platform_staff_read` |
+| `admin_equipe()`, `admin_equipe_conceder_suporte(email, motivo)`, `admin_equipe_revogar_suporte(user, motivo)`, `admin_equipe_pre_cadastro(email)` | equipe pela tela | só superadmin |
+
+Suposições:
+
+- MRR por cliente é faturamento: `admin_clientes()` devolve `mrr_cents` nulo
+  para o Suporte. As faturas da ficha são o que o Suporte precisa para dar
+  baixa; a leitura direta de `billing_*` continua só do superadmin.
+- Liberação provisória, extensão de teste e troca do tipo de cliente seguem
+  só do superadmin: a demanda (BP-4) pediu ao Suporte listar clientes, dar
+  baixa e lançar desconto.
+- `admin_equipe_conceder_suporte` não rebaixa superadmin ativo (erro
+  `check_violation`) e é idempotente para suporte ativo. `platform_admin_grant`
+  promove suporte a superadmin (`role = 'superadmin'`).
+- Revogar suporte encerra a sessão de suporte aberta dele.
+- `handle_new_user` (corpo da 0043) não cria organização pessoal quando há
+  pré-cadastro pendente e no prazo para o e-mail. Conceder suporte consome o
+  pré-cadastro.
+- Baixa manual: a projeção marca `payment_method` nulo para fatura com
+  `paid_with = manual` (o meio real não passa pelo Stripe).
+
+## Retenção dos logs de falha (0047, BP-5, ADR-0014)
+
+`backend_error_logs` e `error_reports` guardam no máximo 3 meses. O job
+`limpar-logs-de-falha` do `pg_cron` roda todo dia às 03:00 UTC e chama
+`public.limpar_logs_de_falha()`, que apaga as linhas com
+`created_at < now() - interval '3 months'` e devolve quantas saíram de cada
+tabela. É o primeiro uso do `pg_cron` no projeto.
+
+Suposições:
+
+- "Logs de erros" da demanda são estas duas tabelas, as da tela
+  `/admin/logs-falhas`. As trilhas de auditoria (`platform_admin_audit_log`,
+  `team_audit_log`, `*_audit_logs`) não são logs de falha e ficam fora; a
+  retenção delas é a do plano de auditoria (24 meses).
+- "Até 3 meses" é `interval '3 months'` contado de `created_at`, com rodada
+  diária: uma linha pode ficar até um dia a mais que o prazo.
+- A função não é `SECURITY DEFINER` e não tem `EXECUTE` para `anon`,
+  `authenticated` nem `service_role`: roda com o dono do job (quem aplicou a
+  migration). Nenhuma tela ou Edge Function a chama.
+
+## Textos: "propriedade" vira "projeto" (0048, BP-6)
+
+O produto passou a chamar de **projeto** o cadastro de `sports_properties`.
+A 0048 troca só o texto que chega ao usuário: as mensagens dos gatilhos
+`handle_lead_to_opportunity`, `tg_billing_limit_properties`,
+`tg_relatorio_vinculos` e `tg_reports_regras` (mesma lógica da 0019, 0024 e
+0040) e a descrição e os benefícios dos planos padrão `starter` e `pro`.
+
+Suposições:
+
+- Nenhum nome técnico muda: tabelas, colunas, funções, o hint
+  `limite_plano:propriedades` (lido pelo portal) e a chave `propriedade` do
+  JSON de `report_landing_data` ficam como estão.
+- O plano só é atualizado onde o texto ainda é o original da 0024. O que o
+  superadmin já editou em `/admin/planos` fica como está.
+- A categoria "Projeto" de `sports_properties.category` não foi renomeada
+  (ver `docs/architecture/plano-equipes.md`, seção 3).
+- Os `comment on` antigos que dizem "propriedade" ficam; só os da 0048 usam o
+  nome novo.

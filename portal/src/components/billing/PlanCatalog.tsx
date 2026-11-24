@@ -29,7 +29,7 @@ interface Props {
 
 function limites(plano: BillingPlan): string {
   const propriedades =
-    plano.max_properties == null ? "Propriedades ilimitadas" : `Até ${plano.max_properties} propriedades`;
+    plano.max_properties == null ? "Projetos ilimitados" : `Até ${plano.max_properties} projetos`;
   const usuarios =
     plano.max_users == null
       ? "usuários ilimitados"

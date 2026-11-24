@@ -171,22 +171,23 @@ Toda função de IA segue o mesmo roteiro, com o apoio de `_shared/ai/funcao.ts`
 | Função | Nível | Organização | Módulo |
 |---|---|---|---|
 | `sponsor-executive-summary` | padrao | do patrocinador | crm |
-| `generate-sellout-report` | padrao | da propriedade | crm |
+| `generate-sellout-report` | padrao | do projeto | crm |
 | `detect-churn-risk` | rapido | ativa do portal | crm |
 | `ticket-benchmark-ai` | padrao | ativa do portal | crm |
 | `prepare-meeting-ai` | padrao | do patrocinador | crm |
 | `task-insights` | padrao | da tarefa / item | crm ou operacional |
-| `score-leads` | rapido | ativa do portal | crm (escrita) |
-| `generate-proposal-ai` | padrao | ativa do portal | crm |
-| `generate-proposal-wizard` | padrao | ativa do portal | crm |
+| `score-leads` | rapido | ativa do portal | vendas (escrita; era crm antes da 0043) |
+| `generate-proposal-ai` | padrao | ativa do portal | vendas (escrita) |
+| `generate-proposal-wizard` | padrao | ativa do portal | vendas (escrita) |
+| `estimate-activation-values` | padrao | ativa do portal (proposta e projeto informados precisam ser dela) | vendas |
 | `suggest-next-steps` | padrao | do registro (oportunidade, patrocinador, contrato, proposta, entrega); ativa do portal no painel e na lista de entregas | crm; operacional nas entregas |
 | `summarize-contract` | padrao | do contrato | crm |
-| `ai-assistant` | padrao | da conversa; conversa nova na ativa do portal | crm |
+| `ai-assistant` | padrao | da conversa; conversa nova na ativa do portal | crm (as ferramentas que gravam só para quem escreve em crm/vendas, BP-29) |
 | `brandtrack-detect-image` | visao | da mídia | operacional |
 
 ### Lote 2 (IA-17, IA-18)
 
-- **`score-leads`**: lia patrocinadores, oportunidades, propriedades e o
+- **`score-leads`**: lia patrocinadores, oportunidades, projetos e o
   histórico de propostas de **todas** as organizações do usuário e gravava
   `lead_scores` sem `organization_id` (o gatilho preenchia com `get_user_org`,
   a organização mais antiga). Agora recebe a organização ativa, filtra tudo por
@@ -198,7 +199,7 @@ Toda função de IA segue o mesmo roteiro, com o apoio de `_shared/ai/funcao.ts`
   Gravação que falha volta `saved: false` e a tela avisa.
 - **`generate-proposal-ai`** e **`generate-proposal-wizard`**: a proposta é
   gravada pela tela na organização ativa, então é ela que a função recebe e
-  valida. Patrocinador e propriedade escolhidos precisam ser dessa organização
+  valida. Patrocinador e projeto escolhidos precisam ser dessa organização
   (senão 404); cotas, alocações e ativos do contexto também. Antes, os ativos
   vinham de todas as organizações do usuário. A ferramenta obrigatória virou o
   modo `json` da camada, e a resposta volta normalizada (itens com nome,

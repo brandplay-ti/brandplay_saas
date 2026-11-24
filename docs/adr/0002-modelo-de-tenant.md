@@ -17,7 +17,7 @@ tanto na aplicação quanto, indiretamente, no contexto de autorização.
 Esse modelo não se encaixa no BrandPlay pelo seguinte motivo de produto: aqui
 é comum e esperado que uma mesma pessoa participe de **várias organizações**
 ao mesmo tempo — por exemplo, um profissional de marketing esportivo que presta
-serviço de gestão comercial para mais de um clube ou propriedade, cada um
+serviço de gestão comercial para mais de um clube ou projeto, cada um
 como uma organização separada no sistema. Forçar "1 tenant ativo por sessão"
 exigiria logout/login (ou um claim de JWT reemitido) toda vez que o usuário
 quisesse trocar de organização, o que não é a experiência desejada.

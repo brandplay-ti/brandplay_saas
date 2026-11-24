@@ -10,9 +10,10 @@ import { TIPOS_DE_CLIENTE } from "@/lib/permissoes";
 /**
  * Tipo de cliente no detalhe do cliente (0043). A troca não apaga nada: o
  * funil da agência que vira marca fica oculto e volta se ela voltar a ser
- * agência (decisão D11). As contagens mostram o que vai sumir.
+ * agência (decisão D11). As contagens mostram o que vai sumir. A troca é do
+ * superadmin; o Suporte só vê o tipo (`canChange`, 0046).
  */
-export const ClientTypeAdminCard = ({ orgId }: { orgId: string }) => {
+export const ClientTypeAdminCard = ({ orgId, canChange = true }: { orgId: string; canChange?: boolean }) => {
   const tipo = useAdminClientType(orgId);
   const trocar = useChangeClientType(orgId);
 
@@ -38,27 +39,29 @@ export const ClientTypeAdminCard = ({ orgId }: { orgId: string }) => {
             : "Agência: com funil de vendas, propostas e captação pelo media kit."}
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <CommentedActionDialog
-          trigger={
-            <Button variant="outline" size="sm" disabled={!tipo.data}>
-              <Repeat /> Trocar para {rotulo(destino)}
-            </Button>
-          }
-          title={`Trocar para ${rotulo(destino)}`}
-          description={impacto}
-          confirmLabel="Trocar tipo"
-          onConfirm={async ({ comment }) => {
-            try {
-              await trocar.mutateAsync({ clientType: destino, comment });
-              toast.success(`Organização agora é ${rotulo(destino)}.`);
-            } catch (e) {
-              toast.error(e instanceof Error ? e.message : "Não foi possível trocar o tipo.");
-              throw e;
+      {canChange && (
+        <CardContent>
+          <CommentedActionDialog
+            trigger={
+              <Button variant="outline" size="sm" disabled={!tipo.data}>
+                <Repeat /> Trocar para {rotulo(destino)}
+              </Button>
             }
-          }}
-        />
-      </CardContent>
+            title={`Trocar para ${rotulo(destino)}`}
+            description={impacto}
+            confirmLabel="Trocar tipo"
+            onConfirm={async ({ comment }) => {
+              try {
+                await trocar.mutateAsync({ clientType: destino, comment });
+                toast.success(`Organização agora é ${rotulo(destino)}.`);
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : "Não foi possível trocar o tipo.");
+                throw e;
+              }
+            }}
+          />
+        </CardContent>
+      )}
     </Card>
   );
 };

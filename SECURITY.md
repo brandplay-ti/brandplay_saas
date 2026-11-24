@@ -22,7 +22,7 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   derivar `user.id` dele e escopar toda consulta por organização. Nunca devem
   confiar em `organization_id`/`user_id` vindos do corpo da requisição.
   Funções de IA de produto (`ai-assistant`, `score-leads`, `generate-proposal-wizard`,
-  entre outras) passam pela camada `_shared/ai/` (ADR-0010): credencial por
+  `estimate-activation-values`, entre outras) passam pela camada `_shared/ai/` (ADR-0010): credencial por
   organização (OpenAI, Gemini ou Anthropic), guardas de orçamento e registro em
   `ai_usage_events`. Chaves de fornecedor ficam cifradas em `ai_credentials`;
   a Edge Function `admin-ai` grava e testa credenciais (superadmin). Nunca
@@ -67,6 +67,13 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   `billing_*` não aceitam escrita de `authenticated`, então ninguém se dá um
   plano ou estende o próprio teste pela API. Limites de plano são gatilhos no
   banco, não verificação de tela.
+- **Suporte da plataforma** (0046). Segundo papel de `platform_admins`
+  (`role = 'suporte'`), lido por `is_platform_staff()`. Lista clientes, abre a
+  ficha, dá baixa em fatura (`admin-invoices`), lança desconto e abre sessão de
+  suporte; `is_platform_admin()` (cobrança direta, faturamento, planos, IA,
+  auditoria) continua só do superadmin. O superadmin concede e revoga Suporte
+  pela tela (`admin_equipe_*`, `admin-team`); nenhuma função de
+  `authenticated` grava ou revoga superadmin.
 - **Superadmin da plataforma** (ADR-0008, área `/admin`). Papel em
   `platform_admins`, lido por `is_platform_admin()`; só `service_role` e as
   funções de concessão escrevem ali, e `authenticated` não as executa — a
@@ -81,7 +88,10 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   usa, para o `auth.uid()` da sessão, a linha `admin` de
   `organization_role_grants`: se o administrador daquela organização não lê um
   módulo, a sessão também não lê. O operador age com o próprio `auth.uid()`.
-  A sessão não vira `organization_members` e não concede `owner`. Toda ação administrativa vai para
+  A sessão não vira `organization_members` e não concede `owner`. Os logs de
+  falha (`backend_error_logs`, `error_reports`) também são só do superadmin
+  (0045, tela `/admin/logs-falhas`): trazem mensagens internas do banco e o SQL
+  das policies, e não aparecem para cliente nenhum. Toda ação administrativa vai para
   `platform_admin_audit_log`, imutável pela API. Ao estender essa área, mantenha
   as duas coisas: leitura mínima e registro de quem fez.
 - **IA por organização** (ADR-0010, `/admin/ia`, `admin-ai`). Tabelas
@@ -92,7 +102,7 @@ pública. Descreva o cenário, os passos para reproduzir e o impacto potencial
   fornecedor da credencial em uso — tratar como subprocessador (IA-37).
   Operação: `docs/runbooks/ia.md`.
 - **Media Kit público** (`/p/:slug`, `portal/src/pages/PublicMediaKit.tsx`). Única
-  rota que aceita leitura anônima (`anon`) de propriedades publicadas e
+  rota que aceita leitura anônima (`anon`) de projetos publicados e
   insert público de leads. Qualquer dado exposto ali é público por definição
   — nunca adicione um campo a essa página ou às policies `*_public_read` sem
   confirmar que ele deveria mesmo ser visível sem login.

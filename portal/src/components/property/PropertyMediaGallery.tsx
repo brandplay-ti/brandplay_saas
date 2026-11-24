@@ -23,6 +23,9 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useOrganization } from "@/hooks/useOrganization";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
+import { MODULOS_DA_OPERACAO, mensagemDeErroDeGravacao, mensagemSemEdicao } from "@/lib/permissoes";
 import { useConfirm } from "@/hooks/useConfirm";
 
 interface MediaItem {
@@ -60,6 +63,9 @@ function isVideoExt(name: string) {
 
 export default function PropertyMediaGallery({ propertyId, ownerId }: Props) {
   const confirm = useConfirm();
+  // property_media grava com escrita em CRM ou Entregas (0040, BP-29).
+  const { canWrite } = useOrganization();
+  const podeEditar = MODULOS_DA_OPERACAO.some((m) => canWrite(m));
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -150,14 +156,19 @@ export default function PropertyMediaGallery({ propertyId, ownerId }: Props) {
       destructive: true,
     });
     if (!confirmado) return;
+    // Primeiro a linha: a RLS recusa o DELETE sem erro (0 linhas), e o arquivo
+    // só sai do storage se a mídia saiu de fato.
+    const { data: apagadas, error } = await (supabase as any)
+      .from("property_media")
+      .delete()
+      .eq("id", item.id)
+      .select("id");
+    if (error || !apagadas?.length) {
+      return toast.error("Não foi possível excluir", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) : mensagemSemEdicao(MODULOS_DA_OPERACAO) });
+    }
     if (item.storage_path) {
       await supabase.storage.from("property-media").remove([item.storage_path]);
     }
-    const { error } = await (supabase as any)
-      .from("property_media")
-      .delete()
-      .eq("id", item.id);
-    if (error) return toast.error(error.message);
     toast.success("Mídia removida");
     load();
   };
@@ -173,7 +184,7 @@ export default function PropertyMediaGallery({ propertyId, ownerId }: Props) {
       .from("property_media")
       .update({ is_cover: !item.is_cover })
       .eq("id", item.id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error("Não foi possível alterar a capa", { description: mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) });
     toast.success(item.is_cover ? "Capa removida" : "Definida como capa");
     load();
   };
@@ -183,7 +194,7 @@ export default function PropertyMediaGallery({ propertyId, ownerId }: Props) {
       .from("property_media")
       .update({ caption: caption || null })
       .eq("id", item.id);
-    if (error) toast.error(error.message);
+    if (error) toast.error("Não foi possível salvar a legenda", { description: mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) });
   };
 
   return (
@@ -192,7 +203,8 @@ export default function PropertyMediaGallery({ propertyId, ownerId }: Props) {
         <p className="text-sm text-muted-foreground">
           Fotos, vídeos curtos e links externos. Aparecem na página pública.
         </p>
-        <div className="flex gap-2">
+        {!podeEditar && <div className="max-w-md"><SomenteLeitura module={MODULOS_DA_OPERACAO} /></div>}
+        {podeEditar && <div className="flex gap-2">
           <Label className="cursor-pointer">
             <input
               type="file"
@@ -216,7 +228,7 @@ export default function PropertyMediaGallery({ propertyId, ownerId }: Props) {
           <Button size="sm" onClick={() => setLinkOpen(true)}>
             <Link2 className="h-4 w-4 mr-1" /> Adicionar link
           </Button>
-        </div>
+        </div>}
       </div>
 
       {loading ? (
@@ -263,7 +275,7 @@ export default function PropertyMediaGallery({ propertyId, ownerId }: Props) {
                       <Star className="h-3 w-3" /> Capa
                     </Badge>
                   )}
-                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                  {podeEditar && <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
                     {m.media_type !== "link" && (
                       <Button
                         aria-label={m.is_cover ? "Remover capa" : "Definir como capa"}
@@ -285,11 +297,13 @@ export default function PropertyMediaGallery({ propertyId, ownerId }: Props) {
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
-                  </div>
+                  </div>}
                 </div>
                 <CardContent className="p-2">
                   <Input
                     defaultValue={m.caption ?? ""}
+                    disabled={!podeEditar}
+                    aria-label="Legenda"
                     placeholder="Legenda..."
                     className="h-7 text-xs border-0 px-1 focus-visible:ring-1"
                     maxLength={200}

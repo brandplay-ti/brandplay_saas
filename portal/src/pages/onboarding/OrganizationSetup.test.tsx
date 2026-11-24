@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 type Resposta = { data: unknown; error: { message: string } | null };
 
 const membro: { resposta: Resposta } = { resposta: { data: null, error: null } };
-const superadmin: { resposta: Resposta } = { resposta: { data: false, error: null } };
+const superadmin: { resposta: Resposta } = { resposta: { data: null, error: null } };
 // Kit de marca e acesso (billing_status) da etapa de marca.
 const kit: { resposta: Resposta } = { resposta: { data: null, error: null } };
 const acesso: { resposta: Resposta } = { resposta: { data: { access: true }, error: null } };
@@ -36,7 +36,7 @@ vi.mock("@/integrations/supabase/client", () => {
       from: (tabela: string) => consulta(tabela),
       rpc: (nome: string) =>
         Promise.resolve(
-          nome === "is_platform_admin"
+          nome === "platform_role"
             ? superadmin.resposta
             : nome === "billing_status"
               ? acesso.resposta
@@ -90,24 +90,30 @@ vi.stubGlobal("localStorage", {
 beforeEach(() => {
   localStorage.clear();
   membro.resposta = { data: null, error: null };
-  superadmin.resposta = { data: false, error: null };
+  superadmin.resposta = { data: null, error: null };
   kit.resposta = kitSalvo;
   acesso.resposta = { data: { access: true }, error: null };
 });
 
 describe("OrganizationSetup — destino após o login", () => {
   it("leva o superadmin sem organização para /admin", async () => {
-    superadmin.resposta = { data: true, error: null };
+    superadmin.resposta = { data: "superadmin", error: null };
     abrir();
     expect(await screen.findByText("tela admin")).toBeInTheDocument();
   });
 
   it("leva o superadmin que também é membro para /admin e guarda a organização ativa", async () => {
-    superadmin.resposta = { data: true, error: null };
+    superadmin.resposta = { data: "superadmin", error: null };
     membro.resposta = { data: organizacao, error: null };
     abrir();
     expect(await screen.findByText("tela admin")).toBeInTheDocument();
     expect(localStorage.getItem("active_organization_id")).toBe("org-1");
+  });
+
+  it("leva o suporte da plataforma para /admin", async () => {
+    superadmin.resposta = { data: "suporte", error: null };
+    abrir();
+    expect(await screen.findByText("tela admin")).toBeInTheDocument();
   });
 
   it("leva o membro comum para /dashboard", async () => {

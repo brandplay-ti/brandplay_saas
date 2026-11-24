@@ -7,7 +7,7 @@
 // A leitura do catálogo não passa por aqui: `billing_plans` é de leitura
 // pública (0024). Escrever só por aqui, porque o Stripe acompanha o catálogo.
 //
-// Ordem: JWT → superadmin ativo (`platform_admins`) → valida → grava
+// Ordem: JWT → superadmin ativo (`platform_admins`, role superadmin) → valida → grava
 // `billing_plans` → sincroniza o Stripe → audita. O banco é a fonte da regra
 // comercial (ADR-0007); o Stripe só espelha produto e preço. Se o Stripe
 // falhar depois da gravação, a resposta diz, e "Sincronizar" ou o próximo
@@ -100,7 +100,7 @@ function validarCampos(entrada: Record<string, unknown>, criando: boolean): Part
     campos.price_cents = inteiroOuNulo(entrada.price_cents, "Preço (centavos)", 100, PRECO_MAXIMO);
   }
   if ("max_properties" in entrada) {
-    campos.max_properties = inteiroOuNulo(entrada.max_properties, "Propriedades", 0, 100_000);
+    campos.max_properties = inteiroOuNulo(entrada.max_properties, "Projetos", 0, 100_000);
   }
   if ("max_users" in entrada) {
     campos.max_users = inteiroOuNulo(entrada.max_users, "Usuários", 1, 100_000);
@@ -280,6 +280,7 @@ Deno.serve(async (req) => {
     .from("platform_admins")
     .select("user_id")
     .eq("user_id", user.id)
+    .eq("role", "superadmin")
     .is("revoked_at", null)
     .maybeSingle();
   if (!vinculo) return json({ error: "Acesso restrito ao superadmin da plataforma." }, 403);

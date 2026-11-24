@@ -74,7 +74,7 @@ export const openFullReport = (input: FullReportInput) => {
 <div class="cover">
   <h1>Relatório executivo completo</h1>
   <p>${esc(input.orgName || "")}${input.orgName ? " · " : ""}Período: ${esc(input.from)} a ${esc(input.to)}</p>
-  <p>Propriedade: ${esc(input.propertyLabel || "Todas")} · Patrocinador: ${esc(input.sponsorLabel || "Todos")}</p>
+  <p>Projeto: ${esc(input.propertyLabel || "Todos")} · Patrocinador: ${esc(input.sponsorLabel || "Todos")}</p>
   <p>Gerado em ${new Date().toLocaleString("pt-BR")}</p>
 </div>
 
@@ -134,9 +134,9 @@ ${table(
 ${table(["Motivo", "Qtd", "Valor perdido"], a.lossRows.map((l) => [String(l.reason).replace(/_/g, " "), l.count, fmtMoney(l.value)]))}
 ${a.competitors.length ? table(["Concorrente", "Perdas"], a.competitors.map((c) => [c.name, c.count])) : ""}
 
-<h2>Receita por propriedade</h2>
+<h2>Receita por projeto</h2>
 ${table(
-  ["Propriedade", "Contratos", "Ativos", "Receita"],
+  ["Projeto", "Contratos", "Ativos", "Receita"],
   a.propertyRows.map((p) => [p.name, p.contracts, p.ativo, fmtMoney(p.total)]),
 )}
 

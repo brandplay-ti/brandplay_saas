@@ -5,7 +5,7 @@ import type { OrigemLogin } from "@/lib/recuperacaoSenha";
 const PAINEL: Record<OrigemLogin, { titulo: string; texto: string }> = {
   painel: {
     titulo: "Transformando patrocínio em resultado.",
-    texto: "Gerencie propriedades, contratos, entregas e relatórios em uma única plataforma.",
+    texto: "Gerencie projetos, contratos, entregas e relatórios em uma única plataforma.",
   },
   portal: {
     titulo: "Portal do Patrocinador",

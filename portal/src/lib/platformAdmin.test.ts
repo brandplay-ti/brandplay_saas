@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   auditActionLabel,
+  novoSuporteSchema,
   centsToInput,
   filterClients,
   formatMonth,
@@ -158,5 +159,19 @@ describe("stripeSyncNotice", () => {
     expect(stripeSyncNotice({ status: "nao_configurado" })?.tone).toBe("info");
     expect(stripeSyncNotice({ status: "sincronizado" })).toBeNull();
     expect(stripeSyncNotice({ status: "inalterado" })).toBeNull();
+  });
+});
+
+describe("novoSuporteSchema", () => {
+  const valido = { fullName: " Pessoa ", email: " P@X.com ", password: "senha-temp", comment: "Atendimento" };
+
+  it("normaliza nome e e-mail", () => {
+    expect(novoSuporteSchema.parse(valido)).toMatchObject({ fullName: "Pessoa", email: "p@x.com" });
+  });
+
+  it("recusa senha curta, e-mail inválido e motivo vazio", () => {
+    expect(novoSuporteSchema.safeParse({ ...valido, password: "curta" }).success).toBe(false);
+    expect(novoSuporteSchema.safeParse({ ...valido, email: "sem-arroba" }).success).toBe(false);
+    expect(novoSuporteSchema.safeParse({ ...valido, comment: "   " }).success).toBe(false);
   });
 });

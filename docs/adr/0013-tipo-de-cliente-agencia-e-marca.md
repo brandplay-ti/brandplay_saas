@@ -5,7 +5,7 @@ Status: Accepted
 ## Contexto
 
 O BrandPlay foi feito para quem **vende** patrocínio: agências e detentores de
-direitos (clubes, federações, organizadores) cadastram propriedades, captam
+direitos (clubes, federações, organizadores) cadastram projetos, captam
 patrocinadores, conduzem o funil (oportunidades, propostas, lead scoring),
 fecham contratos e executam as entregas.
 
@@ -17,7 +17,7 @@ pode mudá-lo em `/admin/clientes`.
 O plano (`docs/architecture/plano-visao-de-marca.md`) mostrou que o módulo
 `crm` da matriz de permissões (0036) cobre muito mais que o funil
 (patrocinadores, cotas, portal do patrocinador e parte de contratos,
-propriedades e entregas), e que esconder o funil só na tela deixaria vivos o
+projetos e entregas), e que esconder o funil só na tela deixaria vivos o
 formulário de lead do media kit, as notificações e as funções de IA do funil.
 As decisões D1–D14 foram fechadas com o usuário em 2026-11-03.
 
@@ -51,7 +51,7 @@ As decisões D1–D14 foram fechadas com o usuário em 2026-11-03.
    Marca → agência devolve tudo como estava.
 6. **Mesmos planos e limites** para os dois tipos (`billing_plans` não muda).
 7. **Patrocinador continua sendo a marca** (ou as marcas do grupo). Na tela
-   da marca, "Patrocinadores" vira "Marcas". As propriedades são o que a marca
+   da marca, "Patrocinadores" vira "Marcas". Os projetos são o que a marca
    patrocina, e as cotas continuam registrando a cota comprada.
 8. **Relatório de entregas pelo contrato** (0044), para os dois tipos: a
    marca não tem oportunidade e precisa da prestação de contas.
@@ -62,7 +62,7 @@ As decisões D1–D14 foram fechadas com o usuário em 2026-11-03.
   oportunidades por gatilho, e as funções de IA do funil continuariam
   respondendo pela API.
 - **Desligar o `crm` para a marca**: derrubaria patrocinadores, cotas, o
-  portal do patrocinador e a escrita de contratos e propriedades.
+  portal do patrocinador e a escrita de contratos e projetos.
 - **Recurso por organização à parte** (`org_tem_recurso`), sem mexer na
   matriz: o custo nas policies é o mesmo, mas cria um segundo mecanismo, e
   as Edge Functions precisariam de outra checagem.

@@ -8,7 +8,7 @@ export const TITULO_PADRAO = "Brandplay — Transformando patrocínio em resulta
  * então rotas com parâmetro vêm antes das listas que as contêm.
  *
  * `null` = a própria página define o título (o media kit público usa o nome
- * da propriedade, que só existe depois de carregar).
+ * do projeto, que só existe depois de carregar).
  */
 const TITULOS: [padrao: string, titulo: string | null][] = [
   ["/", TITULO_PADRAO],
@@ -34,8 +34,8 @@ const TITULOS: [padrao: string, titulo: string | null][] = [
   ["/dashboard/lead-scoring", "Lead Scoring IA"],
   ["/dashboard/contratos", "Contratos"],
   ["/dashboard/financeiro", "Financeiro"],
-  ["/dashboard/propriedades/:id", "Propriedade"],
-  ["/dashboard/propriedades", "Propriedades"],
+  ["/dashboard/propriedades/:id", "Projeto"],
+  ["/dashboard/propriedades", "Projetos"],
   ["/dashboard/ativos", "Ativos"],
   ["/dashboard/entregas", "Entregas"],
   ["/dashboard/relatorios/paginas/:id", "Relatório de resultado"],
@@ -43,7 +43,6 @@ const TITULOS: [padrao: string, titulo: string | null][] = [
   ["/dashboard/relatorios", "Relatórios"],
   ["/dashboard/equipe", "Equipe"],
   ["/dashboard/portal-access", "Acessos ao Portal"],
-  ["/dashboard/logs-falhas", "Logs de Falhas"],
   ["/dashboard/configuracoes", "Configurações"],
   ["/dashboard/plano", "Plano e cobrança"],
   ["/dashboard/brandtrack", "BrandTrack"],
@@ -59,6 +58,8 @@ const TITULOS: [padrao: string, titulo: string | null][] = [
   ["/admin/clientes", "Clientes · Admin da plataforma"],
   ["/admin/planos", "Planos · Admin da plataforma"],
   ["/admin/faturamento", "Faturamento · Admin da plataforma"],
+  ["/admin/equipe", "Equipe · Admin da plataforma"],
+  ["/admin/logs-falhas", "Logs de falhas · Admin da plataforma"],
 
   ["/campo", "Entregas · App de Campo"],
   ["/campo/entregas/:id", "Entrega · App de Campo"],

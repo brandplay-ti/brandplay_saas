@@ -53,7 +53,7 @@ const steps = [
   {
     n: "01",
     icon: Building2,
-    title: "Configure suas propriedades",
+    title: "Configure seus projetos",
     desc: "Em minutos você está pronto para operar.",
     bullets: [
       "Cadastre eventos, arenas e campeonatos com templates prontos",
@@ -89,13 +89,13 @@ const steps = [
 ];
 
 const features = [
-  { icon: Trophy, title: "Propriedades Esportivas", desc: "Centralize eventos, campeonatos e ativos patrocináveis com checklists por estágio e galeria de mídia." },
+  { icon: Trophy, title: "Projetos Esportivos", desc: "Centralize eventos, campeonatos e ativos patrocináveis com checklists por estágio e galeria de mídia." },
   { icon: Target, title: "Pipeline Comercial", desc: "Kanban com etapas customizáveis, probabilidades por usuário e métricas de conversão em tempo real." },
   { icon: FileText, title: "Propostas com IA", desc: "Geração assistida por IA, wizard guiado, versionamento e PDFs prontos para envio em minutos." },
   { icon: Shield, title: "Contratos & Assinaturas", desc: "Gerencie contratos com resumo IA, anexos privados assinados e controle total do ciclo de vida." },
   { icon: Zap, title: "Entregas & Ativações", desc: "Operação de campo com evidências, checklist por evento e SLAs acompanhados em tempo real." },
   { icon: ScanSearch, title: "BrandTrack com Visão IA", desc: "Detecção automática de marcas em imagens de evento para comprovar exposição e share of voice." },
-  { icon: Wallet, title: "Financeiro Integrado", desc: "Parcelas, recebíveis e fluxo de caixa por contrato, patrocinador e propriedade." },
+  { icon: Wallet, title: "Financeiro Integrado", desc: "Parcelas, recebíveis e fluxo de caixa por contrato, patrocinador e projeto." },
   { icon: BarChart3, title: "Relatórios & Sell-out", desc: "Dashboards configuráveis, ROI por marca e relatórios de sell-out gerados com IA." },
   { icon: Brain, title: "Assistente IA", desc: "Lead scoring, previsão de receita, risco de churn e próximos passos sugeridos para cada negociação." },
   { icon: Globe, title: "Portal do Patrocinador", desc: "Área white-label para o patrocinador acompanhar contratos, entregas e relatórios com acesso seguro." },
@@ -104,7 +104,7 @@ const features = [
   { icon: Bell, title: "Notificações inteligentes", desc: "Alertas de prazos, entregas, contratos e oportunidades direto na plataforma." },
   { icon: MapPin, title: "App de Campo", desc: "Interface mobile para equipes em evento registrarem entregas, checklists e evidências on-site." },
   { icon: TrendingUp, title: "Forecast & Churn IA", desc: "Previsão de receita, heatmap de cotas e detecção antecipada de risco de cancelamento." },
-  { icon: Eye, title: "Mídia Kit Público", desc: "Página pública por propriedade para divulgar cotas, audiência e cases para novos patrocinadores." },
+  { icon: Eye, title: "Mídia Kit Público", desc: "Página pública por projeto para divulgar cotas, audiência e cases para novos patrocinadores." },
 ];
 
 const testimonials = [
@@ -140,7 +140,7 @@ const comparison = [
 const faqs = [
   {
     q: "Quanto tempo leva para começar a usar?",
-    a: "Em média 5 minutos. Você cria sua conta, importa suas propriedades (ou começa do zero com templates) e já pode cadastrar a primeira negociação. Sem instalação, sem cartão de crédito.",
+    a: "Em média 5 minutos. Você cria sua conta, importa seus projetos (ou começa do zero com templates) e já pode cadastrar a primeira negociação. Sem instalação, sem cartão de crédito.",
   },
   {
     q: "Vou conseguir migrar minha planilha?",
@@ -242,7 +242,7 @@ const Landing = () => {
               <span className="text-gradient-brand">planilha</span>
             </h1>
             <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-              Propriedades esportivas que usam o Brandplay fecham <strong className="text-foreground">2,3x mais contratos</strong> porque têm pipeline, propostas e entregas no mesmo lugar — não no e-mail.
+              Projetos esportivos que usam o Brandplay fecham <strong className="text-foreground">2,3x mais contratos</strong> porque têm pipeline, propostas e entregas no mesmo lugar — não no e-mail.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button size="lg" asChild className="bg-gradient-brand hover:opacity-90 shadow-glow">

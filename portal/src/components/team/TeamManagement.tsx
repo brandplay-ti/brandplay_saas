@@ -52,7 +52,7 @@ const ROLE_DESC: Record<OrgRole, string> = {
   owner: "Controle total da organização",
   admin: "Gerencia equipe e todos os módulos",
   comercial: "CRM, propostas, contratos e cotas",
-  operacional: "Entregas, propriedades e ativos",
+  operacional: "Entregas, projetos e ativos",
   financeiro: "Contratos, parcelas e relatórios",
 };
 

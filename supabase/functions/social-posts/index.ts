@@ -4,10 +4,10 @@
 //                                             público (YouTube, TikTok),
 //                                             título, autor e miniatura
 //   POST { acao: "atualizar", property_id } → busca agora as métricas dos
-//                                             vídeos do YouTube da propriedade
+//                                             vídeos do YouTube do projeto
 //
 // Exige usuário logado. "atualizar" exige escrita no módulo crm ou
-// operacional da organização dona da propriedade, que vem do banco, nunca do
+// operacional da organização dona do projeto, que vem do banco, nunca do
 // corpo. A prévia só consulta hosts fixos (youtube.com, tiktok.com): o link do
 // usuário vai como parâmetro, o que fecha o caminho de SSRF que a
 // `fetch-social-stats` já teve.
@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
         .eq("id", propertyId)
         .maybeSingle();
       const orgId = prop?.organization_id as string | undefined;
-      if (!orgId) return json({ error: "Propriedade não encontrada." }, 404);
+      if (!orgId) return json({ error: "Projeto não encontrado." }, 404);
 
       const [crm, operacional, bloqueadas] = await Promise.all([
         userClient.rpc("can_access_module", { _user_id: user.id, _org_id: orgId, _module: "crm", _write: true }),
@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
       ]);
       const bloqueada = Array.isArray(bloqueadas.data) && bloqueadas.data.includes(orgId);
       if ((crm.data !== true && operacional.data !== true) || bloqueada) {
-        return json({ error: "Sem permissão para atualizar as métricas desta propriedade." }, 403);
+        return json({ error: "Sem permissão para atualizar as métricas deste projeto." }, 403);
       }
       logContexto(req, { user_id: user.id, organization_id: orgId, code: "social_posts_atualizar" });
 

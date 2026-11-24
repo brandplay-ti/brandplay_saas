@@ -6,13 +6,18 @@ Este documento define as regras de domínio, arquitetura, segurança, banco,
 testes, Git e CI/CD que devem ser seguidas pelo Claude Code neste projeto.
 
 O BrandPlay é um SaaS de gestão de patrocínio esportivo: organizações
-comerciais (`organizations`) cadastram propriedades esportivas
+comerciais (`organizations`) cadastram projetos esportivos
 (`sports_properties`), captam patrocinadores (`sponsors`), conduzem
 oportunidades num pipeline comercial (`opportunities`), fecham contratos
 (`contracts`) com parcelas (`installments`) e cotas de patrocínio
 (`sponsorship_tiers`/`tier_sales`), executam entregas (`deliveries`) e emitem
 propostas (`proposals`). Um patrocinador pode acompanhar tudo isso por um
 portal próprio, sem ser membro da organização.
+
+Na tela, o cadastro de `sports_properties` se chama **projeto** (BP-6,
+antes "propriedade"). O nome técnico continua em inglês e com `property`
+(tabelas, colunas, rotas `/dashboard/propriedades`, componentes): texto novo
+que o usuário lê diz "projeto", código novo segue o nome técnico existente.
 
 O projeto nasceu no Lovable Cloud (schema só existente remotamente, IA atrás
 de um gateway proprietário, domínio `.lovable.app`) e está migrando para
@@ -294,6 +299,12 @@ migration; toda ação administrativa vai para `platform_admin_audit_log`. Não
 estenda esse acesso a tabelas de domínio (`or is_platform_admin()` em policy
 de organização), e não o confunda com o `owner`/`admin` de uma organização.
 
+A equipe da plataforma tem um segundo papel, o **Suporte** (0046,
+`platform_admins.role`): lista clientes, dá baixa em fatura, lança desconto e
+abre sessão de suporte, sem faturamento, planos, IA nem equipe. O superadmin o
+concede pela tela `/admin/equipe`; `is_platform_admin()` é só o superadmin e
+`is_platform_staff()` cobre os dois.
+
 ### Portal do patrocinador (acesso cross-tenant limitado, por design)
 
 O portal do patrocinador é uma exceção deliberada ao modelo acima: um usuário
@@ -430,7 +441,7 @@ feature/* → PR → dev → PR → hml (homologação) → PR → main (produç
 
 - **CI** (`.github/workflows/ci.yml`): portal (lint não bloqueante por dívida
   herdada, type-check, test, build), funcoes (`deno test` de
-  `supabase/functions/_shared/`, `admin-ai/` e `fetch-social-stats/`) e migrations (guarda destrutiva, autorregistro, banco
+  `supabase/functions/_shared/`, `admin-ai/`, `estimate-activation-values/` e `fetch-social-stats/`) e migrations (guarda destrutiva, autorregistro, banco
   limpo, idempotência, seed, testes de RLS).
 - **CD**: o Dockploy publica cada ambiente a partir da branch dele. O
   workflow `Deploy (VPS)` é manual e **não escreve no banco** — só lista

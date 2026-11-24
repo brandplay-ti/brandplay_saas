@@ -417,7 +417,7 @@ export default function PublicMediaKit() {
         {/* SOBRE */}
         {(property.public_about || property.description) && (
           <section>
-            <h2 className="text-2xl font-bold mb-4">Sobre a propriedade</h2>
+            <h2 className="text-2xl font-bold mb-4">Sobre o projeto</h2>
             <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
               {property.public_about ?? property.description}
             </p>

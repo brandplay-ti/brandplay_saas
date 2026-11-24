@@ -16,8 +16,8 @@ describe("tituloDaPagina", () => {
   });
 
   it("distingue lista e detalhe", () => {
-    expect(tituloDaPagina("/dashboard/propriedades")).toBe("Propriedades · Brandplay");
-    expect(tituloDaPagina("/dashboard/propriedades/abc-123")).toBe("Propriedade · Brandplay");
+    expect(tituloDaPagina("/dashboard/propriedades")).toBe("Projetos · Brandplay");
+    expect(tituloDaPagina("/dashboard/propriedades/abc-123")).toBe("Projeto · Brandplay");
     expect(tituloDaPagina("/dashboard/brandtrack/marcas")).toBe("Análise por patrocinador · BrandTrack · Brandplay");
     expect(tituloDaPagina("/dashboard/brandtrack/marcas/nike")).toBe("Patrocinador · BrandTrack · Brandplay");
     expect(tituloDaPagina("/dashboard/brandtrack/marcas-esperadas")).toBe("Marcas esperadas · BrandTrack · Brandplay");

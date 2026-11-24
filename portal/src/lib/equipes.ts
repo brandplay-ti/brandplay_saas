@@ -33,7 +33,7 @@ export type ProjetoNaArvore = Projeto & { nivel: number };
 const porNome = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, "pt-BR");
 
 /**
- * Propriedades em ordem de árvore (mãe antes dos subprojetos, irmãos por
+ * Projetos em ordem de árvore (mãe antes dos subprojetos, irmãos por
  * nome), com o nível de cada uma. Subprojeto cuja mãe não está na lista sobe
  * para a raiz; um ciclo na hierarquia não trava a lista.
  */

@@ -43,6 +43,8 @@ import { TaskInsightsButton } from "@/components/common/TaskInsightsButton";
 import { dataLocal } from "@/lib/datas";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useOrganization } from "@/hooks/useOrganization";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
+import { MODULOS_DA_OPERACAO, mensagemDeErroDeGravacao, mensagemSemEdicao } from "@/lib/permissoes";
 
 interface ChecklistItem {
   id: string;
@@ -103,8 +105,10 @@ const fmtDate = (s?: string | null) =>
 
 export default function PropertyChecklist({ propertyId, ownerId }: Props) {
   const confirm = useConfirm();
-  const { orgId, can } = useOrganization();
+  const { orgId, can, canWrite } = useOrganization();
   const temVendas = can("vendas");
+  // Criar, concluir, mudar data e excluir item pedem escrita em Entregas ou CRM (BP-29).
+  const podeEditar = MODULOS_DA_OPERACAO.some((m) => canWrite(m));
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [deliveries, setDeliveries] = useState<DeliveryRef[]>([]);
   const [events, setEvents] = useState<EventRef[]>([]);
@@ -180,7 +184,7 @@ export default function PropertyChecklist({ propertyId, ownerId }: Props) {
       opportunity_id: form.opportunity_id || null,
       position: items.length,
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error("Erro ao adicionar", { description: mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) });
     toast.success("Item adicionado");
     setOpen(false);
     setForm({ title: "", description: "", assignee: "", due_date: "", delivery_id: "", event_id: "", sponsor_id: "", opportunity_id: "" });
@@ -188,11 +192,13 @@ export default function PropertyChecklist({ propertyId, ownerId }: Props) {
   };
 
   const setStatus = async (item: ChecklistItem, status: ChecklistItem["status"]) => {
-    const { error } = await (supabase as any)
+    const { data: alterados, error } = await (supabase as any)
       .from("property_checklist_items")
       .update({ status })
-      .eq("id", item.id);
-    if (error) return toast.error(error.message);
+      .eq("id", item.id)
+      .select("id");
+    // A RLS recusa o UPDATE sem erro (0 linhas): sem linha de volta, nada mudou.
+    if (error || !alterados?.length) return toast.error("Erro ao atualizar", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) : mensagemSemEdicao(MODULOS_DA_OPERACAO) });
     if (status === "concluido" && item.delivery_id) {
       toast.success("Item concluído · entrega vinculada marcada como entregue");
     } else {
@@ -202,22 +208,24 @@ export default function PropertyChecklist({ propertyId, ownerId }: Props) {
   };
 
   const updateDueDate = async (item: ChecklistItem, next: string | null) => {
-    const { error } = await (supabase as any)
+    const { data: alterados, error } = await (supabase as any)
       .from("property_checklist_items")
       .update({ due_date: next })
-      .eq("id", item.id);
-    if (error) return toast.error(error.message);
+      .eq("id", item.id)
+      .select("id");
+    if (error || !alterados?.length) return toast.error("Erro ao mudar a data", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) : mensagemSemEdicao(MODULOS_DA_OPERACAO) });
     setItems((cur) => cur.map((i) => (i.id === item.id ? { ...i, due_date: next } : i)));
     toast.success("Data atualizada");
   };
 
   const remove = async (id: string) => {
     if (!(await confirm({ title: "Excluir este item?", confirmLabel: "Excluir", destructive: true }))) return;
-    const { error } = await (supabase as any)
+    const { data: apagados, error } = await (supabase as any)
       .from("property_checklist_items")
       .delete()
-      .eq("id", id);
-    if (error) return toast.error(error.message);
+      .eq("id", id)
+      .select("id");
+    if (error || !apagados?.length) return toast.error("Erro ao excluir", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) : mensagemSemEdicao(MODULOS_DA_OPERACAO) });
     toast.success("Item removido");
     load();
   };
@@ -242,9 +250,13 @@ export default function PropertyChecklist({ propertyId, ownerId }: Props) {
             </div>
           )}
         </div>
-        <Button size="sm" onClick={() => setOpen(true)}>
-          <Plus className="h-4 w-4 mr-1" /> Nova tarefa
-        </Button>
+        {podeEditar ? (
+          <Button size="sm" onClick={() => setOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Nova tarefa
+          </Button>
+        ) : (
+          <div className="max-w-md"><SomenteLeitura module={MODULOS_DA_OPERACAO} /></div>
+        )}
       </div>
 
       {loading ? (
@@ -282,6 +294,7 @@ export default function PropertyChecklist({ propertyId, ownerId }: Props) {
                       setStatus(it, it.status === "concluido" ? "pendente" : "concluido")
                     }
                     className="mt-0.5 shrink-0"
+                    disabled={!podeEditar}
                     aria-label="Alternar conclusão"
                   >
                     {it.status === "concluido" ? (
@@ -322,6 +335,7 @@ export default function PropertyChecklist({ propertyId, ownerId }: Props) {
                       )}
                       <DueDateEditor
                         value={it.due_date}
+                        disabled={!podeEditar}
                         onSave={async (next) => { await updateDueDate(it, next); }}
                       />
                       {delivery && (
@@ -341,7 +355,7 @@ export default function PropertyChecklist({ propertyId, ownerId }: Props) {
                       opportunityLabel={opportunity?.brand ?? null}
                     />
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
+                  {podeEditar && <div className="flex items-center gap-1 shrink-0">
                     <Select
                       value={it.status}
                       onValueChange={(v) => setStatus(it, v as ChecklistItem["status"])}
@@ -364,7 +378,7 @@ export default function PropertyChecklist({ propertyId, ownerId }: Props) {
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
-                  </div>
+                  </div>}
                 </CardContent>
               </Card>
             );

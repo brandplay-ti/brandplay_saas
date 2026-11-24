@@ -1,7 +1,7 @@
 # BrandPlay
 
 **BrandPlay — Transformando patrocínio em resultado.** SaaS de gestão de
-patrocínio esportivo de ponta a ponta: propriedades e ativos patrocináveis,
+patrocínio esportivo de ponta a ponta: projetos e ativos patrocináveis,
 pipeline comercial, propostas, contratos, entregas, financeiro, relatórios de
 performance e um portal exclusivo para o patrocinador.
 

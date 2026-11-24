@@ -142,6 +142,15 @@ const FERRAMENTAS: Ferramenta[] = [
 /** Ferramentas do funil: só para quem lê o módulo `vendas` (a marca não tem funil). */
 const FERRAMENTAS_DO_FUNIL = new Set(["search_opportunities", "create_opportunity_activity"]);
 
+/**
+ * Ferramentas que gravam, com o módulo cuja escrita a RLS exige: quem só lê
+ * não as recebe, e o modelo não oferece uma ação que falharia (BP-29).
+ */
+const ESCRITA_DA_FERRAMENTA: Record<string, "crm" | "vendas"> = {
+  create_sponsor_interaction: "crm",
+  create_opportunity_activity: "vendas",
+};
+
 const SISTEMA = `Você é o "BrandAI", assistente do CRM de patrocínio esportivo.
 Você ajuda o usuário a entender seu pipeline, patrocinadores, contratos, entregas e finanças.
 
@@ -396,10 +405,19 @@ Deno.serve(async (req) => {
       if (error) console.error(`${FUNCIONALIDADE}: mensagem não gravada (${error.code ?? "?"})`);
     };
 
-    const { data: lerVendas } = await cliente.rpc("can_access_module", {
-      _user_id: usuario.id, _org_id: org, _module: "vendas", _write: false,
+    const acesso = (modulo: "crm" | "vendas", escrita: boolean) =>
+      cliente.rpc("can_access_module", { _user_id: usuario.id, _org_id: org, _module: modulo, _write: escrita });
+    const [lerVendas, escreverCrm, escreverVendas] = await Promise.all([
+      acesso("vendas", false),
+      acesso("crm", true),
+      acesso("vendas", true),
+    ]);
+    const escreve = { crm: escreverCrm.data === true, vendas: escreverVendas.data === true };
+    const ferramentas = FERRAMENTAS.filter((f) => {
+      if (FERRAMENTAS_DO_FUNIL.has(f.nome) && lerVendas.data !== true) return false;
+      const modulo = ESCRITA_DA_FERRAMENTA[f.nome];
+      return !modulo || escreve[modulo];
     });
-    const ferramentas = lerVendas === true ? FERRAMENTAS : FERRAMENTAS.filter((f) => !FERRAMENTAS_DO_FUNIL.has(f.nome));
 
     const mensagens: Mensagem[] = [...historico, { papel: "usuario", conteudo: pergunta }];
     const deps = dependenciasDaCamada();

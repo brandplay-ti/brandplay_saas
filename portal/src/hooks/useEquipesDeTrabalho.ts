@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import type { AcessoAoProjeto, PapelNaEquipe, Projeto } from "@/lib/equipes";
-import type { PapelDePermissao } from "@/lib/permissoes";
+import { ehRecusaDePermissao, type PapelDePermissao } from "@/lib/permissoes";
 
 export type Equipe = Tables<"work_teams">;
 export type MembroDeEquipe = Tables<"work_team_members">;
@@ -83,7 +83,7 @@ export function usePessoasDaOrganizacao(orgId: string | null) {
   });
 }
 
-/** Propriedades da organização: os "projetos" que as equipes recebem. */
+/** Projetos da organização: o que as equipes recebem. */
 export function useProjetosDaOrganizacao(orgId: string | null) {
   return useQuery({
     queryKey: ["projetos-da-organizacao", orgId],
@@ -213,7 +213,7 @@ export function useAlterarEquipe(orgId: string | null) {
 export function mensagemDeErroDeEquipe(erro: unknown): string {
   const e = erro as { code?: string; message?: string } | null;
   if (e?.code === "23505") return "Já existe uma equipe ativa com esse nome.";
-  if (e?.code === "42501") return "Você não tem permissão para esta alteração.";
+  if (ehRecusaDePermissao(e)) return "Você não tem permissão para esta alteração.";
   if (e?.code === "23514" && e.message) return e.message;
   return e?.message || "Não foi possível salvar.";
 }

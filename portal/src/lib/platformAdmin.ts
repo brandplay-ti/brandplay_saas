@@ -4,10 +4,44 @@
 // Nada aqui decide acesso: as funções recusam quem não é superadmin no banco.
 // A tela só traduz o que elas devolvem.
 
+import { z } from "zod";
 import type { BillingStatus, InvoiceStatus, PaymentMethod, StatusTone, SubscriptionStatus } from "@/lib/billing";
 import type { TipoDeCliente } from "@/lib/permissoes";
 
 export type AccessSource = BillingStatus["source"];
+
+/** Papel na equipe da plataforma (0046). */
+export type PlatformRole = "superadmin" | "suporte";
+
+/** Linha de `admin_equipe()` (0046). */
+export interface AdminTeamMember {
+  user_id: string;
+  email: string;
+  full_name: string | null;
+  role: PlatformRole;
+  comment: string;
+  created_at: string;
+  revoked_at: string | null;
+  last_sign_in_at: string | null;
+}
+
+export const PLATFORM_ROLE_LABEL: Record<PlatformRole, string> = {
+  superadmin: "Superadmin",
+  suporte: "Suporte",
+};
+
+/**
+ * Cadastro de Suporte (`admin-team`). A senha temporária só vale para conta
+ * nova; quem já tem conta mantém a dela. A Edge Function repete as regras.
+ */
+export const novoSuporteSchema = z.object({
+  fullName: z.string().trim().min(2, "Informe o nome.").max(120, "Até 120 caracteres."),
+  email: z.string().trim().toLowerCase().email("E-mail inválido.").max(254),
+  password: z.string().min(8, "Ao menos 8 caracteres.").max(72, "Até 72 caracteres."),
+  comment: z.string().trim().min(5, "Explique o motivo (ao menos 5 caracteres).").max(500, "Até 500 caracteres."),
+});
+
+export type NovoSuporte = z.infer<typeof novoSuporteSchema>;
 
 /** Linha de `admin_clientes()`. */
 export interface AdminClient {
@@ -25,7 +59,8 @@ export interface AdminClient {
   current_period_end: string | null;
   cancel_at_period_end: boolean;
   provisional_expires_at: string | null;
-  mrr_cents: number;
+  /** Só para o superadmin; nulo para o Suporte (0046). */
+  mrr_cents: number | null;
   properties: number;
   users_active: number;
   invites_pending: number;
@@ -195,6 +230,9 @@ const ACAO_DE_AUDITORIA: Record<string, string> = {
   sessao_suporte_substituida: "Sessão de suporte substituída",
   superadmin_concedido: "Superadmin concedido",
   superadmin_revogado: "Superadmin revogado",
+  suporte_concedido: "Suporte concedido",
+  suporte_revogado: "Suporte revogado",
+  fatura_baixada: "Baixa manual de fatura",
   tipo_de_cliente_alterado: "Tipo de cliente alterado",
 };
 

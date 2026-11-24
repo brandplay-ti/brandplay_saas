@@ -1,7 +1,7 @@
 // Pontuação de leads da organização ativa (IA-17).
 //
 // O portal envia a organização ativa; ela é validada contra o usuário do JWT
-// (`exigirModulo`) e filtra patrocinadores, oportunidades, propriedades,
+// (`exigirModulo`) e filtra patrocinadores, oportunidades, projetos,
 // histórico de propostas e as pontuações gravadas. Antes, a função lia tudo
 // o que o RLS deixava ver — para quem está em várias organizações, misturava
 // leads de clientes diferentes no mesmo prompt e gravava as notas na
@@ -71,7 +71,7 @@ const ESQUEMA: EsquemaJson = {
 };
 
 const SISTEMA = `Você é um especialista em prospecção de patrocínio esportivo no Brasil. Avalie cada lead e atribua nota de 0 a 100 baseada em:
-- Fit de SEGMENTO: aderência da categoria do patrocinador com o público da propriedade (ex: bebidas, fintech, telco, varejo, automotivo, ESG-friendly)
+- Fit de SEGMENTO: aderência da categoria do patrocinador com o público do projeto (ex: bebidas, fintech, telco, varejo, automotivo, ESG-friendly)
 - Fit de AUDIÊNCIA: tamanho/perfil da audiência vs orçamento típico do segmento
 - HISTÓRICO: propostas anteriores aceitas (positivo), recusadas (negativo), engajamento recente
 Para cada lead retorne: target_type e target_id exatamente como recebidos, score (0-100), classificação (quente >=70, morno 40-69, frio <40), 3 razões curtas, e um argumento de abordagem personalizado de 2-3 frases mencionando ângulo concreto (ex: "ESG via Kids League", "share-of-voice em jogos do estadual").`;
@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
         .eq("id", propertyId)
         .eq("organization_id", org)
         .maybeSingle();
-      if (!data) throw new ErroDaRequisicao(404, "Propriedade não encontrada");
+      if (!data) throw new ErroDaRequisicao(404, "Projeto não encontrado");
       propriedade = data;
     }
 
@@ -188,8 +188,8 @@ Deno.serve(async (req) => {
     const alvos = new Map(alvosDoPrompt.map((a) => [String(a.target_id), a.target_type]));
 
     const contextoDaPropriedade = propriedade
-      ? `Propriedade-foco: ${propriedade.name} (${propriedade.category}). Público: ${propriedade.audience_estimate ?? "n/d"}. ${propriedade.public_about ?? propriedade.description ?? ""}`
-      : `Propriedades disponíveis: ${propriedades.map((p) => `${p.name} (${p.category}, audiência ${p.audience_estimate ?? "n/d"})`).join("; ")}`;
+      ? `Projeto-foco: ${propriedade.name} (${propriedade.category}). Público: ${propriedade.audience_estimate ?? "n/d"}. ${propriedade.public_about ?? propriedade.description ?? ""}`
+      : `Projetos disponíveis: ${propriedades.map((p) => `${p.name} (${p.category}, audiência ${p.audience_estimate ?? "n/d"})`).join("; ")}`;
 
     const resposta = await gerar({ organizacaoId: org, usuarioId: usuario.id }, {
       funcionalidade: FUNCIONALIDADE,

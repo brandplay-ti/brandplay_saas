@@ -72,7 +72,7 @@ export const sponsorProfileFromRow = (s: any): SponsorProfileValue => ({
 
 const num = (v: string) => (v.trim() === "" ? null : Number(v.replace(",", ".")));
 
-/** Payload sem os campos exclusivos de patrocinador (para propriedades) */
+/** Payload sem os campos exclusivos de patrocinador (para projetos) */
 export const sponsorProfileToPayloadBase = (v: SponsorProfileValue) => {
   const { legal_name, trade_name, tax_id, address, address_city, address_state, zip_code, ...rest } =
     sponsorProfileToPayload(v);

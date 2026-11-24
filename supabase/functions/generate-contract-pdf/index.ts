@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
     const cols = [40, 320];
     const pairs: [string, string][] = [
       ["PATROCINADOR", contract.sponsor?.name ?? contract.brand ?? "—"],
-      ["PROPRIEDADE", contract.property?.name ?? "—"],
+      ["PROJETO", contract.property?.name ?? "—"],
       ["VALOR TOTAL", fmtBRL(Number(contract.total_value))],
       [
         "PAGAMENTO",
@@ -339,7 +339,7 @@ Deno.serve(async (req) => {
     page.drawLine({ start: { x: 60, y }, end: { x: 260, y }, thickness: 0.7, color: muted });
     page.drawLine({ start: { x: 330, y }, end: { x: 530, y }, thickness: 0.7, color: muted });
     y -= 14;
-    draw("Propriedade", { x: 60, size: 9, color: muted });
+    draw("Projeto", { x: 60, size: 9, color: muted });
     lines(contract.sponsor?.name ?? contract.brand ?? "Patrocinador", { x: 330, size: 9, color: muted, maxWidth: 200, step: 12, min: 40 });
 
     for (const p of pdf.getPages()) {

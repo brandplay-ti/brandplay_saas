@@ -31,7 +31,7 @@ Sem ela, tudo funciona; as métricas dos vídeos ficam só as digitadas.
 
 Cota: a cota padrão é de 10.000 unidades por dia. Cada chamada
 `videos.list` custa 1 unidade e cobre até 50 vídeos; cada post é buscado no
-máximo uma vez por hora (`metrics_checked_at`). Uma propriedade com 200 vídeos
+máximo uma vez por hora (`metrics_checked_at`). Um projeto com 200 vídeos
 visitada o dia todo gasta menos de 100 unidades por dia.
 
 A chave nunca vai para o portal nem para log: a função registra só o status

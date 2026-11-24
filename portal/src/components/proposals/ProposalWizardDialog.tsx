@@ -10,29 +10,49 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Wand2, Loader2, Copy, ChevronRight, ChevronLeft } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Wand2, Loader2, Copy, ChevronRight, ChevronLeft, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { avisarErroDeIA } from "@/lib/erroDeIA";
 import { formatarNumero } from "@/lib/mascaras";
+import { mensagemDeErroDeGravacao } from "@/lib/permissoes";
+import {
+  type Ativacao,
+  aplicarValores,
+  ativacaoParaEntrega,
+  ativacaoParaItem,
+  definirValorManual,
+  lerAtivacoes,
+  nomeDoItem,
+  riscoDeDuplicar,
+  valorDaAtivacao,
+} from "@/lib/propostaAtivacoes";
+import { EstimativaAtivacoesDialog } from "./EstimativaAtivacoesDialog";
+import { ConfirmarAtivacoesDialog, type InclusaoPendente } from "./ConfirmarAtivacoesDialog";
 
 type Sponsor = { id: string; name: string };
 type Property = { id: string; name: string };
+
+type Entrega = { name: string; description?: string; quantity: number; unit_value: number };
 
 type WizardOutput = {
   title: string;
   summary_message: string;
   concept: string;
-  activations: { title: string; description: string }[];
-  items: { name: string; description?: string; quantity: number; unit_value: number }[];
+  activations: Ativacao[];
+  items: Entrega[];
   deck: string;
   whatsapp: string;
   email: { subject: string; body_html: string };
+  /** Fornecedor/modelo que a camada de IA usou de fato (vazio em resposta antiga). */
+  modelo?: string;
 };
 
 /**
  * Proposta que já existe (ex.: criada a partir do pipeline). Com ela, o
  * assistente não cria outra proposta: gera só as versões (conceito, deck,
- * WhatsApp, e-mail) para ela. Marca, patrocinador, propriedade e valor vêm da
+ * WhatsApp, e-mail) para ela. Marca, patrocinador, projeto e valor vêm da
  * proposta; os itens dela (ex.: copiados da cota) não são tocados.
  */
 export type PropostaExistente = {
@@ -59,7 +79,7 @@ const sanitizeEmailHtml = (html: string) => DOMPurify.sanitize(html, {
 });
 
 export function ProposalWizardDialog({ sponsors = [], properties = [], proposta, onSaved }: Props) {
-  const { orgId: orgAtiva } = useOrganization();
+  const { orgId: orgAtiva, canWrite } = useOrganization();
   const orgId = proposta?.organization_id ?? orgAtiva;
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(1);
@@ -75,9 +95,15 @@ export function ProposalWizardDialog({ sponsors = [], properties = [], proposta,
 
   // Output
   const [out, setOut] = useState<WizardOutput | null>(null);
+  // Ativações marcadas para virar item ao salvar (nenhuma por padrão).
+  const [incluir, setIncluir] = useState<Set<number>>(new Set());
+  // Itens que a proposta existente já tem (para posição e aviso de duplicidade).
+  const [itensExistentes, setItensExistentes] = useState<{ name: string }[]>([]);
+  const [confirmacao, setConfirmacao] = useState<InclusaoPendente[] | null>(null);
 
   const reset = () => {
     setStep(1); setObjective("branding"); setExtra(""); setOut(null);
+    setIncluir(new Set()); setItensExistentes([]); setConfirmacao(null);
     setBrand(proposta?.brand ?? "");
     setBudget(proposta && Number(proposta.total_value) > 0 ? String(proposta.total_value) : "");
     setSponsorId(proposta?.sponsor_id ?? "none");
@@ -97,6 +123,7 @@ export function ProposalWizardDialog({ sponsors = [], properties = [], proposta,
       .order("position")
       .then(({ data }) => {
         if (cancelado || !data?.length) return;
+        setItensExistentes(data.map((i) => ({ name: i.name })));
         setExtra(`Entregas já incluídas na proposta: ${data.map((i) => `${i.quantity}x ${i.name}`).join("; ")}.`);
       });
     return () => { cancelado = true; };
@@ -125,7 +152,10 @@ export function ProposalWizardDialog({ sponsors = [], properties = [], proposta,
         await avisarErroDeIA(error, data, "Falha ao gerar a proposta");
         return;
       }
-      setOut(data as WizardOutput);
+      const gerado = data as WizardOutput;
+      // O valor da ativação é manual por padrão: a IA só sugere quando pedida.
+      setOut({ ...gerado, activations: lerAtivacoes({ activations: gerado.activations }) });
+      setIncluir(new Set());
       setStep(2);
     } finally {
       setLoading(false);
@@ -147,13 +177,49 @@ export function ProposalWizardDialog({ sponsors = [], properties = [], proposta,
       owner_id: userId,
       organization_id: orgId,
       ...v,
-      model: "google/gemini-2.5-pro",
+      // O modelo que gerou de fato (a camada escolhe pelo fornecedor da organização).
+      model: out.modelo || null,
     })));
     if (error) throw error;
   };
 
+  const indicesIncluidos = () => [...incluir].filter((i) => !!out?.activations[i]).sort((a, b) => a - b);
+  // Na proposta nova, as entregas geradas ainda não foram gravadas: são elas a referência.
+  const itensDeReferencia = () => (proposta ? itensExistentes : (out?.items ?? []).map((i) => ({ name: i.name })));
+  const entregasDasAtivacoes = (): Entrega[] =>
+    out ? indicesIncluidos().map((i) => ativacaoParaEntrega(out.activations[i])) : [];
+
+  const editarAtivacao = (i: number, ativacao: Ativacao) => {
+    if (!out) return;
+    const activations = [...out.activations];
+    activations[i] = ativacao;
+    setOut({ ...out, activations });
+  };
+
+  const alternarInclusao = (i: number) =>
+    setIncluir((atual) => {
+      const proxima = new Set(atual);
+      if (proxima.has(i)) proxima.delete(i);
+      else proxima.add(i);
+      return proxima;
+    });
+
+  // Ativações marcadas sempre passam pela confirmação antes de salvar.
+  const pedirSalvar = () => {
+    if (!out) return;
+    const indices = indicesIncluidos();
+    if (indices.length === 0) { save(); return; }
+    const referencia = itensDeReferencia();
+    setConfirmacao(indices.map((i) => ({
+      titulo: nomeDoItem(out.activations[i]),
+      valor: valorDaAtivacao(out.activations[i]),
+      aviso: riscoDeDuplicar(out.activations[i], referencia),
+    })));
+  };
+
   const save = async () => {
     if (!out || !orgId) return;
+    setConfirmacao(null);
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -169,13 +235,26 @@ export function ProposalWizardDialog({ sponsors = [], properties = [], proposta,
             .eq("organization_id", proposta.organization_id);
           if (error) throw error;
         }
+        const indices = indicesIncluidos();
+        if (indices.length) {
+          const { count } = await supabase.from("proposal_items")
+            .select("id", { count: "exact", head: true })
+            .eq("proposal_id", proposta.id);
+          const inicio = count ?? itensExistentes.length;
+          const { error } = await supabase.from("proposal_items").insert(
+            indices.map((i, k) => ativacaoParaItem(out.activations[i], proposta.id, inicio + k)),
+          );
+          // As versões já foram gravadas: avisa sem levar a salvar tudo de novo.
+          if (error) toast.error("Versões salvas, mas as ativações não entraram nos itens", { description: error.message });
+        }
         toast.success("Versões multi-canal geradas!");
         setOpen(false);
         onSaved();
         return;
       }
 
-      const total = out.items.reduce((s, i) => s + i.quantity * i.unit_value, 0);
+      const entregas = [...out.items, ...entregasDasAtivacoes()];
+      const total = entregas.reduce((s, i) => s + i.quantity * i.unit_value, 0);
       const { data: prop, error: pErr } = await supabase.from("proposals").insert({
         owner_id: user.id,
         organization_id: orgId,
@@ -190,9 +269,9 @@ export function ProposalWizardDialog({ sponsors = [], properties = [], proposta,
       if (pErr) throw pErr;
       const proposalId = prop.id;
 
-      // Items
-      if (out.items.length) {
-        await supabase.from("proposal_items").insert(out.items.map((it, idx) => ({
+      // Items (as entregas geradas e as ativações marcadas)
+      if (entregas.length) {
+        await supabase.from("proposal_items").insert(entregas.map((it, idx) => ({
           proposal_id: proposalId,
           name: it.name,
           description: it.description ?? null,
@@ -210,7 +289,7 @@ export function ProposalWizardDialog({ sponsors = [], properties = [], proposta,
       reset();
       onSaved();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao salvar");
+      toast.error(mensagemDeErroDeGravacao(e, "vendas", "Falha ao salvar"));
     } finally {
       setLoading(false);
     }
@@ -220,6 +299,9 @@ export function ProposalWizardDialog({ sponsors = [], properties = [], proposta,
     navigator.clipboard.writeText(text);
     toast.success(`${label} copiado!`);
   };
+
+  // Quem só lê o funil não gera o que não poderia salvar (BP-2): a função de IA e a RLS também recusam.
+  if (!canWrite("vendas")) return null;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
@@ -235,7 +317,7 @@ export function ProposalWizardDialog({ sponsors = [], properties = [], proposta,
             {proposta
               ? (step === 1
                 ? "A IA gera conceito Scout, ativações, deck, WhatsApp e e-mail para esta proposta, a partir dos dados dela."
-                : "Revise e salve. As versões geradas substituem as exibidas na aba Versões IA; os itens da proposta não mudam.")
+                : "Revise e salve. As versões geradas substituem as exibidas na aba Versões IA; só as ativações marcadas entram nos itens da proposta.")
               : (step === 1 ? "Briefing → IA gera conceito Scout, ativações, deck, WhatsApp e e-mail." : "Revise e salve a proposta com versões multi-canal.")}
           </DialogDescription>
         </DialogHeader>
@@ -275,7 +357,7 @@ export function ProposalWizardDialog({ sponsors = [], properties = [], proposta,
                 </Select>
               </div>
               <div className="space-y-2 col-span-2">
-                <Label>Propriedade</Label>
+                <Label>Projeto</Label>
                 <Select value={propertyId} onValueChange={setPropertyId}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -287,7 +369,7 @@ export function ProposalWizardDialog({ sponsors = [], properties = [], proposta,
               </>}
             </div>
             {proposta && (
-              <p className="text-xs text-muted-foreground">Patrocinador e propriedade vêm da proposta.</p>
+              <p className="text-xs text-muted-foreground">Patrocinador e projeto vêm da proposta.</p>
             )}
             <div className="space-y-2">
               <Label>Contexto adicional (opcional)</Label>
@@ -316,29 +398,74 @@ export function ProposalWizardDialog({ sponsors = [], properties = [], proposta,
                 <Textarea rows={6} value={out.concept} onChange={(e) => setOut({ ...out, concept: e.target.value })} />
               </div>
               <div>
-                <Label className="text-xs">Ativações ({out.activations.length})</Label>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Label className="text-xs">Ativações ({out.activations.length})</Label>
+                  <div className="flex flex-wrap gap-1">
+                    <EstimativaAtivacoesDialog
+                      organizationId={orgId}
+                      ativacoes={out.activations}
+                      proposalId={proposta?.id ?? null}
+                      propertyId={proposta ? proposta.property_id : (propertyId === "none" ? null : propertyId)}
+                      itensNaoGravados={proposta ? undefined : out.items}
+                      onAplicar={(escolhas) => setOut({ ...out, activations: aplicarValores(out.activations, escolhas) })}
+                    />
+                    <Button size="sm" variant="ghost" disabled={out.activations.length === 0}
+                      onClick={() => setIncluir(incluir.size === out.activations.length ? new Set() : new Set(out.activations.map((_, i) => i)))}>
+                      {incluir.size === out.activations.length && incluir.size > 0 ? "Desmarcar todas" : "Incluir todas nos itens"}
+                    </Button>
+                  </div>
+                </div>
                 <ul className="space-y-2 mt-2">
-                  {out.activations.map((a, i) => (
-                    <li key={i} className="border border-border rounded-md p-2 text-sm">
-                      <div className="font-semibold">{a.title}</div>
-                      <div className="text-xs text-muted-foreground">{a.description}</div>
-                    </li>
-                  ))}
+                  {out.activations.map((a, i) => {
+                    const aviso = riscoDeDuplicar(a, itensDeReferencia());
+                    return (
+                      <li key={i} className="border border-border rounded-md p-2 text-sm space-y-2">
+                        <div>
+                          <div className="font-semibold">{a.title}</div>
+                          <div className="text-xs text-muted-foreground">{a.description}</div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`wizard-valor-${i}`} className="text-xs">Valor</Label>
+                            <CurrencyInput
+                              id={`wizard-valor-${i}`}
+                              className="w-40 h-8"
+                              value={a.value ?? ""}
+                              onValueChange={(v) => editarAtivacao(i, definirValorManual(a, v))}
+                            />
+                            {a.value_source === "ia" && <Badge variant="secondary" className="text-[10px]">Sugestão da IA</Badge>}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Checkbox id={`wizard-incluir-${i}`} checked={incluir.has(i)} onCheckedChange={() => alternarInclusao(i)} />
+                            <Label htmlFor={`wizard-incluir-${i}`} className="text-xs font-normal cursor-pointer">Incluir nos itens</Label>
+                          </div>
+                        </div>
+                        {aviso && (
+                          <p className="flex items-center gap-1 text-xs text-warning-strong">
+                            <AlertTriangle className="h-3 w-3" /> {aviso}
+                          </p>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             </TabsContent>
 
             <TabsContent value="items" className="space-y-2 pt-3">
-              {out.items.map((it, i) => (
+              {[...out.items.map((it) => ({ ...it, ativacao: false })), ...entregasDasAtivacoes().map((it) => ({ ...it, ativacao: true }))].map((it, i) => (
                 <div key={i} className="border border-border rounded-md p-2 grid grid-cols-12 gap-2 items-center text-sm">
-                  <div className="col-span-6 font-medium">{it.name}</div>
+                  <div className="col-span-6 font-medium flex items-center gap-2">
+                    {it.name}
+                    {it.ativacao && <Badge variant="outline" className="text-[10px]">Ativação</Badge>}
+                  </div>
                   <div className="col-span-2 text-center">{formatarNumero(it.quantity)}x</div>
                   <div className="col-span-4 text-right">R$ {Number(it.unit_value).toLocaleString("pt-BR")}</div>
                   {it.description && <div className="col-span-12 text-xs text-muted-foreground">{it.description}</div>}
                 </div>
               ))}
               <div className="text-right font-bold pt-2">
-                Total: R$ {out.items.reduce((s, i) => s + i.quantity * i.unit_value, 0).toLocaleString("pt-BR")}
+                Total: R$ {[...out.items, ...entregasDasAtivacoes()].reduce((s, i) => s + i.quantity * i.unit_value, 0).toLocaleString("pt-BR")}
               </div>
             </TabsContent>
 
@@ -383,12 +510,18 @@ export function ProposalWizardDialog({ sponsors = [], properties = [], proposta,
               Gerar com IA <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           ) : (
-            <Button onClick={save} disabled={loading}>
+            <Button onClick={pedirSalvar} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
               {proposta ? "Salvar versões" : "Salvar proposta + versões"}
             </Button>
           )}
         </DialogFooter>
+        <ConfirmarAtivacoesDialog
+          inclusoes={confirmacao}
+          onCancelar={() => setConfirmacao(null)}
+          onConfirmar={save}
+          rotuloConfirmar={proposta ? "Salvar e incluir" : "Salvar proposta e incluir"}
+        />
       </DialogContent>
     </Dialog>
   );

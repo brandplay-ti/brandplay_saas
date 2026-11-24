@@ -120,7 +120,7 @@ async function contextoDaOportunidade(r: Requisicao, id: string) {
     opp.expected_close_date ? `Fechamento esperado: ${opp.expected_close_date}` : null,
     opp.notes ? `Notas: ${opp.notes}` : null,
     sponsor ? `Patrocinador: ${sponsor.name}${sponsor.segment ? ` (${sponsor.segment})` : ""} | Score: ${sponsor.score}${sponsor.last_contact_at ? ` | Último contato: ${sponsor.last_contact_at}` : ""}` : null,
-    property ? `Propriedade: ${property.name} (${property.category})` : null,
+    property ? `Projeto: ${property.name} (${property.category})` : null,
     activities.length
       ? `Atividades recentes:\n${activities.map((a) => `- [${a.status}] ${a.activity_type}: ${a.title}${a.due_date ? ` (vence ${a.due_date})` : ""}`).join("\n")}`
       : `Nenhuma atividade registrada.`,
@@ -308,7 +308,7 @@ async function contextoDaEntrega(r: Requisicao, id: string) {
     d.description ? `Descrição: ${d.description}` : null,
     d.approval_comment ? `Comentário de aprovação: ${d.approval_comment}` : null,
     d.notes ? `Notas: ${d.notes}` : null,
-    property ? `Propriedade: ${property.name} (${property.category})` : null,
+    property ? `Projeto: ${property.name} (${property.category})` : null,
     opp ? `Oportunidade vinculada: ${opp.brand} (${opp.stage})` : null,
   ].filter(Boolean).join("\n");
   return { org, texto };
@@ -382,7 +382,7 @@ async function contextoDaProposta(r: Requisicao, id: string) {
       ? `Itens (${items.length}):\n${items.map((i) => `- ${i.name} x${i.quantity} @ R$ ${i.unit_value}`).join("\n")}`
       : `SEM ITENS cadastrados.`,
     sponsor ? `Patrocinador: ${sponsor.name}${sponsor.segment ? ` (${sponsor.segment})` : ""} | Score: ${sponsor.score}${sponsor.last_contact_at ? ` | Último contato: ${sponsor.last_contact_at}` : ""}` : `Sem patrocinador vinculado.`,
-    property ? `Propriedade: ${property.name} (${property.category})` : null,
+    property ? `Projeto: ${property.name} (${property.category})` : null,
   ].filter(Boolean).join("\n");
   return { org, texto };
 }

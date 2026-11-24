@@ -51,6 +51,11 @@ export function podeVerModulo(access: AcessoDeModulo | undefined): boolean {
   return access === "read" || access === "write";
 }
 
+/** Igual ao `_write` de `can_access_module`: só `write` grava (BP-2). */
+export function podeEditarModulo(access: AcessoDeModulo | undefined): boolean {
+  return access === "write";
+}
+
 /**
  * Recorte usado enquanto a matriz não carregou. Com a matriz em mãos, o menu
  * segue `organization_role_grants`.
@@ -63,4 +68,55 @@ export function podeVerModuloPadrao(role: PapelDePermissao, module: ModuloDePerm
     (module === "operacional" && role === "operacional") ||
     (module === "financeiro" && role === "financeiro")
   );
+}
+
+/**
+ * Edição enquanto a matriz não carregou. Na matriz padrão (0043), o recorte
+ * acima é justamente onde cada papel tem `write`; o resto é `read` ou `none`.
+ */
+export function podeEditarModuloPadrao(role: PapelDePermissao, module: ModuloDePermissao): boolean {
+  return podeVerModuloPadrao(role, module);
+}
+
+/** A RLS recusou a linha (`42501`, "new row violates row-level security policy"). */
+export function ehRecusaDePermissao(erro: unknown): boolean {
+  return (erro as { code?: string } | null)?.code === "42501";
+}
+
+/**
+ * Módulo (ou módulos) cuja escrita libera a gravação. Com mais de um, basta
+ * editar qualquer um, como nas policies `crm OR operacional` (BP-29).
+ */
+export type ModulosDeEscrita = ModuloDePermissao | readonly ModuloDePermissao[];
+
+/** Contrato, cláusulas e ativos do contrato: policies `crm OR financeiro` (0017). */
+export const MODULOS_DO_CONTRATO = ["crm", "financeiro"] as const;
+
+/**
+ * Entregas, projetos, ativos, checklist, eventos e mídia do projeto: policies
+ * `operacional OR crm` (0017). Cotas e vendas de cota são só `crm`.
+ */
+export const MODULOS_DA_OPERACAO = ["operacional", "crm"] as const;
+
+function rotuloDoModulo(module: ModuloDePermissao): string {
+  return MODULOS_DE_PERMISSAO.find((m) => m.key === module)?.label ?? module;
+}
+
+/** Aviso para quem só lê o módulo, na tela e no erro de gravação. */
+export function mensagemSemEdicao(modulos: ModulosDeEscrita): string {
+  const lista = typeof modulos === "string" ? [modulos] : [...modulos];
+  if (lista.length === 1) {
+    return `Seu papel só lê ${rotuloDoModulo(lista[0])} nesta organização. Para criar ou alterar, peça acesso de edição a um administrador.`;
+  }
+  const rotulos = lista.map(rotuloDoModulo);
+  const ultimo = rotulos.pop();
+  return `Seu papel não edita ${rotulos.join(", ")} nem ${ultimo} nesta organização. Para criar ou alterar, peça acesso de edição a um administrador.`;
+}
+
+/** Erro de gravação dito para quem usa a tela: a recusa da RLS vira o aviso de permissão (BP-2). */
+export function mensagemDeErroDeGravacao(erro: unknown, module: ModulosDeEscrita, padrao = "Não foi possível salvar."): string {
+  if (ehRecusaDePermissao(erro)) return mensagemSemEdicao(module);
+  if (erro instanceof Error && erro.message) return erro.message;
+  const mensagem = (erro as { message?: string } | null)?.message;
+  return mensagem || padrao;
 }

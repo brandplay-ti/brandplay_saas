@@ -130,7 +130,7 @@ async function exigirQueOPlanoComporte(db: SupabaseClient, orgId: string, plano:
 
   const excessos: string[] = [];
   if (plano.max_properties != null && uso.properties > plano.max_properties) {
-    excessos.push(`${uso.properties} propriedades (o plano permite ${plano.max_properties})`);
+    excessos.push(`${uso.properties} projetos (o plano permite ${plano.max_properties})`);
   }
   const usuarios = uso.users_active + uso.invites_pending;
   if (plano.max_users != null && usuarios > plano.max_users) {

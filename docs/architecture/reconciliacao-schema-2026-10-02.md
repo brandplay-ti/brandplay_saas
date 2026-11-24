@@ -48,7 +48,7 @@ Casos verificados:
   `set_org_from_property` a linha fica com `organization_id = null` e
   nenhuma policy de leitura a alcança. O visitante vê "enviado", a
   organização nunca vê o lead.
-- **Upload de mídia da propriedade falha**: `property_media_tenant` exige
+- **Upload de mídia do projeto falha**: `property_media_tenant` exige
   `is_org_member(organization_id)` no `with check`, e o valor é nulo.
 
 ### C2. Permissão por módulo (escrita) ausente: regressão de autorização
@@ -191,5 +191,5 @@ Achados adicionais durante a implementação, além dos C1–C6 acima:
   manualmente.
 - No Lovable, `sync_opportunity_stage`/`sync_opportunity_contact_to_sponsor`
   são `SECURITY DEFINER` executáveis por `anon` sem checagem de organização, e
-  a policy "Usuários criam suas propriedades" permite inserir propriedade com
+  a policy "Usuários criam suas propriedades" permite inserir projeto com
   `organization_id` arbitrário. Não portados.

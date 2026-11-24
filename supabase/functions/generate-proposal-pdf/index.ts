@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
       y -= 6;
     };
     meta("PATROCINADOR", proposal.sponsor?.name ?? proposal.brand ?? "—");
-    if (proposal.property?.name) meta("PROPRIEDADE", proposal.property.name);
+    if (proposal.property?.name) meta("PROJETO", proposal.property.name);
     meta("VÁLIDO ATÉ", proposal.valid_until ?? "—");
 
     if (proposal.message) {

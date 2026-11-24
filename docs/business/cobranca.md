@@ -19,14 +19,14 @@ O portal do patrocinador não é afetado pela cobrança.
 Fonte: tabela `billing_plans`, editada pelo superadmin em `/admin/planos`
 (ADR-0008). Os valores abaixo são os da migration `0024`.
 
-| Plano      | Preço/mês    | Propriedades | Usuários   | Contratação        |
+| Plano      | Preço/mês    | Projetos | Usuários   | Contratação        |
 | ---------- | ------------ | ------------ | ---------- | ------------------ |
 | Starter    | R$ 490,00    | 3            | 1          | online             |
 | Pro        | R$ 1.490,00  | ilimitadas   | 10         | online             |
 | Enterprise | sob consulta | ilimitadas   | ilimitados | com o comercial    |
 
-- **Propriedades** contam só as raízes: uma edição/temporada de uma propriedade
-  (`parent_property_id`) é a mesma propriedade em outro ano e não ocupa vaga.
+- **Projetos** contam só as raízes: uma edição/temporada de um projeto
+  (`parent_property_id`) é o mesmo projeto em outro ano e não ocupa vaga.
 - **Usuários** = membros ativos (incluindo o owner) + convites pendentes. O
   convite reserva a vaga quando é feito; por isso aceitar um convite nunca é
   bloqueado.
@@ -95,6 +95,11 @@ parada nesse intervalo:
 Liberações do superadmin, revogações e extensões de teste ficam no histórico
 administrativo (`platform_admin_audit_log`), com autor e motivo.
 
+**Baixa manual** (0046): fatura em aberto que o cliente pagou fora do Stripe
+recebe baixa na ficha do cliente, pelo superadmin ou pelo Suporte, com motivo.
+A fatura é quitada no Stripe (`paid_out_of_band`, `paid_with = manual`); a
+regra de acesso não muda, porque a assinatura fica em dia pelo próprio Stripe.
+
 A liberação nunca muda a assinatura: quando o boleto compensa, ela fica ativa
 sozinha; quando o prazo passa sem compensar, o acesso cai. Durante a
 liberação valem os limites do plano contratado.
@@ -120,7 +125,7 @@ encerra na hora, para permitir contratar de novo com outra forma de pagamento.
 - Só com a assinatura `ativa`.
 - Vale na hora; a diferença proporcional ao período já pago entra na próxima
   fatura (crédito, se o plano novo for mais barato).
-- É recusada se o uso atual não couber no plano novo (ex.: 5 propriedades e
+- É recusada se o uso atual não couber no plano novo (ex.: 5 projetos e
   troca para o Starter).
 
 ## Limite atingido

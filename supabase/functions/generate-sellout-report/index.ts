@@ -1,5 +1,5 @@
-// Relatório de sell-out de uma propriedade, opcionalmente de um evento dela
-// (IA-14). A organização é a da propriedade, lida sob RLS; o evento, as
+// Relatório de sell-out de um projeto, opcionalmente de um evento dele
+// (IA-14). A organização é a do projeto, lida sob RLS; o evento, as
 // cotas, as vendas, as entregas e o relatório gravado ficam nela.
 
 import { gerar } from "../_shared/ai/camada.ts";
@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
       .select("id,organization_id,name,category,audience_estimate")
       .eq("id", propertyId)
       .maybeSingle();
-    if (!propriedade?.organization_id) throw new ErroDaRequisicao(404, "Propriedade não encontrada");
+    if (!propriedade?.organization_id) throw new ErroDaRequisicao(404, "Projeto não encontrado");
     const org: string = propriedade.organization_id;
     await exigirModulo(cliente, usuario.id, org, "crm");
 
@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
         ? cliente.from("property_events").select("title").eq("id", eventId).eq("property_id", propertyId).eq("organization_id", org).maybeSingle()
         : Promise.resolve({ data: null }),
     ]);
-    if (eventId && !eventoR.data) throw new ErroDaRequisicao(404, "Evento não encontrado nesta propriedade");
+    if (eventId && !eventoR.data) throw new ErroDaRequisicao(404, "Evento não encontrado neste projeto");
     const tituloDoEvento: string | null = eventoR.data?.title ?? null;
 
     const cotasDaPropriedade: Cota[] = cotasR.data ?? [];

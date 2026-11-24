@@ -366,7 +366,7 @@ Dependências: IA-05.
 
 ### IA-14 · `sponsor-executive-summary` e `generate-sellout-report` — M
 
-Organização do patrocinador / da propriedade ou evento. Componentes:
+Organização do patrocinador / do projeto ou evento. Componentes:
 `ExecutiveSummaryAI.tsx`, `SelloutReportGenerator.tsx`.
 
 Feito. A IA-14 criou o apoio comum das funções do épico, em
@@ -385,10 +385,10 @@ Decisões tomadas na implementação:
 - os caches (`sponsor_executive_summaries`, `sellout_reports`) passam a
   gravar `organization_id`. Antes o gatilho preenchia com `get_user_org`, que
   para quem está em várias organizações podia gravar o resumo na errada;
-- o evento do relatório precisa ser da mesma propriedade (senão 404);
+- o evento do relatório precisa ser do mesmo projeto (senão 404);
 - relatório que não grava volta mesmo assim (`saved: false`), com aviso na
   tela: a chamada já foi feita e medida;
-- `SelloutReportGenerator` lista propriedades e relatórios só da organização
+- `SelloutReportGenerator` lista projetos e relatórios só da organização
   ativa (antes, de todas as organizações do usuário);
 - modelo gravado no cache é o da resposta, não mais um nome fixo.
 
@@ -436,13 +436,13 @@ fecha por fornecedor) no lugar do parse do texto, e o apoio de
 ### IA-17 · `score-leads` — M
 
 Recebe a organização ativa (`LeadScoring.tsx`), valida e filtra
-patrocinadores, oportunidades, propriedades e histórico por ela. Corrige a
+patrocinadores, oportunidades, projetos e histórico por ela. Corrige a
 mistura de organizações. Nível `rapido`.
 
 Feito. `organization_id` do corpo, validado com `exigirModulo` (módulo
 `crm`, **escrita**), filtra as cinco consultas e vai explícito em
 `lead_scores`. `LeadScoring.tsx` manda o `orgId`, lê as notas só da
-organização ativa e esquece a propriedade escolhida ao trocar de
+organização ativa e esquece o projeto escolhido ao trocar de
 organização. Decisões tomadas na implementação:
 - exige escrita no CRM antes de chamar a IA: o resultado só vale gravado, e
   o RLS de `lead_scores` recusaria a gravação de quem só lê;
@@ -459,10 +459,10 @@ Tool obrigatória; organização da oportunidade/patrocinador
 (`GenerateProposalAIDialog.tsx`, `ProposalWizardDialog.tsx`).
 
 Feito. Decisões tomadas na implementação:
-- **organização ativa, não a do patrocinador**: patrocinador e propriedade
+- **organização ativa, não a do patrocinador**: patrocinador e projeto
   são opcionais nos dois diálogos, e a proposta é gravada pela tela na
   organização ativa. As funções recebem o `organization_id`, validam com
-  `exigirModulo` (`crm`, leitura) e exigem que patrocinador e propriedade
+  `exigirModulo` (`crm`, leitura) e exigem que patrocinador e projeto
   escolhidos sejam dela (senão 404). Cotas, alocações e ativos do contexto
   também ficam nela — antes, os ativos vinham de todas as organizações;
 - a ferramenta obrigatória virou o modo `json` da camada, como no lote 1;

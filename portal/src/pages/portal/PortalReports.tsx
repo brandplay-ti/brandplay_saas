@@ -118,7 +118,7 @@ export default function PortalReports() {
     <div className="space-y-6">
       <PageHeader
         title="Relatórios e mídia kit"
-        description="Acesse os mídia kits e materiais das propriedades onde você é patrocinador."
+        description="Acesse os mídia kits e materiais dos projetos que você patrocina."
         icon={Briefcase}
       />
 
@@ -129,7 +129,7 @@ export default function PortalReports() {
       ) : properties.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
-            Você ainda não está vinculado a nenhuma propriedade.
+            Você ainda não está vinculado a nenhum projeto.
           </CardContent>
         </Card>
       ) : (

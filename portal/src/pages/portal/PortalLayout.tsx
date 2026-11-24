@@ -39,7 +39,7 @@ export default function PortalLayout() {
           <h1 className="text-xl font-semibold">Acesso pendente</h1>
           <p className="text-sm text-muted-foreground">
             Sua conta foi criada, mas ainda não foi vinculada a um patrocinador. Aguarde a aprovação ou
-            entre em contato com a propriedade.
+            entre em contato com quem gerencia o projeto.
           </p>
           <Button
             variant="outline"

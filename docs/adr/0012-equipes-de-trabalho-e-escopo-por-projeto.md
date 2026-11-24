@@ -5,7 +5,7 @@ Status: Accepted
 ## Contexto
 
 Organizações maiores (clubes com várias modalidades, agências que cuidam de
-mais de uma propriedade) querem separar quem trabalha em quais projetos: a
+mais de um projeto) querem separar quem trabalha em quais projetos: a
 equipe comercial de um evento não deve ver os negócios de outro. Hoje todo
 membro ativo vê o que o papel libera na matriz de 0036
 (`organization_role_grants`), e o único recorte é por módulo (CRM,
@@ -25,7 +25,7 @@ com o usuário em 2026-11-01.
    estrangeira composta `(organization_id, id)`; o `organization_id` das
    tabelas de vínculo vem da equipe, por gatilho, e o valor do cliente é
    descartado.
-2. **Projeto é a propriedade (`sports_properties`)**, com subprojetos por
+2. **Projeto é o cadastro de `sports_properties`**, com subprojetos por
    `parent_property_id`. Não há entidade "projeto" nova (D1).
 3. **A equipe recebe projetos e o membro herda.** `work_teams`,
    `work_team_members` e `work_team_properties`, com relação N:N entre
@@ -33,9 +33,9 @@ com o usuário em 2026-11-01.
    incluir os subprojetos. Quem está em várias equipes vê a união: nenhum
    vínculo nega acesso dado por outro.
 4. **O administrador monta a estrutura (D12).** Dono e administrador veem
-   todas as propriedades, criam propriedades, subprojetos e equipes, e
+   todos os projetos, criam projetos, subprojetos e equipes, e
    vinculam membros e projetos às equipes. Membro em escopo equipe não cria
-   propriedade nem muda `parent_property_id`. O líder de equipe só adiciona
+   projeto nem muda `parent_property_id`. O líder de equipe só adiciona
    e remove, na própria equipe, quem já é membro da organização (D9).
 5. **Escopo por papel e módulo, opt-in.** `organization_role_grants` ganha
    `scope` (`organizacao` | `equipe`), com padrão `organizacao`, que é o
@@ -65,8 +65,8 @@ com o usuário em 2026-11-01.
   de domínio, RPCs que recebem id, agregados, storage de contratos e
   notificações aplicam o escopo à mão (plano, seção 7.6). Escopo nos
   negócios e no patrocinador vão juntos para produção (fases 2 e 3).
-- A visibilidade da propriedade é a união entre módulos: um papel com algum
-  módulo em escopo organização continua vendo todas as propriedades. Isolar
+- A visibilidade do projeto é a união entre módulos: um papel com algum
+  módulo em escopo organização continua vendo todos os projetos. Isolar
   um papel exige pôr todos os módulos dele em "Minhas equipes".
 - Papel em escopo equipe sem equipe nenhuma não vê nada; a tela avisa o
   administrador antes de salvar.
@@ -81,7 +81,7 @@ com o usuário em 2026-11-01.
   patrocinador e cobrança.
 - **Coluna `team_id` em cada registro** (estilo HubSpot): `team_id` em ~40
   tabelas e reatribuição de registros quando alguém muda de equipe, num
-  produto em que o trabalho já é organizado por propriedade.
+  produto em que o trabalho já é organizado por projeto.
 - **Serviço externo de autorização (OpenFGA, SpiceDB)**: tira a decisão da
   RLS, que é a fronteira de segurança do projeto, e cria mais um serviço
   para operar.

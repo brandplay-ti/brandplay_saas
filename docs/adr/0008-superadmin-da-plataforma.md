@@ -108,6 +108,56 @@ plano de teste, à frente do teste grátis e da liberação provisória. Assinat
 com acesso continua na frente. O aviso de dias restantes do teste não aparece
 enquanto a isenção vale. Desconto abaixo de 100% não muda o acesso.
 
+## Atualização (0045, BP-3)
+
+Logs de falha são telemetria **da plataforma**, não dado de domínio:
+`backend_error_logs` (falhas de banco, `log-db-error`) e `error_reports`
+(falhas de tela, `report-error`). Antes, cada usuário lia os próprios
+registros e o owner/admin lia os da organização, numa tela do painel
+(`/dashboard/logs-falhas`). Isso mostrava a qualquer cliente mensagens internas
+do banco e o SQL das policies (`matching_policies`).
+
+Agora só o superadmin lê, pelas policies `*_platform_admin_read` (padrão 9), na
+tela `/admin/logs-falhas`, que junta todos os clientes e filtra por cliente,
+usuário, tabela, ação e severidade. Ninguém escreve pela API: as duas funções
+gravam com a service role. A organização que o navegador manda só fica no
+registro se o usuário do JWT for membro ativo dela.
+
+"Equipe de suporte" era o próprio superadmin. O perfil Suporte veio depois
+(0046, abaixo) e não lê os logs: as policies usam `is_platform_admin()`, que
+passou a ser só o superadmin.
+
+## Atualização (0046, BP-4): perfil Suporte e equipe pela tela
+
+A equipe da plataforma ganhou um segundo papel, o **Suporte**, em
+`platform_admins.role` (`superadmin` | `suporte`).
+
+- `is_platform_admin()` passou a ser só o superadmin. Tudo que já a usava
+  (cobrança direta, auditoria, faturamento, planos, IA, logs) continua fechado
+  para o Suporte sem mudar. O que o Suporte também faz usa
+  `is_platform_staff()` / `platform_staff_require()`.
+- O Suporte lista os clientes (`admin_clientes`, com `mrr_cents` nulo), abre a
+  ficha (`admin_cliente_detalhe`), lança e revoga desconto (`admin-discounts`),
+  dá **baixa manual** em fatura em aberto (`admin-invoices`) e abre sessão de
+  suporte. Não vê visão geral, faturamento, planos, IA nem a equipe; não libera
+  acesso, não estende teste e não troca o tipo de cliente.
+- **Baixa manual**: o Stripe continua a fonte. A fatura é quitada lá com
+  `paid_out_of_band` e marcada com `paid_with = manual`; a projeção é regravada
+  a partir do Stripe e a ação vai para a auditoria (`fatura_baixada`).
+- **Equipe pela tela** (`/admin/equipe`): o superadmin cadastra, revoga e
+  reativa Suporte (`admin_equipe_*` e Edge Function `admin-team`). O item 2 da
+  decisão continua valendo para o superadmin: nenhuma função executável por
+  `authenticated` grava `role = 'superadmin'`, rebaixa ou revoga um
+  superadmin. `platform_admin_grant` (manual) promove quem já é Suporte.
+- Conta nova de Suporte não ganha organização pessoal: a `admin-team` grava
+  um pré-cadastro (`platform_staff_signups`, 15 minutos) que o
+  `handle_new_user` reconhece, como o convite de patrocinador (0022).
+- **Seletor de cliente** (portal, sem mudança de banco): escolher um cliente
+  no menu abre a sessão de suporte da 0035 por 8 horas com motivo fixo
+  ("Seleção de cliente no menu"); voltar à visão de admin a encerra. A regra
+  da 0035 não muda: a sessão não cria membership nem concede owner, expira
+  sozinha e é auditada.
+
 ## Relacionados
 
 ADR-0002 (tenant), ADR-0007 (cobrança), `docs/architecture/plano-superadmin.md`,

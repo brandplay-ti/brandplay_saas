@@ -17,6 +17,8 @@ import { TASK_PRIORITY_LABEL, TASK_TYPE_LABEL, formatDate } from "@/lib/crmAccou
 import { ActivityContextLinks } from "@/components/common/ActivityContextLinks";
 import { DueDateEditor } from "@/components/common/DueDateEditor";
 import { TaskInsightsDialog } from "@/components/common/TaskInsightsDialog";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
+import { mensagemDeErroDeGravacao } from "@/lib/permissoes";
 
 
 const db = supabase as any;
@@ -40,7 +42,7 @@ export interface CrmTask {
 
 export const CrmTasksPanel = ({ sponsorId, opportunityId }: { sponsorId: string; opportunityId?: string | null }) => {
   const { user } = useAuth();
-  const { orgId, can } = useOrganization();
+  const { orgId, canWrite } = useOrganization();
   const [tasks, setTasks] = useState<CrmTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDone, setShowDone] = useState(false);
@@ -51,7 +53,8 @@ export const CrmTasksPanel = ({ sponsorId, opportunityId }: { sponsorId: string;
   const [bulkDate, setBulkDate] = useState("");
   const [bulkSaving, setBulkSaving] = useState(false);
 
-  const editable = can("crm");
+  // Escrita, não leitura: quem só lê o CRM vê as tarefas sem alterar (BP-29).
+  const editable = canWrite("crm");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -84,7 +87,7 @@ export const CrmTasksPanel = ({ sponsorId, opportunityId }: { sponsorId: string;
       assignee_id: user.id,
       created_by: user.id,
     });
-    if (error) return toast.error("Erro", { description: error.message });
+    if (error) return toast.error("Erro", { description: mensagemDeErroDeGravacao(error, "crm") });
     setForm({ title: "", task_type: "followup", priority: "media", due_date: "", description: "" });
     toast.success("Tarefa criada");
     load();
@@ -92,20 +95,21 @@ export const CrmTasksPanel = ({ sponsorId, opportunityId }: { sponsorId: string;
 
   const complete = async (t: CrmTask) => {
     const { error } = await db.from("crm_tasks").update({ status: "concluida" }).eq("id", t.id);
-    if (error) return toast.error("Erro", { description: error.message });
+    if (error) return toast.error("Erro", { description: mensagemDeErroDeGravacao(error, "crm") });
     toast.success("Tarefa concluída", { description: "Uma interação foi registrada no histórico." });
     load();
   };
 
   const updateDueDate = async (t: CrmTask, next: string | null) => {
     const { error } = await db.from("crm_tasks").update({ due_date: next }).eq("id", t.id);
-    if (error) return toast.error("Erro", { description: error.message });
+    if (error) return toast.error("Erro", { description: mensagemDeErroDeGravacao(error, "crm") });
     setTasks((cur) => cur.map((x) => (x.id === t.id ? { ...x, due_date: next } : x)));
     toast.success("Data atualizada");
   };
 
   const remove = async (t: CrmTask) => {
-    await db.from("crm_tasks").delete().eq("id", t.id);
+    const { error } = await db.from("crm_tasks").delete().eq("id", t.id);
+    if (error) return toast.error("Erro", { description: mensagemDeErroDeGravacao(error, "crm") });
     load();
   };
 
@@ -126,7 +130,7 @@ export const CrmTasksPanel = ({ sponsorId, opportunityId }: { sponsorId: string;
     setBulkSaving(true);
     const { error } = await db.from("crm_tasks").update({ due_date: next }).in("id", selectedIds);
     setBulkSaving(false);
-    if (error) return toast.error("Erro", { description: error.message });
+    if (error) return toast.error("Erro", { description: mensagemDeErroDeGravacao(error, "crm") });
     setTasks((cur) => cur.map((x) => (selectedIds.includes(x.id) ? { ...x, due_date: next } : x)));
     toast.success(next ? "Prazos atualizados" : "Prazos removidos", { description: `${selectedIds.length} tarefa(s) atualizada(s).` });
     setSelected({});
@@ -275,6 +279,8 @@ export const CrmTasksPanel = ({ sponsorId, opportunityId }: { sponsorId: string;
           })}
         </div>
       )}
+
+      {!editable && <SomenteLeitura module="crm" />}
 
       {editable && (
         <div className="rounded-md border border-dashed p-3 space-y-2">

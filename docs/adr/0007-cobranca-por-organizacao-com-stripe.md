@@ -37,7 +37,7 @@ Duas diferenças de modelo impedem copiar o central-check como está:
 5. **Acesso** = assinatura `ativa`/`trialing`/`inadimplente` **ou** teste
    vigente. `inadimplente` mantém o acesso enquanto o Stripe tenta cobrar de
    novo; quando ele desiste (`nao_paga`/`cancelada`) o acesso cai.
-6. **Limites aplicados no banco**, por gatilho: propriedades raiz e usuários
+6. **Limites aplicados no banco**, por gatilho: projetos raiz e usuários
    (membros ativos + convites pendentes). Exceder falha com
    `hint = 'limite_plano:<recurso>'` e o plano sugerido em `detail`. A tela só
    traduz a mensagem.
@@ -63,7 +63,7 @@ Positivas:
 Negativas / riscos:
 
 - **O bloqueio do painel por falta de assinatura é aplicado na interface**
-  (`BillingGate`). O banco barra o crescimento (novas propriedades e usuários),
+  (`BillingGate`). O banco barra o crescimento (novos projetos e usuários),
   mas não a leitura nem a edição do que já existe. Uma organização sem plano
   que use a API diretamente continua lendo os próprios dados. Levar o bloqueio
   total para a RLS exigiria tocar as ~80 policies e foi deixado para depois.

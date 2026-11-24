@@ -10,6 +10,7 @@ import { Sparkles, Loader2, Flame, Snowflake, ThermometerSun, ExternalLink } fro
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useOrganization } from "@/hooks/useOrganization";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
 import { avisarErroDeIA } from "@/lib/erroDeIA";
 import { PageHeader } from "@/components/common/PageHeader";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
@@ -39,7 +40,9 @@ const classUI: Record<Score["classification"], { label: string; tone: StatusTone
 };
 
 export default function LeadScoring() {
-  const { orgId } = useOrganization();
+  const { orgId, canWrite } = useOrganization();
+  // A score-leads só serve gravada (lead_scores) e exige escrita no Funil (BP-29).
+  const podeGerar = canWrite("vendas");
   const [properties, setProperties] = useState<Property[]>([]);
   const [scopeMode, setScopeMode] = useState<"global" | "property">("global");
   const [propertyId, setPropertyId] = useState<string>("");
@@ -50,7 +53,7 @@ export default function LeadScoring() {
   const [scoring, setScoring] = useState(false);
 
   useEffect(() => {
-    // A propriedade escolhida é da organização anterior: não vale na nova.
+    // O projeto escolhido é da organização anterior: não vale na nova.
     setPropertyId("");
     if (!orgId) return;
     supabase.from("sports_properties").select("id,name").eq("organization_id", orgId).order("name").then(({ data }) => {
@@ -86,7 +89,7 @@ export default function LeadScoring() {
   const runScoring = async () => {
     if (!orgId) return;
     if (scopeMode === "property" && !propertyId) {
-      toast.error("Selecione uma propriedade.");
+      toast.error("Selecione um projeto.");
       return;
     }
     setScoring(true);
@@ -131,21 +134,25 @@ export default function LeadScoring() {
                 <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="global">Score global</SelectItem>
-                  <SelectItem value="property">Por propriedade</SelectItem>
+                  <SelectItem value="property">Por projeto</SelectItem>
                 </SelectContent>
               </Select>
               {scopeMode === "property" && (
                 <Select value={propertyId} onValueChange={setPropertyId}>
-                  <SelectTrigger className="w-[220px]"><SelectValue placeholder="Selecione propriedade" /></SelectTrigger>
+                  <SelectTrigger className="w-[220px]"><SelectValue placeholder="Selecione o projeto" /></SelectTrigger>
                   <SelectContent>
                     {properties.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               )}
-              <Button onClick={runScoring} disabled={scoring || !orgId}>
-                {scoring ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
-                Gerar / Atualizar com IA
-              </Button>
+              {podeGerar ? (
+                <Button onClick={runScoring} disabled={scoring || !orgId}>
+                  {scoring ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
+                  Gerar / Atualizar com IA
+                </Button>
+              ) : (
+                <div className="max-w-md"><SomenteLeitura module="vendas" /></div>
+              )}
             </div>
           </>
         }

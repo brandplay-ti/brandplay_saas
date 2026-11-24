@@ -101,7 +101,7 @@ const pagina = (estilo: "escuro" | "claro", patrocinador = false): PaginaRelator
 });
 
 describe("RelatorioLanding", () => {
-  it("monta a página da propriedade no estilo escuro, com as seções que têm dado", () => {
+  it("monta a página do projeto no estilo escuro, com as seções que têm dado", () => {
     render(<RelatorioLanding pagina={pagina("escuro")} />);
     expect(screen.getByRole("heading", { level: 1, name: "O jogo ganhou escala" })).toBeInTheDocument();
     const menu = screen.getByRole("navigation", { name: "Seções do relatório" });

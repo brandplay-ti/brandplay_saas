@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { withProfileNames } from "@/lib/profileNames";
-import { useAuth } from "@/hooks/useAuth";
+import { useOrganization } from "@/hooks/useOrganization";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
+import { mensagemDeErroDeGravacao } from "@/lib/permissoes";
+import { readEdgeFunctionError, type EdgeFunctionErrorBody } from "@/lib/edgeFunctionError";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,7 +47,9 @@ interface Access {
 
 export function SponsorPortalAccess({ sponsorId }: Props) {
   const confirm = useConfirm();
-  const { user } = useAuth();
+  // Convidar, ativar, bloquear e remover pedem escrita no CRM, como a RLS de
+  // sponsor_portal_access/sponsor_invites e a manage-portal-access (BP-29).
+  const editable = useOrganization().canWrite("crm");
   const [invites, setInvites] = useState<Invite[]>([]);
   const [accesses, setAccesses] = useState<Access[]>([]);
   const [email, setEmail] = useState("");
@@ -90,8 +95,11 @@ export function SponsorPortalAccess({ sponsorId }: Props) {
         },
       },
     );
-    if (error) throw error;
-    if (data?.error) throw new Error(data.message ?? data.error);
+    if (error || data?.error) {
+      // A manage-portal-access manda o texto para a tela em `message` (ex.: user_not_found, forbidden).
+      const corpo: EdgeFunctionErrorBody & { message?: string } = await readEdgeFunctionError(error, data);
+      throw new Error(corpo.message ?? corpo.error ?? "Falha na operação");
+    }
     return data;
   };
 
@@ -137,10 +145,11 @@ export function SponsorPortalAccess({ sponsorId }: Props) {
   };
 
   const cancelInvite = async (id: string) => {
-    await supabase
+    const { error } = await supabase
       .from("sponsor_invites")
       .update({ status: "cancelado" })
       .eq("id", id);
+    if (error) return toast.error("Falha ao cancelar", { description: mensagemDeErroDeGravacao(error, "crm") });
     load();
   };
 
@@ -152,10 +161,11 @@ export function SponsorPortalAccess({ sponsorId }: Props) {
 
   const toggleAccess = async (a: Access) => {
     const newStatus = a.status === "ativo" ? "bloqueado" : "ativo";
-    await supabase
+    const { error } = await supabase
       .from("sponsor_portal_access")
       .update({ status: newStatus })
       .eq("id", a.id);
+    if (error) return toast.error("Falha ao alterar o acesso", { description: mensagemDeErroDeGravacao(error, "crm") });
     toast.success(
       newStatus === "ativo" ? "Acesso reativado" : "Acesso bloqueado",
     );
@@ -188,7 +198,8 @@ export function SponsorPortalAccess({ sponsorId }: Props) {
           Use <strong>Ativar</strong> se o usuário já tem conta no sistema. Use{" "}
           <strong>Convidar</strong> para enviar um link de cadastro.
         </p>
-        <div className="flex flex-col sm:flex-row gap-2 mt-2">
+        {!editable && <div className="mt-2"><SomenteLeitura module="crm" /></div>}
+        {editable && <div className="flex flex-col sm:flex-row gap-2 mt-2">
           <Input
             type="email"
             placeholder="email@patrocinador.com"
@@ -224,7 +235,7 @@ export function SponsorPortalAccess({ sponsorId }: Props) {
               <span className="ml-1.5">Convidar</span>
             </Button>
           </div>
-        </div>
+        </div>}
       </div>
 
       {loading ? (
@@ -265,7 +276,7 @@ export function SponsorPortalAccess({ sponsorId }: Props) {
                         })}
                       </p>
                     </div>
-                    <div className="flex gap-1">
+                    {editable && <div className="flex gap-1">
                       <Button
                         size="sm"
                         variant="ghost"
@@ -281,7 +292,7 @@ export function SponsorPortalAccess({ sponsorId }: Props) {
                       >
                         <X className="h-4 w-4" />
                       </Button>
-                    </div>
+                    </div>}
                   </div>
                 ))}
               </div>
@@ -332,14 +343,14 @@ export function SponsorPortalAccess({ sponsorId }: Props) {
                         >
                           <Copy className="h-4 w-4 mr-1" /> Link
                         </Button>
-                        <Button
+                        {editable && <Button
                           aria-label="Cancelar convite"
                           size="icon"
                           variant="ghost"
                           onClick={() => cancelInvite(i.id)}
                         >
                           <X className="h-4 w-4" />
-                        </Button>
+                        </Button>}
                       </div>
                     )}
                   </div>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -27,6 +27,7 @@ import { FileText, Plus, Search, Trash2, Send, FileDown, CheckCircle2, XCircle, 
 import { GenerateProposalAIDialog, type GeneratedProposal } from "@/components/proposals/GenerateProposalAIDialog";
 import { ProposalWizardDialog } from "@/components/proposals/ProposalWizardDialog";
 import { ProposalVersionsEditor } from "@/components/proposals/ProposalVersionsEditor";
+import { ProposalMessageField } from "@/components/proposals/ProposalMessageField";
 import { NextStepsAI } from "@/components/pipeline/NextStepsAI";
 import { AssetCatalogToolbar, type AssetSortBy } from "@/components/assets/AssetCatalogToolbar";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -34,6 +35,8 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { ativarComTeclado } from "@/lib/clicavel";
 import { EmptyState } from "@/components/common/EmptyState";
 import { LoadingSkeleton } from "@/components/common/LoadingSkeleton";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
+import { MODULOS_DO_CONTRATO, mensagemDeErroDeGravacao, mensagemSemEdicao } from "@/lib/permissoes";
 
 
 type Status = "rascunho" | "enviada" | "aceita" | "recusada" | "expirada";
@@ -91,8 +94,13 @@ type ProposalSort = (typeof PROPOSAL_SORTS)[number];
 export default function Proposals() {
   const confirm = useConfirm();
   const { user } = useAuth();
-  const { orgId } = useOrganization();
+  const { orgId, canWrite } = useOrganization();
+  // Quem só lê o funil vê as propostas, mas não cria nem altera (BP-2). A RLS é a fronteira.
+  const podeEditar = canWrite("vendas");
+  // Converter em contrato também grava o contrato: escrita em CRM ou Financeiro (BP-29).
+  const podeCriarContrato = podeEditar && MODULOS_DO_CONTRATO.some((m) => canWrite(m));
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
@@ -107,6 +115,8 @@ export default function Proposals() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [loading, setLoading] = useState(true);
+  // Organização cuja lista está em `proposals` (o link direto espera por ela).
+  const [loadedOrgId, setLoadedOrgId] = useState<string | null>(null);
   const [search, setSearch] = useFiltroSalvo("propostas", "search", "");
   const [statusFilter, setStatusFilter] = useFiltroSalvo("propostas", "statusFilter", "all");
   const [sponsorFilter, setSponsorFilter] = useFiltroSalvo("propostas", "sponsorFilter", "all");
@@ -162,6 +172,7 @@ export default function Proposals() {
     setFunnels(((fn ?? []) as any[]) as Funnel[]);
     setAssets(((as ?? []) as any[]).map((a) => ({ ...a, unit_value: Number(a.unit_value) })));
     setTiers(((tr ?? []) as any[]).map((t) => ({ ...t, value: Number(t.value) })));
+    setLoadedOrgId(orgId);
     setLoading(false);
   };
   useEffect(() => { load(); }, [orgId]);
@@ -253,28 +264,28 @@ export default function Proposals() {
     const property = properties.find((p) => p.id === form.property_id);
     const brand = form.brand.trim() || sponsor?.name || "Marca";
     const sponsorName = sponsor?.name || brand;
-    const propertyName = property?.name || "propriedade selecionada";
+    const propertyName = property?.name || "projeto selecionado";
     const validUntil = form.valid_until || addDaysInput(7);
     const template = PROPOSAL_TEMPLATES[key];
     const title = form.title.trim() || `Proposta ${propertyName} · ${brand}`;
     const message = [
       `Olá, ${sponsorName}.`,
       `Preparamos este rascunho para ${template.tone} entre ${brand} e ${propertyName}.`,
-      `A proposta consolida os ativos e entregas recomendados para conectar a marca ao público da propriedade, com validade até ${formatDateBR(validUntil)}.`,
+      `A proposta consolida os ativos e entregas recomendados para conectar a marca ao público do projeto, com validade até ${formatDateBR(validUntil)}.`,
       "Fico à disposição para ajustar escopo, formatos e cronograma antes do envio final.",
     ].join("\n\n");
     setForm({ ...form, title, brand: form.brand || brand, valid_until: validUntil, message });
   };
 
   const create = async () => {
-    if (!user || !orgId || !form.title) return;
+    if (!podeEditar || !user || !orgId || !form.title) return;
     const { data, error } = await supabase.from("proposals").insert({
       owner_id: user.id, organization_id: orgId, title: form.title,
       brand: form.brand || null, sponsor_id: form.sponsor_id || null,
       property_id: form.property_id || null, valid_until: form.valid_until || null,
       message: form.message || null,
     }).select().single();
-    if (error) return toast.error("Erro", { description: error.message });
+    if (error) return toast.error("Erro", { description: mensagemDeErroDeGravacao(error, "vendas") });
     const sponsor = sponsors.find((s) => s.id === form.sponsor_id);
     const property = properties.find((p) => p.id === form.property_id);
     const brand = form.brand || sponsor?.name || "Marca";
@@ -286,7 +297,7 @@ export default function Proposals() {
         organization_id: orgId,
         channel: "email",
         title: `Proposta ${property?.name ?? "de patrocínio"} para ${brand}`,
-        content: `<p>Olá, ${escapeHtml(sponsor?.name ?? brand)}.</p><p>${escapeHtml(form.message || `Segue rascunho da proposta para ${template.tone} com a ${property?.name ?? "propriedade selecionada"}.`)}</p><p>Prazo de validade: <strong>${escapeHtml(formatDateBR(form.valid_until || null))}</strong>.</p><p>Posso ajustar qualquer ponto antes do envio final.</p>`,
+        content: `<p>Olá, ${escapeHtml(sponsor?.name ?? brand)}.</p><p>${escapeHtml(form.message || `Segue rascunho da proposta para ${template.tone} com ${property?.name ?? "o projeto selecionado"}.`)}</p><p>Prazo de validade: <strong>${escapeHtml(formatDateBR(form.valid_until || null))}</strong>.</p><p>Posso ajustar qualquer ponto antes do envio final.</p>`,
         metadata: { subject: `Proposta ${property?.name ?? "de patrocínio"} para ${brand}`, template: templateKey },
       },
       {
@@ -311,6 +322,38 @@ export default function Proposals() {
     setSelected(p);
     const { data } = await supabase.from("proposal_items").select("*").eq("proposal_id", p.id).order("position");
     setItems((data ?? []) as Item[]);
+  };
+
+  // Link direto: /dashboard/propostas?proposal=<id> (botão "Abrir" da jornada no
+  // pipeline). Abre a proposta depois da carga e tira o parâmetro da URL, para o
+  // painel não reabrir ao ser fechado. Uma proposta fora da organização ativa não
+  // está na lista e não abre.
+  useEffect(() => {
+    const alvo = searchParams.get("proposal");
+    if (!alvo || !orgId || loading || loadedOrgId !== orgId) return;
+    const encontrada = proposals.find((p) => p.id === alvo);
+    if (encontrada) openDetail(encontrada);
+    else toast.info("Proposta não encontrada nesta organização.");
+    const next = new URLSearchParams(searchParams);
+    next.delete("proposal");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, orgId, loadedOrgId, loading, proposals]);
+
+  // Ativações da aba Versões IA viraram itens: recarrega a lista e grava o total
+  // (fora do valor geral), porque esses itens já entram com valor (BP-9).
+  const recarregarItensDasAtivacoes = async () => {
+    if (!selected) return;
+    const { data } = await supabase.from("proposal_items").select("*").eq("proposal_id", selected.id).order("position");
+    const lista = (data ?? []) as Item[];
+    setItems(lista);
+    if (selected.use_flat_value) return;
+    const novoTotal = lista.reduce((s, i) => s + i.quantity * Number(i.unit_value), 0);
+    const id = selected.id;
+    const { error } = await supabase.from("proposals").update({ total_value: novoTotal }).eq("id", id);
+    if (error) return;
+    // Atualização funcional: o assistente recarrega a proposta ao mesmo tempo.
+    setSelected((prev) => (prev && prev.id === id ? { ...prev, total_value: novoTotal } : prev));
+    setProposals((prev) => prev.map((p) => (p.id === id ? { ...p, total_value: novoTotal } : p)));
   };
 
   // O assistente da aba Versões IA pode preencher a mensagem da proposta aberta.
@@ -525,11 +568,11 @@ export default function Proposals() {
       .select()
       .maybeSingle();
     if (error) {
-      toast.error("Não foi possível salvar o status", { description: error.message });
+      toast.error("Não foi possível salvar o status", { description: mensagemDeErroDeGravacao(error, "vendas") });
       return;
     }
     if (!data) {
-      toast.error("Sem permissão para alterar esta proposta", { description: "Você precisa de acesso de escrita ao CRM desta organização." });
+      toast.error("Sem permissão para alterar esta proposta", { description: mensagemSemEdicao("vendas") });
       return;
     }
     setSelected({ ...selected, ...(data as any) });
@@ -608,7 +651,7 @@ export default function Proposals() {
       setFunnelTarget(null);
       load();
     } catch (e: any) {
-      toast.error("Erro", { description: e.message });
+      toast.error("Erro", { description: mensagemDeErroDeGravacao(e, "vendas") });
     } finally {
       setSendingFunnel(false);
     }
@@ -627,18 +670,21 @@ export default function Proposals() {
       value: total,
       stage: "proposta_enviada",
     }).select().single();
-    if (error) return toast.error("Erro", { description: error.message });
+    if (error) return toast.error("Erro", { description: mensagemDeErroDeGravacao(error, "vendas") });
     await supabase.from("proposals").update({ converted_opportunity_id: data!.id }).eq("id", selected.id);
     toast.success("Oportunidade criada", { description: "Disponível em /dashboard/pipeline" });
     setSelected({ ...selected, converted_opportunity_id: data!.id });
     load();
   };
 
-  const updateProposalField = async (field: "sponsor_id" | "property_id" | "valid_until", value: string | null) => {
+  const updateProposalField = async (field: "sponsor_id" | "property_id" | "valid_until" | "message", value: string | null) => {
     if (!selected) return;
-    const { error } = await supabase.from("proposals").update({ [field]: value } as any).eq("id", selected.id);
-    if (error) return toast.error("Erro", { description: error.message });
-    setSelected({ ...selected, [field]: value } as Proposal);
+    const id = selected.id;
+    const { error } = await supabase.from("proposals").update({ [field]: value } as any).eq("id", id);
+    if (error) return toast.error("Erro", { description: mensagemDeErroDeGravacao(error, "vendas") });
+    // Atualização funcional: dois campos gravados em sequência (sair da
+    // mensagem e trocar o patrocinador) não desfazem um ao outro.
+    setSelected((atual) => (atual && atual.id === id ? { ...atual, [field]: value } : atual));
     load();
   };
 
@@ -656,7 +702,7 @@ export default function Proposals() {
     if (!selected || !user || !orgId) return;
     const missingFields: string[] = [];
     if (!selected.sponsor_id) missingFields.push("sponsor");
-    if (!selected.property_id) missingFields.push("propriedade");
+    if (!selected.property_id) missingFields.push("projeto");
     if (!total || total <= 0) missingFields.push("valor");
     if (items.length === 0) missingFields.push("itens/ativos");
     if (!selected.valid_until) missingFields.push("data prevista");
@@ -705,7 +751,7 @@ export default function Proposals() {
       flat_value: useFlat ? total : 0,
       status: "rascunho",
     }).select().single();
-    if (error) return toast.error("Erro", { description: error.message });
+    if (error) return toast.error("Erro", { description: mensagemDeErroDeGravacao(error, MODULOS_DO_CONTRATO) });
     if (items.length > 0) {
       const { error: copyError } = await supabase.rpc("copy_proposal_items_to_contract", {
         _contract_id: c!.id,
@@ -726,9 +772,12 @@ export default function Proposals() {
     load();
   };
 
+  // O editor do item grava ao salvar: quem só lê não o abre.
+  const abrirItem = (it: Item) => { if (podeEditar) setEditingItem({ ...it }); };
+
   const deleteProposal = async (p?: Proposal) => {
     const target = p ?? selected;
-    if (!target) return;
+    if (!target || !podeEditar) return;
     const confirmado = await confirm({
       title: "Excluir esta proposta?",
       description: "Esta ação não pode ser desfeita.",
@@ -748,7 +797,7 @@ export default function Proposals() {
         description="Builder a partir de ativos, com PDF e conversão para pipeline/contrato."
         icon={FileText}
         actions={
-          <>
+          podeEditar ? (
             <div className="flex gap-2">
               <GenerateProposalAIDialog
                 sponsors={sponsors}
@@ -767,7 +816,7 @@ export default function Proposals() {
                     message: g.message,
                     total_value: total,
                   }).select().single();
-                  if (error) return toast.error("Erro", { description: error.message });
+                  if (error) return toast.error("Erro", { description: mensagemDeErroDeGravacao(error, "vendas") });
                   if (data && g.items.length > 0) {
                     await supabase.from("proposal_items").insert(
                       g.items.map((it, idx) => ({
@@ -787,7 +836,9 @@ export default function Proposals() {
               <ProposalWizardDialog sponsors={sponsors} properties={properties} onSaved={load} />
               <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-2" /> Nova proposta</Button>
             </div>
-          </>
+          ) : (
+            <div className="max-w-md"><SomenteLeitura module="vendas" /></div>
+          )
         }
       />
 
@@ -866,11 +917,11 @@ export default function Proposals() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Propriedade</Label>
+                <Label className="text-xs">Projeto</Label>
                 <Select value={propertyFilter} onValueChange={setPropertyFilter}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="all">Todos</SelectItem>
                     {properties.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -917,7 +968,7 @@ export default function Proposals() {
                   ? <>Monte uma proposta a partir dos seus ativos, ou gere uma com a <strong>Proposta Inteligente</strong>.</>
                   : "Ajuste a busca ou os filtros."
               }
-              action={proposals.length === 0 && (
+              action={proposals.length === 0 && podeEditar && (
                 <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-2" />Nova proposta</Button>
               )}
             />
@@ -942,6 +993,7 @@ export default function Proposals() {
                           {p.valid_until && <div className="text-[10px] text-muted-foreground">até {isoParaData(p.valid_until)}</div>}
                         </div>
                         <StatusBadge tone={statusUI[p.status].tone}>{statusUI[p.status].label}</StatusBadge>
+                        {podeEditar && (<>
                         <span
                           role="button"
                           tabIndex={0}
@@ -962,6 +1014,7 @@ export default function Proposals() {
                         >
                           <Trash2 className="h-3.5 w-3.5" /> Excluir
                         </span>
+                        </>)}
                       </div>
                     </div>
                   </button>
@@ -1032,7 +1085,7 @@ export default function Proposals() {
                   <SelectContent><SelectItem value="none">— sem cadastro —</SelectItem>{sponsors.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><Label>Propriedade</Label>
+              <div><Label>Projeto</Label>
                 <Select value={form.property_id || "none"} onValueChange={(v) => setForm({ ...form, property_id: v === "none" ? "" : v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent><SelectItem value="none">— nenhuma —</SelectItem>{properties.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
@@ -1064,6 +1117,7 @@ export default function Proposals() {
                   {sponsors.find((s) => s.id === selected.sponsor_id)?.name ?? selected.brand ?? "—"}
                 </SheetDescription>
               </SheetHeader>
+              {!podeEditar && <div className="mt-4"><SomenteLeitura module="vendas" /></div>}
 
               <Tabs value={detailTab} onValueChange={setDetailTab} className="mt-6">
                 <TabsList className="grid grid-cols-5">
@@ -1075,8 +1129,9 @@ export default function Proposals() {
                 </TabsList>
 
                 <TabsContent value="items" className="space-y-3 pt-4">
+                  <fieldset disabled={!podeEditar} className="space-y-3">
                   <div className="flex gap-2">
-                    <Select onValueChange={(v) => v && addItemFromAsset(v)}>
+                    <Select disabled={!podeEditar} onValueChange={(v) => v && addItemFromAsset(v)}>
                       <SelectTrigger className="flex-1"><SelectValue placeholder="+ Ativo do catálogo" /></SelectTrigger>
                       <SelectContent>
                         {assets.length === 0 ? <SelectItem value="empty" disabled>Nenhum ativo</SelectItem>
@@ -1086,7 +1141,7 @@ export default function Proposals() {
                     <Button variant="outline" onClick={addCustomItem}><Plus className="h-4 w-4 mr-2" /> Item livre</Button>
                   </div>
 
-                  <Select onValueChange={(v) => v && addItemsFromTier(v)}>
+                  <Select disabled={!podeEditar} onValueChange={(v) => v && addItemsFromTier(v)}>
                     <SelectTrigger><SelectValue placeholder="+ Aplicar cota cadastrada" /></SelectTrigger>
                     <SelectContent>
                       {(() => {
@@ -1104,7 +1159,7 @@ export default function Proposals() {
                         <Label className="text-sm">Valor geral (fechado)</Label>
                         <p className="text-xs text-muted-foreground">Desconsidera os valores unitários dos itens.</p>
                       </div>
-                      <Switch checked={useFlat} onCheckedChange={setFlatMode} />
+                      <Switch checked={useFlat} onCheckedChange={setFlatMode} disabled={!podeEditar} aria-label="Valor geral (fechado)" />
                     </div>
                     {useFlat && (
                       <div className="flex items-center gap-2">
@@ -1118,6 +1173,7 @@ export default function Proposals() {
                       </div>
                     )}
                   </div>
+                  </fieldset>
 
                   {items.length === 0 ? (
                     <div className="border border-dashed rounded-md p-8 text-center text-sm text-muted-foreground">
@@ -1213,11 +1269,11 @@ export default function Proposals() {
                               {itemView === "grid" ? (
                                 <div className="grid grid-cols-2 gap-2">
                                   {group.list.map((it) => (
-                                    <div key={it.id} role="button" tabIndex={0} onClick={() => setEditingItem({ ...it })} onKeyDown={ativarComTeclado(() => setEditingItem({ ...it }))}
+                                    <div key={it.id} role="button" tabIndex={0} onClick={() => abrirItem(it)} onKeyDown={ativarComTeclado(() => abrirItem(it))}
                                       className="rounded-md border p-3 cursor-pointer hover:border-primary/60 hover:bg-muted/40 transition-colors">
                                       <div className="flex items-start justify-between gap-2">
                                         <span className="text-sm font-medium line-clamp-2">{it.name}</span>
-                                        <Button aria-label="Remover item da proposta" size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={(e) => { e.stopPropagation(); removeItem(it); }}><Trash2 className="h-4 w-4" /></Button>
+                                        <Button aria-label="Remover item da proposta" size="icon" variant="ghost" className="h-7 w-7 shrink-0" disabled={!podeEditar} onClick={(e) => { e.stopPropagation(); removeItem(it); }}><Trash2 className="h-4 w-4" /></Button>
                                       </div>
                                       <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                                         <span>{formatarNumero(it.quantity)}x{useFlat ? "" : ` ${fmtBRL(Number(it.unit_value))}`}</span>
@@ -1232,13 +1288,13 @@ export default function Proposals() {
                               ) : itemView === "compact" ? (
                                 <div className="rounded-md border divide-y">
                                   {group.list.map((it) => (
-                                    <div key={it.id} role="button" tabIndex={0} onClick={() => setEditingItem({ ...it })} onKeyDown={ativarComTeclado(() => setEditingItem({ ...it }))}
+                                    <div key={it.id} role="button" tabIndex={0} onClick={() => abrirItem(it)} onKeyDown={ativarComTeclado(() => abrirItem(it))}
                                       className="px-3 py-1.5 text-sm cursor-pointer hover:bg-muted/40">
                                       <div className="flex items-center justify-between gap-2">
                                         <span className="truncate">{formatarNumero(it.quantity)}x {it.name}</span>
                                         <div className="flex items-center gap-1 shrink-0">
                                           {!useFlat && <span className="text-xs font-medium">{fmtBRL(it.quantity * Number(it.unit_value))}</span>}
-                                          <Button aria-label="Remover item da proposta" size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); removeItem(it); }}><Trash2 className="h-4 w-4" /></Button>
+                                          <Button aria-label="Remover item da proposta" size="icon" variant="ghost" className="h-7 w-7" disabled={!podeEditar} onClick={(e) => { e.stopPropagation(); removeItem(it); }}><Trash2 className="h-4 w-4" /></Button>
                                         </div>
                                       </div>
                                       {it.description && <p className="text-xs text-muted-foreground whitespace-pre-wrap">{it.description}</p>}
@@ -1249,7 +1305,7 @@ export default function Proposals() {
                               ) : (
                                 <div className="space-y-2">
                                   {group.list.map((it) => (
-                                    <div key={it.id} role="button" tabIndex={0} onClick={() => setEditingItem({ ...it })} onKeyDown={ativarComTeclado(() => setEditingItem({ ...it }))}
+                                    <div key={it.id} role="button" tabIndex={0} onClick={() => abrirItem(it)} onKeyDown={ativarComTeclado(() => abrirItem(it))}
                                       className="flex items-center gap-3 rounded-md border p-3 cursor-pointer hover:border-primary/60 hover:bg-muted/40 transition-colors">
                                       <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2">
@@ -1262,7 +1318,7 @@ export default function Proposals() {
                                       </div>
                                       {!useFlat && <span className="text-sm font-semibold">{fmtBRL(it.quantity * Number(it.unit_value))}</span>}
                                       <Pencil className="h-4 w-4 text-muted-foreground" />
-                                      <Button aria-label="Remover item da proposta" size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); removeItem(it); }}><Trash2 className="h-4 w-4" /></Button>
+                                      <Button aria-label="Remover item da proposta" size="icon" variant="ghost" disabled={!podeEditar} onClick={(e) => { e.stopPropagation(); removeItem(it); }}><Trash2 className="h-4 w-4" /></Button>
                                     </div>
                                   ))}
                                 </div>
@@ -1283,12 +1339,17 @@ export default function Proposals() {
                 </TabsContent>
 
                 <TabsContent value="versions" className="pt-4">
-                  <ProposalVersionsEditor proposta={selected} onPropostaAlterada={recarregarSelecionada} />
+                  <ProposalVersionsEditor
+                    proposta={selected}
+                    itens={items}
+                    onPropostaAlterada={recarregarSelecionada}
+                    onItensAlterados={recarregarItensDasAtivacoes}
+                  />
                 </TabsContent>
 
                 <TabsContent value="actions" className="space-y-3 pt-4">
                   <div className="grid grid-cols-2 gap-2">
-                    <Button onClick={generatePdf} disabled={generating || items.length === 0}>
+                    <Button onClick={generatePdf} disabled={!podeEditar || generating || items.length === 0}>
                       {generating ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <FileDown className="h-4 w-4 mr-2" />}
                       Gerar PDF
                     </Button>
@@ -1297,6 +1358,7 @@ export default function Proposals() {
                     </Button>
                   </div>
 
+                  <fieldset disabled={!podeEditar} className="space-y-3">
                   <div className="border-t pt-3 space-y-2">
                     <Label className="text-xs text-muted-foreground">Alterar status</Label>
                     <div className="flex gap-2 flex-wrap">
@@ -1323,7 +1385,7 @@ export default function Proposals() {
                         <Briefcase className="h-4 w-4 mr-2" />
                         {selected.converted_opportunity_id ? "Oportunidade criada" : "→ Pipeline"}
                       </Button>
-                      <Button variant="outline" onClick={convertToContract} disabled={!!selected.converted_contract_id}>
+                      <Button variant="outline" onClick={convertToContract} disabled={!podeCriarContrato || !!selected.converted_contract_id}>
                         <FileSignature className="h-4 w-4 mr-2" />
                         {selected.converted_contract_id ? "Contrato criado" : "→ Contrato"}
                       </Button>
@@ -1333,20 +1395,22 @@ export default function Proposals() {
                   <div className="border-t pt-3">
                     <Button variant="destructive" size="sm" onClick={() => deleteProposal()}><Trash2 className="h-4 w-4 mr-2" /> Excluir proposta</Button>
                   </div>
+                  </fieldset>
                 </TabsContent>
 
-                <TabsContent value="info" className="space-y-3 pt-4">
+                <TabsContent value="info" className="pt-4">
+                  <fieldset disabled={!podeEditar} className="space-y-3">
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="space-y-1 p-1" data-field="sponsor">
                       <Label className="text-xs text-muted-foreground">Patrocinador</Label>
-                      <Select value={selected.sponsor_id ?? "none"} onValueChange={(v) => updateProposalField("sponsor_id", v === "none" ? null : v)}>
+                      <Select disabled={!podeEditar} value={selected.sponsor_id ?? "none"} onValueChange={(v) => updateProposalField("sponsor_id", v === "none" ? null : v)}>
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         <SelectContent><SelectItem value="none">— nenhum —</SelectItem>{sponsors.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1 p-1" data-field="propriedade">
-                      <Label className="text-xs text-muted-foreground">Propriedade</Label>
-                      <Select value={selected.property_id ?? "none"} onValueChange={(v) => updateProposalField("property_id", v === "none" ? null : v)}>
+                      <Label className="text-xs text-muted-foreground">Projeto</Label>
+                      <Select disabled={!podeEditar} value={selected.property_id ?? "none"} onValueChange={(v) => updateProposalField("property_id", v === "none" ? null : v)}>
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         <SelectContent><SelectItem value="none">— nenhuma —</SelectItem>{properties.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                       </Select>
@@ -1361,9 +1425,8 @@ export default function Proposals() {
                       <p className="text-xs text-muted-foreground">Ajuste em Itens ou no valor fechado.</p>
                     </div>
                   </div>
-                  {selected.message && (
-                    <div><Label className="text-xs text-muted-foreground">Mensagem</Label><p className="text-sm whitespace-pre-wrap">{selected.message}</p></div>
-                  )}
+                  <ProposalMessageField value={selected.message} onSave={(v) => updateProposalField("message", v)} />
+                  </fieldset>
                 </TabsContent>
 
                 <TabsContent value="ia" className="pt-4">

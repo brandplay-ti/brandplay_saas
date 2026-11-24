@@ -1,5 +1,5 @@
 // Copiloto para concluir uma tarefa (IA-16): tarefa do CRM, atividade de
-// oportunidade ou item de checklist de propriedade. A organização é a do
+// oportunidade ou item de checklist de projeto. A organização é a do
 // registro, lido sob RLS; as consultas ficam nela. Dados do patrocinador só
 // com acesso ao CRM, financeiros só com acesso ao financeiro.
 

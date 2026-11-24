@@ -60,11 +60,11 @@ export const buildAnalytics = ({
       if (b) { b.value += Number(i.amount || 0); b.count += 1; }
     });
 
-  // Receita por propriedade
+  // Receita por projeto
   const byProperty = new Map<string, { name: string; total: number; contracts: number; ativo: number }>();
   contracts.forEach((c) => {
     const key = c.property_id ?? "sem";
-    const cur = byProperty.get(key) ?? { name: propertyName(c.property_id) || "Sem propriedade", total: 0, contracts: 0, ativo: 0 };
+    const cur = byProperty.get(key) ?? { name: propertyName(c.property_id) || "Sem projeto", total: 0, contracts: 0, ativo: 0 };
     cur.total += Number(c.total_value || 0);
     cur.contracts += 1;
     if (c.status === "ativo") cur.ativo += 1;
@@ -231,12 +231,12 @@ export const AnalyticsTab = ({ semFunil = false, ...props }: AnalyticsInput & { 
       </Card>}
 
       <Card>
-        <CardHeader><CardTitle>Receita por propriedade</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Receita por projeto</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Propriedade</TableHead>
+                <TableHead>Projeto</TableHead>
                 <TableHead className="text-right">Contratos</TableHead>
                 <TableHead className="text-right">Ativos</TableHead>
                 <TableHead className="text-right">Receita</TableHead>

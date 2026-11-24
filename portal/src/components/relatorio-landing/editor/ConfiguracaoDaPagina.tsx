@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
+import { mensagemDeErroDeGravacao } from "@/lib/permissoes";
 import { CheckCircle2, CircleDashed, EyeOff, Loader2, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSalvarRelatorio, type Relatorio } from "@/hooks/useRelatorios";
-import { BLOCOS, blocoTemDados, type BlocoId, type EstiloDoRelatorio, type ModoDeAcesso, type PaginaRelatorio } from "@/lib/relatorioLanding";
+import { BLOCOS, blocoTemDados, MODULOS_DO_RELATORIO, type BlocoId, type EstiloDoRelatorio, type ModoDeAcesso, type PaginaRelatorio } from "@/lib/relatorioLanding";
 import { cn } from "@/lib/utils";
 
 const opcional = (max: number) => z.string().trim().max(max).transform((v) => v || null);
@@ -70,7 +71,7 @@ export function ConfiguracaoDaPagina({ relatorio, pagina, podeEditar, podePublic
       await salvar.mutateAsync({ ...parsed.data, hidden_blocks: ocultos });
       toast.success("Relatório salvo");
     } catch (erro) {
-      toast.error("Não foi possível salvar", { description: (erro as Error).message });
+      toast.error("Não foi possível salvar", { description: mensagemDeErroDeGravacao(erro, MODULOS_DO_RELATORIO) });
     }
   };
 
@@ -96,7 +97,7 @@ export function ConfiguracaoDaPagina({ relatorio, pagina, podeEditar, podePublic
                 id="rel-subtitulo"
                 value={form.subtitle}
                 onChange={(e) => campo("subtitle", e.target.value)}
-                placeholder="Sem subtítulo, a capa usa a chamada pública da propriedade."
+                placeholder="Sem subtítulo, a capa usa a chamada pública do projeto."
                 maxLength={300}
                 disabled={travado}
               />
@@ -109,7 +110,7 @@ export function ConfiguracaoDaPagina({ relatorio, pagina, podeEditar, podePublic
                 onChange={(e) => campo("summary", e.target.value)}
                 rows={6}
                 maxLength={3000}
-                placeholder="Sem resumo, a página usa o texto público da propriedade. Separe parágrafos com uma linha em branco."
+                placeholder="Sem resumo, a página usa o texto público do projeto. Separe parágrafos com uma linha em branco."
                 disabled={travado}
               />
             </div>

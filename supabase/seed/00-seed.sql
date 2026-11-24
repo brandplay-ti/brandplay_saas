@@ -169,4 +169,54 @@ begin
   raise notice 'superadmin de teste criado: % / %', v_email, v_password;
 end $$;
 
+-- Suporte da plataforma (0046), sem organização: lista clientes, dá baixa em
+-- fatura, lança desconto e entra no painel do cliente; não vê faturamento,
+-- planos, IA nem a equipe. Nasce pelo pré-cadastro, como pela tela Equipe.
+do $$
+declare
+  v_user_id  uuid := '00000000-0000-4000-a000-000000000003';
+  v_email    text := 'suporte@brandplay.local';
+  v_password text := 'brandplay-dev';
+  v_nome     text := 'Suporte de Testes';
+begin
+  delete from public.platform_admins where user_id = v_user_id;
+  delete from public.organization_members where user_id = v_user_id;
+  delete from public.organizations where owner_id = v_user_id;
+  delete from public.profiles where id = v_user_id;
+  delete from auth.users where email = v_email;
+  delete from public.platform_staff_signups where email = v_email;
+
+  insert into public.platform_staff_signups (email, created_by, expires_at)
+  values (v_email, '00000000-0000-4000-a000-000000000002', now() + interval '5 minutes');
+
+  insert into auth.users (
+    instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+    raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+    confirmation_token, recovery_token, email_change, email_change_token_new
+  ) values (
+    '00000000-0000-0000-0000-000000000000', v_user_id, 'authenticated', 'authenticated',
+    v_email, crypt(v_password, gen_salt('bf')), now(),
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    jsonb_build_object('full_name', v_nome), now(), now(), '', '', '', ''
+  );
+
+  insert into auth.identities (
+    user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at
+  ) values (
+    v_user_id, v_user_id::text,
+    jsonb_build_object('sub', v_user_id::text, 'email', v_email, 'email_verified', true),
+    'email', now(), now(), now()
+  );
+
+  if exists (select 1 from public.organizations where owner_id = v_user_id) then
+    raise exception 'seed: o suporte ganhou organização pessoal (pré-cadastro da 0046 não funcionou)';
+  end if;
+
+  update public.platform_staff_signups set consumed_at = now() where email = v_email;
+  insert into public.platform_admins (user_id, comment, role)
+  values (v_user_id, 'Seed local', 'suporte');
+
+  raise notice 'suporte de teste criado: % / %', v_email, v_password;
+end $$;
+
 commit;

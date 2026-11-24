@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, CalendarDays, ListChecks, Briefcase, Users, CheckCircle2, Building2, Target } from "lucide-react";
 import { toast } from "sonner";
+import { mensagemDeErroDeGravacao, mensagemSemEdicao, type ModulosDeEscrita } from "@/lib/permissoes";
 
 import { DueDateEditor } from "@/components/common/DueDateEditor";
 import { TaskInsightsButton } from "@/components/common/TaskInsightsButton";
@@ -61,9 +62,21 @@ const toKey = (d: Date) =>
 
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
+/** Módulo cuja escrita a RLS exige em cada origem do calendário (BP-29). */
+const MODULO_DA_ORIGEM: Record<Source, ModulosDeEscrita> = {
+  crm: "crm",
+  atividade: "vendas",
+  checklist: ["operacional", "crm"],
+};
+
 const CalendarPage = () => {
   const { user } = useAuth();
-  const { orgId } = useOrganization();
+  const { orgId, canWrite } = useOrganization();
+  // Concluir e mudar a data só para quem escreve no módulo de origem do item.
+  const podeAlterar = (item: CalItem) => {
+    const modulos = MODULO_DA_ORIGEM[item.source];
+    return (typeof modulos === "string" ? [modulos] : modulos).some((m) => canWrite(m));
+  };
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -207,8 +220,12 @@ const CalendarPage = () => {
     const rawId = item.id.split("-").slice(1).join("-");
     const table = item.source === "crm" ? "crm_tasks" : item.source === "atividade" ? "opportunity_activities" : "property_checklist_items";
     const status = item.source === "checklist" ? "concluido" : "concluida";
-    const { error } = await db.from(table).update({ status, completed_at: new Date().toISOString() }).eq("id", rawId);
-    if (error) return toast.error(error.message);
+    // A RLS recusa o UPDATE sem erro (0 linhas): sem linha de volta, nada mudou.
+    const { data: alteradas, error } = await db.from(table).update({ status, completed_at: new Date().toISOString() }).eq("id", rawId).select("id");
+    if (error || !alteradas?.length) {
+      const modulo = MODULO_DA_ORIGEM[item.source];
+      return toast.error("Não foi possível concluir", { description: error ? mensagemDeErroDeGravacao(error, modulo) : mensagemSemEdicao(modulo) });
+    }
     toast.success("Concluído");
     setItems((cur) => cur.map((i) => (i.id === item.id ? { ...i, done: true } : i)));
   };
@@ -217,8 +234,11 @@ const CalendarPage = () => {
     const rawId = item.id.split("-").slice(1).join("-");
     const table = item.source === "crm" ? "crm_tasks" : item.source === "atividade" ? "opportunity_activities" : "property_checklist_items";
     const value = next ? (item.source === "atividade" ? new Date(`${next}T12:00:00`).toISOString() : next) : null;
-    const { error } = await db.from(table).update({ due_date: value }).eq("id", rawId);
-    if (error) return toast.error(error.message);
+    const { data: alteradas, error } = await db.from(table).update({ due_date: value }).eq("id", rawId).select("id");
+    if (error || !alteradas?.length) {
+      const modulo = MODULO_DA_ORIGEM[item.source];
+      return toast.error("Não foi possível mudar a data", { description: error ? mensagemDeErroDeGravacao(error, modulo) : mensagemSemEdicao(modulo) });
+    }
     toast.success("Data atualizada");
     setItems((cur) =>
       next
@@ -344,7 +364,7 @@ const CalendarPage = () => {
                         <p className={`text-sm font-medium ${i.done ? "line-through text-muted-foreground" : ""}`}>{i.title}</p>
                         {i.description && <p className="text-xs text-muted-foreground line-clamp-3">{i.description}</p>}
                       </div>
-                      {!i.done && (
+                      {!i.done && podeAlterar(i) && (
                         <Button aria-label="Concluir" size="icon" variant="ghost" title="Concluir" onClick={() => complete(i)}>
                           <CheckCircle2 className="h-4 w-4" />
                         </Button>
@@ -357,7 +377,7 @@ const CalendarPage = () => {
                       </Badge>
                       {i.kind && <Badge variant="secondary" className="text-[10px] capitalize">{i.kind}</Badge>}
                       {i.priority && <Badge variant="outline" className="text-[10px] capitalize">Prioridade {i.priority}</Badge>}
-                      <DueDateEditor value={i.date} onSave={async (next) => { await changeDate(i, next); }} />
+                      <DueDateEditor value={i.date} disabled={!podeAlterar(i)} onSave={async (next) => { await changeDate(i, next); }} />
                       <TaskInsightsButton
                         taskId={i.id.split("-").slice(1).join("-")}
                         source={i.source === "crm" ? "crm_task" : i.source === "atividade" ? "activity" : "checklist"}
