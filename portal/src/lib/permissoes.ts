@@ -89,6 +89,9 @@ export function ehRecusaDePermissao(erro: unknown): boolean {
  */
 export type ModulosDeEscrita = ModuloDePermissao | readonly ModuloDePermissao[];
 
+/** Contrato, cláusulas e ativos do contrato: policies `crm OR financeiro` (0017). */
+export const MODULOS_DO_CONTRATO = ["crm", "financeiro"] as const;
+
 function rotuloDoModulo(module: ModuloDePermissao): string {
   return MODULOS_DE_PERMISSAO.find((m) => m.key === module)?.label ?? module;
 }

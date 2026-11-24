@@ -3,6 +3,8 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
+import { MODULOS_DO_CONTRATO, mensagemDeErroDeGravacao, mensagemSemEdicao } from "@/lib/permissoes";
 import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -171,9 +173,12 @@ const computeAutoStatus = (c: Contract): Status => {
 
 export default function Contracts() {
   const { user } = useAuth();
-  const { orgId, can } = useOrganization();
+  const { orgId, can, canWrite, isAdmin } = useOrganization();
   // Sem o funil (marca, ou papel sem vendas), o contrato nasce direto.
   const temVendas = can("vendas");
+  // Criar e alterar contrato pedem escrita em CRM ou Financeiro (0017); excluir é
+  // de owner/admin (contracts_admin_delete). Ver o módulo não basta (BP-29).
+  const podeEditar = MODULOS_DO_CONTRATO.some((m) => canWrite(m));
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
@@ -230,7 +235,8 @@ export default function Contracts() {
       if (newStatus !== c.status) updates.push({ id: c.id, status: newStatus });
       return { ...c, status: newStatus };
     });
-    if (updates.length > 0) {
+    // Quem só lê vê o status calculado, sem gravar (a RLS não aplicaria).
+    if (podeEditar && updates.length > 0) {
       await Promise.all(
         updates.map((u) => supabase.from("contracts").update({ status: u.status }).eq("id", u.id).eq("organization_id", orgId)),
       );
@@ -332,7 +338,7 @@ export default function Contracts() {
       opportunity_id: form.opportunity_id === "none" ? null : form.opportunity_id,
     });
     if (error) {
-      toast.error("Erro ao criar contrato");
+      toast.error("Erro ao criar contrato", { description: mensagemDeErroDeGravacao(error, MODULOS_DO_CONTRATO) });
       return;
     }
     toast.success("Contrato criado");
@@ -344,13 +350,15 @@ export default function Contracts() {
   const handleDelete = async () => {
     if (!deleteId) return;
     const c = contracts.find((x) => x.id === deleteId);
+    // Primeiro a linha: a RLS recusa o DELETE de quem não é owner/admin sem erro
+    // (0 linhas), e o arquivo só sai do storage se o contrato saiu de fato.
+    const { data: apagados, error } = await supabase.from("contracts").delete().eq("id", deleteId).select("id");
+    if (error || !apagados?.length) {
+      toast.error("Erro ao excluir", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DO_CONTRATO) : "Só o proprietário ou um administrador exclui contratos." });
+      return;
+    }
     if (c?.file_path) {
       await supabase.storage.from("contracts").remove([c.file_path]);
-    }
-    const { error } = await supabase.from("contracts").delete().eq("id", deleteId);
-    if (error) {
-      toast.error("Erro ao excluir");
-      return;
     }
     toast.success("Contrato removido");
     setDeleteId(null);
@@ -367,7 +375,8 @@ export default function Contracts() {
         description="Gerencie contratos, cláusulas, ativos e arquivos assinados."
         actions={
           <>
-            <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
+            {!podeEditar && <div className="max-w-md"><SomenteLeitura module={MODULOS_DO_CONTRATO} /></div>}
+            {podeEditar && <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
               <DialogTrigger asChild>
                 <Button><Plus className="h-4 w-4 mr-2" />Novo contrato</Button>
               </DialogTrigger>
@@ -494,7 +503,7 @@ export default function Contracts() {
                   <Button onClick={handleCreate}>Criar</Button>
                 </DialogFooter>
               </DialogContent>
-            </Dialog>
+            </Dialog>}
           </>
         }
       />
@@ -551,7 +560,7 @@ export default function Contracts() {
                 : "Cadastre o primeiro contrato de patrocínio."
               : "Ajuste a busca ou o filtro de status."
           }
-          action={contracts.length === 0 && (
+          action={contracts.length === 0 && podeEditar && (
             <Button onClick={() => setDialogOpen(true)}><Plus className="h-4 w-4 mr-2" />Novo contrato</Button>
           )}
         />
@@ -594,14 +603,17 @@ export default function Contracts() {
                       </StatusBadge>
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-destructive"
-                        onClick={() => setDeleteId(c.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {isAdmin && (
+                        <Button
+                          aria-label="Excluir contrato"
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive"
+                          onClick={() => setDeleteId(c.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -663,6 +675,10 @@ function ContractDetail({
   onDelete: (id: string) => void;
 }) {
   const { user } = useAuth();
+  const { canWrite, isAdmin } = useOrganization();
+  // Mesma regra da lista: escrita em CRM ou Financeiro; o padrão de cláusulas da
+  // organização é de owner/admin (contract_clause_templates_admin_write).
+  const podeEditar = MODULOS_DO_CONTRATO.some((m) => canWrite(m));
   const navigate = useNavigate();
   const [signing, setSigning] = useState(false);
   const [clauses, setClauses] = useState<Clause[]>([]);
@@ -745,7 +761,8 @@ function ContractDetail({
             end_date: contract.end_date,
           },
         })[0];
-        if (fresh && fresh.content && fresh.content !== registryClause.content) {
+        // Quem só lê vê a cláusula gravada; a sincronização é de quem edita.
+        if (podeEditar && fresh && fresh.content && fresh.content !== registryClause.content) {
           await supabase.from("contract_clauses").update({ content: fresh.content }).eq("id", registryClause.id);
           setClauses((prev) => prev.map((x) => (x.id === registryClause.id ? { ...x, content: fresh.content } : x)));
         }
@@ -757,9 +774,9 @@ function ContractDetail({
   if (!contract) return null;
 
   const updateStatus = async (status: Status) => {
-    const { error } = await supabase.from("contracts").update({ status }).eq("id", contract.id);
-    if (error) {
-      toast.error("Erro ao atualizar status");
+    const { data: alterados, error } = await supabase.from("contracts").update({ status }).eq("id", contract.id).select("id");
+    if (error || !alterados?.length) {
+      toast.error("Erro ao atualizar status", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DO_CONTRATO) : mensagemSemEdicao(MODULOS_DO_CONTRATO) });
       return;
     }
     toast.success("Status atualizado");
@@ -773,10 +790,10 @@ function ContractDetail({
       return;
     }
     setSigning(true);
-    const { error } = await supabase.from("contracts").update({ status: "ativo" as Status }).eq("id", contract.id);
-    if (error) {
+    const { data: assinados, error } = await supabase.from("contracts").update({ status: "ativo" as Status }).eq("id", contract.id).select("id");
+    if (error || !assinados?.length) {
       setSigning(false);
-      toast.error("Erro ao marcar contrato como assinado");
+      toast.error("Erro ao marcar contrato como assinado", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DO_CONTRATO) : mensagemSemEdicao(MODULOS_DO_CONTRATO) });
       return;
     }
     const { count } = await supabase
@@ -803,7 +820,7 @@ function ContractDetail({
       position: clauses.length,
     });
     if (error) {
-      toast.error("Erro ao adicionar cláusula");
+      toast.error("Erro ao adicionar cláusula", { description: mensagemDeErroDeGravacao(error, MODULOS_DO_CONTRATO) });
       return;
     }
     setNewClause({ title: "", content: "" });
@@ -812,18 +829,23 @@ function ContractDetail({
   };
 
   const deleteClause = async (id: string) => {
-    await supabase.from("contract_clauses").delete().eq("id", id);
+    const { data: apagadas, error } = await supabase.from("contract_clauses").delete().eq("id", id).select("id");
+    if (error || !apagadas?.length) {
+      toast.error("Erro ao excluir cláusula", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DO_CONTRATO) : mensagemSemEdicao(MODULOS_DO_CONTRATO) });
+      return;
+    }
     setClauses((prev) => prev.filter((c) => c.id !== id));
   };
 
   const saveClauseEdit = async () => {
     if (!editingClause) return;
-    const { error } = await supabase
+    const { data: salvas, error } = await supabase
       .from("contract_clauses")
       .update({ title: editingClause.title.trim(), content: editingClause.content || null })
-      .eq("id", editingClause.id);
-    if (error) {
-      toast.error("Erro ao salvar cláusula");
+      .eq("id", editingClause.id)
+      .select("id");
+    if (error || !salvas?.length) {
+      toast.error("Erro ao salvar cláusula", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DO_CONTRATO) : mensagemSemEdicao(MODULOS_DO_CONTRATO) });
       return;
     }
     setClauses((prev) =>
@@ -849,8 +871,8 @@ function ContractDetail({
       if (error) throw error;
       setHasTemplate(true);
       toast.success("Padrão da organização atualizado");
-    } catch {
-      toast.error("Erro ao salvar o padrão");
+    } catch (e) {
+      toast.error("Erro ao salvar o padrão", { description: mensagemDeErroDeGravacao(e, MODULOS_DO_CONTRATO) });
     } finally {
       setSavingTemplate(false);
     }
@@ -941,7 +963,7 @@ function ContractDetail({
       setClauses((data as Clause[]) ?? []);
       toast.success("Estrutura do contrato gerada");
     } catch (e) {
-      toast.error("Erro ao gerar estrutura do contrato");
+      toast.error("Erro ao gerar estrutura do contrato", { description: mensagemDeErroDeGravacao(e, MODULOS_DO_CONTRATO) });
     } finally {
       setGeneratingClauses(false);
       setConfirmStructure(false);
@@ -959,7 +981,7 @@ function ContractDetail({
       unit_value: Number(newAsset.unit_value) || 0,
     });
     if (error) {
-      toast.error("Erro ao adicionar ativo");
+      toast.error("Erro ao adicionar ativo", { description: mensagemDeErroDeGravacao(error, MODULOS_DO_CONTRATO) });
       return;
     }
     setNewAsset({ name: "", quantity: "1", unit_value: "" });
@@ -968,7 +990,11 @@ function ContractDetail({
   };
 
   const deleteAsset = async (id: string) => {
-    await supabase.from("contract_assets").delete().eq("id", id);
+    const { data: apagados, error } = await supabase.from("contract_assets").delete().eq("id", id).select("id");
+    if (error || !apagados?.length) {
+      toast.error("Erro ao excluir ativo", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DO_CONTRATO) : mensagemSemEdicao(MODULOS_DO_CONTRATO) });
+      return;
+    }
     setAssets((prev) => prev.filter((a) => a.id !== id));
   };
 
@@ -1040,7 +1066,7 @@ function ContractDetail({
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
       console.error("Upload error:", error);
-      toast.error(`Erro ao enviar arquivo: ${error instanceof Error ? error.message : "falha desconhecida"}`);
+      toast.error("Erro ao enviar arquivo", { description: mensagemDeErroDeGravacao(error, MODULOS_DO_CONTRATO, "falha desconhecida") });
     } finally {
       setUploading(false);
     }
@@ -1121,8 +1147,18 @@ function ContractDetail({
 
   const handleRemoveFile = async () => {
     if (!contract.file_path) return;
+    // Primeiro a linha: o storage aceita qualquer membro (contracts_bucket_org),
+    // e o arquivo só sai se o contrato deixou de apontar para ele.
+    const { data: alterados, error } = await supabase
+      .from("contracts")
+      .update({ file_path: null, file_name: null })
+      .eq("id", contract.id)
+      .select("id");
+    if (error || !alterados?.length) {
+      toast.error("Erro ao remover arquivo", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DO_CONTRATO) : mensagemSemEdicao(MODULOS_DO_CONTRATO) });
+      return;
+    }
     await supabase.storage.from("contracts").remove([contract.file_path]);
-    await supabase.from("contracts").update({ file_path: null, file_name: null }).eq("id", contract.id);
     toast.success("Arquivo removido");
     onChanged();
   };
@@ -1156,7 +1192,7 @@ function ContractDetail({
       .from("contracts")
       .update({ use_flat_value: enabled, flat_value: enabled ? value : 0, total_value: value })
       .eq("id", contract.id);
-    if (error) { toast.error("Erro ao atualizar valor fechado"); return; }
+    if (error) { toast.error("Erro ao atualizar valor fechado", { description: mensagemDeErroDeGravacao(error, MODULOS_DO_CONTRATO) }); return; }
     toast.success(enabled ? "Valor fechado ativado" : "Valor fechado desativado");
     onChanged();
   };
@@ -1166,7 +1202,7 @@ function ContractDetail({
       .from("contracts")
       .update({ flat_value: value, total_value: value })
       .eq("id", contract.id);
-    if (error) { toast.error("Erro ao salvar valor geral"); return; }
+    if (error) { toast.error("Erro ao salvar valor geral", { description: mensagemDeErroDeGravacao(error, MODULOS_DO_CONTRATO) }); return; }
     toast.success("Valor geral atualizado");
     onChanged();
   };
@@ -1196,15 +1232,18 @@ function ContractDetail({
                 <FileText className="h-3.5 w-3.5 mr-1" />
                 {generatingReport ? "Gerando..." : "Relatório de entregas"}
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
-                <Pencil className="h-3.5 w-3.5 mr-1" />Editar
-              </Button>
+              {podeEditar && (
+                <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
+                  <Pencil className="h-3.5 w-3.5 mr-1" />Editar
+                </Button>
+              )}
               <StatusBadge tone={STATUS_META[contract.status].tone}>
                 {STATUS_META[contract.status].label}
               </StatusBadge>
             </div>
           </div>
         </SheetHeader>
+        {!podeEditar && <div className="mt-3"><SomenteLeitura module={MODULOS_DO_CONTRATO} /></div>}
 
         <div className="mt-6 space-y-6">
           {/* Quick info */}
@@ -1229,7 +1268,7 @@ function ContractDetail({
                   Ver entregas
                 </Button>
               </div>
-            ) : (
+            ) : podeEditar && (
               <Button onClick={markAsSigned} disabled={signing} className="w-full sm:w-auto">
                 <PackageCheck className="h-4 w-4 mr-2" />
                 {signing ? "Processando…" : "Marcar como assinado"}
@@ -1237,7 +1276,7 @@ function ContractDetail({
             )}
             <div className="flex items-center gap-2">
               <Label className="text-xs text-muted-foreground">Mudar status:</Label>
-              <Select value={contract.status} onValueChange={(v) => updateStatus(v as Status)}>
+              <Select value={contract.status} onValueChange={(v) => updateStatus(v as Status)} disabled={!podeEditar}>
                 <SelectTrigger className="w-[200px] h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.keys(STATUS_META) as Status[]).map((s) => (
@@ -1306,22 +1345,24 @@ function ContractDetail({
                     <Button size="sm" variant="outline" onClick={handleDownload}>
                       <Download className="h-4 w-4 mr-1" />Baixar
                     </Button>
-                    <Button size="sm" variant="ghost" className="text-destructive" onClick={handleRemoveFile}>
-                      <X className="h-4 w-4" />
-                    </Button>
+                    {podeEditar && (
+                      <Button aria-label="Remover arquivo" size="sm" variant="ghost" className="text-destructive" onClick={handleRemoveFile}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
                   </Card>
                 </>
               ) : (
                 <Card className="p-6 border-dashed text-center">
                   <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground mb-3">Anexe o PDF ou DOCX assinado</p>
-                  <Button
+                  <p className="text-sm text-muted-foreground mb-3">{podeEditar ? "Anexe o PDF ou DOCX assinado" : "Nenhum arquivo anexado."}</p>
+                  {podeEditar && <Button
                     size="sm"
                     disabled={uploading}
                     onClick={() => fileInputRef.current?.click()}
                   >
                     {uploading ? "Enviando..." : "Selecionar arquivo"}
-                  </Button>
+                  </Button>}
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -1342,15 +1383,15 @@ function ContractDetail({
                     Gera as 13 partes (dados cadastrais, objeto, ativos, obrigações, pagamento, vigência, rescisão, foro, assinaturas...) já preenchidas com os dados do patrocinador e da organização.
                   </p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Button
+                {podeEditar && <div className="flex items-center gap-2 shrink-0">
+                  {isAdmin && <Button
                     size="sm"
                     variant="outline"
                     disabled={savingTemplate || !clauses.length}
                     onClick={saveAsDefaultTemplate}
                   >
                     {savingTemplate ? "Salvando..." : "Salvar como padrão"}
-                  </Button>
+                  </Button>}
                   <Button
                     size="sm"
                     variant={clauses.length ? "outline" : "default"}
@@ -1360,7 +1401,7 @@ function ContractDetail({
                     <Sparkles className="h-4 w-4 mr-1" />
                     {generatingClauses ? "Gerando..." : clauses.length ? "Regerar" : "Gerar estrutura"}
                   </Button>
-                </div>
+                </div>}
               </Card>
               {hasTemplate && (
                 <p className="text-xs text-muted-foreground">
@@ -1393,18 +1434,19 @@ function ContractDetail({
                         <p className="font-semibold text-sm">{cl.title}</p>
                         {cl.content && <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{cl.content}</p>}
                       </div>
-                      <div className="flex shrink-0">
+                      {podeEditar && <div className="flex shrink-0">
                         <Button
+                          aria-label="Editar cláusula"
                           size="sm"
                           variant="ghost"
                           onClick={() => setEditingClause({ id: cl.id, title: cl.title, content: cl.content ?? "" })}
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deleteClause(cl.id)}>
+                        <Button aria-label="Excluir cláusula" size="sm" variant="ghost" className="text-destructive" onClick={() => deleteClause(cl.id)}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
-                      </div>
+                      </div>}
                     </div>
                   )}
                 </Card>
@@ -1425,7 +1467,7 @@ function ContractDetail({
                 </AlertDialogContent>
               </AlertDialog>
 
-              <Card className="p-3 border-dashed space-y-2">
+              {podeEditar && <Card className="p-3 border-dashed space-y-2">
                 <Input
                   placeholder="Título da cláusula (ex.: Exclusividade)"
                   value={newClause.title}
@@ -1440,7 +1482,7 @@ function ContractDetail({
                 <Button size="sm" onClick={addClause} disabled={!newClause.title.trim()}>
                   <Plus className="h-4 w-4 mr-1" />Adicionar cláusula
                 </Button>
-              </Card>
+              </Card>}
             </TabsContent>
 
             {/* Ativos */}
@@ -1451,10 +1493,11 @@ function ContractDetail({
                     <Label className="text-sm">Valor geral (fechado)</Label>
                     <p className="text-xs text-muted-foreground">Ignora valores unitários e mostra apenas os ativos.</p>
                   </div>
-                  <Switch checked={useFlatContract} onCheckedChange={toggleFlatValue} />
+                  <Switch checked={useFlatContract} onCheckedChange={toggleFlatValue} disabled={!podeEditar} aria-label="Valor geral (fechado)" />
                 </div>
                 {useFlatContract && (
                   <CurrencyInput
+                    disabled={!podeEditar}
                     placeholder="Valor geral do contrato"
                     defaultValue={Number(contract.flat_value ?? contract.total_value ?? 0)}
                     onBlur={(e) => saveFlatValue(parseNumberBR(e.target.value) ?? 0)}
@@ -1490,9 +1533,11 @@ function ContractDetail({
                           <p className="text-xs text-muted-foreground italic whitespace-pre-wrap mt-1">Obs.: {a.notes}</p>
                         )}
                       </div>
-                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deleteAsset(a.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      {podeEditar && (
+                        <Button aria-label="Excluir ativo" size="sm" variant="ghost" className="text-destructive" onClick={() => deleteAsset(a.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </Card>
                   ))}
                 </div>
@@ -1504,7 +1549,7 @@ function ContractDetail({
                     : `Total dos ativos: ${formatBRL(assetsTotal)}`}
                 </div>
               )}
-              <Card className="p-3 border-dashed space-y-2">
+              {podeEditar && <Card className="p-3 border-dashed space-y-2">
                 <Input
                   placeholder="Nome do ativo (ex.: Placa de campo)"
                   value={newAsset.name}
@@ -1528,7 +1573,7 @@ function ContractDetail({
                 <Button size="sm" onClick={addAsset} disabled={!newAsset.name.trim()}>
                   <Plus className="h-4 w-4 mr-1" />Adicionar ativo
                 </Button>
-              </Card>
+              </Card>}
             </TabsContent>
 
             {/* Detalhes */}
@@ -1555,11 +1600,13 @@ function ContractDetail({
             </TabsContent>
           </Tabs>
 
-          <div className="border-t pt-4 flex justify-between">
-            <Button variant="ghost" size="sm" className="text-destructive" onClick={() => onDelete(contract.id)}>
-              <Trash2 className="h-4 w-4 mr-1" />Excluir contrato
-            </Button>
-          </div>
+          {isAdmin && (
+            <div className="border-t pt-4 flex justify-between">
+              <Button variant="ghost" size="sm" className="text-destructive" onClick={() => onDelete(contract.id)}>
+                <Trash2 className="h-4 w-4 mr-1" />Excluir contrato
+              </Button>
+            </div>
+          )}
         </div>
       </SheetContent>
       <EditContractDialog
@@ -1592,6 +1639,9 @@ function EditContractDialog({
   opportunities: Opportunity[];
   onSaved: () => void;
 }) {
+  // Ler o funil basta aqui: o campo só lista oportunidades, e vincular grava no
+  // contrato; a etapa da oportunidade muda pelo gatilho SECURITY DEFINER
+  // tg_contract_sync_opportunity_stage, sem escrita em vendas (BP-29).
   const { can } = useOrganization();
   const [form, setForm] = useState({
     contract_number: contract.contract_number ?? "",
@@ -1642,7 +1692,7 @@ function EditContractDialog({
       return;
     }
     setSaving(true);
-    const { error } = await supabase
+    const { data: salvos, error } = await supabase
       .from("contracts")
       .update({
         contract_number: form.contract_number || null,
@@ -1663,10 +1713,11 @@ function EditContractDialog({
         property_id: form.property_id === "none" ? null : form.property_id,
         opportunity_id: form.opportunity_id === "none" ? null : form.opportunity_id,
       })
-      .eq("id", contract.id);
+      .eq("id", contract.id)
+      .select("id");
     setSaving(false);
-    if (error) {
-      toast.error("Erro ao salvar alterações");
+    if (error || !salvos?.length) {
+      toast.error("Erro ao salvar alterações", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DO_CONTRATO) : mensagemSemEdicao(MODULOS_DO_CONTRATO) });
       return;
     }
     toast.success("Contrato atualizado");

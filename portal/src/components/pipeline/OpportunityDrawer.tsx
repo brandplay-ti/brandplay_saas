@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
 import { SomenteLeitura } from "@/components/SomenteLeitura";
-import { mensagemDeErroDeGravacao, mensagemSemEdicao } from "@/lib/permissoes";
+import { MODULOS_DO_CONTRATO, mensagemDeErroDeGravacao, mensagemSemEdicao } from "@/lib/permissoes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/CurrencyInput";
@@ -241,7 +241,7 @@ export function OpportunityDrawer({
   // Funil (BP-29). Converter em contrato também grava contrato (crm ou financeiro),
   // e "Novo patrocinador" grava no CRM.
   const podeEditar = canWrite("vendas");
-  const podeCriarContrato = podeEditar && (canWrite("crm") || canWrite("financeiro"));
+  const podeCriarContrato = podeEditar && MODULOS_DO_CONTRATO.some((m) => canWrite(m));
   const podeCriarPatrocinador = canWrite("crm");
   const navigate = useNavigate();
   const [opp, setOpp] = useState<Opp | null>(null);
@@ -655,7 +655,7 @@ export function OpportunityDrawer({
       .single();
     if (contractError || !contractData) {
       setConverting(false);
-      toast.error("Erro ao gerar contrato", { description: mensagemDeErroDeGravacao(contractError, ["crm", "financeiro"]) });
+      toast.error("Erro ao gerar contrato", { description: mensagemDeErroDeGravacao(contractError, MODULOS_DO_CONTRATO) });
       return;
     }
     if (opp.converted_proposal_id) {

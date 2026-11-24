@@ -85,7 +85,40 @@ Edge Functions do módulo: `score-leads`, `generate-proposal-ai` e
 `generate-proposal-wizard` exigem escrita; `suggest-next-steps`,
 `prepare-meeting-ai` e `estimate-activation-values` só leem.
 
+### Contratos (`crm` ou `financeiro`) e Financeiro (`financeiro`)
+
+| Tela | Escrita exigida |
+|---|---|
+| Contratos: novo contrato, editar, mudar status, marcar como assinado | `crm` ou `financeiro` (`MODULOS_DO_CONTRATO`) |
+| Contrato: anexar e remover arquivo, cláusulas, gerar estrutura, ativos, valor fechado | `crm` ou `financeiro` |
+| Contrato: "Salvar como padrão" das cláusulas | owner/admin (`contract_clause_templates_admin_write`) |
+| Contrato: excluir | owner/admin (`contracts_admin_delete`) |
+| Contrato: gerar PDF, Word, relatório de entregas, baixar, resumo por IA | leitura |
+| Proposta e oportunidade: converter em contrato | `vendas` e (`crm` ou `financeiro`) |
+| Financeiro: dar baixa e reabrir parcela | `financeiro` |
+
+O status calculado do contrato (ativo, vencendo, encerrado) e a cláusula de
+dados cadastrais só são regravados ao abrir a tela por quem edita; quem só lê
+vê o valor calculado.
+
+"Oportunidade vinculada", no editar contrato, segue com `can("vendas")`: o
+campo lista oportunidades (leitura), e vincular grava só no contrato; a etapa
+da oportunidade muda pelo gatilho `tg_contract_sync_opportunity_stage`, que é
+`SECURITY DEFINER`.
+
+Excluir contrato e remover arquivo gravam primeiro a linha e só depois apagam
+o arquivo: antes, o arquivo saía do storage mesmo quando a RLS recusava a
+exclusão (que é de owner/admin), e o contrato ficava sem o PDF.
+
+Lacuna conhecida, sem mudança de banco nesta tarefa: a policy do bucket
+`contracts` (`contracts_bucket_org`, 0007) aceita qualquer membro da
+organização, inclusive para apagar. A tela já segue a regra do contrato;
+restringir o storage é uma migration à parte.
+
+Edge Functions do módulo: `summarize-contract` continua com leitura (grava o
+resumo só se a RLS deixar e devolve `saved: false` para quem só lê);
+`generate-contract-pdf` e `generate-delivery-report` são exportação.
+
 ### Ainda por fazer
 
-Contratos e Financeiro, e Operacional (entregas, campo, projetos, ativos,
-BrandTrack), cada um no seu PR.
+Operacional (entregas, campo, projetos, ativos, BrandTrack), no próximo PR.
