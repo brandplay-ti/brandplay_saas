@@ -35,11 +35,12 @@ import {
   ClipboardPaste,
   FileSpreadsheet,
   FileDown,
-
+  FolderOpen,
 } from "lucide-react";
 
 import PropertyMediaGallery from "@/components/property/PropertyMediaGallery";
 import PropertyChecklist from "@/components/property/PropertyChecklist";
+import EditionMediaFolders from "@/components/property/EditionMediaFolders";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -267,7 +268,10 @@ const ASSET_STATUS_COLOR: Record<string, string> = {
 
 export default function PropertyDetail() {
   // Propostas, media kit público e leads são do funil: a marca não tem (0043).
-  const temVendas = useOrganization().can("vendas");
+  const { can, orgName } = useOrganization();
+  const temVendas = can("vendas");
+  // Só experiência: a RLS da 0049 decide quem escreve no material.
+  const podeEditarMaterial = can("crm") || can("operacional");
   const confirm = useConfirm();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -1344,6 +1348,15 @@ export default function PropertyDetail() {
     return <LoadingSkeleton variant="detalhe" className="mx-auto max-w-7xl" />;
   }
 
+  // Cliente › Projeto › Edição, com os nomes (D10). Projeto raiz sem edição:
+  // só Cliente › Projeto.
+  const projetoRaiz = property.parent_property_id
+    ? seasons.find((s) => s.id === property.parent_property_id)
+    : null;
+  const trilhaDoMaterial = [orgName, projetoRaiz?.name, property.name].filter(
+    (nome): nome is string => !!nome,
+  );
+
   const upcomingEvents = events.filter((e) => new Date(e.starts_at) >= new Date());
   const pastEvents = events.filter((e) => new Date(e.starts_at) < new Date());
 
@@ -1486,6 +1499,10 @@ export default function PropertyDetail() {
           <TabsTrigger value="gallery">
             <ImageIcon className="h-3.5 w-3.5 mr-1" />
             Galeria
+          </TabsTrigger>
+          <TabsTrigger value="material">
+            <FolderOpen className="h-3.5 w-3.5 mr-1" />
+            Material
           </TabsTrigger>
           <TabsTrigger value="checklist">
             <ListChecks className="h-3.5 w-3.5 mr-1" />
@@ -2697,6 +2714,15 @@ export default function PropertyDetail() {
         {/* GALLERY */}
         <TabsContent value="gallery" className="space-y-4 mt-4">
           {user && <PropertyMediaGallery propertyId={property.id} ownerId={user.id} />}
+        </TabsContent>
+
+        {/* MATERIAL DA EDIÇÃO (BP-7) */}
+        <TabsContent value="material" className="space-y-4 mt-4">
+          <EditionMediaFolders
+            propertyId={property.id}
+            trilha={trilhaDoMaterial}
+            podeEditar={podeEditarMaterial}
+          />
         </TabsContent>
 
         {/* CHECKLIST */}
