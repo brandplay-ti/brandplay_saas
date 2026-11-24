@@ -6,6 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClientTypeCard } from "@/components/billing/ClientTypeCard";
 import { CurrentPlanCard } from "@/components/billing/CurrentPlanCard";
+import { StorageUsageCard } from "@/components/billing/StorageUsageCard";
 import { InvoicesTable } from "@/components/billing/InvoicesTable";
 import { PlanCatalog } from "@/components/billing/PlanCatalog";
 import { ProvisionalAccessCard } from "@/components/billing/ProvisionalAccessCard";
@@ -171,6 +172,8 @@ const Plan = () => {
               pendingAction={acaoEmAndamento}
               onAction={(acao) => executar({ action: acao })}
             />
+
+            <StorageUsageCard orgId={orgId} />
 
             <ClientTypeCard hasSubscription={!!status.data.subscription} />
 
