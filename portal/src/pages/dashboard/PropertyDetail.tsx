@@ -85,6 +85,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { dataLocal } from "@/lib/datas";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
+import { MODULOS_DA_OPERACAO, mensagemDeErroDeGravacao, mensagemSemEdicao } from "@/lib/permissoes";
 import { toast } from "sonner";
 import { SponsorSocialDashboard } from "@/components/sponsors/SponsorProfileFields";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -267,7 +269,13 @@ const ASSET_STATUS_COLOR: Record<string, string> = {
 
 export default function PropertyDetail() {
   // Propostas, media kit público e leads são do funil: a marca não tem (0043).
-  const temVendas = useOrganization().can("vendas");
+  const { can, canWrite } = useOrganization();
+  const temVendas = can("vendas");
+  // Projeto, agenda, temporadas, página pública e mapa de ativos gravam com
+  // Entregas ou CRM; cotas, vendas de cota e quantidades por cota, só com CRM
+  // (0017). Ver o módulo não basta (BP-29).
+  const podeEditar = MODULOS_DA_OPERACAO.some((m) => canWrite(m));
+  const podeEditarCotas = canWrite("crm");
   const confirm = useConfirm();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -1217,8 +1225,8 @@ export default function PropertyDetail() {
       destructive: true,
     });
     if (!confirmado) return;
-    const { error } = await supabase.from("sponsorship_tiers").delete().eq("id", tierId);
-    if (error) return toast.error(error.message);
+    const { data: apagadas, error } = await supabase.from("sponsorship_tiers").delete().eq("id", tierId).select("id");
+    if (error || !apagadas?.length) return toast.error("Não foi possível excluir a cota", { description: error ? mensagemDeErroDeGravacao(error, "crm") : mensagemSemEdicao("crm") });
     toast.success("Cota excluída");
     loadAll();
   };
@@ -1231,14 +1239,14 @@ export default function PropertyDetail() {
       brand: brand.trim(),
       status: "vendida",
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error("Não foi possível vender a vaga", { description: mensagemDeErroDeGravacao(error, "crm") });
     toast.success(`Vaga reservada em ${tier.name}`);
     loadAll();
   };
 
   const releaseSlot = async (saleId: string) => {
-    const { error } = await supabase.from("tier_sales").delete().eq("id", saleId);
-    if (error) return toast.error(error.message);
+    const { data: liberadas, error } = await supabase.from("tier_sales").delete().eq("id", saleId).select("id");
+    if (error || !liberadas?.length) return toast.error("Não foi possível liberar a vaga", { description: error ? mensagemDeErroDeGravacao(error, "crm") : mensagemSemEdicao("crm") });
     toast.success("Vaga liberada");
     loadAll();
   };
@@ -1257,7 +1265,7 @@ export default function PropertyDetail() {
       location: eventForm.location || null,
       description: eventForm.description || null,
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error("Não foi possível criar o evento", { description: mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) });
     toast.success("Evento adicionado");
     setEventDialogOpen(false);
     setEventForm({
@@ -1278,8 +1286,8 @@ export default function PropertyDetail() {
       destructive: true,
     });
     if (!confirmado) return;
-    const { error } = await supabase.from("property_events").delete().eq("id", evId);
-    if (error) return toast.error(error.message);
+    const { data: apagados, error } = await supabase.from("property_events").delete().eq("id", evId).select("id");
+    if (error || !apagados?.length) return toast.error("Não foi possível excluir o evento", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) : mensagemSemEdicao(MODULOS_DA_OPERACAO) });
     toast.success("Evento excluído");
     loadAll();
   };
@@ -1292,7 +1300,7 @@ export default function PropertyDetail() {
       return;
     }
     setSavingPub(true);
-    const { error } = await supabase
+    const { data: salvos, error } = await supabase
       .from("sports_properties")
       .update({
         public_slug: pubForm.public_slug.trim() || null,
@@ -1300,13 +1308,14 @@ export default function PropertyDetail() {
         public_headline: pubForm.public_headline.trim() || null,
         public_about: pubForm.public_about.trim() || null,
       })
-      .eq("id", id);
+      .eq("id", id)
+      .select("id");
     setSavingPub(false);
-    if (error) {
-      if (error.code === "23505") {
+    if (error || !salvos?.length) {
+      if (error?.code === "23505") {
         toast.error("Esta URL já está em uso. Escolha outra.");
       } else {
-        toast.error(error.message);
+        toast.error("Não foi possível salvar", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) : mensagemSemEdicao(MODULOS_DA_OPERACAO) });
       }
       return;
     }
@@ -1731,9 +1740,13 @@ export default function PropertyDetail() {
             <p className="text-sm text-muted-foreground">
               Pacotes de patrocínio com ativos inclusos e vagas disponíveis.
             </p>
-            <Button onClick={() => openTierDialog()} size="sm">
-              <Plus className="h-4 w-4 mr-1" /> Nova cota
-            </Button>
+            {podeEditarCotas ? (
+              <Button onClick={() => openTierDialog()} size="sm">
+                <Plus className="h-4 w-4 mr-1" /> Nova cota
+              </Button>
+            ) : (
+              <div className="max-w-md"><SomenteLeitura module="crm" /></div>
+            )}
           </div>
 
           {tiers.length === 0 ? (
@@ -1764,14 +1777,14 @@ export default function PropertyDetail() {
                           <p className="text-2xl font-bold mt-1">{fmtBRL(t.value)}</p>
                           <p className="text-xs text-muted-foreground">por vaga</p>
                         </div>
-                        <div className="flex gap-1">
+                        {podeEditarCotas && <div className="flex gap-1">
                           <Button aria-label="Editar cota" size="icon" variant="ghost" onClick={() => openTierDialog(t)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                           <Button aria-label="Excluir cota" size="icon" variant="ghost" onClick={() => deleteTier(t.id)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
-                        </div>
+                        </div>}
                       </div>
 
                       <div>
@@ -1796,20 +1809,20 @@ export default function PropertyDetail() {
                           {sales.map((s) => (
                             <div key={s.id} className="flex items-center justify-between text-xs">
                               <span className="font-medium">{s.brand ?? "—"}</span>
-                              <Button
+                              {podeEditarCotas && <Button
                                 variant="ghost"
                                 size="sm"
                                 className="h-6 px-2 text-destructive hover:text-destructive"
                                 onClick={() => releaseSlot(s.id)}
                               >
                                 Liberar
-                              </Button>
+                              </Button>}
                             </div>
                           ))}
                         </div>
                       )}
 
-                      {available > 0 && (
+                      {available > 0 && podeEditarCotas && (
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button size="sm" variant="outline" className="w-full">
@@ -1862,7 +1875,7 @@ export default function PropertyDetail() {
                     XLS
                   </Button>
 
-                  <Button
+                  {podeEditarCotas && <Button
                     variant="outline"
                     size="sm"
                     onClick={() => {
@@ -1872,7 +1885,7 @@ export default function PropertyDetail() {
                   >
                     <ClipboardPaste className="h-4 w-4 mr-1.5" />
                     Colar
-                  </Button>
+                  </Button>}
                   <Button aria-label={showTierMap ? "Ocultar mapa das cotas" : "Mostrar mapa das cotas"} aria-pressed={showTierMap} variant="ghost" size="icon" onClick={() => setShowTierMap((v) => !v)}>
                     {showTierMap ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
@@ -2292,9 +2305,13 @@ export default function PropertyDetail() {
             <p className="text-sm text-muted-foreground">
               Calendário de jogos, eventos e ativações.
             </p>
-            <Button size="sm" onClick={() => setEventDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-1" /> Novo evento
-            </Button>
+            {podeEditar ? (
+              <Button size="sm" onClick={() => setEventDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-1" /> Novo evento
+              </Button>
+            ) : (
+              <div className="max-w-md"><SomenteLeitura module={MODULOS_DA_OPERACAO} /></div>
+            )}
           </div>
 
           <Card>
@@ -2326,9 +2343,9 @@ export default function PropertyDetail() {
                           <p className="text-xs text-muted-foreground">📍 {e.location}</p>
                         )}
                       </div>
-                      <Button aria-label="Excluir evento" variant="ghost" size="icon" onClick={() => deleteEvent(e.id)}>
+                      {podeEditar && <Button aria-label="Excluir evento" variant="ghost" size="icon" onClick={() => deleteEvent(e.id)}>
                         <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      </Button>}
                     </div>
                   ))}
                 </div>
@@ -2363,9 +2380,11 @@ export default function PropertyDetail() {
             <p className="text-sm text-muted-foreground">
               Edições anteriores e futuras deste projeto.
             </p>
-            <Button size="sm" onClick={() => setSeasonDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-1" /> Nova edição
-            </Button>
+            {podeEditar && (
+              <Button size="sm" onClick={() => setSeasonDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-1" /> Nova edição
+              </Button>
+            )}
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -2403,6 +2422,8 @@ export default function PropertyDetail() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {!podeEditar && <SomenteLeitura module={MODULOS_DA_OPERACAO} />}
+              <fieldset disabled={!podeEditar} className="space-y-4 min-w-0">
               <div className="flex items-center justify-between p-3 border rounded-md">
                 <div>
                   <p className="font-medium text-sm">Publicar página</p>
@@ -2463,11 +2484,14 @@ export default function PropertyDetail() {
                 />
               </div>
 
+              </fieldset>
               <div className="flex flex-col sm:flex-row gap-2 justify-between items-start sm:items-center">
-                <Button onClick={savePublicSettings} disabled={savingPub}>
-                  {savingPub && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Salvar configurações
-                </Button>
+                {podeEditar ? (
+                  <Button onClick={savePublicSettings} disabled={savingPub}>
+                    {savingPub && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Salvar configurações
+                  </Button>
+                ) : <span />}
                 {pubForm.is_published && pubForm.public_slug && (
                   <div className="flex gap-2">
                     <Button
@@ -2729,7 +2753,7 @@ export default function PropertyDetail() {
             <Button variant="outline" onClick={() => setPasteMapOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={applyPastedTierMap} disabled={pasteMapSaving || !pasteMapText.trim()}>
+            <Button onClick={applyPastedTierMap} disabled={!podeEditarCotas || pasteMapSaving || !pasteMapText.trim()}>
               {pasteMapSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Aplicar
             </Button>
@@ -2741,12 +2765,13 @@ export default function PropertyDetail() {
           <Dialog open={!!mapEditAsset} onOpenChange={(o) => !o && setMapEditAsset(null)}>
             <DialogContent className="max-w-lg">
               <DialogHeader>
-                <DialogTitle>Editar ativo</DialogTitle>
+                <DialogTitle>{podeEditarCotas ? "Editar ativo" : "Ativo"}</DialogTitle>
                 <DialogDescription>
                   Altere os dados do ativo e as quantidades em cada cota.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-3">
+              {!podeEditarCotas && <SomenteLeitura module="crm" />}
+              <fieldset disabled={!podeEditarCotas} className="space-y-3 min-w-0">
                 <div className="space-y-1.5">
                   <Label>Nome</Label>
                   <Input
@@ -2803,12 +2828,12 @@ export default function PropertyDetail() {
                   </div>
                   <p className="text-xs text-muted-foreground">0 remove o ativo da cota.</p>
                 </div>
-              </div>
+              </fieldset>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setMapEditAsset(null)}>
                   Cancelar
                 </Button>
-                <Button onClick={saveMapAsset} disabled={mapEditSaving}>
+                <Button onClick={saveMapAsset} disabled={!podeEditarCotas || mapEditSaving}>
                   {mapEditSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Salvar
                 </Button>

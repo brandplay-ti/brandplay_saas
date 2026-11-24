@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
+import { MODULOS_DA_OPERACAO, mensagemDeErroDeGravacao, mensagemSemEdicao } from "@/lib/permissoes";
 import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -98,7 +100,10 @@ type AssetSort = (typeof ASSET_SORTS)[number];
 export default function Assets() {
   const confirm = useConfirm();
   const { user } = useAuth();
-  const { orgId } = useOrganization();
+  const { orgId, canWrite, isAdmin } = useOrganization();
+  // Criar, editar, fotos e alocação pedem escrita em Entregas ou CRM (0017);
+  // excluir ativo é de owner/admin (assets_admin_delete). BP-29.
+  const podeEditar = MODULOS_DA_OPERACAO.some((m) => canWrite(m));
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -293,7 +298,7 @@ export default function Assets() {
 
     if (error || !inserted) {
       setSaving(false);
-      return toast.error("Erro", { description: error?.message || "Falha ao criar ativo" });
+      return toast.error("Erro", { description: mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO, "Falha ao criar ativo") });
     }
 
     if (form.property_id && form.property_id !== "__none__") {
@@ -392,7 +397,7 @@ export default function Assets() {
       .eq("id", photo.id);
     const error = clearErr || setErr;
     if (error) {
-      toast.error("Erro ao definir capa", { description: error.message });
+      toast.error("Erro ao definir capa", { description: mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) });
     } else {
       toast.success("Capa atualizada");
     }
@@ -401,8 +406,11 @@ export default function Assets() {
   };
 
   const deletePhoto = async (photo: Photo) => {
+    // Primeiro a linha: a RLS recusa o DELETE sem erro (0 linhas), e o arquivo
+    // só sai do storage se a foto saiu de fato.
+    const { data: apagadas, error } = await supabase.from("asset_photos").delete().eq("id", photo.id).select("id");
+    if (error || !apagadas?.length) return toast.error("Não foi possível remover a foto", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) : mensagemSemEdicao(MODULOS_DA_OPERACAO) });
     await supabase.storage.from("asset-photos").remove([photo.storage_path]);
-    await supabase.from("asset_photos").delete().eq("id", photo.id);
     if (selected) openDetail(selected);
     load();
   };
@@ -410,11 +418,10 @@ export default function Assets() {
   const toggleAllocation = async (propertyId: string) => {
     if (!selected) return;
     const existing = allocations.find((a) => a.property_id === propertyId);
-    if (existing) {
-      await supabase.from("asset_allocations").delete().eq("id", existing.id);
-    } else {
-      await supabase.from("asset_allocations" as any).insert({ asset_id: selected.id, property_id: propertyId, organization_id: selected.organization_id });
-    }
+    const { data: gravadas, error } = existing
+      ? await supabase.from("asset_allocations").delete().eq("id", existing.id).select("id")
+      : await supabase.from("asset_allocations" as any).insert({ asset_id: selected.id, property_id: propertyId, organization_id: selected.organization_id }).select("id");
+    if (error || !gravadas?.length) return toast.error("Não foi possível alterar a alocação", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) : mensagemSemEdicao(MODULOS_DA_OPERACAO) });
     openDetail(selected);
   };
 
@@ -432,9 +439,9 @@ export default function Assets() {
       exclusivity_terms: editForm.is_exclusive ? editForm.exclusivity_terms : [],
       exclusive_sponsor_id: editForm.is_exclusive && editForm.exclusive_sponsor_id !== "__none__" ? editForm.exclusive_sponsor_id : null,
     };
-    const { error } = await supabase.from("assets").update(payload as any).eq("id", selected.id);
+    const { data: salvos, error } = await supabase.from("assets").update(payload as any).eq("id", selected.id).select("id");
     setSaving(false);
-    if (error) return toast.error("Erro ao salvar", { description: error.message });
+    if (error || !salvos?.length) return toast.error("Erro ao salvar", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) : mensagemSemEdicao(MODULOS_DA_OPERACAO) });
     setSelected({ ...selected, ...payload });
     toast.success("Ativo atualizado");
     load();
@@ -450,8 +457,10 @@ export default function Assets() {
       destructive: true,
     });
     if (!confirmado) return;
-    const { error } = await supabase.from("assets").delete().eq("id", selected.id);
-    if (error) return toast.error("Erro", { description: error.message });
+    const { data: apagados, error } = await supabase.from("assets").delete().eq("id", selected.id).select("id");
+    if (error || !apagados?.length) {
+      return toast.error("Erro", { description: error ? mensagemDeErroDeGravacao(error, MODULOS_DA_OPERACAO) : "Só o proprietário ou um administrador exclui ativos." });
+    }
     setSelected(null);
     toast.success("Ativo excluído");
     load();
@@ -465,14 +474,18 @@ export default function Assets() {
         icon={Boxes}
         actions={
           <>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setBulkOpen(true)}>
-                <FileSpreadsheet className="h-4 w-4 mr-2" /> Importar CSV
-              </Button>
-              <Button onClick={() => setDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" /> Novo ativo
-              </Button>
-            </div>
+            {podeEditar ? (
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setBulkOpen(true)}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" /> Importar CSV
+                </Button>
+                <Button onClick={() => setDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" /> Novo ativo
+                </Button>
+              </div>
+            ) : (
+              <div className="max-w-md"><SomenteLeitura module={MODULOS_DA_OPERACAO} /></div>
+            )}
           </>
         }
       />
@@ -565,7 +578,7 @@ export default function Assets() {
                   ? "Ativos são o que você vende: placas, camisas, naming rights, posts. Cadastre um ou importe uma planilha."
                   : "Ajuste a busca ou os filtros de categoria e exclusividade."
               }
-              action={assets.length === 0 && (
+              action={assets.length === 0 && podeEditar && (
                 <Button onClick={() => setDialogOpen(true)}><Plus className="h-4 w-4 mr-2" />Novo ativo</Button>
               )}
             />
@@ -916,9 +929,10 @@ export default function Assets() {
                 </SheetDescription>
               </SheetHeader>
 
+              {!podeEditar && <div className="mt-3"><SomenteLeitura module={MODULOS_DA_OPERACAO} /></div>}
               <div className="space-y-6 py-6">
-                <div className="space-y-3 rounded-lg border p-3">
-                  <Label className="text-sm font-medium">Editar ativo</Label>
+                <fieldset disabled={!podeEditar} className="space-y-3 rounded-lg border p-3 min-w-0">
+                  <Label className="text-sm font-medium">{podeEditar ? "Editar ativo" : "Dados do ativo"}</Label>
                   <div>
                     <Label className="text-xs">Nome</Label>
                     <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
@@ -1017,17 +1031,21 @@ export default function Assets() {
 
                     )}
                   </div>
-                  <Button size="sm" onClick={saveAsset} disabled={saving || !editForm.name.trim()}>
-                    {saving ? "Salvando…" : "Salvar alterações"}
-                  </Button>
-                </div>
+                  {podeEditar && (
+                    <Button size="sm" onClick={saveAsset} disabled={saving || !editForm.name.trim()}>
+                      {saving ? "Salvando…" : "Salvar alterações"}
+                    </Button>
+                  )}
+                </fieldset>
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <Label className="text-sm">Galeria</Label>
-                    <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}>
-                      <ImagePlus className="h-4 w-4 mr-2" /> Adicionar
-                    </Button>
+                    {podeEditar && (
+                      <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}>
+                        <ImagePlus className="h-4 w-4 mr-2" /> Adicionar
+                      </Button>
+                    )}
                     <input
                       ref={fileRef}
                       type="file"
@@ -1052,7 +1070,7 @@ export default function Assets() {
                               <Star className="h-3 w-3" /> Capa
                             </Badge>
                           )}
-                          <div className="absolute inset-0 z-10 flex items-start justify-end p-1 gap-1 pointer-events-none">
+                          {podeEditar && <div className="absolute inset-0 z-10 flex items-start justify-end p-1 gap-1 pointer-events-none">
                             <Button
                               type="button"
                               size="icon"
@@ -1075,7 +1093,7 @@ export default function Assets() {
                             >
                               <X className="h-4 w-4" />
                             </Button>
-                          </div>
+                          </div>}
                         </div>
                       ))}
                     </div>
@@ -1101,6 +1119,7 @@ export default function Assets() {
                             <input
                               type="checkbox"
                               checked={checked}
+                              disabled={!podeEditar}
                               onChange={() => toggleAllocation(p.id)}
                               className="accent-primary"
                             />
@@ -1115,11 +1134,13 @@ export default function Assets() {
 
 
 
-                <div className="border-t pt-4">
-                  <Button variant="destructive" size="sm" onClick={deleteAsset}>
-                    <Trash2 className="h-4 w-4 mr-2" /> Excluir ativo
-                  </Button>
-                </div>
+                {isAdmin && (
+                  <div className="border-t pt-4">
+                    <Button variant="destructive" size="sm" onClick={deleteAsset}>
+                      <Trash2 className="h-4 w-4 mr-2" /> Excluir ativo
+                    </Button>
+                  </div>
+                )}
               </div>
             </>
           )}

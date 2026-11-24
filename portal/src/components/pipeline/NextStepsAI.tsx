@@ -8,10 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sparkles, Loader2, Plus, Phone, Mail, Users, ListChecks, StickyNote } from "lucide-react";
 import { toast } from "sonner";
-import { mensagemDeErroDeGravacao } from "@/lib/permissoes";
-
-/** Checklist do projeto: policies `operacional OR crm` (0017). */
-const MODULOS_DO_CHECKLIST = ["operacional", "crm"] as const;
+import { MODULOS_DA_OPERACAO, mensagemDeErroDeGravacao } from "@/lib/permissoes";
 
 type Step = {
   title: string;
@@ -55,7 +52,7 @@ export function NextStepsAI({ context, targetId, opportunityId, ownerId, propert
   // Sugerir é leitura; virar atividade ou item de checklist grava, e só aparece
   // para quem escreve no módulo da tabela (BP-29).
   const podeCriarAtividade = canWrite("vendas");
-  const podeCriarChecklist = MODULOS_DO_CHECKLIST.some((m) => canWrite(m));
+  const podeCriarChecklist = MODULOS_DA_OPERACAO.some((m) => canWrite(m));
   const [steps, setSteps] = useState<Step[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState<number | null>(null);
@@ -140,7 +137,7 @@ export function NextStepsAI({ context, targetId, opportunityId, ownerId, propert
       toast.success("Tarefa adicionada ao checklist");
       setOpenPicker(null);
     } catch (e) {
-      toast.error("Erro ao adicionar ao checklist", { description: mensagemDeErroDeGravacao(e, MODULOS_DO_CHECKLIST, "Erro") });
+      toast.error("Erro ao adicionar ao checklist", { description: mensagemDeErroDeGravacao(e, MODULOS_DA_OPERACAO, "Erro") });
     } finally {
       setAddingChecklist(null);
     }
