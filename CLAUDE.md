@@ -164,7 +164,8 @@ npm run build                  # build de produção
 npm run lint                   # ESLint
 npm run type-check             # tsc --noEmit
 npm test                       # Vitest (unitário)
-npm run test:e2e               # Playwright
+npm run test:e2e               # Playwright (desktop e celular)
+npm run test:e2e:mobile        # só os projetos de celular (specs com @mobile)
 
 npm run supabase:chaves        # gera os segredos do stack local (cole em docker/supabase/.env)
 npm run supabase:up            # sobe o Supabase local (Docker)

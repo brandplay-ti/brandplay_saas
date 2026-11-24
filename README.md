@@ -90,6 +90,7 @@ Senha pública, válida só no ambiente local.
 | `npm run type-check` | TypeScript                                                   |
 | `npm test`           | Testes unitários (Vitest)                                    |
 | `npm run test:e2e`   | Testes E2E (Playwright — `npx playwright install` na 1ª vez) |
+| `npm run test:e2e:mobile` | Só os testes E2E de celular (Pixel 7 e iPhone 13)       |
 
 ### Infraestrutura e banco
 

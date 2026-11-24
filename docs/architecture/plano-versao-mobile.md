@@ -254,10 +254,16 @@ Relatórios, BrandTrack, Equipe, Acessos ao Portal, Configurações e Plano:
 `AbasRolaveis` nas abas. Uma demanda por tela no board.
 
 **MOB-19. Projeto mobile no Playwright** (P, junto da fase 1)
-Novo projeto em `portal/playwright.config.ts` com `devices['iPhone 13']` (e um
-Android, `devices['Pixel 7']`), rodando os specs dos fluxos críticos
-(`.claude/rules/testing.md`). Entra no CI do mesmo jeito que o projeto
-desktop.
+Projetos `mobile-ios` (`devices['iPhone 13']`, WebKit) e `mobile-android`
+(`devices['Pixel 7']`) em `portal/playwright.config.ts`. Eles rodam só os
+testes com `@mobile` no título, e cada demanda seguinte marca o fluxo que
+adaptar (`.claude/rules/testing.md`, "Celular"). O primeiro spec,
+`mobile-paginas-publicas.spec.ts`, confere em cada página pública duas coisas:
+que não há rolagem horizontal e que nenhum campo tem fonte abaixo de 16px.
+
+Como no desktop, o E2E não roda no CI (`docs/infrastructure/cicd.md`): os
+specs dependem do stack local e de usuários do seed. Levar o E2E para o CI é
+uma demanda à parte.
 
 ## 6. Ordem sugerida
 
