@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { withProfileNames } from "@/lib/profileNames";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
+import { mensagemDeErroDeGravacao, mensagemSemEdicao } from "@/lib/permissoes";
 import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,7 +67,11 @@ const logoUrl = (p: string | null) =>
 
 export default function Sponsors() {
   const { user } = useAuth();
-  const { orgId, can, clientType, isAdmin } = useOrganization();
+  const { orgId, canWrite, clientType, isAdmin } = useOrganization();
+  // Criar, alterar em lote, arquivar e mesclar pedem escrita no CRM (BP-29).
+  const podeEditar = canWrite("crm");
+  // Arquivar e mesclar são de owner/admin pela própria RPC, mesmo com o CRM só leitura.
+  const podeSelecionar = podeEditar || isAdmin;
   const navigate = useNavigate();
 
   const [rows, setRows] = useState<SponsorRow[]>([]);
@@ -212,7 +218,7 @@ export default function Sponsors() {
       trade_name: profile.trade_name.trim() || form.trade_name.trim() || null,
 
     }).select("id").single();
-    if (error) return toast.error("Erro", { description: error.message });
+    if (error) return toast.error("Erro", { description: mensagemDeErroDeGravacao(error, "crm") });
     await db.from("sponsor_crm_profiles").insert({
       sponsor_id: data.id, organization_id: orgId, owner_id: user.id,
       segment: form.segment.trim() || null, notes: form.notes.trim() || null,
@@ -227,9 +233,12 @@ export default function Sponsors() {
 
   const bulkUpdate = async (patch: Record<string, unknown>) => {
     if (selectedIds.length === 0) return;
-    const { error } = await db.from("sponsors").update(patch).in("id", selectedIds);
-    if (error) return toast.error("Erro", { description: error.message });
-    toast.success("Contas atualizadas", { description: `${selectedIds.length} registro(s).` });
+    // A RLS recusa o UPDATE sem erro (0 linhas): conta o que voltou.
+    const { data: alteradas, error } = await db.from("sponsors").update(patch).in("id", selectedIds).select("id");
+    if (error || !alteradas?.length) {
+      return toast.error("Erro", { description: error ? mensagemDeErroDeGravacao(error, "crm") : mensagemSemEdicao("crm") });
+    }
+    toast.success("Contas atualizadas", { description: `${alteradas.length} registro(s).` });
     setSelectedIds([]);
     load();
   };
@@ -238,7 +247,7 @@ export default function Sponsors() {
     for (const id of selectedIds) {
       const { error } = await db.rpc(archive ? "archive_sponsor" : "unarchive_sponsor",
         archive ? { _sponsor_id: id, _reason: "Arquivado em lote" } : { _sponsor_id: id });
-      if (error) return toast.error("Erro", { description: error.message });
+      if (error) return toast.error("Erro", { description: mensagemDeErroDeGravacao(error, "crm") });
     }
     toast.success(archive ? "Contas arquivadas" : "Contas restauradas");
     setSelectedIds([]);
@@ -249,7 +258,7 @@ export default function Sponsors() {
     if (!mergeTarget || selectedIds.length === 0) return;
     for (const id of selectedIds.filter((i) => i !== mergeTarget)) {
       const { error } = await db.rpc("merge_sponsors", { _target_id: mergeTarget, _duplicate_id: id });
-      if (error) return toast.error("Erro ao mesclar", { description: error.message });
+      if (error) return toast.error("Erro ao mesclar", { description: mensagemDeErroDeGravacao(error, "crm") });
     }
     toast.success("Contas mescladas", { description: "O histórico foi preservado e a duplicada foi arquivada." });
     setMergeOpen(false);
@@ -291,7 +300,11 @@ export default function Sponsors() {
         icon={Users}
         actions={
           <>
-            {can("crm") && <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-2" /> Nova conta</Button>}
+            {podeEditar ? (
+              <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-2" /> Nova conta</Button>
+            ) : (
+              <div className="max-w-md"><SomenteLeitura module="crm" /></div>
+            )}
           </>
         }
       />
@@ -359,21 +372,25 @@ export default function Sponsors() {
             </div>
           </div>
 
-          {selectedIds.length > 0 && (
+          {podeSelecionar && selectedIds.length > 0 && (
             <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 p-2">
               <span className="text-sm">{selectedIds.length} selecionada(s)</span>
-              <Select onValueChange={(v) => bulkUpdate({ lifecycle: v })}>
-                <SelectTrigger className="w-44 h-8"><SelectValue placeholder="Alterar ciclo" /></SelectTrigger>
-                <SelectContent>{LIFECYCLE_ORDER.filter((l) => l !== "arquivado").map((l) => <SelectItem key={l} value={l}>{LIFECYCLE_LABEL[l]}</SelectItem>)}</SelectContent>
-              </Select>
-              <Select onValueChange={(v) => bulkUpdate({ priority: v })}>
-                <SelectTrigger className="w-40 h-8"><SelectValue placeholder="Prioridade" /></SelectTrigger>
-                <SelectContent>{(["A", "B", "C"] as Priority[]).map((p) => <SelectItem key={p} value={p}>{PRIORITY_LABEL[p]}</SelectItem>)}</SelectContent>
-              </Select>
-              <Select onValueChange={(v) => bulkUpdate({ account_owner_id: v })}>
-                <SelectTrigger className="w-44 h-8"><SelectValue placeholder="Responsável" /></SelectTrigger>
-                <SelectContent>{members.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
-              </Select>
+              {podeEditar && (
+                <>
+                  <Select onValueChange={(v) => bulkUpdate({ lifecycle: v })}>
+                    <SelectTrigger className="w-44 h-8"><SelectValue placeholder="Alterar ciclo" /></SelectTrigger>
+                    <SelectContent>{LIFECYCLE_ORDER.filter((l) => l !== "arquivado").map((l) => <SelectItem key={l} value={l}>{LIFECYCLE_LABEL[l]}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Select onValueChange={(v) => bulkUpdate({ priority: v })}>
+                    <SelectTrigger className="w-40 h-8"><SelectValue placeholder="Prioridade" /></SelectTrigger>
+                    <SelectContent>{(["A", "B", "C"] as Priority[]).map((p) => <SelectItem key={p} value={p}>{PRIORITY_LABEL[p]}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Select onValueChange={(v) => bulkUpdate({ account_owner_id: v })}>
+                    <SelectTrigger className="w-44 h-8"><SelectValue placeholder="Responsável" /></SelectTrigger>
+                    <SelectContent>{members.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </>
+              )}
               {isAdmin && (
                 <>
                   {showArchived ? (
@@ -410,7 +427,7 @@ export default function Sponsors() {
                     ? "Cadastre a primeira marca do grupo para acompanhar contratos, entregas e resultados."
                     : "Cadastre o primeiro patrocinador para acompanhar relacionamento, negociações e contratos."
               }
-              action={rows.length === 0 && can("crm") && (
+              action={rows.length === 0 && podeEditar && (
                 <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-2" />Nova conta</Button>
               )}
             />
@@ -438,9 +455,11 @@ export default function Sponsors() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-8">
-                      <Checkbox checked={allSelected} onCheckedChange={(v) => setSelectedIds(v ? filtered.map((r) => r.id) : [])} />
-                    </TableHead>
+                    {podeSelecionar && (
+                      <TableHead className="w-8">
+                        <Checkbox aria-label="Selecionar todas" checked={allSelected} onCheckedChange={(v) => setSelectedIds(v ? filtered.map((r) => r.id) : [])} />
+                      </TableHead>
+                    )}
                     <TableHead className="cursor-pointer" onClick={() => toggleSort("name")}>Conta <ArrowUpDown className="inline h-3 w-3" /></TableHead>
                     <TableHead className="cursor-pointer" onClick={() => toggleSort("lifecycle")}>Ciclo</TableHead>
                     <TableHead className="cursor-pointer" onClick={() => toggleSort("priority")}>Prio.</TableHead>
@@ -457,12 +476,15 @@ export default function Sponsors() {
                     const d = daysSince(s.last_contact_at);
                     return (
                       <TableRow key={s.id} className={`cursor-pointer ${FOCO_CLICAVEL}`} {...clicavel(() => navigate(`/dashboard/patrocinadores/${s.id}`), { linha: true })}>
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={selectedIds.includes(s.id)}
-                            onCheckedChange={(v) => setSelectedIds((prev) => (v ? [...prev, s.id] : prev.filter((i) => i !== s.id)))}
-                          />
-                        </TableCell>
+                        {podeSelecionar && (
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              aria-label={`Selecionar ${s.name}`}
+                              checked={selectedIds.includes(s.id)}
+                              onCheckedChange={(v) => setSelectedIds((prev) => (v ? [...prev, s.id] : prev.filter((i) => i !== s.id)))}
+                            />
+                          </TableCell>
+                        )}
                         <TableCell>
                           <div className="flex items-center gap-2 min-w-0">
                             <LogoFrame src={logoUrl(s.logo_path)} alt={s.name} size="sm" fallback={<Users className={`${logoFrameIconClass("sm")} text-muted-foreground`} />} />

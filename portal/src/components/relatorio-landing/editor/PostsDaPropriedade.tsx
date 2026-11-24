@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
+import { mensagemDeErroDeGravacao } from "@/lib/permissoes";
 import { ExternalLink, Link2, Loader2, Pencil, Plus, RefreshCw, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +25,7 @@ import {
   type PostDaPropriedade,
 } from "@/hooks/useRelatorios";
 import { identificarLink, REDES, rotuloDaRede, TIPOS_DE_POST, type Rede, type TipoDePost } from "@/lib/redesSociais";
-import { numeroCompacto } from "@/lib/relatorioLanding";
+import { MODULOS_DO_RELATORIO, numeroCompacto } from "@/lib/relatorioLanding";
 import { IconeDaRede } from "../primitivos";
 
 const NENHUM = "nenhum";
@@ -167,7 +168,7 @@ export function PostsDaPropriedade({ propertyId, patrocinadores, momentos, podeE
       toast.success(editando ? "Post atualizado" : "Post adicionado");
       setAberto(false);
     } catch (erro) {
-      toast.error("Não foi possível salvar", { description: (erro as Error).message });
+      toast.error("Não foi possível salvar", { description: mensagemDeErroDeGravacao(erro, MODULOS_DO_RELATORIO) });
     }
   };
 
@@ -183,14 +184,14 @@ export function PostsDaPropriedade({ propertyId, patrocinadores, momentos, podeE
       await excluir.mutateAsync(post.id);
       toast.success("Post excluído");
     } catch (erro) {
-      toast.error("Não foi possível excluir", { description: (erro as Error).message });
+      toast.error("Não foi possível excluir", { description: mensagemDeErroDeGravacao(erro, MODULOS_DO_RELATORIO) });
     }
   };
 
   const alternarDestaque = (post: PostDaPropriedade) =>
     salvar.mutate(
       { id: post.id, is_highlight: !post.is_highlight },
-      { onError: (erro) => toast.error("Não foi possível alterar", { description: erro.message }) },
+      { onError: (erro) => toast.error("Não foi possível alterar", { description: mensagemDeErroDeGravacao(erro, MODULOS_DO_RELATORIO) }) },
     );
 
   const atualizarMetricas = async () => {
@@ -211,7 +212,7 @@ export function PostsDaPropriedade({ propertyId, patrocinadores, momentos, podeE
         });
       }
     } catch (erro) {
-      toast.error("Não foi possível atualizar", { description: (erro as Error).message });
+      toast.error("Não foi possível atualizar", { description: mensagemDeErroDeGravacao(erro, MODULOS_DO_RELATORIO) });
     }
   };
 

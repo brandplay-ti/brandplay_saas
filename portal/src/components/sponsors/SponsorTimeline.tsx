@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useOrganization } from "@/hooks/useOrganization";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
+import { mensagemDeErroDeGravacao } from "@/lib/permissoes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/common/StatusBadge";
@@ -64,6 +67,8 @@ interface Props { sponsorId: string }
 
 export function SponsorTimeline({ sponsorId }: Props) {
   const { user } = useAuth();
+  // Registrar, concluir e excluir pedem escrita no CRM (BP-29).
+  const editable = useOrganization().canWrite("crm");
   const [items, setItems] = useState<Interaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "manual" | "auto">("all");
@@ -143,7 +148,7 @@ export function SponsorTimeline({ sponsorId }: Props) {
       reset();
       load();
     } catch (e: any) {
-      toast.error(e.message ?? "Falha ao registrar");
+      toast.error(mensagemDeErroDeGravacao(e, "crm", "Falha ao registrar"));
     } finally {
       setSaving(false);
     }
@@ -151,7 +156,7 @@ export function SponsorTimeline({ sponsorId }: Props) {
 
   const remove = async (id: string) => {
     const { error } = await supabase.from("sponsor_interactions").delete().eq("id", id);
-    if (error) toast.error("Falha ao excluir");
+    if (error) toast.error("Falha ao excluir", { description: mensagemDeErroDeGravacao(error, "crm") });
     else { toast.success("Removido"); load(); }
   };
 
@@ -159,7 +164,8 @@ export function SponsorTimeline({ sponsorId }: Props) {
     const { error } = await supabase.from("sponsor_interactions")
       .update({ next_action_done: !it.next_action_done })
       .eq("id", it.id);
-    if (!error) load();
+    if (error) return toast.error("Falha ao atualizar", { description: mensagemDeErroDeGravacao(error, "crm") });
+    load();
   };
 
   const getAttachUrl = async (path: string) => {
@@ -183,7 +189,7 @@ export function SponsorTimeline({ sponsorId }: Props) {
             </Button>
           ))}
         </div>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
+        {editable && <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
           <DialogTrigger asChild>
             <Button size="sm"><Plus className="h-4 w-4 mr-2" /> Registrar interação</Button>
           </DialogTrigger>
@@ -238,8 +244,10 @@ export function SponsorTimeline({ sponsorId }: Props) {
               <Button onClick={save} disabled={saving}>{saving ? "Salvando…" : "Registrar"}</Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
+        </Dialog>}
       </div>
+
+      {!editable && <SomenteLeitura module="crm" />}
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Carregando…</p>
@@ -285,7 +293,8 @@ export function SponsorTimeline({ sponsorId }: Props) {
                       )}
                       {it.next_action && (
                         <div className="mt-2 rounded-md border border-dashed p-2 flex items-start gap-2">
-                          <Checkbox checked={it.next_action_done}
+                          <Checkbox checked={it.next_action_done} disabled={!editable}
+                            aria-label="Próxima ação concluída"
                             onCheckedChange={() => toggleNextAction(it)} />
                           <div className="flex-1 min-w-0">
                             <p className={`text-sm ${it.next_action_done ? "line-through text-muted-foreground" : ""}`}>
@@ -302,7 +311,7 @@ export function SponsorTimeline({ sponsorId }: Props) {
                         </div>
                       )}
                     </div>
-                    {it.source === "manual" && (
+                    {editable && it.source === "manual" && (
                       <Button aria-label="Excluir interação" size="icon" variant="ghost" className="h-7 w-7"
                         onClick={() => remove(it.id)}>
                         <Trash2 className="h-3.5 w-3.5" />

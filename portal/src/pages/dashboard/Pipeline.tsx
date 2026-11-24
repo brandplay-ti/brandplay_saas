@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, type ComponentProps } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
+import { mensagemDeErroDeGravacao, mensagemSemEdicao } from "@/lib/permissoes";
 import { useFiltroSalvo } from "@/hooks/useFiltroSalvo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -289,7 +291,9 @@ const sortOpportunities = (items: Opportunity[], sortMode: SortMode, profilesByI
 
 export default function Pipeline() {
   const { user } = useAuth();
-  const { orgId, isAdmin } = useOrganization();
+  const { orgId, isAdmin, canWrite } = useOrganization();
+  // Criar, mover, perder, excluir e atribuir pedem escrita no Funil; ver não basta (BP-29).
+  const podeEditar = canWrite("vendas");
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [funnels, setFunnels] = useState<PipelineFunnel[]>([]);
   const [stageSlas, setStageSlas] = useState<PipelineStageSla[]>([]);
@@ -844,7 +848,7 @@ export default function Pipeline() {
         attemptedRowKeys: ["owner_id", "organization_id", "brand", "value", "stage", "expected_close_date", "property_id", "notes"],
         error,
       });
-      toast.error("Erro ao criar oportunidade: " + error.message);
+      toast.error("Erro ao criar oportunidade", { description: mensagemDeErroDeGravacao(error, "vendas") });
       return;
     }
     toast.success("Oportunidade criada");
@@ -856,9 +860,10 @@ export default function Pipeline() {
   const handleDelete = async () => {
     if (!deleteId) return;
     if (!orgId) return;
-    const { error } = await supabase.from("opportunities").delete().eq("id", deleteId).eq("organization_id", orgId);
-    if (error) {
-      toast.error("Erro ao excluir");
+    // A RLS recusa o DELETE sem erro (0 linhas): sem linha de volta, nada saiu.
+    const { data: apagadas, error } = await supabase.from("opportunities").delete().eq("id", deleteId).eq("organization_id", orgId).select("id");
+    if (error || !apagadas?.length) {
+      toast.error("Erro ao excluir", { description: error ? mensagemDeErroDeGravacao(error, "vendas") : mensagemSemEdicao("vendas") });
       return;
     }
     toast.success("Oportunidade removida");
@@ -870,18 +875,20 @@ export default function Pipeline() {
     if (!orgId) return;
     const previous = opportunities;
     setOpportunities((prev) => prev.map((o) => (o.id === oppId ? { ...o, assignee_id: assigneeId } : o)));
-    const { error } = await supabase.from("opportunities").update({ assignee_id: assigneeId }).eq("id", oppId).eq("organization_id", orgId);
-    if (error) {
+    const { data: alteradas, error } = await supabase.from("opportunities").update({ assignee_id: assigneeId }).eq("id", oppId).eq("organization_id", orgId).select("id");
+    if (error || !alteradas?.length) {
       setOpportunities(previous);
-      toast.error("Erro ao trocar responsável");
+      toast.error("Erro ao trocar responsável", { description: error ? mensagemDeErroDeGravacao(error, "vendas") : mensagemSemEdicao("vendas") });
       return;
     }
     toast.success("Responsável atualizado");
   };
 
   const handleQuickTaskAssigneeChange = async (activityId: string, assigneeId: string) => {
-    const { error } = await supabase.from("opportunity_activities").update({ owner_id: assigneeId }).eq("id", activityId);
-    if (error) return toast.error("Erro ao atribuir tarefa");
+    const { data: alteradas, error } = await supabase.from("opportunity_activities").update({ owner_id: assigneeId }).eq("id", activityId).select("id");
+    if (error || !alteradas?.length) {
+      return toast.error("Erro ao atribuir tarefa", { description: error ? mensagemDeErroDeGravacao(error, "vendas") : mensagemSemEdicao("vendas") });
+    }
     toast.success("Tarefa atribuída");
     fetchData();
   };
@@ -957,7 +964,7 @@ export default function Pipeline() {
     });
     const { error } = await supabase.from("opportunity_activities").insert(rows);
     setCreatingBatchTasks(false);
-    if (error) return toast.error("Erro ao criar tarefas em lote");
+    if (error) return toast.error("Erro ao criar tarefas em lote", { description: mensagemDeErroDeGravacao(error, "vendas") });
     toast.success(`${rows.length} tarefa(s) criada(s)`);
     setBoardRecommendations([]);
     fetchData();
@@ -966,7 +973,7 @@ export default function Pipeline() {
   const handleDragStart = (e: DragStartEvent) => setActiveId(String(e.active.id));
 
   const moveOpportunityToStage = async (opp: Opportunity, newStage: Stage) => {
-    if (!orgId || opp.stage === newStage) return;
+    if (!orgId || !podeEditar || opp.stage === newStage) return;
 
     const checklistIssues = getOpportunityStageChecklistIssues(
       { ...opp, pendingActivities: activitySummary[opp.id]?.pending ?? 0 },
@@ -997,9 +1004,9 @@ export default function Pipeline() {
     setOpportunities((prev) =>
       prev.map((o) => (o.id === opp.id ? { ...o, stage: newStage, last_stage_change_at: new Date().toISOString(), lost_reason: null, lost_comment: null, lost_competitor: null, lost_value: null } : o)),
     );
-    const { error } = await supabase.from("opportunities").update({ stage: newStage, lost_reason: null, lost_comment: null, lost_competitor: null, lost_value: null }).eq("id", opp.id).eq("organization_id", orgId);
-    if (error) {
-      toast.error("Erro ao mover oportunidade");
+    const { data: movidas, error } = await supabase.from("opportunities").update({ stage: newStage, lost_reason: null, lost_comment: null, lost_competitor: null, lost_value: null }).eq("id", opp.id).eq("organization_id", orgId).select("id");
+    if (error || !movidas?.length) {
+      toast.error("Erro ao mover oportunidade", { description: error ? mensagemDeErroDeGravacao(error, "vendas") : mensagemSemEdicao("vendas") });
       fetchData();
     }
   };
@@ -1029,9 +1036,9 @@ export default function Pipeline() {
     if (lostValue !== null && (!Number.isFinite(lostValue) || lostValue < 0)) return toast.error("Valor perdido inválido");
 
     setOpportunities((prev) => prev.map((o) => o.id === pendingLossId ? { ...o, stage: "perdido", last_stage_change_at: new Date().toISOString(), lost_reason: reason, lost_comment: comment, lost_competitor: competitor || null, lost_value: lostValue } : o));
-    const { error } = await supabase.from("opportunities").update({ stage: "perdido", lost_reason: reason, lost_comment: comment, lost_competitor: competitor || null, lost_value: lostValue }).eq("id", pendingLossId).eq("organization_id", orgId);
-    if (error) {
-      toast.error("Erro ao marcar como perdido");
+    const { data: perdidas, error } = await supabase.from("opportunities").update({ stage: "perdido", lost_reason: reason, lost_comment: comment, lost_competitor: competitor || null, lost_value: lostValue }).eq("id", pendingLossId).eq("organization_id", orgId).select("id");
+    if (error || !perdidas?.length) {
+      toast.error("Erro ao marcar como perdido", { description: error ? mensagemDeErroDeGravacao(error, "vendas") : mensagemSemEdicao("vendas") });
       fetchData();
       return;
     }
@@ -1065,7 +1072,8 @@ export default function Pipeline() {
                   <Clock className="h-4 w-4 mr-2" /> SLAs
                 </Button>
               )}
-              <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
+              {!podeEditar && <div className="max-w-md"><SomenteLeitura module="vendas" /></div>}
+              {podeEditar && <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
                 <DialogTrigger asChild>
                   <Button><Plus className="h-4 w-4 mr-2" />Nova oportunidade</Button>
                 </DialogTrigger>
@@ -1120,7 +1128,7 @@ export default function Pipeline() {
                     <Button onClick={handleCreate}>Criar</Button>
                   </DialogFooter>
                 </DialogContent>
-              </Dialog>
+              </Dialog>}
             </div>
           </>
         }
@@ -1145,7 +1153,7 @@ export default function Pipeline() {
           recommendations={boardRecommendations}
           onToggle={(id) => setBoardRecommendations((prev) => prev.map((item) => item.opportunity.id === id ? { ...item, selected: !item.selected } : item))}
           onMove={(id, direction) => setBoardRecommendations((prev) => moveRecommendation(prev, id, direction))}
-          onCreateTasks={handleCreateBatchTasks}
+          onCreateTasks={podeEditar ? handleCreateBatchTasks : undefined}
           creating={creatingBatchTasks}
           onDismiss={() => setBoardRecommendations([])}
         />
@@ -1388,15 +1396,16 @@ export default function Pipeline() {
                 stage={stage}
                 items={grouped[stage.id]}
                 total={totals[stage.id]}
-                onDelete={(id) => setDeleteId(id)}
+                editavel={podeEditar}
+                onDelete={podeEditar ? (id) => setDeleteId(id) : undefined}
                 onOpen={(id) => setDrawerId(id)}
                 propertiesById={propertiesById}
                 profilesById={profilesById}
                 profiles={profiles}
                 activitySummary={activitySummary}
                 prioritiesById={prioritiesById}
-                onAssigneeChange={handleQuickAssigneeChange}
-                onTaskAssigneeChange={handleQuickTaskAssigneeChange}
+                onAssigneeChange={podeEditar ? handleQuickAssigneeChange : undefined}
+                onTaskAssigneeChange={podeEditar ? handleQuickTaskAssigneeChange : undefined}
               />
             ))}
           </div>
@@ -1423,7 +1432,7 @@ export default function Pipeline() {
               ? "Crie a primeira oportunidade para acompanhar a negociação até o contrato."
               : "Ajuste a busca, o funil ou os filtros."
           }
-          action={opportunities.length === 0 && (
+          action={opportunities.length === 0 && podeEditar && (
             <Button onClick={() => setDialogOpen(true)}><Plus className="h-4 w-4 mr-2" />Nova oportunidade</Button>
           )}
         />
@@ -1437,7 +1446,7 @@ export default function Pipeline() {
           sortMode={sortMode}
           onSortChange={setSortMode}
           onOpen={setDrawerId}
-          onDelete={setDeleteId}
+          onDelete={podeEditar ? setDeleteId : undefined}
           stages={effectiveStages}
         />
       ) : (
@@ -1448,8 +1457,8 @@ export default function Pipeline() {
           activitySummary={activitySummary}
           prioritiesById={prioritiesById}
           onOpen={setDrawerId}
-          onDelete={setDeleteId}
-          onStageChange={moveOpportunityToStage}
+          onDelete={podeEditar ? setDeleteId : undefined}
+          onStageChange={podeEditar ? moveOpportunityToStage : undefined}
           stages={effectiveStages}
         />
       )}
@@ -1783,7 +1792,8 @@ function BoardRecommendations({
   recommendations: BoardRecommendation[];
   onToggle: (id: string) => void;
   onMove: (id: string, direction: "up" | "down") => void;
-  onCreateTasks: () => void;
+  /** Sem a função, quem só lê vê as sugestões sem virar tarefa. */
+  onCreateTasks?: () => void;
   creating: boolean;
   onDismiss: () => void;
 }) {
@@ -1799,10 +1809,12 @@ function BoardRecommendations({
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={onDismiss}>Dispensar</Button>
-          <Button size="sm" onClick={onCreateTasks} disabled={creating || selectedCount === 0}>
-            {creating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
-            Criar {selectedCount} tarefa(s)
-          </Button>
+          {onCreateTasks && (
+            <Button size="sm" onClick={onCreateTasks} disabled={creating || selectedCount === 0}>
+              {creating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+              Criar {selectedCount} tarefa(s)
+            </Button>
+          )}
         </div>
       </div>
       <div className="space-y-2">
@@ -1906,7 +1918,7 @@ function PipelineTableView({
   sortMode: SortMode;
   onSortChange: (sortMode: SortMode) => void;
   onOpen: (id: string) => void;
-  onDelete: (id: string) => void;
+  onDelete?: (id: string) => void;
 }) {
   const toggleSort = (asc: SortMode, desc: SortMode) => onSortChange(sortMode === asc ? desc : asc);
 
@@ -1965,7 +1977,7 @@ function PipelineTableView({
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Button
+                    {onDelete && <Button
                       aria-label="Excluir oportunidade"
                       variant="ghost"
                       size="icon"
@@ -1976,7 +1988,7 @@ function PipelineTableView({
                       }}
                     >
                       <Trash2 className="h-4 w-4" />
-                    </Button>
+                    </Button>}
                   </td>
                 </tr>
               );
@@ -2006,8 +2018,8 @@ function PipelineCompactView({
   activitySummary: Record<string, ActivitySummary>;
   prioritiesById: Record<string, OpportunityPriority>;
   onOpen: (id: string) => void;
-  onDelete: (id: string) => void;
-  onStageChange: (opp: Opportunity, stage: Stage) => void;
+  onDelete?: (id: string) => void;
+  onStageChange?: (opp: Opportunity, stage: Stage) => void;
 }) {
   return (
     <div className="grid gap-2">
@@ -2048,7 +2060,7 @@ function PipelineCompactView({
               </div>
               <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                 <span className="font-semibold text-primary whitespace-nowrap">{formatBRL(Number(opp.value))}</span>
-                <Select value={opp.stage} onValueChange={(value) => onStageChange(opp, value as Stage)}>
+                {onStageChange && <Select value={opp.stage} onValueChange={(value) => onStageChange(opp, value as Stage)}>
                   <SelectTrigger className="h-8 w-[150px] text-xs bg-background">
                     <SelectValue />
                   </SelectTrigger>
@@ -2057,7 +2069,7 @@ function PipelineCompactView({
                       <SelectItem key={stageOption.id} value={stageOption.id}>{stageOption.label}</SelectItem>
                     ))}
                   </SelectContent>
-                </Select>
+                </Select>}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -2070,7 +2082,7 @@ function PipelineCompactView({
                 >
                   <PanelRightOpen className="h-4 w-4" />
                 </Button>
-                <Button
+                {onDelete && <Button
                   aria-label="Excluir oportunidade"
                   variant="ghost"
                   size="icon"
@@ -2081,7 +2093,7 @@ function PipelineCompactView({
                   }}
                 >
                   <Trash2 className="h-4 w-4" />
-                </Button>
+                </Button>}
               </div>
             </div>
           </Card>
@@ -2095,6 +2107,7 @@ function KanbanColumn({
   stage,
   items,
   total,
+  editavel,
   onDelete,
   onOpen,
   propertiesById,
@@ -2108,17 +2121,19 @@ function KanbanColumn({
   stage: { id: Stage; label: string; color: string; slaDays: number | null };
   items: Opportunity[];
   total: number;
-  onDelete: (id: string) => void;
+  /** Sem escrita no Funil, os cards não arrastam (BP-29). */
+  editavel: boolean;
+  onDelete?: (id: string) => void;
   onOpen: (id: string) => void;
   propertiesById: Record<string, string>;
   profilesById: Record<string, string>;
   profiles: Profile[];
   activitySummary: Record<string, ActivitySummary>;
   prioritiesById: Record<string, OpportunityPriority>;
-  onAssigneeChange: (oppId: string, assigneeId: string | null) => void;
-  onTaskAssigneeChange: (activityId: string, assigneeId: string) => void;
+  onAssigneeChange?: (oppId: string, assigneeId: string | null) => void;
+  onTaskAssigneeChange?: (activityId: string, assigneeId: string) => void;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: stage.id });
+  const { setNodeRef, isOver } = useDroppable({ id: stage.id, disabled: !editavel });
   return (
     <div
       ref={setNodeRef}
@@ -2146,6 +2161,7 @@ function KanbanColumn({
             nextActivity={activitySummary[o.id]?.nextActivity ?? null}
             priority={prioritiesById[o.id]}
             profiles={profiles}
+            editavel={editavel}
             onDelete={onDelete}
             onOpen={onOpen}
             onAssigneeChange={onAssigneeChange}
@@ -2154,7 +2170,7 @@ function KanbanColumn({
         ))}
         {items.length === 0 && (
           <div className="text-xs text-muted-foreground text-center py-6 border border-dashed rounded-md">
-            Solte aqui
+            {editavel ? "Solte aqui" : "Nenhuma oportunidade"}
           </div>
         )}
       </div>
@@ -2170,6 +2186,7 @@ function DraggableCard({
   nextActivity,
   priority,
   profiles,
+  editavel,
   onDelete,
   onOpen,
   onAssigneeChange,
@@ -2182,12 +2199,13 @@ function DraggableCard({
   nextActivity: NextActivity | null;
   priority?: OpportunityPriority;
   profiles: Profile[];
-  onDelete: (id: string) => void;
+  editavel: boolean;
+  onDelete?: (id: string) => void;
   onOpen: (id: string) => void;
-  onAssigneeChange: (oppId: string, assigneeId: string | null) => void;
-  onTaskAssigneeChange: (activityId: string, assigneeId: string) => void;
+  onAssigneeChange?: (oppId: string, assigneeId: string | null) => void;
+  onTaskAssigneeChange?: (activityId: string, assigneeId: string) => void;
 }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: opp.id });
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: opp.id, disabled: !editavel });
   return (
     <div ref={setNodeRef} {...attributes} className={isDragging ? "opacity-40" : ""}>
       <OpportunityCard
@@ -2198,7 +2216,7 @@ function DraggableCard({
         nextActivity={nextActivity}
         priority={priority}
         profiles={profiles}
-        dragHandleProps={listeners}
+        dragHandleProps={editavel ? listeners : undefined}
         onDelete={onDelete}
         onOpen={onOpen}
         onAssigneeChange={onAssigneeChange}
@@ -2249,14 +2267,16 @@ function OpportunityCard({
       {...clicavel(() => onOpen?.(opp.id))}
     >
       <div className="flex items-start gap-2">
-        <button
-          {...dragHandleProps}
-          className="text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing pt-0.5"
-          aria-label="Arrastar"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
+        {(dragHandleProps || dragging) && (
+          <button
+            {...dragHandleProps}
+            className="text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing pt-0.5"
+            aria-label="Arrastar"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <h4 className="font-semibold text-sm break-words">{opp.brand}</h4>

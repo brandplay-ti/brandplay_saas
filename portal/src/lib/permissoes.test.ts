@@ -89,4 +89,11 @@ describe("erro de gravação dito para a tela (BP-2)", () => {
     expect(mensagemDeErroDeGravacao(new Error("Não autenticado"), "vendas")).toBe("Não autenticado");
     expect(mensagemDeErroDeGravacao(null, "vendas", "Falha ao salvar")).toBe("Falha ao salvar");
   });
+
+  it("com mais de um módulo (policy crm OR operacional), o aviso cita todos (BP-29)", () => {
+    const texto = mensagemDeErroDeGravacao(recusa, ["crm", "operacional"]);
+    expect(texto).toBe(mensagemSemEdicao(["crm", "operacional"]));
+    expect(texto).toContain("não edita Patrocinadores e CRM nem Entregas e campo");
+    expect(mensagemSemEdicao(["crm"])).toBe(mensagemSemEdicao("crm"));
+  });
 });

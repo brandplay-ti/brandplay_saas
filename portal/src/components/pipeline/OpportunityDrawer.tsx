@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
+import { SomenteLeitura } from "@/components/SomenteLeitura";
+import { mensagemDeErroDeGravacao, mensagemSemEdicao } from "@/lib/permissoes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/CurrencyInput";
@@ -234,7 +236,13 @@ export function OpportunityDrawer({
   onChanged: () => void;
 }) {
   const { user } = useAuth();
-  const { orgId } = useOrganization();
+  const { orgId, canWrite } = useOrganization();
+  // Editar a oportunidade, atividades, timeline e gerar proposta pedem escrita no
+  // Funil (BP-29). Converter em contrato também grava contrato (crm ou financeiro),
+  // e "Novo patrocinador" grava no CRM.
+  const podeEditar = canWrite("vendas");
+  const podeCriarContrato = podeEditar && (canWrite("crm") || canWrite("financeiro"));
+  const podeCriarPatrocinador = canWrite("crm");
   const navigate = useNavigate();
   const [opp, setOpp] = useState<Opp | null>(null);
   const oppRef = useRef<Opp | null>(null);
@@ -245,14 +253,16 @@ export function OpportunityDrawer({
   const handleDeleteOpportunity = async () => {
     if (!opportunityId || !orgId) return;
     setDeleting(true);
-    const { error } = await supabase
+    // A RLS recusa o DELETE sem erro (0 linhas): sem linha de volta, nada saiu.
+    const { data: apagadas, error } = await supabase
       .from("opportunities")
       .delete()
       .eq("id", opportunityId)
-      .eq("organization_id", orgId);
+      .eq("organization_id", orgId)
+      .select("id");
     setDeleting(false);
-    if (error) {
-      toast.error("Erro ao excluir oportunidade: " + error.message);
+    if (error || !apagadas?.length) {
+      toast.error("Erro ao excluir oportunidade", { description: error ? mensagemDeErroDeGravacao(error, "vendas") : mensagemSemEdicao("vendas") });
       return;
     }
     toast.success("Oportunidade excluída");
@@ -288,7 +298,7 @@ export function OpportunityDrawer({
       .single();
     if (error || !data) {
       setCreatingSponsor(false);
-      toast.error("Erro ao criar patrocinador: " + (error?.message ?? ""));
+      toast.error("Erro ao criar patrocinador", { description: mensagemDeErroDeGravacao(error, "crm") });
       return;
     }
     await supabase.from("sponsor_crm_profiles").insert({
@@ -430,11 +440,12 @@ export function OpportunityDrawer({
         return;
       }
     }
+    if (!podeEditar) return;
     const next = { ...opp, ...patch };
     setOpp(next);
-    const { error } = await supabase.from("opportunities").update(patch).eq("id", opp.id).eq("organization_id", orgId);
-    if (error) {
-      toast.error("Erro ao salvar");
+    const { data: alteradas, error } = await supabase.from("opportunities").update(patch).eq("id", opp.id).eq("organization_id", orgId).select("id");
+    if (error || !alteradas?.length) {
+      toast.error("Erro ao salvar", { description: error ? mensagemDeErroDeGravacao(error, "vendas") : mensagemSemEdicao("vendas") });
       return;
     }
     onChanged();
@@ -460,7 +471,7 @@ export function OpportunityDrawer({
       .select()
       .single();
     if (error || !data) {
-      toast.error("Erro ao adicionar atividade");
+      toast.error("Erro ao adicionar atividade", { description: mensagemDeErroDeGravacao(error, "vendas") });
       return;
     }
     setActivities((prev) => [data as Activity, ...prev]);
@@ -473,18 +484,18 @@ export function OpportunityDrawer({
     const next = isDone
       ? { status: "pendente", completed_at: null }
       : { status: "concluido", completed_at: new Date().toISOString() };
-    const { error } = await supabase.from("opportunity_activities").update(next).eq("id", act.id);
-    if (error) {
-      toast.error("Erro ao atualizar");
+    const { data: alteradas, error } = await supabase.from("opportunity_activities").update(next).eq("id", act.id).select("id");
+    if (error || !alteradas?.length) {
+      toast.error("Erro ao atualizar", { description: error ? mensagemDeErroDeGravacao(error, "vendas") : mensagemSemEdicao("vendas") });
       return;
     }
     setActivities((prev) => prev.map((a) => (a.id === act.id ? { ...a, ...next } : a)));
   };
 
   const deleteActivity = async (id: string) => {
-    const { error } = await supabase.from("opportunity_activities").delete().eq("id", id);
-    if (error) {
-      toast.error("Erro ao excluir");
+    const { data: apagadas, error } = await supabase.from("opportunity_activities").delete().eq("id", id).select("id");
+    if (error || !apagadas?.length) {
+      toast.error("Erro ao excluir", { description: error ? mensagemDeErroDeGravacao(error, "vendas") : mensagemSemEdicao("vendas") });
       return;
     }
     setActivities((prev) => prev.filter((a) => a.id !== id));
@@ -506,7 +517,7 @@ export function OpportunityDrawer({
       })
       .select("id, author_id, kind, content, mentions, created_at")
       .single();
-    if (error || !data) return toast.error("Erro ao adicionar comentário");
+    if (error || !data) return toast.error("Erro ao adicionar comentário", { description: mensagemDeErroDeGravacao(error, "vendas") });
 
     const comment = data as unknown as OpportunityComment;
     const uploadedAttachments: CommentAttachment[] = [];
@@ -591,7 +602,7 @@ export function OpportunityDrawer({
       .single();
     if (proposalError || !proposalData) {
       setConverting(false);
-      toast.error("Erro ao gerar proposta");
+      toast.error("Erro ao gerar proposta", { description: mensagemDeErroDeGravacao(proposalError, "vendas") });
       return;
     }
     if (opp.tier_id) {
@@ -644,7 +655,7 @@ export function OpportunityDrawer({
       .single();
     if (contractError || !contractData) {
       setConverting(false);
-      toast.error("Erro ao gerar contrato");
+      toast.error("Erro ao gerar contrato", { description: mensagemDeErroDeGravacao(contractError, ["crm", "financeiro"]) });
       return;
     }
     if (opp.converted_proposal_id) {
@@ -681,15 +692,17 @@ export function OpportunityDrawer({
 
   const syncStageWithJourney = async (snapshot: JourneySnapshot) => {
     const current = oppRef.current;
-    if (!current || !orgId) return;
+    // Quem só lê não sincroniza: a RLS não aplicaria, e a tela diria que aplicou.
+    if (!current || !orgId || !podeEditar) return;
     const nextStage = getStageSyncUpdate(current.stage, snapshot);
     if (!nextStage) return;
-    const { error } = await supabase
+    const { data: alteradas, error } = await supabase
       .from("opportunities")
       .update({ stage: nextStage, ...(nextStage === "fechado" ? { decided_at: new Date().toISOString() } : {}) } as any)
       .eq("id", current.id)
-      .eq("organization_id", orgId);
-    if (error) return;
+      .eq("organization_id", orgId)
+      .select("id");
+    if (error || !alteradas?.length) return;
     setOpp((prev) => (prev ? { ...prev, stage: nextStage } : prev));
     toast.success(`Pipeline atualizado: ${STAGES.find((s) => s.id === nextStage)?.label ?? nextStage}`);
     onChanged();
@@ -1108,9 +1121,9 @@ export function OpportunityDrawer({
             <Button size="sm" variant="ghost" onClick={() => loadJourney(opp.id)} disabled={journeyLoading}>
               {journeyLoading ? "Atualizando..." : "Atualizar"}
             </Button>
-            <Button size="sm" onClick={advanceJourney} disabled={converting || opp.stage === "perdido"}>
+            {podeEditar && <Button size="sm" onClick={advanceJourney} disabled={converting || opp.stage === "perdido"}>
               {converting ? "Processando..." : (nextStep?.label === "Relatório de entrega" ? "Gerar relatório" : `Avançar jornada ${nextStep ? `→ ${nextStep.label}` : ""}`)}
-            </Button>
+            </Button>}
           </div>
         </div>
         <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
@@ -1193,7 +1206,7 @@ export function OpportunityDrawer({
               <SheetTitle className="flex items-center gap-2 flex-wrap">
                 {opp.brand}
                 <Badge variant="secondary">{formatBRL(Number(opp.value))}</Badge>
-                <Button
+                {podeEditar && <Button
                   variant="ghost"
                   size="sm"
                   className="ml-auto text-destructive hover:text-destructive"
@@ -1201,12 +1214,13 @@ export function OpportunityDrawer({
                 >
                   <Trash2 className="h-4 w-4 mr-1.5" />
                   Excluir
-                </Button>
+                </Button>}
               </SheetTitle>
               <SheetDescription>
                 Detalhes, atividades e ações da oportunidade.
               </SheetDescription>
             </SheetHeader>
+            {!podeEditar && <div className="mt-3"><SomenteLeitura module="vendas" /></div>}
 
 
             <Tabs value={tab} onValueChange={setTab} className="mt-4">
@@ -1225,6 +1239,7 @@ export function OpportunityDrawer({
               </TabsContent>
 
               <TabsContent value="detalhes" className="space-y-4 mt-4">
+                <fieldset disabled={!podeEditar} className="space-y-4 min-w-0">
                 <div className="grid gap-2 p-1" data-field="marca">
 
                   <Label>Marca</Label>
@@ -1300,9 +1315,11 @@ export function OpportunityDrawer({
                   <div className="grid gap-2 p-1" data-field="sponsor">
                     <div className="flex items-center justify-between">
                       <Label>Patrocinador</Label>
-                      <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setSponsorDialogOpen(true)}>
-                        <Plus className="h-3 w-3 mr-1" /> Novo
-                      </Button>
+                      {podeCriarPatrocinador && (
+                        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setSponsorDialogOpen(true)}>
+                          <Plus className="h-3 w-3 mr-1" /> Novo
+                        </Button>
+                      )}
                     </div>
                     <Select
                       value={opp.sponsor_id ?? "none"}
@@ -1354,6 +1371,7 @@ export function OpportunityDrawer({
                     onBlur={() => updateField({ notes: opp.notes })}
                   />
                 </div>
+                </fieldset>
 
                 <Separator />
 
@@ -1399,7 +1417,7 @@ export function OpportunityDrawer({
 
 
                 {opp.stage === "perdido" && (
-                  <>
+                  <fieldset disabled={!podeEditar} className="space-y-4 min-w-0">
                     <Separator />
                     <div className="grid gap-2">
                       <Label>Motivo da perda</Label>
@@ -1423,7 +1441,7 @@ export function OpportunityDrawer({
                         onBlur={() => updateField({ lost_comment: opp.lost_comment })}
                       />
                     </div>
-                  </>
+                  </fieldset>
                 )}
               </TabsContent>
 
@@ -1446,7 +1464,7 @@ export function OpportunityDrawer({
                     />
                   </div>
                 )}
-                <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
+                {podeEditar && <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
                   <div className="grid grid-cols-2 gap-2">
                     <Select
                       value={newAct.activity_type}
@@ -1476,7 +1494,7 @@ export function OpportunityDrawer({
                   <Button size="sm" onClick={addActivity} className="w-full">
                     <Plus className="h-4 w-4 mr-1" /> Adicionar
                   </Button>
-                </div>
+                </div>}
 
                 <div className="space-y-2">
                   {activities.length === 0 && (
@@ -1498,6 +1516,7 @@ export function OpportunityDrawer({
                       >
                         <button
                           onClick={() => toggleActivity(a)}
+                          disabled={!podeEditar}
                           className={`mt-0.5 h-4 w-4 rounded border flex items-center justify-center shrink-0 ${
                             a.status === "concluido" ? "bg-primary border-primary text-primary-foreground" : "bg-background"
                           }`}
@@ -1520,6 +1539,7 @@ export function OpportunityDrawer({
                             <DueDateEditor
                               value={a.due_date}
                               withTime
+                              disabled={!podeEditar}
                               onSave={async (next) => {
                                 const value = next ? new Date(next).toISOString() : null;
                                 const { error } = await supabase
@@ -1527,7 +1547,7 @@ export function OpportunityDrawer({
                                   .update({ due_date: value })
                                   .eq("id", a.id);
                                 if (error) {
-                                  toast.error(error.message);
+                                  toast.error("Erro ao salvar a data", { description: mensagemDeErroDeGravacao(error, "vendas") });
                                   return;
                                 }
                                 setActivities((cur) =>
@@ -1546,13 +1566,13 @@ export function OpportunityDrawer({
                           />
                         </div>
 
-                        <button
+                        {podeEditar && <button
                           onClick={() => deleteActivity(a.id)}
                           className="text-muted-foreground hover:text-destructive shrink-0"
                           aria-label="Excluir"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        </button>}
                       </div>
                     );
                   })}
@@ -1560,7 +1580,7 @@ export function OpportunityDrawer({
               </TabsContent>
 
               <TabsContent value="timeline" className="mt-4 space-y-4">
-                <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
+                {podeEditar && <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
                   <div className="grid grid-cols-2 gap-2">
                     <Select value={newComment.kind} onValueChange={(kind) => setNewComment({ ...newComment, kind })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1591,7 +1611,7 @@ export function OpportunityDrawer({
                   <Textarea rows={3} placeholder="Comentário interno, nota de reunião ou próximo contexto..." value={newComment.content} onChange={(e) => setNewComment({ ...newComment, content: e.target.value })} />
                   <Input type="file" multiple onChange={(e) => setCommentFiles(Array.from(e.target.files ?? []))} />
                   <Button size="sm" onClick={addComment} className="w-full"><MessageSquare className="h-4 w-4 mr-2" />Adicionar à timeline</Button>
-                </div>
+                </div>}
 
                 <div className="flex flex-wrap items-center gap-2">
                   <Select value={timelineFilter} onValueChange={(v) => setTimelineFilter(v as typeof timelineFilter)}>
@@ -1674,7 +1694,7 @@ export function OpportunityDrawer({
                   variant="outline"
                   className="w-full justify-start"
                   onClick={convertToProposal}
-                  disabled={converting || !!opp.converted_proposal_id}
+                  disabled={!podeEditar || converting || !!opp.converted_proposal_id}
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   {opp.converted_proposal_id ? "Proposta já criada" : "Gerar proposta (rascunho)"}
@@ -1683,7 +1703,7 @@ export function OpportunityDrawer({
                   variant="outline"
                   className="w-full justify-start"
                   onClick={convertToContract}
-                  disabled={converting || !!opp.converted_contract_id}
+                  disabled={!podeCriarContrato || converting || !!opp.converted_contract_id}
                 >
                   <FileSignature className="h-4 w-4 mr-2" />
                   {opp.converted_contract_id ? "Contrato já criado" : "Converter em contrato (fecha a oportunidade)"}
