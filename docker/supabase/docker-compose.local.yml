@@ -103,7 +103,59 @@ services:
       timeout: 5s
       retries: 5
 
+  # S3 local no lugar do Cloudflare R2 (BP-7.05, mídia da edição). Fica no
+  # profile `midia` para não subir no `supabase:up` nem no CI: suba com
+  # `npm run supabase:midia`. A Edge Function `midia-r2` fala com ele por
+  # `minio:9000` e entrega ao navegador URLs para a porta publicada. As
+  # credenciais e as `R2_*` saem do `supabase:chaves`.
+  #
+  # O MinIO comunitário parou de publicar imagens em 2025; a tag abaixo é a
+  # última usada aqui e serve só para desenvolvimento. Nos ambientes
+  # hospedados o armazenamento é o R2 (docs/runbooks/armazenamento-r2.md).
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    profiles: ['midia']
+    restart: unless-stopped
+    command: ['server', '/data', '--console-address', ':9001']
+    ports:
+      - ${MINIO_PORT_HOST:-9010}:9000
+      - ${MINIO_CONSOLE_PORT_HOST:-9011}:9001
+    environment:
+      # Vazias, o MinIO não sobe (senha mínima de 8 caracteres). Não use `:?`:
+      # o compose avalia o arquivo inteiro, mesmo com o profile desligado, e
+      # quebraria o `supabase:up` de quem tem um `.env` anterior à BP-7.05.
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-}
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Cria o bucket local uma vez e sai. Sem CORS aqui: o MinIO aceita qualquer
+  # origem por padrão. A restrição por origem é configurada no R2.
+  minio-init:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    profiles: ['midia']
+    restart: 'no'
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      R2_BUCKET: ${R2_BUCKET:-brandplay-midia-dev}
+    entrypoint:
+      - sh
+      - -c
+      - mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" && mc mb --ignore-existing "local/$$R2_BUCKET"
+
   auth:
     depends_on:
       mail:
         condition: service_started
+
+volumes:
+  minio-data: # objetos do MinIO local (profile `midia`)

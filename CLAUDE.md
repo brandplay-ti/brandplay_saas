@@ -135,6 +135,11 @@ O npm roda em workspaces: os comandos do portal (`dev`, `build`, `lint`,
   ADR-0011) — `YOUTUBE_API_KEY` apenas em Edge Functions; opcional. Regras do
   relatório em `docs/business/relatorios.md`, operação em
   `docs/runbooks/relatorios.md`.
+- Cloudflare R2 (mídia da edição, BP-7, ADR-0015) — vídeo e foto vão direto
+  entre navegador e R2 por URL pré-assinada pela Edge Function `midia-r2`;
+  `R2_*` apenas em Edge Functions, um bucket e uma chave por ambiente.
+  Localmente, MinIO no profile `midia`. Runbook:
+  `docs/runbooks/armazenamento-r2.md`.
 
 ### Infraestrutura
 
@@ -173,6 +178,8 @@ npm run supabase:migrate:status
 npm run supabase:seed          # usuário de exemplo (só local)
 npm run supabase:test          # testes de segurança/RLS, cobrança, superadmin e IA (supabase/tests/)
 npm run supabase:superadmin -- -v email=<e-mail> -v comentario=<motivo>   # concede superadmin (local)
+npm run supabase:midia         # MinIO local no lugar do R2 (profile midia) e o bucket
+npm run supabase:testar-midia  # roteiro de ponta a ponta da midia-r2 (só stack local)
 npm run supabase:down / :reset
 npm run supabase:bundle        # migrations achatadas para o SQL Editor do Studio
 npm run supabase:checar -- <url> <anon_key> [--portal <url>]   # diagnóstico de um ambiente
@@ -180,7 +187,8 @@ npm run supabase:diagnosticar   # homologação só leitura: migrations, erros, 
 ```
 
 Portas locais (bloco próprio, convive com o central-check): portal 8080, API
-8010, Studio 54325, Postgres 54324, Redis 6380, Mailpit 8026.
+8010, Studio 54325, Postgres 54324, Redis 6380, Mailpit 8026, MinIO 9010
+(console 9011).
 
 ### Convenções de teste
 
