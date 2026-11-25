@@ -207,7 +207,8 @@ const Auth = () => {
             <button
               type="button"
               onClick={() => setMode(mode === "login" ? "signup" : "login")}
-              className="font-semibold text-primary hover:underline"
+              // No celular, 44px de toque: é o único caminho entre login e cadastro (MOB-08).
+              className="font-semibold text-primary hover:underline max-md:inline-flex max-md:min-h-11 max-md:items-center max-md:px-1"
             >
               {mode === "login" ? "Criar conta" : "Entrar"}
             </button>

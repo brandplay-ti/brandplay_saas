@@ -73,6 +73,21 @@ necessidade clara e sem antes confirmar que o componente equivalente não
 existe ou não pode ser composto a partir do que já está instalado (Radix +
 Tailwind).
 
+## Celular: toque e fonte
+
+Abaixo de 768px (`md`), `Button` tem pelo menos 44px de altura (`sm`, 40px),
+`size="icon"` 44×44, e `Input`/`SelectTrigger` 44px. `Input`, `Textarea` e
+`SelectTrigger` usam 16px, porque abaixo disso o Safari do iOS dá zoom ao focar
+(MOB-08, `docs/architecture/plano-versao-mobile.md`).
+
+Ajuste só de celular vai em `max-md:` com `min-h-*`/`min-w-*` ou `text-*`.
+Não use `h-11 md:h-10`: o `twMerge` tira o `h-11` quando a tela passa `h-9`
+em `className`, mantém o `md:h-10` e muda o desktop. Botão de texto que é o
+único caminho de uma ação (ex.: "Criar conta" no login) também ganha 44px no
+celular (`max-md:inline-flex max-md:min-h-11 max-md:items-center`). Os testes
+`@mobile` de `portal/e2e/mobile-paginas-publicas.spec.ts` conferem os três
+pontos nas páginas públicas.
+
 ## Campos de senha
 
 Todo campo de senha usa o `PasswordInput`

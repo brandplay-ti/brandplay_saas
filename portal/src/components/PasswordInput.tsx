@@ -20,7 +20,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
         <Input
           ref={ref}
           type={visivel ? "text" : "password"}
-          className={cn("pr-10", className)}
+          className={cn("pr-10 max-md:pr-11", className)}
           disabled={disabled}
           {...props}
         />

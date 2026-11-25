@@ -153,7 +153,7 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
     ];
 
     return (
-      <div className={cn("relative h-10 w-full", className)}>
+      <div className={cn("relative h-10 w-full max-md:min-h-11", className)}>
         <Input
           ref={campo}
           type="text"
@@ -167,7 +167,7 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
           onBlur={aoSair}
           aria-invalid={mostrarErro ? true : ariaInvalid}
           title={mostrarErro ? "Data inválida" : title}
-          className={cn("h-full pr-10", mostrarErro && "border-destructive focus-visible:ring-destructive")}
+          className={cn("h-full pr-10 max-md:pr-11", mostrarErro && "border-destructive focus-visible:ring-destructive")}
         />
         <Popover open={calendarioAberto} onOpenChange={setCalendarioAberto}>
           <PopoverTrigger asChild>

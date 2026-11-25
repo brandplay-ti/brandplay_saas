@@ -2,8 +2,9 @@ import { expect, test, type Page } from "@playwright/test";
 
 // Plano mobile (MOB-19, docs/architecture/plano-versao-mobile.md): fumaça das
 // páginas abertas a qualquer visitante, nos projetos mobile-android e
-// mobile-ios. Não depende de usuário nem de dado do seed: só confere que a
-// página cabe na largura do celular e que nenhum campo faz o iOS dar zoom.
+// mobile-ios. Não depende de usuário nem de dado do seed: confere que a página
+// cabe na largura do celular, que nenhum campo faz o iOS dar zoom e que os
+// botões têm tamanho de toque (MOB-08).
 const PAGINAS = [
   { nome: "início", rota: "/" },
   { nome: "login", rota: "/auth" },
@@ -34,9 +35,31 @@ async function camposQueDaoZoom(page: Page): Promise<string[]> {
   );
 }
 
+/**
+ * Botões visíveis com altura abaixo de 40px (MOB-08). O `Button` tem 44px no
+ * celular e o `size="sm"` tem 40px, que é o piso aceito aqui. Fica de fora o
+ * `<button>` com outro papel (o Checkbox do Radix é `role="checkbox"`): o
+ * alvo de toque dele é o rótulo.
+ */
+async function botoesPequenos(page: Page): Promise<string[]> {
+  return page.evaluate(() =>
+    Array.from(document.querySelectorAll<HTMLElement>("button:not([role]), [role='button']"))
+      .filter((el) => {
+        const caixa = el.getBoundingClientRect();
+        const estilo = getComputedStyle(el);
+        return caixa.width > 0 && caixa.height > 0 && estilo.visibility !== "hidden" && estilo.opacity !== "0";
+      })
+      .filter((el) => el.getBoundingClientRect().height < 40)
+      .map((el) => {
+        const nome = el.getAttribute("aria-label") ?? el.textContent?.trim() ?? "";
+        return `"${nome}" (${Math.round(el.getBoundingClientRect().height)}px)`;
+      }),
+  );
+}
+
 test.describe("Páginas públicas no celular @mobile", () => {
   for (const { nome, rota } of PAGINAS) {
-    test(`${nome} cabe na largura da tela e não dá zoom nos campos`, async ({ page }) => {
+    test(`${nome} cabe na largura da tela, não dá zoom nos campos e tem botões tocáveis`, async ({ page }) => {
       await page.goto(rota);
       await page.waitForLoadState("networkidle");
       await page.evaluate(() => document.fonts.ready);
@@ -46,6 +69,7 @@ test.describe("Páginas públicas no celular @mobile", () => {
 
       expect(await excessoHorizontal(page), `rolagem horizontal em ${rota}`).toBeLessThanOrEqual(0);
       expect(await camposQueDaoZoom(page), `campos com fonte abaixo de 16px em ${rota}`).toEqual([]);
+      expect(await botoesPequenos(page), `botões abaixo de 40px em ${rota}`).toEqual([]);
     });
   }
 });
