@@ -20,7 +20,12 @@ const useLogoUrl = (path?: string | null) =>
     return supabase.storage.from("org-logos").getPublicUrl(path).data.publicUrl;
   }, [path]);
 
-export const OrganizationSwitcher = () => {
+interface OrganizationSwitcherProps {
+  /** Mostra o nome também abaixo de 640px (cabeçalho do celular, MOB-01). */
+  mostrarNome?: boolean;
+}
+
+export const OrganizationSwitcher = ({ mostrarNome = false }: OrganizationSwitcherProps) => {
   const { orgId, orgName, orgLogoPath, organizations, switchOrganization, loading } = useOrganization();
   const currentLogo = useLogoUrl(orgLogoPath);
 
@@ -29,14 +34,20 @@ export const OrganizationSwitcher = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="gap-2 px-2 max-w-[220px]">
+        <Button
+          variant="ghost"
+          className="gap-2 px-2 max-w-[220px]"
+          aria-label={`Organização ativa: ${orgName || "Organização"}. Trocar de organização`}
+        >
           <Avatar className="h-7 w-7 rounded-md">
-            {currentLogo ? <AvatarImage src={currentLogo} alt={orgName} className="object-contain" /> : null}
+            {currentLogo ? <AvatarImage src={currentLogo} alt="" className="object-contain" /> : null}
             <AvatarFallback className="rounded-md bg-muted text-[10px]">
               <Building2 className="h-3.5 w-3.5" />
             </AvatarFallback>
           </Avatar>
-          <span className="hidden sm:inline text-sm font-medium truncate">{orgName || "Organização"}</span>
+          <span className={`${mostrarNome ? "inline" : "hidden sm:inline"} text-sm font-medium truncate`}>
+            {orgName || "Organização"}
+          </span>
           <ChevronsUpDown className="h-3.5 w-3.5 opacity-60 shrink-0" />
         </Button>
       </DropdownMenuTrigger>

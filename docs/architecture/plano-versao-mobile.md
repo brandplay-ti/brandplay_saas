@@ -142,6 +142,14 @@ Criar `MobileHeader` e `BottomNav` e usá-los no `DashboardLayout` abaixo de
   continua no cabeçalho; no desktop nada muda.
 - Testes: unitário de `ATALHOS_MOBILE` × `gruposVisiveis` (marca, agência,
   papel sem `vendas`), no padrão de `lib/navegacao.test.ts`.
+- Como ficou (BP-33): `atalhosMobile` escolhe quatro posições entre os itens
+  visíveis (Início; Pipeline, Contratos ou Patrocinadores; Entregas, Projetos
+  ou Financeiro; Agenda) e pula a posição sem opção. Até a MOB-02, o "Mais"
+  abre a `AppSidebar`, que no celular já é uma gaveta; ela passou a fechar ao
+  trocar de página, o que antes não acontecia. O botão do assistente subiu para
+  cima da barra (o resto é a MOB-06). O `viewport-fit=cover` ficou de fora:
+  mudaria o recorte de todas as páginas, e o `env(safe-area-inset-bottom)` só
+  passa a valer com o PWA (MOB-07).
 
 **MOB-02. Menu Mais** (P)
 `MenuMobile` com organização ativa, todos os grupos visíveis e a conta. Inclui

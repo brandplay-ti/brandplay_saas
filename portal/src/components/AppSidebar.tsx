@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useOrganization } from "@/hooks/useOrganization";
 import { gruposVisiveis, urlAtiva } from "@/lib/navegacao";
 import { usePlatformRole } from "@/hooks/usePlatformAdmin";
@@ -20,9 +21,15 @@ import { ClientSelector } from "@/components/admin/ClientSelector";
 import { cn } from "@/lib/utils";
 
 export const AppSidebar = () => {
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+
+  // No celular a barra é uma gaveta (aberta pelo "Mais" da BottomNav): fecha
+  // ao trocar de página, senão ficava por cima da página que acabou de abrir.
+  useEffect(() => {
+    if (isMobile) setOpenMobile(false);
+  }, [location.pathname, isMobile, setOpenMobile]);
   const { can, clientType, isAdmin, loading } = useOrganization();
   // Só o atalho: a área /admin se protege sozinha (layout + banco).
   // O atalho para /admin vale para a equipe inteira: superadmin e suporte (0046).

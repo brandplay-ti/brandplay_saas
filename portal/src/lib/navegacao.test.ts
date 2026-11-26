@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gruposVisiveis, urlAtiva, type NavModule } from "./navegacao";
+import { atalhosMobile, gruposVisiveis, urlAtiva, type NavModule } from "./navegacao";
 
 const acesso = (modulos: NavModule[], extra: Partial<Parameters<typeof gruposVisiveis>[0]> = {}) => ({
   can: (m: NavModule) => modulos.includes(m),
@@ -68,5 +68,53 @@ describe("urlAtiva", () => {
   it("não confunde prefixo de nome com subpágina", () => {
     expect(urlAtiva(grupos, "/dashboard/brandtrack/marcas-esperadas")).toBe("/dashboard/brandtrack/marcas-esperadas");
     expect(urlAtiva(grupos, "/dashboard/brandtrack/marcas/nike")).toBe("/dashboard/brandtrack/marcas");
+  });
+});
+
+describe("atalhosMobile", () => {
+  const atalhos = (modulos: NavModule[], extra: Partial<Parameters<typeof gruposVisiveis>[0]> = {}) =>
+    atalhosMobile(gruposVisiveis(acesso(modulos, extra)));
+  const todos: NavModule[] = ["crm", "vendas", "operacional", "financeiro", "team"];
+
+  it("agência com todos os módulos: Início, Pipeline, Entregas e Agenda", () => {
+    const a = atalhos(todos);
+    expect(a.map((i) => i.url)).toEqual(["/dashboard", "/dashboard/pipeline", "/dashboard/entregas", "/dashboard/calendario"]);
+    expect(a.map((i) => i.title)).toEqual(["Início", "Pipeline", "Entregas", "Agenda"]);
+  });
+
+  it("marca não tem funil: Contratos no lugar do Pipeline", () => {
+    expect(atalhos(todos, { clientType: "marca" }).map((i) => i.url)).toEqual([
+      "/dashboard",
+      "/dashboard/contratos",
+      "/dashboard/entregas",
+      "/dashboard/calendario",
+    ]);
+  });
+
+  it("só financeiro: Contratos e Financeiro", () => {
+    expect(atalhos(["financeiro"]).map((i) => i.url)).toEqual([
+      "/dashboard",
+      "/dashboard/contratos",
+      "/dashboard/financeiro",
+      "/dashboard/calendario",
+    ]);
+  });
+
+  it("só operacional: pula a posição comercial em vez de mostrar o que não vê", () => {
+    expect(atalhos(["operacional"]).map((i) => i.url)).toEqual(["/dashboard", "/dashboard/entregas", "/dashboard/calendario"]);
+  });
+
+  it("sem módulo: só o que todo membro vê", () => {
+    expect(atalhos([]).map((i) => i.url)).toEqual(["/dashboard", "/dashboard/calendario"]);
+  });
+
+  it("nunca passa de quatro e todo atalho está no menu do usuário", () => {
+    for (const modulos of [todos, ["crm"], ["vendas"], ["operacional", "financeiro"]] as NavModule[][]) {
+      const grupos = gruposVisiveis(acesso(modulos));
+      const visiveis = new Set(grupos.flatMap((g) => g.items.map((i) => i.url)));
+      const a = atalhosMobile(grupos);
+      expect(a.length).toBeLessThanOrEqual(4);
+      expect(a.every((i) => visiveis.has(i.url))).toBe(true);
+    }
   });
 });

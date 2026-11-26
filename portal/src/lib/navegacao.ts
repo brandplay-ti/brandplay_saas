@@ -126,3 +126,34 @@ export function urlAtiva(grupos: NavGroup[], pathname: string): string | null {
     .filter((url) => pathname === url || pathname.startsWith(`${url}/`))
     .reduce<string | null>((melhor, url) => (melhor && melhor.length >= url.length ? melhor : url), null);
 }
+
+/**
+ * Atalhos da barra inferior do celular (MOB-01, plano-versao-mobile.md):
+ * quatro posições, cada uma com a primeira opção que o usuário vê. O resto do
+ * menu fica no "Mais". Só escolhe entre os itens de `gruposVisiveis`, então
+ * nunca mostra um atalho que a barra lateral esconderia.
+ */
+const POSICOES_MOBILE: string[][] = [
+  ["/dashboard"],
+  ["/dashboard/pipeline", "/dashboard/contratos", "/dashboard/patrocinadores"],
+  ["/dashboard/entregas", "/dashboard/propriedades", "/dashboard/financeiro"],
+  ["/dashboard/calendario"],
+];
+
+/** Rótulo curto na barra inferior, onde cada atalho tem ~78px. */
+const TITULOS_CURTOS: Record<string, string> = {
+  "/dashboard": "Início",
+  "/dashboard/calendario": "Agenda",
+};
+
+export function atalhosMobile(grupos: NavGroup[]): NavItem[] {
+  const porUrl = new Map(grupos.flatMap((g) => g.items).map((i) => [i.url, i]));
+  const usados = new Set<string>();
+  return POSICOES_MOBILE.flatMap((opcoes) => {
+    const url = opcoes.find((u) => porUrl.has(u) && !usados.has(u));
+    if (!url) return [];
+    usados.add(url);
+    const item = porUrl.get(url)!;
+    return [{ ...item, title: TITULOS_CURTOS[url] ?? item.title }];
+  });
+}
